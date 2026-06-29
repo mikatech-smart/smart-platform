@@ -1,0 +1,93 @@
+.cards{
+
+    display:grid;
+
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+
+    gap:25px;
+
+    padding:40px;
+
+}
+
+.card{
+
+    background:white;
+
+    border-radius:18px;
+
+    padding:30px;
+
+    cursor:pointer;
+
+    transition:.30s;
+
+    display:flex;
+
+    align-items:center;
+
+    gap:20px;
+
+    border:1px solid #ececec;
+
+}
+
+.card:hover{
+
+    transform:translateY(-8px);
+
+    box-shadow:0 18px 40px rgba(0,0,0,.15);
+
+}
+
+.icon{
+
+    width:65px;
+
+    height:65px;
+
+    border-radius:16px;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    font-size:28px;
+
+    color:white;
+
+}
+
+.wifi .icon{
+
+    background:#4CAF50;
+
+}
+
+.whatsapp .icon{
+
+    background:#25D366;
+
+}
+
+.review .icon{
+
+    background:#f5b301;
+
+}
+
+.card h2{
+
+    font-size:22px;
+
+    margin-bottom:8px;
+
+}
+
+.card p{
+
+    color:#666;
+
+}
