@@ -1,0 +1,20 @@
+export interface Empresa {
+  id:string;
+  nome:string;
+  slug:string;
+  categoria:string;
+  tipo:string;
+  descricao:string;
+  telefone:string;
+  whatsapp:string;
+  email:string;
+  instagram:string;
+  site:string;
+  endereco:string;
+  pix:string;
+  wifi_nome:string;
+  wifi_senha:string;
+  logo:string;
+  banner:string;
+  ativo:boolean;
+}
