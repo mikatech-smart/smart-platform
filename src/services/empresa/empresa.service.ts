@@ -1,4 +1,5 @@
 import { supabase } from "../../lib/supabase";
+import type { Empresa } from "../../models/Empresa";
 
 export async function buscarEmpresaPorSlug(slug: string) {
   const { data, error } = await supabase
@@ -7,15 +8,22 @@ export async function buscarEmpresaPorSlug(slug: string) {
     .eq("slug", slug)
     .single();
 
-  return {
-    data,
-    error,
-  };
+  return { data, error };
+}
+
+export async function buscarEmpresaPorId(id: string) {
+  const { data, error } = await supabase
+    .from("empresas")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  return { data, error };
 }
 
 export async function atualizarEmpresa(
   id: string,
-  dados: Record<string, any>
+  dados: Partial<Empresa>
 ) {
   const { data, error } = await supabase
     .from("empresas")
@@ -24,8 +32,5 @@ export async function atualizarEmpresa(
     .select()
     .single();
 
-  return {
-    data,
-    error,
-  };
+  return { data, error };
 }
