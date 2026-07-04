@@ -4,7 +4,7 @@
 
 .public-empresa-actions {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .public-empresa-action {
@@ -12,8 +12,8 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 54px;
-  padding: 0 18px;
+  min-height: 60px;
+  padding: 0 20px;
   border-radius: 8px;
   background: #ffffff;
   color: #1f3d36;
@@ -93,7 +93,7 @@
 
 .public-empresa-copy-button {
   width: 100%;
-  min-height: 44px;
+  min-height: 50px;
   margin-top: 10px;
   border: 1px solid #1f3d36;
   border-radius: 8px;

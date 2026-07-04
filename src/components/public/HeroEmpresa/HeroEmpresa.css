@@ -35,7 +35,7 @@
     (var(--public-empresa-logo-size, 112px) * 0.6)
   );
   left: 50%;
-  z-index: 2;
+  z-index: 50;
   width: var(--public-empresa-logo-size, 112px);
   height: var(--public-empresa-logo-size, 112px);
   object-fit: cover;
@@ -44,7 +44,7 @@
   border-radius: 999px;
   display: block;
   transform: translateX(-50%);
-  box-shadow: 0 14px 36px rgba(23, 23, 23, 0.18);
+  box-shadow: 0 20px 46px rgba(23, 23, 23, 0.26);
 }
 
 @media (min-width: 640px) {

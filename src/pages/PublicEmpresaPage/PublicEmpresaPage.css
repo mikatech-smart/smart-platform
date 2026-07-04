@@ -17,14 +17,14 @@
 }
 
 .public-empresa-card {
-  --public-empresa-hero-height: clamp(112px, 28vw, 180px);
-  --public-empresa-logo-size: 112px;
+  --public-empresa-hero-height: clamp(96px, 24vw, 150px);
+  --public-empresa-logo-size: 129px;
   width: min(100%, 760px);
   position: relative;
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(88, 73, 54, 0.14);
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 24px 70px rgba(38, 31, 24, 0.14);
 }
 
@@ -61,7 +61,8 @@
 .public-empresa-content {
   display: grid;
   gap: 10px;
-  padding: calc(var(--public-empresa-logo-size) * 0.48) 14px 18px;
+  padding: calc(var(--public-empresa-logo-size) * 0.46) 14px 18px;
+  overflow: visible;
 }
 
 .public-empresa-profile-card,
@@ -87,7 +88,7 @@
     (var(--public-empresa-logo-size) * 0.6)
   );
   left: 50%;
-  z-index: 2;
+  z-index: 50;
   width: var(--public-empresa-logo-size);
   height: var(--public-empresa-logo-size);
   object-fit: cover;
@@ -96,7 +97,7 @@
   border-radius: 999px;
   display: block;
   transform: translateX(-50%);
-  box-shadow: 0 14px 36px rgba(23, 23, 23, 0.18);
+  box-shadow: 0 20px 46px rgba(23, 23, 23, 0.26);
 }
 
 .public-empresa-category {
