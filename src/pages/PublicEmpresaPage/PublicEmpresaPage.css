@@ -116,16 +116,11 @@
 }
 
 .public-empresa-profile-card h1 {
-  margin: 0;
-  color: #151515;
-  font-size: clamp(2.35rem, 11vw, 3.7rem);
-  font-weight: 900;
-  line-height: 0.98;
-  letter-spacing: 0;
+  display: none;
 }
 
 .public-empresa-description {
-  margin: 14px auto 0;
+  margin: 8px auto 0;
   max-width: 600px;
   color: #5f5b54;
   font-size: 0.95rem;
@@ -144,9 +139,9 @@
 .public-empresa-action {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  min-height: 68px;
-  padding: 0 16px;
+  justify-content: center;
+  min-height: 72px;
+  padding: 0 18px;
   border-radius: 18px;
   background: #ffffff;
   color: #1f3d36;
@@ -164,13 +159,13 @@
 }
 
 .public-empresa-action--primary {
-  background: #1f3d36;
-  color: #ffffff;
-  border-color: #1f3d36;
+  background: #ffffff;
+  color: #1f3d36;
+  border-color: rgba(88, 73, 54, 0.1);
 }
 
 .public-empresa-action--light {
-  background: #fbfaf8;
+  background: #ffffff;
 }
 
 .public-empresa-info-card {

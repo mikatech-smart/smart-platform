@@ -13,16 +13,11 @@
 }
 
 .public-empresa-profile-card h1 {
-  margin: 0;
-  color: #151515;
-  font-size: clamp(2.35rem, 11vw, 3.7rem);
-  font-weight: 900;
-  line-height: 0.98;
-  letter-spacing: 0;
+  display: none;
 }
 
 .public-empresa-description {
-  margin: 14px auto 0;
+  margin: 8px auto 0;
   max-width: 600px;
   color: #5f5b54;
   font-size: 0.95rem;
