@@ -120,9 +120,22 @@ function KwaiIcon() {
 
 function PixIcon() {
   return (
-    <span className="public-empresa-pix-icon" aria-hidden="true">
-      PIX
-    </span>
+    <svg className="public-empresa-brand-svg" viewBox="0 0 32 32" aria-hidden="true">
+      <path
+        d="M16 3.7 28.3 16 16 28.3 3.7 16 16 3.7Z"
+        fill="#32BCAD"
+      />
+      <path
+        d="M12.3 12.1a2.6 2.6 0 0 1 3.7 0l2.1 2.1a1.3 1.3 0 0 0 1.9 0l1.6-1.6 2.2 2.2-1.6 1.6a4.5 4.5 0 0 1-6.3 0l-2.1-2.1a.7.7 0 0 0-1 0l-3.7 3.7-2.2-2.2 5.4-3.7Z"
+        fill="#ffffff"
+        opacity="0.95"
+      />
+      <path
+        d="m9.1 18 3.7 3.7a.7.7 0 0 0 1 0l2.1-2.1a4.5 4.5 0 0 1 6.3 0l1.6 1.6-2.2 2.2-1.6-1.6a1.3 1.3 0 0 0-1.9 0L16 23.9a2.6 2.6 0 0 1-3.7 0l-5.4-3.7L9.1 18Z"
+        fill="#ffffff"
+        opacity="0.95"
+      />
+    </svg>
   );
 }
 

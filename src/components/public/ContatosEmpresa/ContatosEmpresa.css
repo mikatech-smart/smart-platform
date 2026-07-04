@@ -90,27 +90,25 @@
 }
 
 .public-empresa-action-icon {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
 }
 
 .public-empresa-brand-svg {
-  width: 34px;
-  height: 34px;
+  width: 39px;
+  height: 39px;
   display: block;
 }
 
-.public-empresa-pix-icon {
-  color: #1f3d36;
-  font-size: 0.92rem;
-  font-weight: 900;
-  letter-spacing: 0.04em;
+.public-empresa-action-icon-wrap > svg:not(.public-empresa-brand-svg) {
+  width: 30px;
+  height: 30px;
 }
 
 .public-empresa-action-icon-wrap--wifi,
 .public-empresa-action-icon-wrap--site,
 .public-empresa-action-icon-wrap--pix {
-  color: #1f3d36;
+  color: #32bcad;
 }
 
 .public-empresa-action-icon-wrap--whatsapp {
@@ -220,19 +218,20 @@
 
 .public-empresa-map-button {
   width: 100%;
-  min-height: 50px;
+  min-height: 56px;
   margin-top: 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border: 1px solid #d7ccbd;
+  border: 1px solid rgba(31, 61, 54, 0.2);
   border-radius: 14px;
-  background: #fbfaf8;
+  background: #ffffff;
   color: #1f3d36;
   font: inherit;
   font-weight: 800;
   opacity: 1;
+  box-shadow: 0 10px 24px rgba(31, 61, 54, 0.08);
 }
 
 @media (min-width: 640px) {
