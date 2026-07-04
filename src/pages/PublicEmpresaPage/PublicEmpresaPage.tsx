@@ -84,7 +84,7 @@ export default function PublicEmpresaPage() {
             wifiNome={empresa.wifi_nome}
             wifiSenha={empresa.wifi_senha}
             pixNome={empresa.pix_nome}
-            pixChave={empresa.pix_chave}
+            pixChave={empresa.pix_chave || empresa.pix}
           />
         </div>
       </section>
