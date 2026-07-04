@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import PublicProfile from "../pages/connect/PublicProfile/PublicProfile";
+import PublicEmpresaPage from "../pages/PublicEmpresaPage/PublicEmpresaPage";
 
 import Dashboard from "../pages/dashboard/Dashboard";
 import DashboardHome from "../pages/dashboard/DashboardHome";
@@ -40,6 +41,11 @@ export default function AppRouter() {
             element={<Publicar />}
           />
         </Route>
+
+        <Route
+          path="/:slug"
+          element={<PublicEmpresaPage />}
+        />
 
       </Routes>
     </BrowserRouter>

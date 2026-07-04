@@ -16,15 +16,21 @@ export interface Empresa {
 
   instagram: string;
 
+  facebook: string;
+
   site: string;
 
   endereco: string;
+  horario_atendimento?: string | null;
+  google_review_url?: string | null;
 
   pix: string;
+  pix_nome?: string | null;
+  pix_chave?: string | null;
 
-  wifi_nome: string;
+  wifi_nome?: string | null;
 
-  wifi_senha: string;
+  wifi_senha?: string | null;
 
   logo: string;
 
@@ -55,11 +61,15 @@ export const empresaInicial: Empresa = {
 
   instagram: "",
 
+  facebook: "",
+
   site: "",
 
   endereco: "",
 
   pix: "",
+  pix_nome: "",
+  pix_chave: "",
 
   wifi_nome: "",
 

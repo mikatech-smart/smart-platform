@@ -1,4 +1,4 @@
-import { AgentResponse, BusinessContext } from "./types";
+import type { AgentResponse, BusinessContext } from "./types";
 
 export interface Agent {
   name: string;

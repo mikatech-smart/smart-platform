@@ -1,0 +1,236 @@
+.public-empresa-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(183, 124, 54, 0.14), transparent 28rem),
+    linear-gradient(180deg, #f7f4ef 0%, #ebe5db 100%);
+  color: #161616;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.public-empresa-page--center {
+  justify-content: center;
+  text-align: center;
+}
+
+.public-empresa-card {
+  width: min(100%, 760px);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(88, 73, 54, 0.14);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 24px 70px rgba(38, 31, 24, 0.14);
+}
+
+.public-empresa-hero {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 8.8;
+  background: #1f3d36;
+  overflow: hidden;
+}
+
+.public-empresa-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 46%, rgba(0, 0, 0, 0.22) 100%);
+  pointer-events: none;
+}
+
+.public-empresa-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.public-empresa-banner__fallback {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1f3d36 0%, #496f62 48%, #b77c36 100%);
+}
+
+.public-empresa-content {
+  display: grid;
+  gap: 14px;
+  padding: 0 14px 18px;
+}
+
+.public-empresa-profile-card,
+.public-empresa-section,
+.public-empresa-empty {
+  background: #ffffff;
+  border: 1px solid rgba(88, 73, 54, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(38, 31, 24, 0.06);
+}
+
+.public-empresa-profile-card {
+  position: relative;
+  z-index: 1;
+  margin-top: -44px;
+  padding: 0 18px 24px;
+  text-align: center;
+}
+
+.public-empresa-logo {
+  width: 112px;
+  height: 112px;
+  object-fit: cover;
+  background: #ffffff;
+  border: 5px solid #ffffff;
+  border-radius: 999px;
+  margin: -34px auto 16px;
+  display: block;
+  box-shadow: 0 14px 36px rgba(23, 23, 23, 0.18);
+}
+
+.public-empresa-category {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto 10px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #f1ebe1;
+  color: #735229;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.public-empresa-profile-card h1 {
+  margin: 0;
+  font-size: clamp(2rem, 10vw, 3.4rem);
+  line-height: 1.02;
+  letter-spacing: 0;
+}
+
+.public-empresa-description {
+  margin: 16px auto 0;
+  max-width: 600px;
+  color: #4d4a45;
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.public-empresa-section {
+  padding: 14px;
+}
+
+.public-empresa-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.public-empresa-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 54px;
+  padding: 0 18px;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1f3d36;
+  border: 1px solid #d7ccbd;
+  font-weight: 800;
+  text-decoration: none;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.public-empresa-action:hover {
+  transform: translateY(-1px);
+  border-color: #b79a70;
+  box-shadow: 0 10px 24px rgba(38, 31, 24, 0.1);
+}
+
+.public-empresa-action--primary {
+  background: #1f3d36;
+  color: #ffffff;
+  border-color: #1f3d36;
+}
+
+.public-empresa-action--light {
+  background: #f7f4ef;
+}
+
+.public-empresa-info-card {
+  text-align: left;
+}
+
+.public-empresa-info-card span {
+  display: block;
+  margin-bottom: 8px;
+  color: #735229;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.public-empresa-info-card p {
+  margin: 0;
+  color: #3e3b36;
+  font-size: 0.98rem;
+  line-height: 1.55;
+}
+
+.public-empresa-footer {
+  margin-top: 18px;
+  color: #756d62;
+  font-size: 0.82rem;
+}
+
+.public-empresa-empty {
+  width: min(100%, 420px);
+  padding: 28px;
+}
+
+.public-empresa-empty h1 {
+  margin: 0 0 8px;
+  font-size: 1.6rem;
+  letter-spacing: 0;
+}
+
+.public-empresa-empty p {
+  margin: 0;
+  color: #5f5a52;
+}
+
+@media (min-width: 640px) {
+  .public-empresa-page {
+    padding: 34px 24px;
+  }
+
+  .public-empresa-hero {
+    aspect-ratio: 16 / 7;
+  }
+
+  .public-empresa-content {
+    gap: 16px;
+    padding: 0 22px 24px;
+  }
+
+  .public-empresa-profile-card {
+    margin-top: -54px;
+    padding: 0 34px 32px;
+  }
+
+  .public-empresa-logo {
+    width: 126px;
+    height: 126px;
+    margin-top: -38px;
+  }
+
+  .public-empresa-section {
+    padding: 18px;
+  }
+
+  .public-empresa-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

@@ -1,0 +1,140 @@
+.public-empresa-section {
+  padding: 14px;
+}
+
+.public-empresa-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.public-empresa-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 54px;
+  padding: 0 18px;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1f3d36;
+  border: 1px solid #d7ccbd;
+  font: inherit;
+  font-weight: 800;
+  text-decoration: none;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.public-empresa-action:hover {
+  transform: translateY(-1px);
+  border-color: #b79a70;
+  box-shadow: 0 10px 24px rgba(38, 31, 24, 0.1);
+}
+
+.public-empresa-action--primary {
+  background: #1f3d36;
+  color: #ffffff;
+  border-color: #1f3d36;
+}
+
+.public-empresa-action--light {
+  background: #f7f4ef;
+}
+
+.public-empresa-action--google {
+  background: #ffffff;
+  color: #735229;
+  border-color: #b79a70;
+}
+
+.public-empresa-action--placeholder {
+  background: #f7f4ef;
+  color: #8a7d6d;
+  border-color: #e4dbcf;
+  cursor: default;
+  opacity: 1;
+}
+
+.public-empresa-action--placeholder:hover {
+  transform: none;
+  border-color: #e4dbcf;
+  box-shadow: none;
+}
+
+.public-empresa-info-card {
+  text-align: left;
+}
+
+.public-empresa-detail-card {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid #e4dbcf;
+  border-radius: 8px;
+  background: #ffffff;
+  text-align: left;
+}
+
+.public-empresa-detail-card span {
+  display: block;
+  margin-bottom: 8px;
+  color: #735229;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.public-empresa-detail-card p {
+  margin: 6px 0;
+  color: #3e3b36;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.public-empresa-copy-button {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 10px;
+  border: 1px solid #1f3d36;
+  border-radius: 8px;
+  background: #1f3d36;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.public-empresa-copy-feedback {
+  margin: 10px 0 0;
+  color: #1f3d36;
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.public-empresa-info-card span {
+  display: block;
+  margin-bottom: 8px;
+  color: #735229;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.public-empresa-info-card p {
+  margin: 0;
+  color: #3e3b36;
+  font-size: 0.98rem;
+  line-height: 1.55;
+}
+
+@media (min-width: 640px) {
+  .public-empresa-section {
+    padding: 18px;
+  }
+
+  .public-empresa-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

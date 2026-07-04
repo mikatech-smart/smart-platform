@@ -1,0 +1,52 @@
+.public-empresa-hero {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 5;
+  background: #1f3d36;
+  overflow: hidden;
+}
+
+.public-empresa-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 46%, rgba(0, 0, 0, 0.22) 100%);
+  pointer-events: none;
+}
+
+.public-empresa-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.public-empresa-banner__fallback {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1f3d36 0%, #496f62 48%, #b77c36 100%);
+}
+
+.public-empresa-logo {
+  width: 112px;
+  height: 112px;
+  object-fit: cover;
+  background: #ffffff;
+  border: 5px solid #ffffff;
+  border-radius: 999px;
+  margin: -34px auto 16px;
+  display: block;
+  box-shadow: 0 14px 36px rgba(23, 23, 23, 0.18);
+}
+
+@media (min-width: 640px) {
+  .public-empresa-hero {
+    aspect-ratio: 16 / 4.4;
+  }
+
+  .public-empresa-logo {
+    width: 126px;
+    height: 126px;
+    margin-top: -38px;
+  }
+}

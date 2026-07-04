@@ -1,0 +1,78 @@
+.public-empresa-category {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto 10px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #f1ebe1;
+  color: #735229;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.public-empresa-profile-card h1 {
+  margin: 0;
+  font-size: clamp(2rem, 10vw, 3.4rem);
+  line-height: 1.02;
+  letter-spacing: 0;
+}
+
+.public-empresa-description {
+  margin: 16px auto 0;
+  max-width: 600px;
+  color: #4d4a45;
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.public-empresa-hours {
+  max-width: 520px;
+  margin: 18px auto 0;
+  padding: 14px 16px;
+  background: #f7f4ef;
+  border: 1px solid #e4ded4;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.public-empresa-hours span {
+  display: block;
+  margin-bottom: 6px;
+  color: #735229;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.public-empresa-hours p {
+  margin: 0;
+  color: #3e3b36;
+  font-size: 0.96rem;
+  line-height: 1.55;
+  white-space: pre-line;
+}
+
+.public-empresa-google-review {
+  width: fit-content;
+  max-width: 100%;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 18px auto 0;
+  padding: 0 18px;
+  border-radius: 8px;
+  background: #1f3d36;
+  color: #ffffff;
+  font-weight: 800;
+  text-decoration: none;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.public-empresa-google-review:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(38, 31, 24, 0.1);
+}

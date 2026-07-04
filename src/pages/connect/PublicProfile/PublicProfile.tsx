@@ -3,11 +3,12 @@ import { useParams } from "react-router-dom";
 
 import Hero from "../../../components/connect/Hero";
 import { buscarEmpresaPorSlug } from "../../../services/empresa/empresa.service";
+import type { Empresa } from "../../../models/Empresa";
 
 export default function PublicProfile() {
   const { slug } = useParams();
 
-  const [empresa, setEmpresa] = useState<any>(null);
+  const [empresa, setEmpresa] = useState<Empresa | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

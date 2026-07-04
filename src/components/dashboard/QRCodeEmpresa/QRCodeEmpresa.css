@@ -1,0 +1,223 @@
+.qr-code-empresa {
+  display: grid;
+  gap: 22px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.06);
+}
+
+.qr-code-empresa__header {
+  max-width: 760px;
+}
+
+.qr-code-empresa__eyebrow {
+  margin: 0 0 6px;
+  color: #166534;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.qr-code-empresa h3,
+.qr-code-empresa h4 {
+  margin: 0;
+  color: #111827;
+  line-height: 1.15;
+}
+
+.qr-code-empresa h3 {
+  font-size: 1.55rem;
+}
+
+.qr-code-empresa h4 {
+  font-size: 1.05rem;
+}
+
+.qr-code-empresa__subtitle,
+.qr-code-empresa__card p {
+  margin: 8px 0 0;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.qr-code-empresa__grid {
+  display: grid;
+  gap: 16px;
+}
+
+.qr-code-empresa__card {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  padding: 18px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
+}
+
+.qr-code-empresa__card--main {
+  background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
+}
+
+.qr-code-empresa__section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #166534;
+}
+
+.qr-code-empresa__url-box {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+.qr-code-empresa__url-box span {
+  color: #6b7280;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.qr-code-empresa__url-box strong {
+  color: #111827;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.qr-code-empresa__actions {
+  display: grid;
+  gap: 10px;
+}
+
+.qr-code-empresa__button {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 18px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #111827;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.qr-code-empresa__button:hover {
+  transform: translateY(-1px);
+  border-color: #16a34a;
+  box-shadow: 0 10px 24px rgba(22, 163, 74, 0.12);
+}
+
+.qr-code-empresa__button--primary {
+  background: #166534;
+  border-color: #166534;
+  color: #ffffff;
+}
+
+.qr-code-empresa__button--wide {
+  width: 100%;
+}
+
+.qr-code-empresa__feedback {
+  margin: 0;
+  color: #166534;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.qr-code-empresa__qr-card {
+  min-height: 100%;
+}
+
+.qr-code-empresa__placeholder {
+  display: grid;
+  gap: 12px;
+  align-content: center;
+  justify-items: center;
+  min-height: 260px;
+  padding: 20px;
+  background: linear-gradient(180deg, #f8fafc 0%, #eef7f1 100%);
+  border: 1px dashed #86efac;
+  border-radius: 16px;
+  text-align: center;
+}
+
+.qr-code-empresa__placeholder-box {
+  width: min(100%, 190px);
+  aspect-ratio: 1;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  color: #166534;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+.qr-code-empresa__placeholder-box strong {
+  color: #111827;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+}
+
+.qr-code-empresa__placeholder-box span {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.qr-code-empresa__placeholder p {
+  max-width: 280px;
+  margin: 0;
+  color: #4b5563;
+  line-height: 1.45;
+}
+
+.qr-code-empresa__placeholder small {
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.qr-code-empresa__future {
+  padding: 12px 14px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  color: #166534;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+@media (min-width: 768px) {
+  .qr-code-empresa {
+    padding: 28px;
+  }
+
+  .qr-code-empresa__grid {
+    grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+  }
+
+  .qr-code-empresa__card--main,
+  .qr-code-empresa__future {
+    grid-column: 1 / -1;
+  }
+
+  .qr-code-empresa__actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
