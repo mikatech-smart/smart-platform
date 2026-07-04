@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
+import { Globe, MapPin, Star, Wifi } from "lucide-react";
 
 import "./ContatosEmpresa.css";
 
@@ -49,6 +50,68 @@ function normalizarValor(valor?: string | null) {
   return valor?.trim() || "";
 }
 
+function IconeWhatsApp() {
+  return (
+    <span className="public-empresa-brand-icon" aria-hidden="true">
+      W
+    </span>
+  );
+}
+
+function IconeInstagram() {
+  return (
+    <span className="public-empresa-brand-icon" aria-hidden="true">
+      I
+    </span>
+  );
+}
+
+function IconeTikTok() {
+  return (
+    <span className="public-empresa-brand-icon" aria-hidden="true">
+      T
+    </span>
+  );
+}
+
+function IconeYouTube() {
+  return (
+    <span className="public-empresa-brand-icon" aria-hidden="true">
+      Y
+    </span>
+  );
+}
+
+function IconeKwai() {
+  return (
+    <svg
+      className="public-empresa-action-icon"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <path
+        d="M8.2 6.1a3 3 0 1 1 5.6 1.5h2.1a3.2 3.2 0 0 1 3.2 3.2v4.6a3.2 3.2 0 0 1-3.2 3.2H7.7a3.2 3.2 0 0 1-3.2-3.2v-4.6a3.2 3.2 0 0 1 3.2-3.2h.9a3 3 0 0 1-.4-1.5Zm3 1.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm-3.1 4.1a1.1 1.1 0 1 0 0 2.2 1.1 1.1 0 0 0 0-2.2Zm6.9 0a1.1 1.1 0 1 0 0 2.2 1.1 1.1 0 0 0 0-2.2Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+function ConteudoAcao({
+  icon,
+  label,
+}: {
+  icon: ReactNode;
+  label: string;
+}) {
+  return (
+    <>
+      <span className="public-empresa-action-icon-wrap">{icon}</span>
+      <span>{label}</span>
+    </>
+  );
+}
+
 export default function ContatosEmpresa({
   whatsapp,
   telefone,
@@ -94,7 +157,7 @@ export default function ContatosEmpresa({
               onClick={() => setWifiAberto((aberto) => !aberto)}
               aria-expanded={wifiAberto}
             >
-              Wi-Fi
+              <ConteudoAcao icon={<Wifi size={22} />} label="Wi-Fi" />
             </button>
           )}
 
@@ -105,7 +168,7 @@ export default function ContatosEmpresa({
               target="_blank"
               rel="noreferrer"
             >
-              WhatsApp
+              <ConteudoAcao icon={<IconeWhatsApp />} label="WhatsApp" />
             </a>
           )}
 
@@ -116,7 +179,7 @@ export default function ContatosEmpresa({
               onClick={() => setPixAberto((aberto) => !aberto)}
               aria-expanded={pixAberto}
             >
-              PIX
+              <ConteudoAcao icon={<span>PIX</span>} label="PIX" />
             </button>
           )}
 
@@ -127,7 +190,7 @@ export default function ContatosEmpresa({
               target="_blank"
               rel="noreferrer"
             >
-              Avaliar no Google
+              <ConteudoAcao icon={<Star size={22} />} label="Avaliar no Google" />
             </a>
           )}
 
@@ -138,7 +201,7 @@ export default function ContatosEmpresa({
               target="_blank"
               rel="noreferrer"
             >
-              Instagram
+              <ConteudoAcao icon={<IconeInstagram />} label="Instagram" />
             </a>
           )}
 
@@ -147,7 +210,7 @@ export default function ContatosEmpresa({
             type="button"
             disabled
           >
-            TikTok
+            <ConteudoAcao icon={<IconeTikTok />} label="TikTok" />
           </button>
 
           <button
@@ -155,7 +218,7 @@ export default function ContatosEmpresa({
             type="button"
             disabled
           >
-            YouTube
+            <ConteudoAcao icon={<IconeYouTube />} label="YouTube" />
           </button>
 
           <button
@@ -163,7 +226,7 @@ export default function ContatosEmpresa({
             type="button"
             disabled
           >
-            Kwai
+            <ConteudoAcao icon={<IconeKwai />} label="Kwai" />
           </button>
 
           {siteLink && (
@@ -173,7 +236,7 @@ export default function ContatosEmpresa({
               target="_blank"
               rel="noreferrer"
             >
-              Site
+              <ConteudoAcao icon={<Globe size={22} />} label="Site" />
             </a>
           )}
         </div>
@@ -231,10 +294,20 @@ export default function ContatosEmpresa({
 
       {endereco && (
         <section className="public-empresa-section public-empresa-info-card">
-          <span>Endereco</span>
+          <div className="public-empresa-info-heading">
+            <MapPin size={20} />
+            <span>Endereco</span>
+          </div>
           <p>
             {endereco}
           </p>
+          <button
+            className="public-empresa-map-button"
+            type="button"
+            disabled
+          >
+            Ver no mapa
+          </button>
         </section>
       )}
     </>

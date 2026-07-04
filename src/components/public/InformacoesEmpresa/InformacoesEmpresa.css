@@ -1,39 +1,41 @@
 .public-empresa-category {
   width: fit-content;
   max-width: 100%;
-  margin: 0 auto 10px;
-  padding: 7px 12px;
+  margin: 0 auto 12px;
+  padding: 8px 13px;
   border-radius: 999px;
-  background: #f1ebe1;
+  background: #f5efe6;
   color: #735229;
-  font-size: 0.72rem;
-  font-weight: 800;
+  font-size: 0.68rem;
+  font-weight: 900;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
 }
 
 .public-empresa-profile-card h1 {
   margin: 0;
-  font-size: clamp(2rem, 10vw, 3.4rem);
-  line-height: 1.02;
+  color: #151515;
+  font-size: clamp(2.35rem, 11vw, 3.7rem);
+  font-weight: 900;
+  line-height: 0.98;
   letter-spacing: 0;
 }
 
 .public-empresa-description {
-  margin: 16px auto 0;
+  margin: 14px auto 0;
   max-width: 600px;
-  color: #4d4a45;
-  font-size: 1rem;
-  line-height: 1.65;
+  color: #5f5b54;
+  font-size: 0.95rem;
+  line-height: 1.58;
 }
 
 .public-empresa-hours {
   max-width: 520px;
-  margin: 18px auto 0;
+  margin: 16px auto 0;
   padding: 14px 16px;
-  background: #f7f4ef;
-  border: 1px solid #e4ded4;
-  border-radius: 8px;
+  background: #fbfaf8;
+  border: 1px solid #ebe4da;
+  border-radius: 16px;
   text-align: left;
 }
 
