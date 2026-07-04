@@ -1,2 +1,7 @@
 name = "mika-connect"
 pages_build_output_dir = "dist"
+
+[vars]
+VITE_SUPABASE_URL = "https://zujfoqjmuzvdqilaxlhb.supabase.co"
+VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_qXP7cbmMLVqlw9gnFA24lw_T-bBZXYY"
+VITE_PUBLIC_APP_URL = "https://smart.mikatech.com.br"
