@@ -10,8 +10,10 @@ import {
 import "./ContatosEmpresa.css";
 
 interface ContatosEmpresaProps {
+  nome: string;
   whatsapp?: string | null;
   telefone?: string | null;
+  email?: string | null;
   instagram?: string | null;
   site?: string | null;
   endereco?: string | null;
@@ -139,6 +141,28 @@ function PixIcon() {
   );
 }
 
+function SalvarContatoIcon() {
+  return (
+    <svg className="public-empresa-brand-svg" viewBox="0 0 32 32" aria-hidden="true">
+      <rect x="7" y="4" width="18" height="24" rx="5" fill="#1F3D36" opacity="0.12" />
+      <path
+        d="M16 15.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8.1c.8-3.5 3.5-5.6 7-5.6s6.2 2.1 7 5.6"
+        fill="none"
+        stroke="#1F3D36"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+      />
+      <path
+        d="M24.5 18v6.5M21.3 21.2h6.4"
+        fill="none"
+        stroke="#1F3D36"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function ConteudoAcao({
   icon,
   label,
@@ -159,8 +183,10 @@ function ConteudoAcao({
 }
 
 export default function ContatosEmpresa({
+  nome,
   whatsapp,
   telefone,
+  email,
   instagram,
   site,
   endereco,
@@ -172,7 +198,8 @@ export default function ContatosEmpresa({
 }: ContatosEmpresaProps) {
   const [wifiAberto, setWifiAberto] = useState(false);
   const [pixAberto, setPixAberto] = useState(false);
-  const [feedback, setFeedback] = useState("");
+  const [feedbackWifi, setFeedbackWifi] = useState("");
+  const [feedbackPix, setFeedbackPix] = useState("");
 
   const whatsappLink = criarLinkWhatsApp(whatsapp || telefone || "");
   const instagramLink = criarLinkInstagram(instagram || "");
@@ -185,11 +212,51 @@ export default function ContatosEmpresa({
   const temWifi = Boolean(nomeWifi || senhaWifi);
   const temPix = Boolean(chavePix);
 
-  async function copiarTexto(texto: string) {
+  async function copiarTexto(texto: string, tipo: "wifi" | "pix") {
     if (!texto) return;
 
     await navigator.clipboard.writeText(texto);
-    setFeedback("Copiado com sucesso");
+
+    if (tipo === "wifi") {
+      setFeedbackWifi("Senha copiada");
+      setFeedbackPix("");
+      return;
+    }
+
+    setFeedbackPix("Chave PIX copiada");
+    setFeedbackWifi("");
+  }
+
+  function formatarVCardTexto(valor: string) {
+    return valor
+      .replace(/\\/g, "\\\\")
+      .replace(/\n/g, "\\n")
+      .replace(/,/g, "\\,")
+      .replace(/;/g, "\\;");
+  }
+
+  function salvarContato() {
+    const telefoneContato = whatsapp || telefone || "";
+    const linhas = [
+      "BEGIN:VCARD",
+      "VERSION:3.0",
+      `FN:${formatarVCardTexto(nome)}`,
+      `ORG:${formatarVCardTexto(nome)}`,
+      telefoneContato ? `TEL;TYPE=CELL:${telefoneContato.replace(/\D/g, "")}` : "",
+      email ? `EMAIL:${formatarVCardTexto(email)}` : "",
+      site ? `URL:${criarLinkExterno(site)}` : "",
+      endereco ? `ADR;TYPE=WORK:;;${formatarVCardTexto(endereco)};;;;` : "",
+      "END:VCARD",
+    ].filter(Boolean);
+
+    const arquivo = new Blob([linhas.join("\n")], { type: "text/vcard;charset=utf-8" });
+    const url = URL.createObjectURL(arquivo);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `${nome || "contato"}.vcf`;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -197,14 +264,43 @@ export default function ContatosEmpresa({
       <section className="public-empresa-section">
         <div className="public-empresa-actions">
           {temWifi && (
-            <button
-              className="public-empresa-action public-empresa-action--light"
-              type="button"
-              onClick={() => setWifiAberto((aberto) => !aberto)}
-              aria-expanded={wifiAberto}
-            >
-              <ConteudoAcao icon={<Wifi size={26} />} label="Wi-Fi" tone="wifi" />
-            </button>
+            <div className="public-empresa-action-shell">
+              <button
+                className="public-empresa-action public-empresa-action--light"
+                type="button"
+                onClick={() => setWifiAberto((aberto) => !aberto)}
+                aria-expanded={wifiAberto}
+              >
+                <ConteudoAcao icon={<Wifi size={26} />} label="Wi-Fi" tone="wifi" />
+              </button>
+
+              {wifiAberto && (
+                <div className="public-empresa-inline-detail">
+                  {nomeWifi && (
+                    <p>
+                      <strong>Rede:</strong> {nomeWifi}
+                    </p>
+                  )}
+                  {senhaWifi && (
+                    <>
+                      <p>
+                        <strong>Senha:</strong> {senhaWifi}
+                      </p>
+                      <button
+                        className="public-empresa-copy-button"
+                        type="button"
+                        onClick={() => copiarTexto(senhaWifi, "wifi")}
+                      >
+                        Copiar senha
+                      </button>
+                    </>
+                  )}
+                  {feedbackWifi && (
+                    <p className="public-empresa-copy-feedback">{feedbackWifi}</p>
+                  )}
+                </div>
+              )}
+            </div>
           )}
 
           {whatsappLink && (
@@ -219,19 +315,52 @@ export default function ContatosEmpresa({
           )}
 
           {temPix && (
-            <button
-              className="public-empresa-action public-empresa-action--light"
-              type="button"
-              onClick={() => setPixAberto((aberto) => !aberto)}
-              aria-expanded={pixAberto}
-            >
-              <ConteudoAcao
-                icon={<PixIcon />}
-                label="PIX"
-                tone="pix"
-              />
-            </button>
+            <div className="public-empresa-action-shell">
+              <button
+                className="public-empresa-action public-empresa-action--light"
+                type="button"
+                onClick={() => setPixAberto((aberto) => !aberto)}
+                aria-expanded={pixAberto}
+              >
+                <ConteudoAcao
+                  icon={<PixIcon />}
+                  label="PIX"
+                  tone="pix"
+                />
+              </button>
+
+              {pixAberto && (
+                <div className="public-empresa-inline-detail">
+                  {nomePix && (
+                    <p>
+                      <strong>Recebedor:</strong> {nomePix}
+                    </p>
+                  )}
+                  <p>
+                    <strong>Chave PIX:</strong> {chavePix}
+                  </p>
+                  <button
+                    className="public-empresa-copy-button"
+                    type="button"
+                    onClick={() => copiarTexto(chavePix, "pix")}
+                  >
+                    Copiar chave PIX
+                  </button>
+                  {feedbackPix && (
+                    <p className="public-empresa-copy-feedback">{feedbackPix}</p>
+                  )}
+                </div>
+              )}
+            </div>
           )}
+
+          <button
+            className="public-empresa-action public-empresa-action--light"
+            type="button"
+            onClick={salvarContato}
+          >
+            <ConteudoAcao icon={<SalvarContatoIcon />} label="Salvar contato" tone="contact" />
+          </button>
 
           {googleReviewLink && (
             <a
@@ -294,56 +423,6 @@ export default function ContatosEmpresa({
             </a>
           )}
         </div>
-
-        {wifiAberto && temWifi && (
-          <div className="public-empresa-detail-card">
-            <span>Wi-Fi</span>
-            {nomeWifi && (
-              <p>
-                <strong>Nome da rede:</strong> {nomeWifi}
-              </p>
-            )}
-            {senhaWifi && (
-              <>
-                <p>
-                  <strong>Senha:</strong> {senhaWifi}
-                </p>
-                <button
-                  className="public-empresa-copy-button"
-                  type="button"
-                  onClick={() => copiarTexto(senhaWifi)}
-                >
-                  Copiar senha do Wi-Fi
-                </button>
-              </>
-            )}
-          </div>
-        )}
-
-        {pixAberto && temPix && (
-          <div className="public-empresa-detail-card">
-            <span>PIX</span>
-            {nomePix && (
-              <p>
-                <strong>Nome do recebedor:</strong> {nomePix}
-              </p>
-            )}
-            <p>
-              <strong>Chave PIX:</strong> {chavePix}
-            </p>
-            <button
-              className="public-empresa-copy-button"
-              type="button"
-              onClick={() => copiarTexto(chavePix)}
-            >
-              Copiar chave PIX
-            </button>
-          </div>
-        )}
-
-        {feedback && (
-          <p className="public-empresa-copy-feedback">{feedback}</p>
-        )}
       </section>
 
       {endereco && (

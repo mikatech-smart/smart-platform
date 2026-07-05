@@ -15,6 +15,7 @@ export default function PublicEmpresaPage() {
 
   const [empresa, setEmpresa] = useState<Empresa | null>(null);
   const [carregando, setCarregando] = useState(true);
+  const [mostrarIndicador, setMostrarIndicador] = useState(true);
 
   useEffect(() => {
     async function carregarEmpresa() {
@@ -35,6 +36,18 @@ export default function PublicEmpresaPage() {
 
     carregarEmpresa();
   }, [slug]);
+
+  useEffect(() => {
+    function ocultarIndicador() {
+      setMostrarIndicador(false);
+    }
+
+    window.addEventListener("scroll", ocultarIndicador, { once: true });
+
+    return () => {
+      window.removeEventListener("scroll", ocultarIndicador);
+    };
+  }, []);
 
   if (carregando) {
     return (
@@ -75,8 +88,10 @@ export default function PublicEmpresaPage() {
           </section>
 
           <ContatosEmpresa
+            nome={empresa.nome}
             whatsapp={empresa.whatsapp}
             telefone={empresa.telefone}
+            email={empresa.email}
             instagram={empresa.instagram}
             site={empresa.site}
             endereco={empresa.endereco}
@@ -88,6 +103,13 @@ export default function PublicEmpresaPage() {
           />
         </div>
       </section>
+
+      {mostrarIndicador && (
+        <div className="public-empresa-scroll-hint" aria-hidden="true">
+          <span>⌄</span>
+          <p>Mais opcoes abaixo</p>
+        </div>
+      )}
 
       <RodapeEmpresa />
     </main>
