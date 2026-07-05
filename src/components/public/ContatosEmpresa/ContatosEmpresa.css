@@ -33,6 +33,21 @@
   transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
 }
 
+.public-empresa-action-content {
+  width: min(100%, 190px);
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  align-items: center;
+  column-gap: 14px;
+}
+
+.public-empresa-action-label {
+  min-width: 0;
+  text-align: left;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
 .public-empresa-action:hover {
   transform: translateY(-2px) scale(1.01);
   border-color: #b79a70;
@@ -90,13 +105,12 @@
 }
 
 .public-empresa-action-icon-wrap {
-  width: 50px;
-  height: 50px;
-  flex: 0 0 50px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-right: 14px;
   border-radius: 15px;
   background: transparent;
   color: currentColor;
@@ -127,13 +141,13 @@
 }
 
 .public-empresa-action-icon {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
 }
 
 .public-empresa-brand-svg {
-  width: 39px;
-  height: 39px;
+  width: 36px;
+  height: 36px;
   display: block;
 }
 

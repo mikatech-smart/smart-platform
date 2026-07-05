@@ -173,12 +173,12 @@ function ConteudoAcao({
   tone: string;
 }) {
   return (
-    <>
+    <span className="public-empresa-action-content">
       <span className={`public-empresa-action-icon-wrap public-empresa-action-icon-wrap--${tone}`}>
         {icon}
       </span>
-      <span>{label}</span>
-    </>
+      <span className="public-empresa-action-label">{label}</span>
+    </span>
   );
 }
 
