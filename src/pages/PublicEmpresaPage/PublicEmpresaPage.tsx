@@ -70,7 +70,6 @@ export default function PublicEmpresaPage() {
               nome={empresa.nome}
               categoria={empresa.categoria}
               descricao={empresa.descricao}
-              horarioAtendimento={empresa.horario_atendimento}
             />
           </section>
 
@@ -85,6 +84,7 @@ export default function PublicEmpresaPage() {
             kwai={empresa.kwai}
             site={empresa.site}
             endereco={empresa.endereco}
+            horarioAtendimento={empresa.horario_atendimento}
             googleReviewUrl={empresa.google_review_url}
             wifiNome={empresa.wifi_nome}
             wifiSenha={empresa.wifi_senha}
