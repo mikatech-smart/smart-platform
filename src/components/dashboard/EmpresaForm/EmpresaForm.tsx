@@ -265,7 +265,7 @@ export default function EmpresaForm() {
         title="Identidade Visual"
         subtitle="Configure a logo e o banner que aparecem na pagina publica."
       >
-        <div className="grid xl:grid-cols-2 gap-4">
+        <div className="grid xl:grid-cols-2 gap-4 max-w-5xl">
           <UploadImagem
             titulo="Logo"
             imagem={logo}

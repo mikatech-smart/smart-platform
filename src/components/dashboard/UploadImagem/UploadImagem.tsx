@@ -42,7 +42,9 @@ export default function UploadImagem({
   const [resolucao, setResolucao] = useState("");
   const [qualidade, setQualidade] = useState("");
   const [enviando, setEnviando] = useState(false);
-  const orientacoes = titulo.toLowerCase().includes("banner")
+
+  const isBanner = titulo.toLowerCase().includes("banner");
+  const orientacoes = isBanner
     ? [
         "Recomendado: JPG ou PNG",
         "Ideal: 1580x500px",
@@ -53,6 +55,12 @@ export default function UploadImagem({
         "Ideal: 500x500px",
         "Fundo transparente recomendado",
       ];
+  const previewClassName = isBanner
+    ? "w-40 h-16 object-contain"
+    : "w-24 h-24 object-contain";
+  const previewWrapperClassName = isBanner
+    ? "w-44 min-h-20"
+    : "w-28 min-h-28";
 
   const preview = imagemRemovida
     ? ""
@@ -83,28 +91,21 @@ export default function UploadImagem({
 
     setPreviewLocal(url);
     setImagemRemovida(false);
-
     setNome(arquivo.name);
-
-    setPeso(
-      `${(arquivo.size / 1024).toFixed(1)} KB`
-    );
-
+    setPeso(`${(arquivo.size / 1024).toFixed(1)} KB`);
     setTipo(arquivo.type);
 
     const img = new Image();
 
     img.onload = () => {
-      setResolucao(
-        `${img.width} x ${img.height}px`
-      );
+      setResolucao(`${img.width} x ${img.height}px`);
 
       if (img.width >= 1000) {
-        setQualidade("🟢 Excelente");
+        setQualidade("Excelente");
       } else if (img.width >= 600) {
-        setQualidade("🟡 Boa");
+        setQualidade("Boa");
       } else {
-        setQualidade("🔴 Baixa");
+        setQualidade("Baixa");
       }
     };
 
@@ -154,7 +155,6 @@ export default function UploadImagem({
 
   return (
     <div className="border rounded-2xl p-3 bg-white shadow-sm">
-
       <div className="mb-2">
         <h3 className="font-semibold text-base">
           {titulo}
@@ -169,22 +169,6 @@ export default function UploadImagem({
         </ul>
       </div>
 
-      <div className="border-2 border-dashed rounded-xl p-2 bg-slate-50">
-
-        {preview ? (
-          <img
-            src={preview}
-            alt={titulo}
-            className="w-full h-20 object-contain"
-          />
-        ) : (
-          <div className="h-20 flex items-center justify-center text-sm text-gray-400">
-            Nenhuma imagem
-          </div>
-        )}
-
-      </div>
-
       <input
         ref={inputRef}
         type="file"
@@ -193,51 +177,64 @@ export default function UploadImagem({
         onChange={selecionarArquivo}
       />
 
-      <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-slate-600">
-
-        <div>
-          <strong>Arquivo:</strong> {nome || "-"}
+      <div className="flex flex-col sm:flex-row gap-3 items-start">
+        <div className={`border-2 border-dashed rounded-xl p-2 bg-slate-50 flex items-center justify-center shrink-0 ${previewWrapperClassName}`}>
+          {preview ? (
+            <img
+              src={preview}
+              alt={titulo}
+              className={previewClassName}
+            />
+          ) : (
+            <div className="text-center text-xs text-gray-400">
+              Nenhuma imagem
+            </div>
+          )}
         </div>
 
-        <div>
-          <strong>Tipo:</strong> {tipo || "-"}
-        </div>
+        <div className="flex-1 min-w-0 w-full">
+          <div className="grid gap-y-1 text-xs text-slate-600">
+            <div className="truncate">
+              <strong>Arquivo:</strong> {nome || "-"}
+            </div>
 
-        <div>
-          <strong>Tamanho:</strong> {peso || "-"}
-        </div>
+            <div>
+              <strong>Tipo:</strong> {tipo || "-"}
+            </div>
 
-        <div>
-          <strong>Resolução:</strong> {resolucao || "-"}
-        </div>
+            <div>
+              <strong>Tamanho:</strong> {peso || "-"}
+            </div>
 
-        <div>
-          <strong>Qualidade:</strong> {qualidade || "-"}
-        </div>
+            <div>
+              <strong>Resolucao:</strong> {resolucao || "-"}
+            </div>
 
+            <div>
+              <strong>Qualidade:</strong> {qualidade || "-"}
+            </div>
+          </div>
+
+          <div className="flex gap-2 mt-3">
+            <button
+              type="button"
+              onClick={abrirExplorador}
+              disabled={enviando}
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-xl py-2"
+            >
+              {enviando ? "Enviando..." : "Alterar"}
+            </button>
+
+            <button
+              type="button"
+              onClick={removerImagem}
+              className="px-4 rounded-xl border"
+            >
+              Remover
+            </button>
+          </div>
+        </div>
       </div>
-
-      <div className="flex gap-2 mt-3">
-
-        <button
-          type="button"
-          onClick={abrirExplorador}
-          disabled={enviando}
-          className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-xl py-2"
-        >
-          {enviando ? "Enviando..." : "Selecionar imagem"}
-        </button>
-
-        <button
-          type="button"
-          onClick={removerImagem}
-          className="px-4 rounded-xl border"
-        >
-          Remover
-        </button>
-
-      </div>
-
     </div>
   );
 }
