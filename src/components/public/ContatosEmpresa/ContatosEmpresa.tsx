@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
   Globe,
   MapPin,
@@ -200,6 +200,9 @@ export default function ContatosEmpresa({
   const [pixAberto, setPixAberto] = useState(false);
   const [feedbackWifi, setFeedbackWifi] = useState("");
   const [feedbackPix, setFeedbackPix] = useState("");
+  const [mostrarIndicador, setMostrarIndicador] = useState(true);
+  const fecharWifiTimer = useRef<number | null>(null);
+  const fecharPixTimer = useRef<number | null>(null);
 
   const whatsappLink = criarLinkWhatsApp(whatsapp || telefone || "");
   const instagramLink = criarLinkInstagram(instagram || "");
@@ -212,6 +215,26 @@ export default function ContatosEmpresa({
   const temWifi = Boolean(nomeWifi || senhaWifi);
   const temPix = Boolean(chavePix);
 
+  useEffect(() => {
+    function ocultarIndicador() {
+      setMostrarIndicador(false);
+    }
+
+    window.addEventListener("scroll", ocultarIndicador, { once: true });
+
+    return () => {
+      window.removeEventListener("scroll", ocultarIndicador);
+
+      if (fecharWifiTimer.current) {
+        window.clearTimeout(fecharWifiTimer.current);
+      }
+
+      if (fecharPixTimer.current) {
+        window.clearTimeout(fecharPixTimer.current);
+      }
+    };
+  }, []);
+
   async function copiarTexto(texto: string, tipo: "wifi" | "pix") {
     if (!texto) return;
 
@@ -220,11 +243,19 @@ export default function ContatosEmpresa({
     if (tipo === "wifi") {
       setFeedbackWifi("Senha copiada");
       setFeedbackPix("");
+      fecharWifiTimer.current = window.setTimeout(() => {
+        setWifiAberto(false);
+        setFeedbackWifi("");
+      }, 2000);
       return;
     }
 
     setFeedbackPix("Chave PIX copiada");
     setFeedbackWifi("");
+    fecharPixTimer.current = window.setTimeout(() => {
+      setPixAberto(false);
+      setFeedbackPix("");
+    }, 2000);
   }
 
   function formatarVCardTexto(valor: string) {
@@ -268,7 +299,10 @@ export default function ContatosEmpresa({
               <button
                 className="public-empresa-action public-empresa-action--light"
                 type="button"
-                onClick={() => setWifiAberto((aberto) => !aberto)}
+                onClick={() => {
+                  setWifiAberto((aberto) => !aberto);
+                  setFeedbackWifi("");
+                }}
                 aria-expanded={wifiAberto}
               >
                 <ConteudoAcao icon={<Wifi size={26} />} label="Wi-Fi" tone="wifi" />
@@ -319,7 +353,10 @@ export default function ContatosEmpresa({
               <button
                 className="public-empresa-action public-empresa-action--light"
                 type="button"
-                onClick={() => setPixAberto((aberto) => !aberto)}
+                onClick={() => {
+                  setPixAberto((aberto) => !aberto);
+                  setFeedbackPix("");
+                }}
                 aria-expanded={pixAberto}
               >
                 <ConteudoAcao
@@ -351,6 +388,13 @@ export default function ContatosEmpresa({
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {mostrarIndicador && (
+            <div className="public-empresa-inline-hint" aria-hidden="true">
+              <span>⌄</span>
+              <p>Mais opções abaixo</p>
             </div>
           )}
 

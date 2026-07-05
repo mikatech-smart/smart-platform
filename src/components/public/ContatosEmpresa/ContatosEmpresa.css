@@ -8,6 +8,7 @@
 }
 
 .public-empresa-action-shell {
+  width: 100%;
   display: grid;
   gap: 10px;
   align-self: start;
@@ -40,6 +41,12 @@
 
 .public-empresa-action:active {
   transform: scale(0.99);
+}
+
+.public-empresa-action[aria-expanded="true"] {
+  background: #ffffff;
+  border-color: rgba(88, 73, 54, 0.1);
+  box-shadow: 0 10px 26px rgba(38, 31, 24, 0.06);
 }
 
 .public-empresa-action--primary {
@@ -93,6 +100,30 @@
   border-radius: 15px;
   background: transparent;
   color: currentColor;
+}
+
+.public-empresa-inline-hint {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin: -2px 0 0;
+  padding: 2px 0;
+  color: #1f3d36;
+  pointer-events: none;
+  animation: public-empresa-hint-inline 1600ms ease-in-out infinite;
+}
+
+.public-empresa-inline-hint span {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.public-empresa-inline-hint p {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
 .public-empresa-action-icon {
@@ -280,6 +311,17 @@
   }
 }
 
+@keyframes public-empresa-hint-inline {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(5px);
+  }
+}
+
 @media (min-width: 640px) {
   .public-empresa-section {
     padding: 20px;
@@ -287,5 +329,9 @@
 
   .public-empresa-actions {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .public-empresa-inline-hint {
+    display: none;
   }
 }
