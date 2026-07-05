@@ -257,8 +257,8 @@ export default function EmpresaForm() {
     const { error } = await atualizarEmpresa(empresaId, dadosEmpresa);
 
     if (error) {
-      alert("Erro ao salvar.");
-      console.error(error);
+      console.error("Erro completo ao salvar empresa:", error);
+      alert(error.message || "Erro ao salvar.");
       return;
     }
 
