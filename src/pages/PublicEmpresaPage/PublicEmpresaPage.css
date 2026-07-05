@@ -213,6 +213,52 @@
   line-height: 1.55;
 }
 
+.public-empresa-hours-card {
+  text-align: left;
+}
+
+.public-empresa-hours-heading span {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--mc-primary);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.public-empresa-hours-list {
+  display: grid;
+  gap: 8px;
+}
+
+.public-empresa-hours-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--mc-border);
+}
+
+.public-empresa-hours-row:last-child {
+  border-bottom: 0;
+}
+
+.public-empresa-hours-row span {
+  color: var(--mc-text-muted);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.public-empresa-hours-row strong {
+  color: var(--mc-primary);
+  font-size: 0.92rem;
+  font-weight: 900;
+  text-align: right;
+  white-space: nowrap;
+}
+
 .public-empresa-footer {
   margin-top: 18px;
   color: var(--mc-text-muted);

@@ -25,34 +25,6 @@
   line-height: 1.58;
 }
 
-.public-empresa-hours {
-  max-width: 520px;
-  margin: 16px auto 0;
-  padding: 14px 16px;
-  background: var(--mc-background-soft, #fbfaf8);
-  border: 1px solid var(--mc-border, #ebe4da);
-  border-radius: 16px;
-  text-align: left;
-}
-
-.public-empresa-hours span {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--mc-primary, #735229);
-  font-size: 0.72rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.public-empresa-hours p {
-  margin: 0;
-  color: var(--mc-text-muted, #3e3b36);
-  font-size: 0.96rem;
-  line-height: 1.55;
-  white-space: pre-line;
-}
-
 .public-empresa-google-review {
   width: fit-content;
   max-width: 100%;

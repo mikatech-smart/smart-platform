@@ -10,6 +10,66 @@ import RodapeEmpresa from "../../components/public/RodapeEmpresa/RodapeEmpresa";
 
 import "./PublicEmpresaPage.css";
 
+const diasSemana = [
+  { label: "Segunda", chave: "segunda" },
+  { label: "Terca", chave: "terca" },
+  { label: "Quarta", chave: "quarta" },
+  { label: "Quinta", chave: "quinta" },
+  { label: "Sexta", chave: "sexta" },
+  { label: "Sabado", chave: "sabado" },
+  { label: "Domingo", chave: "domingo" },
+];
+
+function normalizarTexto(valor: string) {
+  return valor
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function formatarPeriodo(inicio: number, fim: number) {
+  const primeiro = diasSemana[inicio].label;
+  const ultimo = diasSemana[fim].label;
+
+  if (inicio === fim) return primeiro;
+  if (fim === inicio + 1) return `${primeiro} e ${ultimo}`;
+
+  return `${primeiro} a ${ultimo}`;
+}
+
+function agruparHorarioAtendimento(horarioAtendimento?: string | null) {
+  if (!horarioAtendimento?.trim()) return [];
+
+  const horariosPorDia = diasSemana.map(() => "Fechado");
+
+  horarioAtendimento.split("\n").forEach((linha) => {
+    const linhaNormalizada = normalizarTexto(linha);
+    const diaIndex = diasSemana.findIndex((dia) =>
+      linhaNormalizada.startsWith(dia.chave)
+    );
+    const horario = linha.match(/(\d{2}:\d{2}).+?(\d{2}:\d{2})/);
+
+    if (diaIndex < 0 || !horario) return;
+
+    horariosPorDia[diaIndex] = `${horario[1]} as ${horario[2]}`;
+  });
+
+  const grupos: Array<{ dias: string; horario: string }> = [];
+  let inicioGrupo = 0;
+
+  for (let index = 1; index <= horariosPorDia.length; index += 1) {
+    if (horariosPorDia[index] === horariosPorDia[inicioGrupo]) continue;
+
+    grupos.push({
+      dias: formatarPeriodo(inicioGrupo, index - 1),
+      horario: horariosPorDia[inicioGrupo],
+    });
+    inicioGrupo = index;
+  }
+
+  return grupos;
+}
+
 export default function PublicEmpresaPage() {
   const { slug } = useParams();
 
@@ -55,6 +115,10 @@ export default function PublicEmpresaPage() {
     );
   }
 
+  const horariosAgrupados = agruparHorarioAtendimento(
+    empresa.horario_atendimento
+  );
+
   return (
     <main className="public-empresa-page">
       <section className="public-empresa-card">
@@ -84,13 +148,32 @@ export default function PublicEmpresaPage() {
             kwai={empresa.kwai}
             site={empresa.site}
             endereco={empresa.endereco}
-            horarioAtendimento={empresa.horario_atendimento}
             googleReviewUrl={empresa.google_review_url}
             wifiNome={empresa.wifi_nome}
             wifiSenha={empresa.wifi_senha}
             pixNome={empresa.pix_nome}
             pixChave={empresa.pix_chave || empresa.pix}
           />
+
+          {horariosAgrupados.length > 0 && (
+            <section className="public-empresa-section public-empresa-hours-card">
+              <div className="public-empresa-hours-heading">
+                <span>Horario de atendimento</span>
+              </div>
+
+              <div className="public-empresa-hours-list">
+                {horariosAgrupados.map((grupo) => (
+                  <div
+                    className="public-empresa-hours-row"
+                    key={`${grupo.dias}-${grupo.horario}`}
+                  >
+                    <span>{grupo.dias}</span>
+                    <strong>{grupo.horario}</strong>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       </section>
 
