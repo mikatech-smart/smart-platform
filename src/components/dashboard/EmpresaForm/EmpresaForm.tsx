@@ -25,6 +25,9 @@ export default function EmpresaForm() {
 
   const [site, setSite] = useState("");
   const [instagram, setInstagram] = useState("");
+  const [tiktok, setTiktok] = useState("");
+  const [youtube, setYoutube] = useState("");
+  const [kwai, setKwai] = useState("");
   const [facebook, setFacebook] = useState("");
   const [endereco, setEndereco] = useState("");
   const [horarioAtendimento, setHorarioAtendimento] = useState("");
@@ -59,6 +62,9 @@ export default function EmpresaForm() {
 
       setSite(data.site || "");
       setInstagram(data.instagram || "");
+      setTiktok(data.tiktok || "");
+      setYoutube(data.youtube || "");
+      setKwai(data.kwai || "");
       setFacebook(data.facebook || "");
       setEndereco(data.endereco || "");
       setHorarioAtendimento(data.horario_atendimento || "");
@@ -90,6 +96,9 @@ export default function EmpresaForm() {
 
       site,
       instagram,
+      tiktok,
+      youtube,
+      kwai,
       facebook,
       endereco,
       horario_atendimento: horarioAtendimento,
@@ -329,13 +338,31 @@ export default function EmpresaForm() {
           />
 
           <Input
+            label="TikTok"
+            value={tiktok}
+            onChange={(e) => setTiktok(e.target.value)}
+          />
+
+          <Input
+            label="YouTube"
+            value={youtube}
+            onChange={(e) => setYoutube(e.target.value)}
+          />
+
+          <Input
+            label="Kwai"
+            value={kwai}
+            onChange={(e) => setKwai(e.target.value)}
+          />
+
+          <Input
             label="Facebook"
             value={facebook}
             onChange={(e) => setFacebook(e.target.value)}
           />
 
-          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500 md:col-span-2">
-            TikTok, YouTube e Kwai ficarao disponiveis quando os campos forem adicionados ao cadastro.
+          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+            Vitrine Digital sera preparada em uma sprint futura.
           </div>
         </div>
       </Card>

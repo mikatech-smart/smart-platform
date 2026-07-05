@@ -42,6 +42,17 @@ export default function UploadImagem({
   const [resolucao, setResolucao] = useState("");
   const [qualidade, setQualidade] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const orientacoes = titulo.toLowerCase().includes("banner")
+    ? [
+        "Recomendado: JPG ou PNG",
+        "Ideal: 1580x500px",
+        "Use imagem horizontal",
+      ]
+    : [
+        "Recomendado: PNG",
+        "Ideal: 500x500px",
+        "Fundo transparente recomendado",
+      ];
 
   const preview = imagemRemovida
     ? ""
@@ -142,22 +153,32 @@ export default function UploadImagem({
   }
 
   return (
-    <div className="border rounded-2xl p-6 bg-white shadow-sm">
+    <div className="border rounded-2xl p-4 bg-white shadow-sm">
 
-      <h3 className="font-semibold text-lg mb-4">
-        {titulo}
-      </h3>
+      <div className="mb-3">
+        <h3 className="font-semibold text-base">
+          {titulo}
+        </h3>
 
-      <div className="border-2 border-dashed rounded-xl p-4">
+        <ul className="mt-2 space-y-1 text-xs text-slate-500">
+          {orientacoes.map((orientacao) => (
+            <li key={orientacao}>
+              {orientacao}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="border-2 border-dashed rounded-xl p-3 bg-slate-50">
 
         {preview ? (
           <img
             src={preview}
             alt={titulo}
-            className="w-full h-52 object-contain"
+            className="w-full h-28 object-contain"
           />
         ) : (
-          <div className="h-52 flex items-center justify-center text-gray-400">
+          <div className="h-28 flex items-center justify-center text-sm text-gray-400">
             Nenhuma imagem
           </div>
         )}
@@ -172,7 +193,7 @@ export default function UploadImagem({
         onChange={selecionarArquivo}
       />
 
-      <div className="mt-5 space-y-1 text-sm">
+      <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-600">
 
         <div>
           <strong>Arquivo:</strong> {nome || "-"}
@@ -196,13 +217,13 @@ export default function UploadImagem({
 
       </div>
 
-      <div className="flex gap-3 mt-6">
+      <div className="flex gap-3 mt-4">
 
         <button
           type="button"
           onClick={abrirExplorador}
           disabled={enviando}
-          className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-xl py-3"
+          className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-xl py-2.5"
         >
           {enviando ? "Enviando..." : "Selecionar imagem"}
         </button>
@@ -210,7 +231,7 @@ export default function UploadImagem({
         <button
           type="button"
           onClick={removerImagem}
-          className="px-5 rounded-xl border"
+          className="px-4 rounded-xl border"
         >
           Remover
         </button>

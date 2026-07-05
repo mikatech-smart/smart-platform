@@ -15,6 +15,9 @@ interface ContatosEmpresaProps {
   telefone?: string | null;
   email?: string | null;
   instagram?: string | null;
+  tiktok?: string | null;
+  youtube?: string | null;
+  kwai?: string | null;
   site?: string | null;
   endereco?: string | null;
   googleReviewUrl?: string | null;
@@ -52,6 +55,18 @@ function criarLinkInstagram(instagram: string) {
   const usuario = instagram.replace("@", "");
 
   return `https://instagram.com/${usuario}`;
+}
+
+function criarLinkRedeSocial(valor: string, baseUrl: string) {
+  if (!valor) return "";
+
+  if (valor.startsWith("http://") || valor.startsWith("https://")) {
+    return valor;
+  }
+
+  const usuario = valor.replace("@", "");
+
+  return `${baseUrl.replace(/\/$/, "")}/${usuario}`;
 }
 
 function normalizarValor(valor?: string | null) {
@@ -188,6 +203,9 @@ export default function ContatosEmpresa({
   telefone,
   email,
   instagram,
+  tiktok,
+  youtube,
+  kwai,
   site,
   endereco,
   googleReviewUrl,
@@ -206,6 +224,9 @@ export default function ContatosEmpresa({
 
   const whatsappLink = criarLinkWhatsApp(whatsapp || telefone || "");
   const instagramLink = criarLinkInstagram(instagram || "");
+  const tiktokLink = criarLinkRedeSocial(tiktok || "", "https://tiktok.com/@");
+  const youtubeLink = criarLinkRedeSocial(youtube || "", "https://youtube.com");
+  const kwaiLink = criarLinkRedeSocial(kwai || "", "https://kwai.com/@");
   const siteLink = criarLinkExterno(site || "");
   const googleReviewLink = criarLinkExterno(googleReviewUrl || "");
   const nomeWifi = normalizarValor(wifiNome);
@@ -432,29 +453,38 @@ export default function ContatosEmpresa({
             </a>
           )}
 
-          <button
-            className="public-empresa-action public-empresa-action--placeholder"
-            type="button"
-            disabled
-          >
-            <ConteudoAcao icon={<TikTokIcon />} label="TikTok" tone="tiktok" />
-          </button>
+          {tiktokLink && (
+            <a
+              className="public-empresa-action"
+              href={tiktokLink}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <ConteudoAcao icon={<TikTokIcon />} label="TikTok" tone="tiktok" />
+            </a>
+          )}
 
-          <button
-            className="public-empresa-action public-empresa-action--placeholder"
-            type="button"
-            disabled
-          >
-            <ConteudoAcao icon={<YouTubeIcon />} label="YouTube" tone="youtube" />
-          </button>
+          {youtubeLink && (
+            <a
+              className="public-empresa-action"
+              href={youtubeLink}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <ConteudoAcao icon={<YouTubeIcon />} label="YouTube" tone="youtube" />
+            </a>
+          )}
 
-          <button
-            className="public-empresa-action public-empresa-action--placeholder"
-            type="button"
-            disabled
-          >
-            <ConteudoAcao icon={<KwaiIcon />} label="Kwai" tone="kwai" />
-          </button>
+          {kwaiLink && (
+            <a
+              className="public-empresa-action"
+              href={kwaiLink}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <ConteudoAcao icon={<KwaiIcon />} label="Kwai" tone="kwai" />
+            </a>
+          )}
 
           {siteLink && (
             <a

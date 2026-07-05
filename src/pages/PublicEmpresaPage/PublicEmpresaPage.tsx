@@ -80,6 +80,9 @@ export default function PublicEmpresaPage() {
             telefone={empresa.telefone}
             email={empresa.email}
             instagram={empresa.instagram}
+            tiktok={empresa.tiktok}
+            youtube={empresa.youtube}
+            kwai={empresa.kwai}
             site={empresa.site}
             endereco={empresa.endereco}
             googleReviewUrl={empresa.google_review_url}

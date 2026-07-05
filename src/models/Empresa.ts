@@ -15,6 +15,9 @@ export interface Empresa {
   email: string;
 
   instagram: string;
+  tiktok?: string | null;
+  youtube?: string | null;
+  kwai?: string | null;
 
   facebook: string;
 
@@ -60,6 +63,9 @@ export const empresaInicial: Empresa = {
   email: "",
 
   instagram: "",
+  tiktok: "",
+  youtube: "",
+  kwai: "",
 
   facebook: "",
 
