@@ -95,6 +95,7 @@ export default function EmpresaForm() {
 
   const [logo, setLogo] = useState("");
   const [banner, setBanner] = useState("");
+  const [temCamposRedesExtras, setTemCamposRedesExtras] = useState(false);
   const categoriaSelecionada = categoriasEmpresa.includes(categoria)
     ? categoria
     : "Outra";
@@ -118,6 +119,9 @@ export default function EmpresaForm() {
 
       setSite(data.site || "");
       setInstagram(data.instagram || "");
+      setTemCamposRedesExtras(
+        "tiktok" in data || "youtube" in data || "kwai" in data
+      );
       setTiktok(data.tiktok || "");
       setYoutube(data.youtube || "");
       setKwai(data.kwai || "");
@@ -216,7 +220,7 @@ export default function EmpresaForm() {
   }, [numeroEndereco, complementoEndereco]);
 
   async function salvar() {
-    const { error } = await atualizarEmpresa(empresaId, {
+    const dadosEmpresa = {
       nome,
       categoria,
       descricao,
@@ -227,9 +231,6 @@ export default function EmpresaForm() {
 
       site,
       instagram,
-      tiktok,
-      youtube,
-      kwai,
       facebook,
       endereco,
       horario_atendimento: horarioAtendimento,
@@ -244,7 +245,16 @@ export default function EmpresaForm() {
 
       logo,
       banner,
-    });
+      ...(temCamposRedesExtras
+        ? {
+            tiktok,
+            youtube,
+            kwai,
+          }
+        : {}),
+    };
+
+    const { error } = await atualizarEmpresa(empresaId, dadosEmpresa);
 
     if (error) {
       alert("Erro ao salvar.");
