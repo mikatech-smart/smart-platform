@@ -17,14 +17,9 @@ const menu = [
     title: "Dashboard",
   },
   {
-    id: "workspace",
-    icon: Building2,
-    title: "Empresa",
-  },
-  {
     id: "empresas",
     icon: Building2,
-    title: "Empresas",
+    title: "Empresa",
   },
   {
     id: "whatsapp",
