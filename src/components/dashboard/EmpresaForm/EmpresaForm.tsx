@@ -34,7 +34,28 @@ const categoriasEmpresa = [
   "Igreja",
 ];
 
+type AbaEmpresa =
+  | "informacoes"
+  | "visual"
+  | "contato"
+  | "endereco"
+  | "redes"
+  | "conectividade";
+
+const abasEmpresa: Array<{
+  id: AbaEmpresa;
+  label: string;
+}> = [
+  { id: "informacoes", label: "Informações" },
+  { id: "visual", label: "Identidade Visual" },
+  { id: "contato", label: "Contato" },
+  { id: "endereco", label: "Endereço" },
+  { id: "redes", label: "Redes Sociais" },
+  { id: "conectividade", label: "Conectividade" },
+];
+
 export default function EmpresaForm() {
+  const [abaAtiva, setAbaAtiva] = useState<AbaEmpresa>("informacoes");
   const [empresaId, setEmpresaId] = useState("");
   const [slug, setSlug] = useState("");
 
@@ -53,6 +74,15 @@ export default function EmpresaForm() {
   const [kwai, setKwai] = useState("");
   const [facebook, setFacebook] = useState("");
   const [endereco, setEndereco] = useState("");
+  const [cep, setCep] = useState("");
+  const [rua, setRua] = useState("");
+  const [bairro, setBairro] = useState("");
+  const [cidade, setCidade] = useState("");
+  const [estado, setEstado] = useState("");
+  const [numeroEndereco, setNumeroEndereco] = useState("");
+  const [complementoEndereco, setComplementoEndereco] = useState("");
+  const [cepErro, setCepErro] = useState("");
+  const [buscandoCep, setBuscandoCep] = useState(false);
   const [horarioAtendimento, setHorarioAtendimento] = useState("");
   const [googleReviewUrl, setGoogleReviewUrl] = useState("");
 
@@ -109,6 +139,81 @@ export default function EmpresaForm() {
 
     carregarEmpresa();
   }, []);
+
+  function montarEnderecoCompleto(
+    ruaAtual = rua,
+    bairroAtual = bairro,
+    cidadeAtual = cidade,
+    estadoAtual = estado,
+    numeroAtual = numeroEndereco,
+    complementoAtual = complementoEndereco
+  ) {
+    return [
+      [ruaAtual, numeroAtual].filter(Boolean).join(", "),
+      complementoAtual,
+      bairroAtual,
+      [cidadeAtual, estadoAtual].filter(Boolean).join(" - "),
+    ]
+      .filter(Boolean)
+      .join(" - ");
+  }
+
+  useEffect(() => {
+    const cepNumerico = cep.replace(/\D/g, "");
+
+    if (cepNumerico.length !== 8) {
+      setCepErro("");
+      return;
+    }
+
+    async function buscarCep() {
+      try {
+        setBuscandoCep(true);
+        setCepErro("");
+
+        const resposta = await fetch(
+          `https://viacep.com.br/ws/${cepNumerico}/json/`
+        );
+        const dados = await resposta.json();
+
+        if (dados.erro) {
+          setCepErro("CEP nao encontrado.");
+          return;
+        }
+
+        const novaRua = dados.logradouro || "";
+        const novoBairro = dados.bairro || "";
+        const novaCidade = dados.localidade || "";
+        const novoEstado = dados.uf || "";
+
+        setRua(novaRua);
+        setBairro(novoBairro);
+        setCidade(novaCidade);
+        setEstado(novoEstado);
+        setEndereco(
+          montarEnderecoCompleto(
+            novaRua,
+            novoBairro,
+            novaCidade,
+            novoEstado
+          )
+        );
+      } catch (error) {
+        console.error("Erro ao buscar CEP:", error);
+        setCepErro("Nao foi possivel buscar este CEP.");
+      } finally {
+        setBuscandoCep(false);
+      }
+    }
+
+    buscarCep();
+  }, [cep]);
+
+  useEffect(() => {
+    if (!rua && !bairro && !cidade && !estado) return;
+
+    setEndereco(montarEnderecoCompleto());
+  }, [numeroEndereco, complementoEndereco]);
 
   async function salvar() {
     const { error } = await atualizarEmpresa(empresaId, {
@@ -198,7 +303,26 @@ export default function EmpresaForm() {
 
   return (
     <div className="space-y-6">
-      <Card
+      <div className="flex flex-wrap gap-2 rounded-2xl border bg-white p-2 shadow-sm">
+        {abasEmpresa.map((aba) => (
+          <button
+            key={aba.id}
+            type="button"
+            onClick={() => setAbaAtiva(aba.id)}
+            className={
+              abaAtiva === aba.id
+                ? "rounded-xl bg-green-700 px-4 py-2 text-sm font-bold text-white"
+                : "rounded-xl px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100"
+            }
+          >
+            {aba.label}
+          </button>
+        ))}
+      </div>
+
+      {abaAtiva === "informacoes" && (
+        <>
+          <Card
         title="Identidade da Empresa"
         subtitle="Dados principais exibidos no painel e na pagina publica."
       >
@@ -261,7 +385,28 @@ export default function EmpresaForm() {
         </div>
       </Card>
 
-      <Card
+          {slug && (
+            <QRCodeEmpresa
+              slug={slug}
+              nomeEmpresa={nome}
+            />
+          )}
+
+          {!slug && (
+            <Card
+              title="Compartilhamento"
+              subtitle="O link publico sera exibido assim que a empresa carregar."
+            >
+              <p className="text-slate-500">
+                Carregando informacoes da pagina publica.
+              </p>
+            </Card>
+          )}
+        </>
+      )}
+
+      {abaAtiva === "visual" && (
+        <Card
         title="Identidade Visual"
         subtitle="Configure a logo e o banner que aparecem na pagina publica."
       >
@@ -281,8 +426,10 @@ export default function EmpresaForm() {
           />
         </div>
       </Card>
+      )}
 
-      <Card
+      {abaAtiva === "contato" && (
+        <Card
         title="Contato"
         subtitle="Canais utilizados pelos clientes para falar com a empresa."
       >
@@ -312,12 +459,104 @@ export default function EmpresaForm() {
           />
         </div>
       </Card>
+      )}
 
-      <Card
+      {abaAtiva === "endereco" && (
+        <Card
         title="Endereco"
         subtitle="Localizacao e horario de atendimento exibidos para o cliente."
       >
         <div className="grid lg:grid-cols-2 gap-5">
+          <div>
+            <Input
+              label="CEP"
+              value={cep}
+              onChange={(e) => setCep(e.target.value)}
+            />
+
+            {buscandoCep && (
+              <p className="mt-2 text-sm text-slate-500">
+                Buscando endereco...
+              </p>
+            )}
+
+            {cepErro && (
+              <p className="mt-2 text-sm text-red-600">
+                {cepErro}
+              </p>
+            )}
+          </div>
+
+          <Input
+            label="Numero"
+            value={numeroEndereco}
+            onChange={(e) => setNumeroEndereco(e.target.value)}
+          />
+
+          <Input
+            label="Complemento"
+            value={complementoEndereco}
+            onChange={(e) => setComplementoEndereco(e.target.value)}
+          />
+
+          <Input
+            label="Rua"
+            value={rua}
+            onChange={(e) => {
+              setRua(e.target.value);
+              setEndereco(montarEnderecoCompleto(e.target.value));
+            }}
+          />
+
+          <Input
+            label="Bairro"
+            value={bairro}
+            onChange={(e) => {
+              setBairro(e.target.value);
+              setEndereco(
+                montarEnderecoCompleto(
+                  rua,
+                  e.target.value
+                )
+              );
+            }}
+          />
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2">
+              <Input
+                label="Cidade"
+                value={cidade}
+                onChange={(e) => {
+                  setCidade(e.target.value);
+                  setEndereco(
+                    montarEnderecoCompleto(
+                      rua,
+                      bairro,
+                      e.target.value
+                    )
+                  );
+                }}
+              />
+            </div>
+
+            <Input
+              label="Estado"
+              value={estado}
+              onChange={(e) => {
+                setEstado(e.target.value);
+                setEndereco(
+                  montarEnderecoCompleto(
+                    rua,
+                    bairro,
+                    cidade,
+                    e.target.value
+                  )
+                );
+              }}
+            />
+          </div>
+
           <Input
             label="Endereco atual"
             value={endereco}
@@ -338,8 +577,10 @@ export default function EmpresaForm() {
           </div>
         </div>
       </Card>
+      )}
 
-      <Card
+      {abaAtiva === "conectividade" && (
+        <Card
         title="Conectividade"
         subtitle="Dados rapidos para Wi-Fi, PIX e avaliacoes no Google."
       >
@@ -382,8 +623,10 @@ export default function EmpresaForm() {
           />
         </div>
       </Card>
+      )}
 
-      <Card
+      {abaAtiva === "redes" && (
+        <Card
         title="Redes Sociais"
         subtitle="Perfis sociais usados para relacionamento e divulgacao."
       >
@@ -423,51 +666,7 @@ export default function EmpresaForm() {
           </div>
         </div>
       </Card>
-
-      {slug && (
-        <QRCodeEmpresa
-          slug={slug}
-          nomeEmpresa={nome}
-        />
       )}
-
-      {!slug && (
-        <Card
-          title="Compartilhamento"
-          subtitle="O link publico sera exibido assim que a empresa carregar."
-        >
-          <p className="text-slate-500">
-            Carregando informacoes da pagina publica.
-          </p>
-        </Card>
-      )}
-
-      <Card
-        title="Proximas melhorias"
-        subtitle="Estrutura preparada para a evolucao do painel do cliente."
-      >
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm text-slate-600">
-          <span className="rounded-xl bg-slate-50 border border-slate-200 p-3">
-            Busca por CEP
-          </span>
-
-          <span className="rounded-xl bg-slate-50 border border-slate-200 p-3">
-            Personalizacao de cores
-          </span>
-
-          <span className="rounded-xl bg-slate-50 border border-slate-200 p-3">
-            Temas e skins
-          </span>
-
-          <span className="rounded-xl bg-slate-50 border border-slate-200 p-3">
-            Pre-visualizacao
-          </span>
-
-          <span className="rounded-xl bg-slate-50 border border-slate-200 p-3">
-            Painel do Cliente
-          </span>
-        </div>
-      </Card>
 
       <div className="flex justify-end">
         <Button
