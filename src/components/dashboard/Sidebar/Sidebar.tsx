@@ -1,83 +1,47 @@
 import {
-  LayoutDashboard,
   Building2,
-  MessageCircle,
-  Wifi,
-  Smartphone,
-  Star,
-  Users,
-  BarChart3,
-  Settings,
+  LayoutDashboard,
+  Send,
 } from "lucide-react";
+import { NavLink } from "react-router-dom";
 
 const menu = [
   {
-    id: "dashboard",
+    to: "/dashboard",
     icon: LayoutDashboard,
     title: "Dashboard",
   },
   {
-    id: "empresas",
+    to: "/dashboard/empresas",
     icon: Building2,
     title: "Empresa",
   },
   {
-    id: "whatsapp",
-    icon: MessageCircle,
-    title: "WhatsApp",
+    to: "/dashboard/empresa",
+    icon: Building2,
+    title: "Workspace",
   },
   {
-    id: "wifi",
-    icon: Wifi,
-    title: "Wi-Fi",
-  },
-  {
-    id: "nfc",
-    icon: Smartphone,
-    title: "NFC",
-  },
-  {
-    id: "avaliacoes",
-    icon: Star,
-    title: "Avaliações",
-  },
-  {
-    id: "clientes",
-    icon: Users,
-    title: "Clientes",
-  },
-  {
-    id: "analytics",
-    icon: BarChart3,
-    title: "Analytics",
-  },
-  {
-    id: "configuracoes",
-    icon: Settings,
-    title: "Configurações",
+    to: "/dashboard/publicar",
+    icon: Send,
+    title: "Publicar",
   },
 ];
 
 interface SidebarProps {
   nomeEmpresa?: string;
   logoEmpresa?: string | null;
-  activeView?: string;
-  onNavigate?: (view: string) => void;
 }
 
 export default function Sidebar({
   nomeEmpresa,
   logoEmpresa,
-  activeView = "dashboard",
-  onNavigate,
 }: SidebarProps) {
   const nomeWorkspace = nomeEmpresa || "Empresa";
 
   return (
     <aside className="w-72 bg-white border-r min-h-screen shadow-sm">
-
       <div className="p-8">
-
         <div className="flex items-center gap-3">
           {logoEmpresa && (
             <img
@@ -101,21 +65,19 @@ export default function Sidebar({
             </p>
           </div>
         </div>
-
-
       </div>
 
       <nav className="px-4">
-
         {menu.map((item) => {
           const Icon = item.icon;
 
           return (
-            <button
+            <NavLink
               key={item.title}
-              onClick={() => onNavigate?.(item.id)}
-              className={
-                activeView === item.id
+              to={item.to}
+              end={item.to === "/dashboard"}
+              className={({ isActive }) =>
+                isActive
                   ? "w-full flex items-center gap-4 p-4 rounded-xl bg-green-50 text-green-700 transition text-left mb-2"
                   : "w-full flex items-center gap-4 p-4 rounded-xl hover:bg-green-50 transition text-left mb-2"
               }
@@ -125,12 +87,10 @@ export default function Sidebar({
               <span className="font-medium">
                 {item.title}
               </span>
-            </button>
+            </NavLink>
           );
         })}
-
       </nav>
-
     </aside>
   );
 }

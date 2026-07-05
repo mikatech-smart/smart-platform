@@ -1,12 +1,38 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 
 import PublicProfile from "../pages/connect/PublicProfile/PublicProfile";
 import PublicEmpresaPage from "../pages/PublicEmpresaPage/PublicEmpresaPage";
 
 import Dashboard from "../pages/dashboard/Dashboard";
 import DashboardHome from "../pages/dashboard/DashboardHome";
-import Empresa from "../pages/dashboard/Empresa";
 import Publicar from "../pages/dashboard/Publicar";
+import Empresas from "../pages/dashboard/Empresas";
+import EmpresaForm from "../components/dashboard/EmpresaForm";
+
+function EmpresasRoute() {
+  const navigate = useNavigate();
+
+  return (
+    <Empresas
+      onSelecionarWorkspace={(slug) => {
+        sessionStorage.setItem("dashboardWorkspaceSlug", slug);
+      }}
+      onNavigate={(view) => {
+        if (view === "workspace") {
+          navigate("/dashboard/empresa");
+        }
+      }}
+    />
+  );
+}
+
+function WorkspaceRoute() {
+  const slug = sessionStorage.getItem("dashboardWorkspaceSlug") || undefined;
+
+  return (
+    <EmpresaForm empresaInicialSlug={slug} />
+  );
+}
 
 export default function AppRouter() {
   return (
@@ -32,8 +58,13 @@ export default function AppRouter() {
           <Route index element={<DashboardHome />} />
 
           <Route
+            path="empresas"
+            element={<EmpresasRoute />}
+          />
+
+          <Route
             path="empresa"
-            element={<Empresa />}
+            element={<WorkspaceRoute />}
           />
 
           <Route
