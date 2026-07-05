@@ -9,7 +9,6 @@ import Card from "../../ui/Card";
 import Input from "../../ui/Input";
 import Button from "../../ui/Button";
 import UploadImagem from "../UploadImagem";
-import QRCodeEmpresa from "../QRCodeEmpresa/QRCodeEmpresa";
 
 const categoriasEmpresa = [
   "Comunicação Visual",
@@ -138,6 +137,7 @@ export default function EmpresaForm() {
   const [abaAtiva, setAbaAtiva] = useState<AbaEmpresa>("informacoes");
   const [empresaId, setEmpresaId] = useState("");
   const [slug, setSlug] = useState("");
+  const [linkCopiado, setLinkCopiado] = useState(false);
 
   const [nome, setNome] = useState("");
   const [categoria, setCategoria] = useState("");
@@ -181,6 +181,10 @@ export default function EmpresaForm() {
   const categoriaSelecionada = categoriasEmpresa.includes(categoria)
     ? categoria
     : "Outra";
+  const baseUrlPublica = (
+    import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin
+  ).replace(/\/$/, "");
+  const linkPublico = slug ? `${baseUrlPublica}/${slug}` : "";
 
   useEffect(() => {
     async function carregarEmpresa() {
@@ -417,6 +421,17 @@ export default function EmpresaForm() {
     }
   }
 
+  async function copiarLinkPublico() {
+    if (!linkPublico) return;
+
+    await navigator.clipboard.writeText(linkPublico);
+    setLinkCopiado(true);
+
+    window.setTimeout(() => {
+      setLinkCopiado(false);
+    }, 2000);
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap gap-2 rounded-2xl border bg-white p-2 shadow-sm">
@@ -501,14 +516,45 @@ export default function EmpresaForm() {
         </div>
       </Card>
 
-          {slug && (
-            <QRCodeEmpresa
-              slug={slug}
-              nomeEmpresa={nome}
-            />
+          {linkPublico && (
+            <Card
+              title="Link da Página Pública"
+              subtitle="Compartilhe este link com seus clientes."
+            >
+              <div className="space-y-4">
+                <p className="break-all rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
+                  {linkPublico}
+                </p>
+
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={copiarLinkPublico}
+                    className="rounded-xl bg-green-700 px-4 py-3 font-bold text-white"
+                  >
+                    Copiar
+                  </button>
+
+                  <a
+                    href={linkPublico}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-xl border px-4 py-3 text-center font-bold text-slate-700"
+                  >
+                    Abrir Página
+                  </a>
+                </div>
+
+                {linkCopiado && (
+                  <p className="text-sm font-semibold text-green-700">
+                    Link copiado com sucesso.
+                  </p>
+                )}
+              </div>
+            </Card>
           )}
 
-          {!slug && (
+          {!linkPublico && (
             <Card
               title="Compartilhamento"
               subtitle="O link publico sera exibido assim que a empresa carregar."
