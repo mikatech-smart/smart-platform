@@ -22,15 +22,19 @@
   min-height: 74px;
   padding: 0 20px;
   border-radius: 18px;
-  background: #ffffff;
-  color: #1f3d36;
-  border: 1px solid rgba(88, 73, 54, 0.1);
+  background: var(--mc-surface, #ffffff);
+  color: var(--mc-primary, #1f3d36);
+  border: 1px solid var(--mc-border, rgba(88, 73, 54, 0.1));
   font: inherit;
   font-weight: 800;
   font-size: 1.03rem;
   text-decoration: none;
-  box-shadow: 0 10px 26px rgba(38, 31, 24, 0.06);
-  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+  box-shadow: var(--mc-shadow, 0 14px 34px rgba(38, 31, 24, 0.08));
+  will-change: transform;
+  transition:
+    transform var(--mc-transition, 200ms ease),
+    box-shadow var(--mc-transition, 200ms ease),
+    border-color var(--mc-transition, 200ms ease);
 }
 
 .public-empresa-action-content {
@@ -50,39 +54,40 @@
 
 .public-empresa-action:hover {
   transform: translateY(-2px) scale(1.01);
-  border-color: #b79a70;
-  box-shadow: 0 16px 34px rgba(38, 31, 24, 0.12);
+  border-color: var(--mc-accent, #b79a70);
+  box-shadow: var(--mc-shadow-strong, 0 22px 52px rgba(38, 31, 24, 0.16));
 }
 
 .public-empresa-action:active {
-  transform: scale(0.99);
+  transform: translateY(1px) scale(0.985);
+  box-shadow: var(--mc-shadow-press, 0 12px 28px rgba(31, 61, 54, 0.14));
 }
 
 .public-empresa-action[aria-expanded="true"] {
-  background: #ffffff;
-  border-color: rgba(88, 73, 54, 0.1);
-  box-shadow: 0 10px 26px rgba(38, 31, 24, 0.06);
+  background: var(--mc-surface, #ffffff);
+  border-color: var(--mc-border, rgba(88, 73, 54, 0.1));
+  box-shadow: var(--mc-shadow, 0 14px 34px rgba(38, 31, 24, 0.08));
 }
 
 .public-empresa-action--primary {
-  background: #ffffff;
-  color: #1f3d36;
-  border-color: rgba(88, 73, 54, 0.1);
+  background: var(--mc-surface, #ffffff);
+  color: var(--mc-primary, #1f3d36);
+  border-color: var(--mc-border, rgba(88, 73, 54, 0.1));
 }
 
 .public-empresa-action--light {
-  background: #ffffff;
+  background: var(--mc-surface, #ffffff);
 }
 
 .public-empresa-action--google {
-  background: #ffffff;
-  color: #1f3d36;
-  border-color: rgba(88, 73, 54, 0.1);
+  background: var(--mc-surface, #ffffff);
+  color: var(--mc-primary, #1f3d36);
+  border-color: var(--mc-border, rgba(88, 73, 54, 0.1));
 }
 
 .public-empresa-action--whatsapp {
-  background: #ffffff;
-  color: #1f3d36;
+  background: var(--mc-surface, #ffffff);
+  color: var(--mc-primary, #1f3d36);
 }
 
 .public-empresa-action--whatsapp:hover {
@@ -91,7 +96,7 @@
 }
 
 .public-empresa-action--placeholder {
-  background: #fbfaf8;
+  background: var(--mc-background-soft, #fbfaf8);
   color: #8a7d6d;
   border-color: #e4dbcf;
   cursor: default;
@@ -159,11 +164,11 @@
 .public-empresa-action-icon-wrap--wifi,
 .public-empresa-action-icon-wrap--site,
 .public-empresa-action-icon-wrap--pix {
-  color: #32bcad;
+  color: var(--mc-secondary, #32bcad);
 }
 
 .public-empresa-action-icon-wrap--contact {
-  color: #1f3d36;
+  color: var(--mc-primary, #1f3d36);
 }
 
 .public-empresa-action-icon-wrap--whatsapp {
@@ -197,11 +202,11 @@
 .public-empresa-inline-detail,
 .public-empresa-detail-card {
   padding: 14px;
-  border: 1px solid #e4dbcf;
+  border: 1px solid var(--mc-border, #e4dbcf);
   border-radius: 16px;
-  background: #ffffff;
+  background: var(--mc-surface, #ffffff);
   text-align: left;
-  box-shadow: 0 12px 26px rgba(38, 31, 24, 0.06);
+  box-shadow: var(--mc-shadow, 0 14px 34px rgba(38, 31, 24, 0.08));
 }
 
 .public-empresa-inline-detail {
@@ -216,7 +221,7 @@
 .public-empresa-detail-card span {
   display: block;
   margin-bottom: 8px;
-  color: #735229;
+  color: var(--mc-primary, #735229);
   font-size: 0.72rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -225,14 +230,14 @@
 
 .public-empresa-detail-card p {
   margin: 6px 0;
-  color: #3e3b36;
+  color: var(--mc-text-muted, #3e3b36);
   font-size: 0.95rem;
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
 
 .public-empresa-inline-detail p {
-  color: #3e3b36;
+  color: var(--mc-text-muted, #3e3b36);
   font-size: 0.92rem;
   line-height: 1.45;
   overflow-wrap: anywhere;
@@ -242,10 +247,10 @@
   width: 100%;
   min-height: 50px;
   margin-top: 10px;
-  border: 1px solid #1f3d36;
+  border: 1px solid var(--mc-primary, #1f3d36);
   border-radius: 14px;
-  background: #1f3d36;
-  color: #ffffff;
+  background: var(--mc-primary, #1f3d36);
+  color: var(--mc-surface, #ffffff);
   font: inherit;
   font-weight: 800;
   cursor: pointer;
@@ -253,7 +258,7 @@
 
 .public-empresa-copy-feedback {
   margin: 10px 0 0 !important;
-  color: #1f3d36;
+  color: var(--mc-primary, #1f3d36);
   font-size: 0.9rem;
   font-weight: 800;
   text-align: center;
@@ -264,17 +269,17 @@
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
-  color: #735229;
+  color: var(--mc-primary, #735229);
 }
 
 .public-empresa-info-heading svg {
-  color: #1f3d36;
+  color: var(--mc-primary, #1f3d36);
 }
 
 .public-empresa-info-card span,
 .public-empresa-info-heading span {
   display: block;
-  color: #735229;
+  color: var(--mc-primary, #735229);
   font-size: 0.72rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -283,7 +288,7 @@
 
 .public-empresa-info-card p {
   margin: 0;
-  color: #3e3b36;
+  color: var(--mc-text-muted, #3e3b36);
   font-size: 0.98rem;
   line-height: 1.55;
 }
@@ -296,21 +301,29 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border: 1px solid rgba(31, 61, 54, 0.2);
+  border: 1px solid var(--mc-border-strong, rgba(31, 61, 54, 0.2));
   border-radius: 14px;
-  background: #ffffff;
-  color: #1f3d36;
+  background: var(--mc-surface, #ffffff);
+  color: var(--mc-primary, #1f3d36);
   font: inherit;
   font-weight: 800;
   opacity: 1;
-  box-shadow: 0 10px 24px rgba(31, 61, 54, 0.08);
-  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+  box-shadow: var(--mc-shadow, 0 14px 34px rgba(38, 31, 24, 0.08));
+  transition:
+    transform var(--mc-transition, 200ms ease),
+    box-shadow var(--mc-transition, 200ms ease),
+    border-color var(--mc-transition, 200ms ease);
 }
 
 .public-empresa-map-button:hover {
   transform: translateY(-1px);
-  border-color: rgba(31, 61, 54, 0.34);
-  box-shadow: 0 14px 30px rgba(31, 61, 54, 0.12);
+  border-color: color-mix(in srgb, var(--mc-primary, #1f3d36) 34%, transparent);
+  box-shadow: var(--mc-shadow-strong, 0 22px 52px rgba(38, 31, 24, 0.16));
+}
+
+.public-empresa-map-button:active {
+  transform: translateY(1px) scale(0.985);
+  box-shadow: var(--mc-shadow-press, 0 12px 28px rgba(31, 61, 54, 0.14));
 }
 
 @keyframes public-empresa-expand {

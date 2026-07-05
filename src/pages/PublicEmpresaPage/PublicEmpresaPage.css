@@ -1,9 +1,27 @@
 .public-empresa-page {
+  --mc-primary: #1f3d36;
+  --mc-secondary: #32bcad;
+  --mc-accent: #b79a70;
+  --mc-background: #f1eee8;
+  --mc-background-soft: #fbfaf8;
+  --mc-surface: #ffffff;
+  --mc-card: rgba(255, 255, 255, 0.96);
+  --mc-text: #161616;
+  --mc-text-muted: #5f5b54;
+  --mc-border: rgba(88, 73, 54, 0.1);
+  --mc-border-strong: rgba(31, 61, 54, 0.2);
+  --mc-shadow: 0 14px 34px rgba(38, 31, 24, 0.08);
+  --mc-shadow-strong: 0 22px 52px rgba(38, 31, 24, 0.16);
+  --mc-shadow-press: 0 12px 28px rgba(31, 61, 54, 0.14);
+  --mc-radius-lg: 24px;
+  --mc-radius-md: 20px;
+  --mc-radius-sm: 18px;
+  --mc-transition: 200ms ease;
   min-height: 100vh;
   background:
     radial-gradient(circle at top left, rgba(183, 124, 54, 0.1), transparent 26rem),
-    linear-gradient(180deg, #fbfaf8 0%, #f1eee8 100%);
-  color: #161616;
+    linear-gradient(180deg, var(--mc-background-soft) 0%, var(--mc-background) 100%);
+  color: var(--mc-text);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -21,18 +39,18 @@
   --public-empresa-logo-size: clamp(116px, 34vw, 132px);
   width: min(100%, 760px);
   position: relative;
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(88, 73, 54, 0.1);
-  border-radius: 24px;
+  background: var(--mc-card);
+  border: 1px solid var(--mc-border);
+  border-radius: var(--mc-radius-lg);
   overflow: visible;
-  box-shadow: 0 26px 70px rgba(38, 31, 24, 0.12);
+  box-shadow: var(--mc-shadow-strong);
 }
 
 .public-empresa-hero {
   position: relative;
   width: 100%;
   height: var(--public-empresa-hero-height);
-  background: #1f3d36;
+  background: var(--mc-primary);
   border-radius: 24px 24px 18px 18px;
   overflow: hidden;
 }
@@ -69,10 +87,16 @@
 .public-empresa-profile-card,
 .public-empresa-section,
 .public-empresa-empty {
-  background: #ffffff;
-  border: 1px solid rgba(88, 73, 54, 0.09);
-  border-radius: 20px;
-  box-shadow: 0 12px 34px rgba(38, 31, 24, 0.055);
+  background: var(--mc-surface);
+  border: 1px solid var(--mc-border);
+  border-radius: var(--mc-radius-md);
+  box-shadow: var(--mc-shadow);
+  transition: transform var(--mc-transition), box-shadow var(--mc-transition), border-color var(--mc-transition);
+}
+
+.public-empresa-profile-card:hover,
+.public-empresa-section:hover {
+  box-shadow: var(--mc-shadow-strong);
 }
 
 .public-empresa-profile-card {
@@ -93,12 +117,12 @@
   width: var(--public-empresa-logo-size);
   height: var(--public-empresa-logo-size);
   object-fit: cover;
-  background: #ffffff;
-  border: 5px solid #ffffff;
+  background: var(--mc-surface);
+  border: 5px solid var(--mc-surface);
   border-radius: 999px;
   display: block;
   transform: translateX(-50%);
-  box-shadow: 0 22px 46px rgba(18, 24, 38, 0.24);
+  box-shadow: 0 24px 54px rgba(18, 24, 38, 0.24);
 }
 
 .public-empresa-category {
@@ -107,8 +131,8 @@
   margin: 0 auto 12px;
   padding: 8px 13px;
   border-radius: 999px;
-  background: #f5efe6;
-  color: #735229;
+  background: color-mix(in srgb, var(--mc-accent) 14%, var(--mc-surface));
+  color: var(--mc-primary);
   font-size: 0.68rem;
   font-weight: 900;
   text-transform: uppercase;
@@ -122,7 +146,7 @@
 .public-empresa-description {
   margin: 8px auto 0;
   max-width: 600px;
-  color: #5f5b54;
+  color: var(--mc-text-muted);
   font-size: 0.95rem;
   line-height: 1.58;
 }
@@ -143,29 +167,29 @@
   min-height: 72px;
   padding: 0 18px;
   border-radius: 18px;
-  background: #ffffff;
-  color: #1f3d36;
-  border: 1px solid rgba(88, 73, 54, 0.1);
+  background: var(--mc-surface);
+  color: var(--mc-primary);
+  border: 1px solid var(--mc-border);
   font-weight: 800;
   text-decoration: none;
-  box-shadow: 0 10px 26px rgba(38, 31, 24, 0.06);
-  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+  box-shadow: var(--mc-shadow);
+  transition: transform var(--mc-transition), box-shadow var(--mc-transition), border-color var(--mc-transition);
 }
 
 .public-empresa-action:hover {
   transform: translateY(-2px) scale(1.01);
-  border-color: #b79a70;
-  box-shadow: 0 16px 34px rgba(38, 31, 24, 0.12);
+  border-color: var(--mc-accent);
+  box-shadow: var(--mc-shadow-strong);
 }
 
 .public-empresa-action--primary {
-  background: #ffffff;
-  color: #1f3d36;
-  border-color: rgba(88, 73, 54, 0.1);
+  background: var(--mc-surface);
+  color: var(--mc-primary);
+  border-color: var(--mc-border);
 }
 
 .public-empresa-action--light {
-  background: #ffffff;
+  background: var(--mc-surface);
 }
 
 .public-empresa-info-card {
@@ -175,7 +199,7 @@
 .public-empresa-info-card span {
   display: block;
   margin-bottom: 8px;
-  color: #735229;
+  color: var(--mc-primary);
   font-size: 0.72rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -184,14 +208,14 @@
 
 .public-empresa-info-card p {
   margin: 0;
-  color: #3e3b36;
+  color: var(--mc-text-muted);
   font-size: 0.98rem;
   line-height: 1.55;
 }
 
 .public-empresa-footer {
   margin-top: 18px;
-  color: #756d62;
+  color: var(--mc-text-muted);
   font-size: 0.82rem;
 }
 
@@ -205,11 +229,11 @@
   align-items: center;
   gap: 2px;
   padding: 8px 13px 9px;
-  border: 1px solid rgba(88, 73, 54, 0.12);
+  border: 1px solid var(--mc-border);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  color: #1f3d36;
-  box-shadow: 0 12px 30px rgba(38, 31, 24, 0.12);
+  background: color-mix(in srgb, var(--mc-surface) 92%, transparent);
+  color: var(--mc-primary);
+  box-shadow: var(--mc-shadow);
   transform: translateX(-50%);
   animation: public-empresa-hint-float 1600ms ease-in-out infinite;
   backdrop-filter: blur(10px);
@@ -257,8 +281,8 @@
 
 @media (min-width: 640px) {
   .public-empresa-page {
-  padding: 34px 24px;
-}
+    padding: 34px 24px;
+  }
 
   .public-empresa-scroll-hint {
     display: none;

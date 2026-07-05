@@ -4,8 +4,8 @@
   margin: 0 auto 8px;
   padding: 8px 13px;
   border-radius: 999px;
-  background: #f5efe6;
-  color: #735229;
+  background: color-mix(in srgb, var(--mc-accent, #b79a70) 14%, var(--mc-surface, #ffffff));
+  color: var(--mc-primary, #1f3d36);
   font-size: 0.68rem;
   font-weight: 900;
   text-transform: uppercase;
@@ -20,7 +20,7 @@
 .public-empresa-description {
   margin: 8px auto 0;
   max-width: 600px;
-  color: #5f5b54;
+  color: var(--mc-text-muted, #5f5b54);
   font-size: 0.95rem;
   line-height: 1.58;
 }
@@ -29,8 +29,8 @@
   max-width: 520px;
   margin: 16px auto 0;
   padding: 14px 16px;
-  background: #fbfaf8;
-  border: 1px solid #ebe4da;
+  background: var(--mc-background-soft, #fbfaf8);
+  border: 1px solid var(--mc-border, #ebe4da);
   border-radius: 16px;
   text-align: left;
 }
@@ -38,7 +38,7 @@
 .public-empresa-hours span {
   display: block;
   margin-bottom: 6px;
-  color: #735229;
+  color: var(--mc-primary, #735229);
   font-size: 0.72rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -47,7 +47,7 @@
 
 .public-empresa-hours p {
   margin: 0;
-  color: #3e3b36;
+  color: var(--mc-text-muted, #3e3b36);
   font-size: 0.96rem;
   line-height: 1.55;
   white-space: pre-line;
@@ -63,14 +63,14 @@
   margin: 18px auto 0;
   padding: 0 18px;
   border-radius: 8px;
-  background: #1f3d36;
-  color: #ffffff;
+  background: var(--mc-primary, #1f3d36);
+  color: var(--mc-surface, #ffffff);
   font-weight: 800;
   text-decoration: none;
-  transition: transform 160ms ease, box-shadow 160ms ease;
+  transition: transform var(--mc-transition, 200ms ease), box-shadow var(--mc-transition, 200ms ease);
 }
 
 .public-empresa-google-review:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(38, 31, 24, 0.1);
+  box-shadow: var(--mc-shadow-strong, 0 22px 52px rgba(38, 31, 24, 0.16));
 }
