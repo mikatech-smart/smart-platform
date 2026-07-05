@@ -132,14 +132,9 @@ export default function EmpresaForm() {
         .filter(Boolean)
         .join(" - ");
 
-      console.error(
-        "Erro ao salvar logo no Supabase:",
-        error
-      );
+      console.error("Erro ao salvar logo no Supabase:", error);
 
-      alert(
-        `Erro ao salvar logo no Supabase: ${mensagemErro}`
-      );
+      alert(`Erro ao salvar logo no Supabase: ${mensagemErro}`);
     }
   }
 
@@ -160,51 +155,189 @@ export default function EmpresaForm() {
         .filter(Boolean)
         .join(" - ");
 
-      console.error(
-        "Erro ao salvar banner no Supabase:",
-        error
-      );
+      console.error("Erro ao salvar banner no Supabase:", error);
 
-      alert(
-        `Erro ao salvar banner no Supabase: ${mensagemErro}`
-      );
+      alert(`Erro ao salvar banner no Supabase: ${mensagemErro}`);
     }
   }
 
   return (
     <div className="space-y-8">
+      <Card
+        title="Identidade da Empresa"
+        subtitle="Dados principais exibidos no painel e na pagina publica."
+      >
+        <div className="grid md:grid-cols-2 gap-6">
+          <Input
+            label="Nome"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+          />
+
+          <Input
+            label="Categoria"
+            value={categoria}
+            onChange={(e) => setCategoria(e.target.value)}
+          />
+
+          <div className="md:col-span-2">
+            <label className="block mb-2 font-medium">
+              Descricao
+            </label>
+
+            <textarea
+              className="w-full border rounded-xl p-3 h-36"
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              placeholder="Conte em poucas palavras o que sua empresa oferece."
+            />
+          </div>
+        </div>
+      </Card>
 
       <Card
         title="Identidade Visual"
-        subtitle="Logo e Banner"
+        subtitle="Configure a logo e o banner que aparecem na pagina publica."
       >
-
         <div className="grid md:grid-cols-2 gap-8">
+          <UploadImagem
+            titulo="Logo"
+            imagem={logo}
+            pasta={`${empresaId || "mikatech"}/logo`}
+            onUpload={salvarLogo}
+          />
 
-          <div>
-
-            <UploadImagem
-              titulo="Logo"
-              imagem={logo}
-              pasta={`${empresaId || "mikatech"}/logo`}
-              onUpload={salvarLogo}
-            />
-
-          </div>
-
-          <div>
-
-            <UploadImagem
-              titulo="Banner"
-              imagem={banner}
-              pasta={empresaId ? `${empresaId}/banner` : undefined}
-              onUpload={salvarBanner}
-            />
-
-          </div>
-
+          <UploadImagem
+            titulo="Banner"
+            imagem={banner}
+            pasta={empresaId ? `${empresaId}/banner` : undefined}
+            onUpload={salvarBanner}
+          />
         </div>
+      </Card>
 
+      <Card
+        title="Contato"
+        subtitle="Canais utilizados pelos clientes para falar com a empresa."
+      >
+        <div className="grid md:grid-cols-2 gap-6">
+          <Input
+            label="WhatsApp"
+            value={whatsapp}
+            onChange={(e) => setWhatsapp(e.target.value)}
+          />
+
+          <Input
+            label="Telefone"
+            value={telefone}
+            onChange={(e) => setTelefone(e.target.value)}
+          />
+
+          <Input
+            label="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+
+          <Input
+            label="Site"
+            value={site}
+            onChange={(e) => setSite(e.target.value)}
+          />
+        </div>
+      </Card>
+
+      <Card
+        title="Endereco"
+        subtitle="Localizacao e horario de atendimento exibidos para o cliente."
+      >
+        <div className="grid gap-6">
+          <Input
+            label="Endereco atual"
+            value={endereco}
+            onChange={(e) => setEndereco(e.target.value)}
+          />
+
+          <div>
+            <label className="block mb-2 font-medium">
+              Horario de Atendimento
+            </label>
+
+            <textarea
+              className="w-full border rounded-xl p-3 h-28"
+              value={horarioAtendimento}
+              onChange={(e) => setHorarioAtendimento(e.target.value)}
+              placeholder={"Segunda a Sexta\n08:00 as 18:00"}
+            />
+          </div>
+        </div>
+      </Card>
+
+      <Card
+        title="Conectividade"
+        subtitle="Dados rapidos para Wi-Fi, PIX e avaliacoes no Google."
+      >
+        <div className="grid md:grid-cols-2 gap-6">
+          <Input
+            label="Nome da Rede Wi-Fi"
+            value={wifiNome}
+            onChange={(e) => setWifiNome(e.target.value)}
+          />
+
+          <Input
+            label="Senha Wi-Fi"
+            value={wifiSenha}
+            onChange={(e) => setWifiSenha(e.target.value)}
+          />
+
+          <Input
+            label="Nome do recebedor PIX"
+            value={pixNome}
+            onChange={(e) => setPixNome(e.target.value)}
+          />
+
+          <Input
+            label="Chave PIX"
+            value={pixChave}
+            onChange={(e) => setPixChave(e.target.value)}
+          />
+
+          <Input
+            label="PIX legado"
+            value={pix}
+            onChange={(e) => setPix(e.target.value)}
+          />
+
+          <Input
+            label="Link para Avaliacao Google"
+            value={googleReviewUrl}
+            onChange={(e) => setGoogleReviewUrl(e.target.value)}
+            placeholder="https://g.page/r/..."
+          />
+        </div>
+      </Card>
+
+      <Card
+        title="Redes Sociais"
+        subtitle="Perfis sociais usados para relacionamento e divulgacao."
+      >
+        <div className="grid md:grid-cols-2 gap-6">
+          <Input
+            label="Instagram"
+            value={instagram}
+            onChange={(e) => setInstagram(e.target.value)}
+          />
+
+          <Input
+            label="Facebook"
+            value={facebook}
+            onChange={(e) => setFacebook(e.target.value)}
+          />
+
+          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500 md:col-span-2">
+            TikTok, YouTube e Kwai ficarao disponiveis quando os campos forem adicionados ao cadastro.
+          </div>
+        </div>
       </Card>
 
       {slug && (
@@ -214,169 +347,53 @@ export default function EmpresaForm() {
         />
       )}
 
+      {!slug && (
+        <Card
+          title="Compartilhamento"
+          subtitle="O link publico sera exibido assim que a empresa carregar."
+        >
+          <p className="text-slate-500">
+            Carregando informacoes da pagina publica.
+          </p>
+        </Card>
+      )}
+
       <Card
-        title="Identidade"
+        title="Proximas melhorias"
+        subtitle="Estrutura preparada para a evolucao do painel do cliente."
       >
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm text-slate-600">
+          <span className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+            Busca por CEP
+          </span>
 
-        <div className="grid md:grid-cols-2 gap-6">
+          <span className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+            Personalizacao de cores
+          </span>
 
-          <Input
-            label="Nome"
-            value={nome}
-            onChange={(e)=>setNome(e.target.value)}
-          />
+          <span className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+            Temas e skins
+          </span>
 
-          <Input
-            label="Categoria"
-            value={categoria}
-            onChange={(e)=>setCategoria(e.target.value)}
-          />
+          <span className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+            Pre-visualizacao
+          </span>
 
-          <div className="md:col-span-2">
-
-            <label className="block mb-2 font-medium">
-              Descrição
-            </label>
-
-            <textarea
-              className="w-full border rounded-xl p-3 h-36"
-              value={descricao}
-              onChange={(e)=>setDescricao(e.target.value)}
-            />
-
-          </div>
-
+          <span className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+            Painel do Cliente
+          </span>
         </div>
-
-      </Card>
-
-      <Card title="Contato">
-
-        <div className="grid md:grid-cols-2 gap-6">
-
-          <Input
-            label="WhatsApp"
-            value={whatsapp}
-            onChange={(e)=>setWhatsapp(e.target.value)}
-          />
-
-          <Input
-            label="Email"
-            value={email}
-            onChange={(e)=>setEmail(e.target.value)}
-          />
-
-          <Input
-            label="Site"
-            value={site}
-            onChange={(e)=>setSite(e.target.value)}
-          />
-
-        </div>
-
-      </Card>
-
-      <Card title="Redes Sociais">
-
-        <div className="grid md:grid-cols-2 gap-6">
-
-          <Input
-            label="Instagram"
-            value={instagram}
-            onChange={(e)=>setInstagram(e.target.value)}
-          />
-
-        </div>
-
-      </Card>
-
-      <Card title="Localização">
-
-        <div className="grid gap-6">
-
-          <Input
-            label="Endereço"
-            value={endereco}
-            onChange={(e)=>setEndereco(e.target.value)}
-          />
-
-          <div>
-
-            <label className="block mb-2 font-medium">
-              Horario de Atendimento
-            </label>
-
-            <textarea
-              className="w-full border rounded-xl p-3 h-28"
-              value={horarioAtendimento}
-              onChange={(e)=>setHorarioAtendimento(e.target.value)}
-              placeholder={"Segunda a Sexta\n08:00 as 18:00"}
-            />
-
-          </div>
-
-        </div>
-
-      </Card>
-
-      <Card title="Google">
-
-        <div className="grid gap-6">
-
-          <Input
-            label="Link para Avaliacao Google"
-            value={googleReviewUrl}
-            onChange={(e)=>setGoogleReviewUrl(e.target.value)}
-            placeholder="https://g.page/r/..."
-          />
-
-        </div>
-
-      </Card>
-
-      <Card title="Conectividade">
-
-        <div className="grid md:grid-cols-2 gap-6">
-
-          <Input
-            label="Wi-Fi"
-            value={wifiNome}
-            onChange={(e)=>setWifiNome(e.target.value)}
-          />
-
-          <Input
-            label="Senha Wi-Fi"
-            value={wifiSenha}
-            onChange={(e)=>setWifiSenha(e.target.value)}
-          />
-
-          <div className="md:col-span-2">
-
-            <Input
-              label="PIX"
-              value={pix}
-              onChange={(e)=>setPix(e.target.value)}
-            />
-
-          </div>
-
-        </div>
-
       </Card>
 
       <div className="flex justify-end">
-
         <Button
           variant="primary"
           size="lg"
           onClick={salvar}
         >
-          Salvar alterações
+          Salvar alteracoes
         </Button>
-
       </div>
-
     </div>
   );
 }
-// teste
