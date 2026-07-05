@@ -326,6 +326,44 @@
   box-shadow: var(--mc-shadow-press, 0 12px 28px rgba(31, 61, 54, 0.14));
 }
 
+.public-empresa-hours-card {
+  margin-top: -8px;
+}
+
+.public-empresa-hours-list {
+  display: grid;
+  gap: 8px;
+}
+
+.public-empresa-hours-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--mc-border, #ebe4da);
+}
+
+.public-empresa-hours-row:last-child {
+  border-bottom: 0;
+}
+
+.public-empresa-hours-row span {
+  color: var(--mc-text-muted, #5f5b54);
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.public-empresa-hours-row strong {
+  color: var(--mc-primary, #1f3d36);
+  font-size: 0.92rem;
+  font-weight: 900;
+  text-align: right;
+  white-space: nowrap;
+}
+
 @keyframes public-empresa-expand {
   from {
     opacity: 0;

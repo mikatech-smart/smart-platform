@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
+  Clock,
   Globe,
   MapPin,
   MapPinned,
@@ -20,6 +21,7 @@ interface ContatosEmpresaProps {
   kwai?: string | null;
   site?: string | null;
   endereco?: string | null;
+  horarioAtendimento?: string | null;
   googleReviewUrl?: string | null;
   wifiNome?: string | null;
   wifiSenha?: string | null;
@@ -71,6 +73,68 @@ function criarLinkRedeSocial(valor: string, baseUrl: string) {
 
 function normalizarValor(valor?: string | null) {
   return valor?.trim() || "";
+}
+
+const diasSemana = [
+  { id: "segunda", label: "Segunda" },
+  { id: "terca", label: "Terca" },
+  { id: "quarta", label: "Quarta" },
+  { id: "quinta", label: "Quinta" },
+  { id: "sexta", label: "Sexta" },
+  { id: "sabado", label: "Sabado" },
+  { id: "domingo", label: "Domingo" },
+];
+
+function normalizarTexto(valor: string) {
+  return valor
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function formatarPeriodo(inicio: number, fim: number) {
+  const primeiroDia = diasSemana[inicio].label;
+  const ultimoDia = diasSemana[fim].label;
+
+  if (inicio === fim) return primeiroDia;
+  if (fim === inicio + 1) return `${primeiroDia} e ${ultimoDia}`;
+
+  return `${primeiroDia} a ${ultimoDia}`;
+}
+
+function agruparHorarioAtendimento(horarioAtendimento?: string | null) {
+  const texto = normalizarValor(horarioAtendimento);
+
+  if (!texto) return [];
+
+  const horariosPorDia = diasSemana.map(() => "Fechado");
+
+  texto.split("\n").forEach((linha) => {
+    const linhaNormalizada = normalizarTexto(linha);
+    const diaIndex = diasSemana.findIndex((dia) =>
+      linhaNormalizada.startsWith(normalizarTexto(dia.label))
+    );
+    const horario = linha.match(/(\d{2}:\d{2}).+?(\d{2}:\d{2})/);
+
+    if (diaIndex < 0 || !horario) return;
+
+    horariosPorDia[diaIndex] = `${horario[1]} as ${horario[2]}`;
+  });
+
+  const grupos: Array<{ dias: string; horario: string }> = [];
+  let inicioGrupo = 0;
+
+  for (let index = 1; index <= horariosPorDia.length; index += 1) {
+    if (horariosPorDia[index] === horariosPorDia[inicioGrupo]) continue;
+
+    grupos.push({
+      dias: formatarPeriodo(inicioGrupo, index - 1),
+      horario: horariosPorDia[inicioGrupo],
+    });
+    inicioGrupo = index;
+  }
+
+  return grupos;
 }
 
 function WhatsAppIcon() {
@@ -208,6 +272,7 @@ export default function ContatosEmpresa({
   kwai,
   site,
   endereco,
+  horarioAtendimento,
   googleReviewUrl,
   wifiNome,
   wifiSenha,
@@ -235,6 +300,7 @@ export default function ContatosEmpresa({
   const chavePix = normalizarValor(pixChave);
   const temWifi = Boolean(nomeWifi || senhaWifi);
   const temPix = Boolean(chavePix);
+  const horariosAgrupados = agruparHorarioAtendimento(horarioAtendimento);
 
   useEffect(() => {
     function ocultarIndicador() {
@@ -516,6 +582,27 @@ export default function ContatosEmpresa({
             <MapPinned size={18} />
             Ver no mapa
           </button>
+        </section>
+      )}
+
+      {horariosAgrupados.length > 0 && (
+        <section className="public-empresa-section public-empresa-info-card public-empresa-hours-card">
+          <div className="public-empresa-info-heading">
+            <Clock size={20} />
+            <span>Horario de atendimento</span>
+          </div>
+
+          <div className="public-empresa-hours-list">
+            {horariosAgrupados.map((grupo) => (
+              <div
+                className="public-empresa-hours-row"
+                key={`${grupo.dias}-${grupo.horario}`}
+              >
+                <span>{grupo.dias}</span>
+                <strong>{grupo.horario}</strong>
+              </div>
+            ))}
+          </div>
         </section>
       )}
     </>

@@ -4,7 +4,6 @@ interface InformacoesEmpresaProps {
   nome: string;
   categoria?: string | null;
   descricao?: string | null;
-  horarioAtendimento?: string | null;
   googleReviewUrl?: string | null;
 }
 
@@ -12,7 +11,6 @@ export default function InformacoesEmpresa({
   nome,
   categoria,
   descricao,
-  horarioAtendimento,
   googleReviewUrl,
 }: InformacoesEmpresaProps) {
   return (
@@ -29,13 +27,6 @@ export default function InformacoesEmpresa({
         <p className="public-empresa-description">
           {descricao}
         </p>
-      )}
-
-      {horarioAtendimento && (
-        <div className="public-empresa-hours">
-          <span>Horario de Atendimento</span>
-          <p>{horarioAtendimento}</p>
-        </div>
       )}
 
       {googleReviewUrl && (
