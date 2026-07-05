@@ -126,6 +126,14 @@ function lerTextoHorario(texto: string) {
   return encontrouHorario ? horarios : null;
 }
 
+function adicionarVersaoImagem(url: string) {
+  if (!url) return url;
+
+  const separador = url.includes("?") ? "&" : "?";
+
+  return `${url}${separador}v=${Date.now()}`;
+}
+
 export default function EmpresaForm() {
   const [abaAtiva, setAbaAtiva] = useState<AbaEmpresa>("informacoes");
   const [empresaId, setEmpresaId] = useState("");
@@ -385,12 +393,14 @@ export default function EmpresaForm() {
   }
 
   async function salvarBanner(url: string) {
-    setBanner(url);
+    const bannerAtualizado = adicionarVersaoImagem(url);
+
+    setBanner(bannerAtualizado);
 
     if (!empresaId) return;
 
     const { error } = await atualizarEmpresa(empresaId, {
-      banner: url,
+      banner: bannerAtualizado,
     });
 
     if (error) {

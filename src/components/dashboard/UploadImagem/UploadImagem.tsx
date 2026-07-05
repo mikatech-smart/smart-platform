@@ -25,6 +25,14 @@ function obterMensagemErroSupabase(error: unknown) {
   return String(error);
 }
 
+function adicionarVersaoImagem(url: string) {
+  if (!url) return url;
+
+  const separador = url.includes("?") ? "&" : "?";
+
+  return `${url}${separador}v=${Date.now()}`;
+}
+
 export default function UploadImagem({
   titulo,
   imagem,
@@ -125,8 +133,9 @@ export default function UploadImagem({
           caminho,
           arquivo
         );
+        const urlPreview = adicionarVersaoImagem(urlPublica);
 
-        setPreviewLocal(urlPublica);
+        setPreviewLocal(urlPreview);
         setImagemRemovida(false);
 
         await onUpload(urlPublica);

@@ -15,7 +15,12 @@ export default function HeroEmpresa({
     <>
       <div className="public-empresa-hero">
         {banner ? (
-          <img src={banner} alt={`Banner ${nome}`} />
+          <img
+            key={banner}
+            src={banner}
+            alt={`Banner ${nome}`}
+            decoding="async"
+          />
         ) : (
           <div className="public-empresa-banner__fallback" />
         )}
