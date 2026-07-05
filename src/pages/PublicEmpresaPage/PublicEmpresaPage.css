@@ -213,6 +213,53 @@
   line-height: 1.55;
 }
 
+.public-empresa-address-card {
+  text-align: left;
+}
+
+.public-empresa-address-heading span {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--mc-primary);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.public-empresa-address-card p {
+  margin: 0;
+  color: var(--mc-text-muted);
+  font-size: 0.98rem;
+  line-height: 1.55;
+}
+
+.public-empresa-map-link {
+  width: 100%;
+  min-height: 54px;
+  margin-top: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--mc-border-strong);
+  border-radius: 14px;
+  background: var(--mc-surface);
+  color: var(--mc-primary);
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: var(--mc-shadow);
+  transition:
+    transform var(--mc-transition),
+    box-shadow var(--mc-transition),
+    border-color var(--mc-transition);
+}
+
+.public-empresa-map-link:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--mc-primary) 34%, transparent);
+  box-shadow: var(--mc-shadow-strong);
+}
+
 .public-empresa-hours-card {
   text-align: left;
 }

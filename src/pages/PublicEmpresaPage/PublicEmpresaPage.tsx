@@ -70,6 +70,16 @@ function agruparHorarioAtendimento(horarioAtendimento?: string | null) {
   return grupos;
 }
 
+function criarGoogleMapsUrl(endereco?: string | null) {
+  const enderecoCompleto = endereco?.trim();
+
+  if (!enderecoCompleto) return "";
+
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    enderecoCompleto
+  )}`;
+}
+
 export default function PublicEmpresaPage() {
   const { slug } = useParams();
 
@@ -118,6 +128,7 @@ export default function PublicEmpresaPage() {
   const horariosAgrupados = agruparHorarioAtendimento(
     empresa.horario_atendimento
   );
+  const googleMapsUrl = criarGoogleMapsUrl(empresa.endereco);
 
   return (
     <main className="public-empresa-page">
@@ -147,13 +158,33 @@ export default function PublicEmpresaPage() {
             youtube={empresa.youtube}
             kwai={empresa.kwai}
             site={empresa.site}
-            endereco={empresa.endereco}
             googleReviewUrl={empresa.google_review_url}
             wifiNome={empresa.wifi_nome}
             wifiSenha={empresa.wifi_senha}
             pixNome={empresa.pix_nome}
             pixChave={empresa.pix_chave || empresa.pix}
           />
+
+          {empresa.endereco && (
+            <section className="public-empresa-section public-empresa-address-card">
+              <div className="public-empresa-address-heading">
+                <span>Endereco</span>
+              </div>
+
+              <p>{empresa.endereco}</p>
+
+              {googleMapsUrl && (
+                <a
+                  className="public-empresa-map-link"
+                  href={googleMapsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Ver no mapa
+                </a>
+              )}
+            </section>
+          )}
 
           {horariosAgrupados.length > 0 && (
             <section className="public-empresa-section public-empresa-hours-card">
