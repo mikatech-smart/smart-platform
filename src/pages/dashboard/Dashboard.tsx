@@ -4,16 +4,42 @@ import {
   MessageCircle,
   Star,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import Sidebar from "../../components/dashboard/Sidebar";
 import EmpresaForm from "../../components/dashboard/EmpresaForm";
+import { buscarEmpresaPorSlug } from "../../services/empresa/empresa.service";
+import Empresas from "./Empresas";
+
+type TelaDashboard = "dashboard" | "empresas" | "workspace";
 
 export default function Dashboard() {
+  const [telaAtiva, setTelaAtiva] = useState<TelaDashboard>("dashboard");
+  const [workspaceSlug, setWorkspaceSlug] = useState("");
   const [empresaAtual, setEmpresaAtual] = useState<{
     nome: string;
     logo?: string | null;
   } | null>(null);
+
+  useEffect(() => {
+    async function carregarEmpresaAtual() {
+      const { data, error } = await buscarEmpresaPorSlug("mikatech");
+
+      if (error) {
+        console.error("Erro ao carregar branding da empresa:", error);
+        return;
+      }
+
+      if (!data) return;
+
+      setEmpresaAtual({
+        nome: data.nome || "",
+        logo: data.logo || "",
+      });
+    }
+
+    carregarEmpresaAtual();
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-slate-100">
@@ -21,6 +47,8 @@ export default function Dashboard() {
       <Sidebar
         nomeEmpresa={empresaAtual?.nome}
         logoEmpresa={empresaAtual?.logo}
+        telaAtiva={telaAtiva}
+        onNavigate={(tela) => setTelaAtiva(tela as TelaDashboard)}
       />
 
       <main className="flex-1">
@@ -44,6 +72,16 @@ export default function Dashboard() {
         </header>
 
         <div className="p-10">
+
+          {telaAtiva === "empresas" ? (
+            <Empresas
+              onEditarWorkspace={(slug) => {
+                setWorkspaceSlug(slug);
+                setTelaAtiva("workspace");
+              }}
+            />
+          ) : (
+            <>
 
           {/* Cards */}
 
@@ -119,7 +157,13 @@ export default function Dashboard() {
 
           </div>
 
-          <EmpresaForm onEmpresaAtualChange={setEmpresaAtual} />
+          <EmpresaForm
+            empresaInicialSlug={workspaceSlug || undefined}
+            onEmpresaAtualChange={setEmpresaAtual}
+          />
+
+            </>
+          )}
 
         </div>
 

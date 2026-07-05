@@ -146,6 +146,7 @@ function gerarSlug(valor: string) {
 }
 
 interface EmpresaFormProps {
+  empresaInicialSlug?: string;
   onEmpresaAtualChange?: (empresa: {
     nome: string;
     logo?: string | null;
@@ -153,6 +154,7 @@ interface EmpresaFormProps {
 }
 
 export default function EmpresaForm({
+  empresaInicialSlug,
   onEmpresaAtualChange,
 }: EmpresaFormProps) {
   const [abaAtiva, setAbaAtiva] = useState<AbaEmpresa>("informacoes");
@@ -224,7 +226,9 @@ export default function EmpresaForm({
 
       setEmpresas(data || []);
 
-      if (data?.[0]?.slug) {
+      if (empresaInicialSlug) {
+        await carregarEmpresa(empresaInicialSlug);
+      } else if (data?.[0]?.slug) {
         await carregarEmpresa(data[0].slug);
       } else {
         await carregarEmpresa("mikatech");
@@ -234,7 +238,7 @@ export default function EmpresaForm({
     }
 
     carregarListaEmpresas();
-  }, []);
+  }, [empresaInicialSlug]);
 
   async function carregarEmpresa(slugEmpresa: string) {
     const { data, error } = await buscarEmpresaPorSlug(slugEmpresa);

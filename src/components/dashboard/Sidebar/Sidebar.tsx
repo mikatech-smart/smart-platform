@@ -12,38 +12,52 @@ import {
 
 const menu = [
   {
+    id: "dashboard",
     icon: LayoutDashboard,
     title: "Dashboard",
   },
   {
+    id: "workspace",
     icon: Building2,
     title: "Empresa",
   },
   {
+    id: "empresas",
+    icon: Building2,
+    title: "Empresas",
+  },
+  {
+    id: "whatsapp",
     icon: MessageCircle,
     title: "WhatsApp",
   },
   {
+    id: "wifi",
     icon: Wifi,
     title: "Wi-Fi",
   },
   {
+    id: "nfc",
     icon: Smartphone,
     title: "NFC",
   },
   {
+    id: "avaliacoes",
     icon: Star,
     title: "Avaliações",
   },
   {
+    id: "clientes",
     icon: Users,
     title: "Clientes",
   },
   {
+    id: "analytics",
     icon: BarChart3,
     title: "Analytics",
   },
   {
+    id: "configuracoes",
     icon: Settings,
     title: "Configurações",
   },
@@ -52,13 +66,17 @@ const menu = [
 interface SidebarProps {
   nomeEmpresa?: string;
   logoEmpresa?: string | null;
+  telaAtiva?: string;
+  onNavigate?: (tela: string) => void;
 }
 
 export default function Sidebar({
   nomeEmpresa,
   logoEmpresa,
+  telaAtiva = "dashboard",
+  onNavigate,
 }: SidebarProps) {
-  const nomeWorkspace = nomeEmpresa || "Mika Connect";
+  const nomeWorkspace = nomeEmpresa || "Empresa";
 
   return (
     <aside className="w-72 bg-white border-r min-h-screen shadow-sm">
@@ -100,7 +118,12 @@ export default function Sidebar({
           return (
             <button
               key={item.title}
-              className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-green-50 transition text-left mb-2"
+              onClick={() => onNavigate?.(item.id)}
+              className={
+                telaAtiva === item.id
+                  ? "w-full flex items-center gap-4 p-4 rounded-xl bg-green-50 text-green-700 transition text-left mb-2"
+                  : "w-full flex items-center gap-4 p-4 rounded-xl hover:bg-green-50 transition text-left mb-2"
+              }
             >
               <Icon size={22} />
 
