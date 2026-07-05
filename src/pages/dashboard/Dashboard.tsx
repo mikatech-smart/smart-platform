@@ -4,15 +4,24 @@ import {
   MessageCircle,
   Star,
 } from "lucide-react";
+import { useState } from "react";
 
 import Sidebar from "../../components/dashboard/Sidebar";
 import EmpresaForm from "../../components/dashboard/EmpresaForm";
 
 export default function Dashboard() {
+  const [empresaAtual, setEmpresaAtual] = useState<{
+    nome: string;
+    logo?: string | null;
+  } | null>(null);
+
   return (
     <div className="flex min-h-screen bg-slate-100">
 
-      <Sidebar />
+      <Sidebar
+        nomeEmpresa={empresaAtual?.nome}
+        logoEmpresa={empresaAtual?.logo}
+      />
 
       <main className="flex-1">
 
@@ -110,7 +119,7 @@ export default function Dashboard() {
 
           </div>
 
-          <EmpresaForm />
+          <EmpresaForm onEmpresaAtualChange={setEmpresaAtual} />
 
         </div>
 

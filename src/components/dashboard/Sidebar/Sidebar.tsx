@@ -49,19 +49,46 @@ const menu = [
   },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  nomeEmpresa?: string;
+  logoEmpresa?: string | null;
+}
+
+export default function Sidebar({
+  nomeEmpresa,
+  logoEmpresa,
+}: SidebarProps) {
+  const nomeWorkspace = nomeEmpresa || "Mika Connect";
+
   return (
     <aside className="w-72 bg-white border-r min-h-screen shadow-sm">
 
       <div className="p-8">
 
-        <h1 className="text-3xl font-bold text-green-600">
-          Mika Connect
-        </h1>
+        <div className="flex items-center gap-3">
+          {logoEmpresa && (
+            <img
+              src={logoEmpresa}
+              alt={nomeWorkspace}
+              className="h-12 w-12 rounded-xl border object-cover"
+            />
+          )}
 
-        <p className="text-gray-500 mt-1">
-          Painel Administrativo
-        </p>
+          <div className="min-w-0">
+            <h1 className="truncate text-2xl font-bold text-green-600">
+              {nomeWorkspace}
+            </h1>
+
+            <p className="text-gray-500 mt-1">
+              Workspace da Empresa
+            </p>
+
+            <p className="mt-1 text-xs text-gray-400">
+              Powered by Mika Connect
+            </p>
+          </div>
+        </div>
+
 
       </div>
 

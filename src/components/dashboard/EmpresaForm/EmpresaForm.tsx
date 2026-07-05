@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 
 import {
   buscarEmpresaPorSlug,
+  listarEmpresas,
   atualizarEmpresa,
 } from "../../../services/empresa/empresa.service";
+import type { Empresa } from "../../../models/Empresa";
 
 import Card from "../../ui/Card";
 import Input from "../../ui/Input";
@@ -133,10 +135,32 @@ function adicionarVersaoImagem(url: string) {
   return `${url}${separador}v=${Date.now()}`;
 }
 
-export default function EmpresaForm() {
+function gerarSlug(valor: string) {
+  return valor
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+interface EmpresaFormProps {
+  onEmpresaAtualChange?: (empresa: {
+    nome: string;
+    logo?: string | null;
+  }) => void;
+}
+
+export default function EmpresaForm({
+  onEmpresaAtualChange,
+}: EmpresaFormProps) {
   const [abaAtiva, setAbaAtiva] = useState<AbaEmpresa>("informacoes");
+  const [empresas, setEmpresas] = useState<Array<Pick<Empresa, "id" | "nome" | "slug">>>([]);
+  const [carregandoEmpresas, setCarregandoEmpresas] = useState(true);
   const [empresaId, setEmpresaId] = useState("");
   const [slug, setSlug] = useState("");
+  const [slugAdmin, setSlugAdmin] = useState("");
   const [linkCopiado, setLinkCopiado] = useState(false);
 
   const [nome, setNome] = useState("");
@@ -184,56 +208,89 @@ export default function EmpresaForm() {
   const baseUrlPublica = (
     import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin
   ).replace(/\/$/, "");
-  const linkPublico = slug ? `${baseUrlPublica}/${slug}` : "";
+  const slugPublico = slugAdmin || slug;
+  const linkPublico = slugPublico ? `${baseUrlPublica}/${slugPublico}` : "";
 
   useEffect(() => {
-    async function carregarEmpresa() {
-      const { data } = await buscarEmpresaPorSlug("mikatech");
+    async function carregarListaEmpresas() {
+      const { data, error } = await listarEmpresas();
 
-      if (!data) return;
-
-      setEmpresaId(data.id);
-      setSlug(data.slug || "");
-
-      setNome(data.nome || "");
-      setCategoria(data.categoria || "");
-      setDescricao(data.descricao || "");
-
-      setTelefone(data.telefone || "");
-      setWhatsapp(data.whatsapp || "");
-      setEmail(data.email || "");
-
-      setSite(data.site || "");
-      setInstagram(data.instagram || "");
-      setTemCamposRedesExtras(
-        "tiktok" in data || "youtube" in data || "kwai" in data
-      );
-      setTiktok(data.tiktok || "");
-      setYoutube(data.youtube || "");
-      setKwai(data.kwai || "");
-      setFacebook(data.facebook || "");
-      setEndereco(data.endereco || "");
-      setHorarioAtendimento(data.horario_atendimento || "");
-      const horarioCarregado = lerTextoHorario(data.horario_atendimento || "");
-
-      if (horarioCarregado) {
-        setHorariosAtendimento(horarioCarregado);
+      if (error) {
+        console.error("Erro ao listar empresas:", error);
+        await carregarEmpresa("mikatech");
+        setCarregandoEmpresas(false);
+        return;
       }
-      setGoogleReviewUrl(data.google_review_url || "");
 
-      setPix(data.pix || "");
-      setPixNome(data.pix_nome || "");
-      setPixChave(data.pix_chave || "");
+      setEmpresas(data || []);
 
-      setWifiNome(data.wifi_nome || "");
-      setWifiSenha(data.wifi_senha || "");
+      if (data?.[0]?.slug) {
+        await carregarEmpresa(data[0].slug);
+      } else {
+        await carregarEmpresa("mikatech");
+      }
 
-      setLogo(data.logo || "");
-      setBanner(data.banner || "");
+      setCarregandoEmpresas(false);
     }
 
-    carregarEmpresa();
+    carregarListaEmpresas();
   }, []);
+
+  async function carregarEmpresa(slugEmpresa: string) {
+    const { data, error } = await buscarEmpresaPorSlug(slugEmpresa);
+
+    if (error) {
+      console.error("Erro ao carregar empresa:", error);
+      return;
+    }
+
+    if (!data) return;
+
+    setEmpresaId(data.id);
+    setSlug(data.slug || "");
+    setSlugAdmin(data.slug || "");
+
+    setNome(data.nome || "");
+    setCategoria(data.categoria || "");
+    setDescricao(data.descricao || "");
+
+    setTelefone(data.telefone || "");
+    setWhatsapp(data.whatsapp || "");
+    setEmail(data.email || "");
+
+    setSite(data.site || "");
+    setInstagram(data.instagram || "");
+    setTemCamposRedesExtras(
+      "tiktok" in data || "youtube" in data || "kwai" in data
+    );
+    setTiktok(data.tiktok || "");
+    setYoutube(data.youtube || "");
+    setKwai(data.kwai || "");
+    setFacebook(data.facebook || "");
+    setEndereco(data.endereco || "");
+    setHorarioAtendimento(data.horario_atendimento || "");
+    const horarioCarregado = lerTextoHorario(data.horario_atendimento || "");
+
+    if (horarioCarregado) {
+      setHorariosAtendimento(horarioCarregado);
+    }
+
+    setGoogleReviewUrl(data.google_review_url || "");
+
+    setPix(data.pix || "");
+    setPixNome(data.pix_nome || "");
+    setPixChave(data.pix_chave || "");
+
+    setWifiNome(data.wifi_nome || "");
+    setWifiSenha(data.wifi_senha || "");
+
+    setLogo(data.logo || "");
+    setBanner(data.banner || "");
+    onEmpresaAtualChange?.({
+      nome: data.nome || "",
+      logo: data.logo || "",
+    });
+  }
 
   function montarEnderecoCompleto(
     ruaAtual = rua,
@@ -328,8 +385,10 @@ export default function EmpresaForm() {
   }
 
   async function salvar() {
+    const slugFinal = gerarSlug(slugAdmin || slug);
     const dadosEmpresa = {
       nome,
+      slug: slugFinal,
       categoria,
       descricao,
 
@@ -370,6 +429,24 @@ export default function EmpresaForm() {
       return;
     }
 
+    setSlug(slugFinal);
+    setSlugAdmin(slugFinal);
+    setEmpresas((empresasAtuais) =>
+      empresasAtuais.map((empresa) =>
+        empresa.id === empresaId
+          ? {
+              ...empresa,
+              nome,
+              slug: slugFinal,
+            }
+          : empresa
+      )
+    );
+    onEmpresaAtualChange?.({
+      nome,
+      logo,
+    });
+
     alert("Dados salvos com sucesso!");
   }
 
@@ -393,7 +470,13 @@ export default function EmpresaForm() {
       console.error("Erro ao salvar logo no Supabase:", error);
 
       alert(`Erro ao salvar logo no Supabase: ${mensagemErro}`);
+      return;
     }
+
+    onEmpresaAtualChange?.({
+      nome,
+      logo: url,
+    });
   }
 
   async function salvarBanner(url: string) {
@@ -434,6 +517,63 @@ export default function EmpresaForm() {
 
   return (
     <div className="space-y-6">
+      <Card
+        title="Admin de Empresas"
+        subtitle="Selecione a empresa que deseja gerenciar."
+      >
+        {carregandoEmpresas ? (
+          <p className="text-slate-500">
+            Carregando empresas...
+          </p>
+        ) : (
+          <div className="grid gap-3">
+            {empresas.map((empresa) => {
+              const linkEmpresa = `${baseUrlPublica}/${empresa.slug}`;
+              const selecionada = empresa.id === empresaId;
+
+              return (
+                <div
+                  key={empresa.id}
+                  className={
+                    selecionada
+                      ? "rounded-2xl border border-green-600 bg-green-50 p-4"
+                      : "rounded-2xl border bg-white p-4"
+                  }
+                >
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-slate-800">
+                        {empresa.nome || "Empresa sem nome"}
+                      </h3>
+
+                      <p className="text-sm text-slate-500">
+                        Slug: {empresa.slug || "-"}
+                      </p>
+
+                      <p className="break-all text-sm text-slate-500">
+                        {linkEmpresa}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => carregarEmpresa(empresa.slug)}
+                      className={
+                        selecionada
+                          ? "rounded-xl bg-green-700 px-4 py-2 font-bold text-white"
+                          : "rounded-xl border px-4 py-2 font-bold text-slate-700"
+                      }
+                    >
+                      {selecionada ? "Editando" : "Editar"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Card>
+
       <div className="flex flex-wrap gap-2 rounded-2xl border bg-white p-2 shadow-sm">
         {abasEmpresa.map((aba) => (
           <button
@@ -500,6 +640,18 @@ export default function EmpresaForm() {
               onChange={(e) => setCategoria(e.target.value)}
             />
           )}
+
+          <div>
+            <Input
+              label="Slug administrativo"
+              value={slugAdmin}
+              onChange={(e) => setSlugAdmin(gerarSlug(e.target.value))}
+            />
+
+            <p className="mt-2 text-sm text-slate-500">
+              Campo reservado para administrador Mikatech.
+            </p>
+          </div>
 
           <div className="lg:col-span-3">
             <label className="block mb-2 font-medium">
