@@ -153,14 +153,14 @@ export default function UploadImagem({
   }
 
   return (
-    <div className="border rounded-2xl p-4 bg-white shadow-sm">
+    <div className="border rounded-2xl p-3 bg-white shadow-sm">
 
-      <div className="mb-3">
+      <div className="mb-2">
         <h3 className="font-semibold text-base">
           {titulo}
         </h3>
 
-        <ul className="mt-2 space-y-1 text-xs text-slate-500">
+        <ul className="mt-1 grid gap-0.5 text-xs text-slate-500">
           {orientacoes.map((orientacao) => (
             <li key={orientacao}>
               {orientacao}
@@ -169,16 +169,16 @@ export default function UploadImagem({
         </ul>
       </div>
 
-      <div className="border-2 border-dashed rounded-xl p-3 bg-slate-50">
+      <div className="border-2 border-dashed rounded-xl p-2 bg-slate-50">
 
         {preview ? (
           <img
             src={preview}
             alt={titulo}
-            className="w-full h-28 object-contain"
+            className="w-full h-20 object-contain"
           />
         ) : (
-          <div className="h-28 flex items-center justify-center text-sm text-gray-400">
+          <div className="h-20 flex items-center justify-center text-sm text-gray-400">
             Nenhuma imagem
           </div>
         )}
@@ -193,7 +193,7 @@ export default function UploadImagem({
         onChange={selecionarArquivo}
       />
 
-      <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-600">
+      <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-slate-600">
 
         <div>
           <strong>Arquivo:</strong> {nome || "-"}
@@ -217,13 +217,13 @@ export default function UploadImagem({
 
       </div>
 
-      <div className="flex gap-3 mt-4">
+      <div className="flex gap-2 mt-3">
 
         <button
           type="button"
           onClick={abrirExplorador}
           disabled={enviando}
-          className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-xl py-2.5"
+          className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-xl py-2"
         >
           {enviando ? "Enviando..." : "Selecionar imagem"}
         </button>

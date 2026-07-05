@@ -11,6 +11,29 @@ import Button from "../../ui/Button";
 import UploadImagem from "../UploadImagem";
 import QRCodeEmpresa from "../QRCodeEmpresa/QRCodeEmpresa";
 
+const categoriasEmpresa = [
+  "Comunicação Visual",
+  "Restaurante",
+  "Lanchonete",
+  "Pizzaria",
+  "Barbearia",
+  "Salão de Beleza",
+  "Clínica",
+  "Dentista",
+  "Loja",
+  "Oficina",
+  "Borracharia",
+  "Auto Center",
+  "Pet Shop",
+  "Academia",
+  "Mercado",
+  "Padaria",
+  "Imobiliária",
+  "Advogado",
+  "Escola",
+  "Igreja",
+];
+
 export default function EmpresaForm() {
   const [empresaId, setEmpresaId] = useState("");
   const [slug, setSlug] = useState("");
@@ -42,6 +65,9 @@ export default function EmpresaForm() {
 
   const [logo, setLogo] = useState("");
   const [banner, setBanner] = useState("");
+  const categoriaSelecionada = categoriasEmpresa.includes(categoria)
+    ? categoria
+    : "Outra";
 
   useEffect(() => {
     async function carregarEmpresa() {
@@ -171,31 +197,62 @@ export default function EmpresaForm() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <Card
         title="Identidade da Empresa"
         subtitle="Dados principais exibidos no painel e na pagina publica."
       >
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid lg:grid-cols-3 gap-5">
           <Input
             label="Nome"
             value={nome}
             onChange={(e) => setNome(e.target.value)}
           />
 
-          <Input
-            label="Categoria"
-            value={categoria}
-            onChange={(e) => setCategoria(e.target.value)}
-          />
+          <div>
+            <label className="block mb-2 font-medium">
+              Categoria
+            </label>
 
-          <div className="md:col-span-2">
+            <select
+              className="w-full border rounded-xl p-3 bg-white"
+              value={categoriaSelecionada}
+              onChange={(e) => {
+                if (e.target.value === "Outra") {
+                  setCategoria(categoriasEmpresa.includes(categoria) ? "" : categoria);
+                  return;
+                }
+
+                setCategoria(e.target.value);
+              }}
+            >
+              {categoriasEmpresa.map((opcao) => (
+                <option key={opcao} value={opcao}>
+                  {opcao}
+                </option>
+              ))}
+
+              <option value="Outra">
+                Outra
+              </option>
+            </select>
+          </div>
+
+          {categoriaSelecionada === "Outra" && (
+            <Input
+              label="Categoria personalizada"
+              value={categoria}
+              onChange={(e) => setCategoria(e.target.value)}
+            />
+          )}
+
+          <div className="lg:col-span-3">
             <label className="block mb-2 font-medium">
               Descricao
             </label>
 
             <textarea
-              className="w-full border rounded-xl p-3 h-36"
+              className="w-full border rounded-xl p-3 h-24"
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
               placeholder="Conte em poucas palavras o que sua empresa oferece."
@@ -208,7 +265,7 @@ export default function EmpresaForm() {
         title="Identidade Visual"
         subtitle="Configure a logo e o banner que aparecem na pagina publica."
       >
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid xl:grid-cols-2 gap-4">
           <UploadImagem
             titulo="Logo"
             imagem={logo}
@@ -229,7 +286,7 @@ export default function EmpresaForm() {
         title="Contato"
         subtitle="Canais utilizados pelos clientes para falar com a empresa."
       >
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-5">
           <Input
             label="WhatsApp"
             value={whatsapp}
@@ -260,7 +317,7 @@ export default function EmpresaForm() {
         title="Endereco"
         subtitle="Localizacao e horario de atendimento exibidos para o cliente."
       >
-        <div className="grid gap-6">
+        <div className="grid lg:grid-cols-2 gap-5">
           <Input
             label="Endereco atual"
             value={endereco}
@@ -273,7 +330,7 @@ export default function EmpresaForm() {
             </label>
 
             <textarea
-              className="w-full border rounded-xl p-3 h-28"
+              className="w-full border rounded-xl p-3 h-24"
               value={horarioAtendimento}
               onChange={(e) => setHorarioAtendimento(e.target.value)}
               placeholder={"Segunda a Sexta\n08:00 as 18:00"}
@@ -286,7 +343,7 @@ export default function EmpresaForm() {
         title="Conectividade"
         subtitle="Dados rapidos para Wi-Fi, PIX e avaliacoes no Google."
       >
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
           <Input
             label="Nome da Rede Wi-Fi"
             value={wifiNome}
@@ -330,7 +387,7 @@ export default function EmpresaForm() {
         title="Redes Sociais"
         subtitle="Perfis sociais usados para relacionamento e divulgacao."
       >
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
           <Input
             label="Instagram"
             value={instagram}
