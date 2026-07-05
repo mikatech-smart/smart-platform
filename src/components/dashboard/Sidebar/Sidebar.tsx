@@ -61,14 +61,14 @@ const menu = [
 interface SidebarProps {
   nomeEmpresa?: string;
   logoEmpresa?: string | null;
-  telaAtiva?: string;
-  onNavigate?: (tela: string) => void;
+  activeView?: string;
+  onNavigate?: (view: string) => void;
 }
 
 export default function Sidebar({
   nomeEmpresa,
   logoEmpresa,
-  telaAtiva = "dashboard",
+  activeView = "dashboard",
   onNavigate,
 }: SidebarProps) {
   const nomeWorkspace = nomeEmpresa || "Empresa";
@@ -115,7 +115,7 @@ export default function Sidebar({
               key={item.title}
               onClick={() => onNavigate?.(item.id)}
               className={
-                telaAtiva === item.id
+                activeView === item.id
                   ? "w-full flex items-center gap-4 p-4 rounded-xl bg-green-50 text-green-700 transition text-left mb-2"
                   : "w-full flex items-center gap-4 p-4 rounded-xl hover:bg-green-50 transition text-left mb-2"
               }

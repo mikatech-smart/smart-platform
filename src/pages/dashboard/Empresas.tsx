@@ -12,11 +12,13 @@ type EmpresaResumo = {
 };
 
 interface EmpresasProps {
-  onEditarWorkspace: (slug: string) => void;
+  onSelecionarWorkspace: (slug: string) => void;
+  onNavigate: (view: "workspace") => void;
 }
 
 export default function Empresas({
-  onEditarWorkspace,
+  onSelecionarWorkspace,
+  onNavigate,
 }: EmpresasProps) {
   const [empresas, setEmpresas] = useState<EmpresaResumo[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -128,7 +130,12 @@ export default function Empresas({
                     <button
                       type="button"
                       disabled={!slug}
-                      onClick={() => slug && onEditarWorkspace(slug)}
+                      onClick={() => {
+                        if (!slug) return;
+
+                        onSelecionarWorkspace(slug);
+                        onNavigate("workspace");
+                      }}
                       className="rounded-xl bg-green-700 px-4 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Editar Workspace

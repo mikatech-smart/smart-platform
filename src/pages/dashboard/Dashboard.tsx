@@ -14,7 +14,7 @@ import Empresas from "./Empresas";
 type TelaDashboard = "dashboard" | "empresas" | "workspace";
 
 export default function Dashboard() {
-  const [telaAtiva, setTelaAtiva] = useState<TelaDashboard>("dashboard");
+  const [activeView, setActiveView] = useState<TelaDashboard>("dashboard");
   const [workspaceSlug, setWorkspaceSlug] = useState("");
   const [empresaAtual, setEmpresaAtual] = useState<{
     nome: string;
@@ -47,8 +47,8 @@ export default function Dashboard() {
       <Sidebar
         nomeEmpresa={empresaAtual?.nome}
         logoEmpresa={empresaAtual?.logo}
-        telaAtiva={telaAtiva}
-        onNavigate={(tela) => setTelaAtiva(tela as TelaDashboard)}
+        activeView={activeView}
+        onNavigate={(view) => setActiveView(view as TelaDashboard)}
       />
 
       <main className="flex-1">
@@ -73,12 +73,12 @@ export default function Dashboard() {
 
         <div className="p-10">
 
-          {telaAtiva === "empresas" ? (
+          {activeView === "empresas" ? (
             <Empresas
-              onEditarWorkspace={(slug) => {
+              onSelecionarWorkspace={(slug) => {
                 setWorkspaceSlug(slug);
-                setTelaAtiva("workspace");
               }}
+              onNavigate={(view) => setActiveView(view as TelaDashboard)}
             />
           ) : (
             <>
