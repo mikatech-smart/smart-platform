@@ -54,6 +54,78 @@ const abasEmpresa: Array<{
   { id: "conectividade", label: "Conectividade" },
 ];
 
+const diasAtendimento = [
+  { id: "segunda", label: "Segunda" },
+  { id: "terca", label: "Terca" },
+  { id: "quarta", label: "Quarta" },
+  { id: "quinta", label: "Quinta" },
+  { id: "sexta", label: "Sexta" },
+  { id: "sabado", label: "Sabado" },
+  { id: "domingo", label: "Domingo" },
+];
+
+type HorarioDia = {
+  ativo: boolean;
+  abertura: string;
+  fechamento: string;
+};
+
+type HorariosAtendimento = Record<string, HorarioDia>;
+
+function criarHorariosPadrao(): HorariosAtendimento {
+  return diasAtendimento.reduce<HorariosAtendimento>((horarios, dia) => {
+    horarios[dia.id] = {
+      ativo: ["segunda", "terca", "quarta", "quinta", "sexta"].includes(
+        dia.id
+      ),
+      abertura: "08:00",
+      fechamento: "18:00",
+    };
+
+    return horarios;
+  }, {});
+}
+
+function gerarTextoHorario(horarios: HorariosAtendimento) {
+  return diasAtendimento
+    .filter((dia) => horarios[dia.id]?.ativo)
+    .map((dia) => {
+      const horario = horarios[dia.id];
+      return `${dia.label}: ${horario.abertura} as ${horario.fechamento}`;
+    })
+    .join("\n");
+}
+
+function lerTextoHorario(texto: string) {
+  const horarios = criarHorariosPadrao();
+  let encontrouHorario = false;
+
+  Object.keys(horarios).forEach((diaId) => {
+    horarios[diaId] = {
+      ...horarios[diaId],
+      ativo: false,
+    };
+  });
+
+  texto.split("\n").forEach((linha) => {
+    const dia = diasAtendimento.find((item) =>
+      linha.toLowerCase().startsWith(item.label.toLowerCase())
+    );
+    const horario = linha.match(/(\d{2}:\d{2}).+?(\d{2}:\d{2})/);
+
+    if (!dia || !horario) return;
+
+    horarios[dia.id] = {
+      ativo: true,
+      abertura: horario[1],
+      fechamento: horario[2],
+    };
+    encontrouHorario = true;
+  });
+
+  return encontrouHorario ? horarios : null;
+}
+
 export default function EmpresaForm() {
   const [abaAtiva, setAbaAtiva] = useState<AbaEmpresa>("informacoes");
   const [empresaId, setEmpresaId] = useState("");
@@ -84,6 +156,8 @@ export default function EmpresaForm() {
   const [cepErro, setCepErro] = useState("");
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [horarioAtendimento, setHorarioAtendimento] = useState("");
+  const [horariosAtendimento, setHorariosAtendimento] =
+    useState<HorariosAtendimento>(() => criarHorariosPadrao());
   const [googleReviewUrl, setGoogleReviewUrl] = useState("");
 
   const [pix, setPix] = useState("");
@@ -128,6 +202,11 @@ export default function EmpresaForm() {
       setFacebook(data.facebook || "");
       setEndereco(data.endereco || "");
       setHorarioAtendimento(data.horario_atendimento || "");
+      const horarioCarregado = lerTextoHorario(data.horario_atendimento || "");
+
+      if (horarioCarregado) {
+        setHorariosAtendimento(horarioCarregado);
+      }
       setGoogleReviewUrl(data.google_review_url || "");
 
       setPix(data.pix || "");
@@ -218,6 +297,23 @@ export default function EmpresaForm() {
 
     setEndereco(montarEnderecoCompleto());
   }, [numeroEndereco, complementoEndereco]);
+
+  function atualizarHorarioDia(
+    diaId: string,
+    campo: keyof HorarioDia,
+    valor: boolean | string
+  ) {
+    const novosHorarios = {
+      ...horariosAtendimento,
+      [diaId]: {
+        ...horariosAtendimento[diaId],
+        [campo]: valor,
+      },
+    };
+
+    setHorariosAtendimento(novosHorarios);
+    setHorarioAtendimento(gerarTextoHorario(novosHorarios));
+  }
 
   async function salvar() {
     const dadosEmpresa = {
@@ -573,17 +669,77 @@ export default function EmpresaForm() {
             onChange={(e) => setEndereco(e.target.value)}
           />
 
-          <div>
-            <label className="block mb-2 font-medium">
-              Horario de Atendimento
-            </label>
+          <div className="lg:col-span-2">
+            <div className="mb-3">
+              <label className="block font-medium">
+                Horario de atendimento
+              </label>
+              <p className="text-sm text-slate-500">
+                Configure os dias ativos e os horarios de abertura e fechamento.
+              </p>
+            </div>
 
-            <textarea
-              className="w-full border rounded-xl p-3 h-24"
-              value={horarioAtendimento}
-              onChange={(e) => setHorarioAtendimento(e.target.value)}
-              placeholder={"Segunda a Sexta\n08:00 as 18:00"}
-            />
+            <div className="space-y-3">
+              {diasAtendimento.map((dia) => {
+                const horario = horariosAtendimento[dia.id];
+
+                return (
+                  <div
+                    key={dia.id}
+                    className="grid gap-3 rounded-xl border border-slate-200 p-3 sm:grid-cols-[1fr_120px_120px]"
+                  >
+                    <label className="flex items-center gap-3 font-medium text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={horario.ativo}
+                        onChange={(e) =>
+                          atualizarHorarioDia(
+                            dia.id,
+                            "ativo",
+                            e.target.checked
+                          )
+                        }
+                      />
+                      {dia.label}
+                    </label>
+
+                    <input
+                      type="time"
+                      className="w-full rounded-xl border border-slate-200 px-3 py-2"
+                      value={horario.abertura}
+                      disabled={!horario.ativo}
+                      onChange={(e) =>
+                        atualizarHorarioDia(
+                          dia.id,
+                          "abertura",
+                          e.target.value
+                        )
+                      }
+                    />
+
+                    <input
+                      type="time"
+                      className="w-full rounded-xl border border-slate-200 px-3 py-2"
+                      value={horario.fechamento}
+                      disabled={!horario.ativo}
+                      onChange={(e) =>
+                        atualizarHorarioDia(
+                          dia.id,
+                          "fechamento",
+                          e.target.value
+                        )
+                      }
+                    />
+                  </div>
+                );
+              })}
+            </div>
+
+            {horarioAtendimento && (
+              <div className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-600 whitespace-pre-line">
+                {horarioAtendimento}
+              </div>
+            )}
           </div>
         </div>
       </Card>
