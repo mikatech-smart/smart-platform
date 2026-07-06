@@ -46,10 +46,11 @@ export async function criarEmpresa(dados: {
 }) {
   const { data: sessao } = await supabase.auth.getSession();
   const userId = sessao.session?.user.id;
+  const tipoGerenciamento = dados.tipoGerenciamento || "mikatech";
   const dadosEmpresa = {
       nome: dados.nome,
       slug: dados.slug,
-      tipo: dados.tipoGerenciamento,
+      tipo: tipoGerenciamento,
       categoria: "",
       descricao: "",
       telefone: "",
@@ -60,6 +61,10 @@ export async function criarEmpresa(dados: {
       site: "",
       endereco: "",
       pix: "",
+      pix_nome: "",
+      pix_chave: "",
+      wifi_nome: "",
+      wifi_senha: "",
       logo: "",
       banner: "",
       ativo: true,
@@ -157,6 +162,12 @@ export async function atualizarEmpresa(
   }
 
   if (!data || data.length === 0) {
+    console.error("UPDATE empresas nao afetou nenhuma linha:", {
+      idUsado: id,
+      slugUsado: dados.slug,
+      payloadEnviado: dados,
+    });
+
     return {
       data: null,
       error: {

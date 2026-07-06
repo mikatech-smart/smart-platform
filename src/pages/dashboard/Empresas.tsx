@@ -42,7 +42,7 @@ export default function Empresas() {
   const [carregando, setCarregando] = useState(true);
   const [busca, setBusca] = useState("");
   const [linkCopiado, setLinkCopiado] = useState("");
-  const [slugEmEdicao, setSlugEmEdicao] = useState("");
+  const [empresaIdEmEdicao, setEmpresaIdEmEdicao] = useState("");
   const [mostrarNovaEmpresa, setMostrarNovaEmpresa] = useState(false);
   const [novoNome, setNovoNome] = useState("");
   const [novoSlug, setNovoSlug] = useState("");
@@ -111,7 +111,7 @@ export default function Empresas() {
       const { error } = await criarEmpresaService({
         nome: novoNome,
         slug,
-        tipoGerenciamento: novoTipo,
+        tipoGerenciamento: novoTipo || "mikatech",
       });
 
       if (error) {
@@ -128,7 +128,7 @@ export default function Empresas() {
       setNovoSlugEditadoManualmente(false);
       setNovoTipo("");
       setMostrarNovaEmpresa(false);
-      setSlugEmEdicao("");
+      setEmpresaIdEmEdicao("");
       await carregarEmpresas();
     } finally {
       setSalvandoNovaEmpresa(false);
@@ -150,7 +150,7 @@ export default function Empresas() {
       return;
     }
 
-    setSlugEmEdicao("");
+    setEmpresaIdEmEdicao("");
     await carregarEmpresas();
   }
 
@@ -170,7 +170,7 @@ export default function Empresas() {
         <button
           type="button"
           onClick={() => {
-            setSlugEmEdicao("");
+            setEmpresaIdEmEdicao("");
             setMostrarNovaEmpresa((valor) => !valor);
           }}
           className="rounded-xl bg-green-700 px-5 py-3 font-bold text-white"
@@ -335,12 +335,11 @@ export default function Empresas() {
                     <div className="grid gap-2 sm:grid-cols-3 xl:min-w-[420px]">
                       <button
                         type="button"
-                        disabled={!slug}
                         onClick={() => {
                           setMostrarNovaEmpresa(false);
-                          setSlugEmEdicao(slug);
+                          setEmpresaIdEmEdicao(empresa.id);
                         }}
-                        className="rounded-xl bg-green-700 px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-xl bg-green-700 px-3 py-2 text-sm font-bold text-white"
                       >
                         Editar
                       </button>
@@ -373,7 +372,7 @@ export default function Empresas() {
                   )}
                 </article>
 
-                {slugEmEdicao === slug && (
+                {empresaIdEmEdicao === empresa.id && (
                   <div className="rounded-2xl bg-white p-6 shadow-sm">
                     <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div>
@@ -388,7 +387,7 @@ export default function Empresas() {
 
                       <button
                         type="button"
-                        onClick={() => setSlugEmEdicao("")}
+                        onClick={() => setEmpresaIdEmEdicao("")}
                         className="rounded-xl border px-4 py-2 font-bold text-slate-700"
                       >
                         Fechar
@@ -396,10 +395,11 @@ export default function Empresas() {
                     </div>
 
                     <EmpresaForm
-                      empresaInicialSlug={slugEmEdicao}
+                      empresaInicialId={empresa.id}
+                      empresaInicialSlug={slug}
                       onExcluir={() => excluirEmpresa(empresa.id)}
                       onSalvar={() => {
-                        setSlugEmEdicao("");
+                        setEmpresaIdEmEdicao("");
                         carregarEmpresas();
                       }}
                     />

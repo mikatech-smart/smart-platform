@@ -428,6 +428,11 @@ export default function EmpresaForm({
 
     if (error) {
       console.error("Erro completo ao salvar empresa:", error);
+      console.error("Contexto do update da empresa:", {
+        idUsado: empresaId,
+        slugUsado: slugFinal,
+        payloadEnviado: dadosEmpresa,
+      });
       alert(error.message || "Erro ao salvar.");
       return;
     }
