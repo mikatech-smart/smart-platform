@@ -336,6 +336,11 @@ export default function Empresas() {
                       <button
                         type="button"
                         onClick={() => {
+                          console.log("[Diagnostico UPDATE] ID enviado ao EmpresaForm:", {
+                            id: empresa.id,
+                            slug,
+                            nome: empresa.nome,
+                          });
                           setMostrarNovaEmpresa(false);
                           setEmpresaIdEmEdicao(empresa.id);
                         }}

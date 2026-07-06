@@ -218,6 +218,11 @@ export default function EmpresaForm({
   const linkPublico = slugPublico ? `${baseUrlPublica}/${slugPublico}` : "";
 
   useEffect(() => {
+    console.log("[Diagnostico UPDATE] ID recebido no EmpresaForm:", {
+      empresaInicialId,
+      empresaInicialSlug,
+    });
+
     carregarEmpresa({
       id: empresaInicialId,
       slug: empresaInicialSlug || "mikatech",
@@ -225,9 +230,19 @@ export default function EmpresaForm({
   }, [empresaInicialId, empresaInicialSlug]);
 
   async function carregarEmpresa(empresa: { id?: string; slug: string }) {
+    console.log("[Diagnostico UPDATE] Carregando empresa para edicao:", empresa);
+
     const { data, error } = empresa.id
       ? await buscarEmpresaPorId(empresa.id)
       : await buscarEmpresaPorSlug(empresa.slug);
+
+    console.log("[Diagnostico UPDATE] Resultado do SELECT no EmpresaForm:", {
+      filtroUsado: empresa.id
+        ? `id = ${empresa.id}`
+        : `slug = ${empresa.slug}`,
+      data,
+      error,
+    });
 
     if (error) {
       console.error("Erro ao carregar empresa:", error);
@@ -423,6 +438,13 @@ export default function EmpresaForm({
           }
         : {}),
     };
+
+    console.log("[Diagnostico UPDATE] Antes de chamar atualizarEmpresa:", {
+      idRecebidoNoFormulario: empresaInicialId,
+      idEnviadoAoService: empresaId,
+      slugUsado: slugFinal,
+      payloadEnviado: dadosEmpresa,
+    });
 
     const { error } = await atualizarEmpresa(empresaId, dadosEmpresa);
 

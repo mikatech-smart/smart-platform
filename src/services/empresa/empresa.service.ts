@@ -148,11 +148,52 @@ export async function atualizarEmpresa(
   id: string,
   dados: Partial<Empresa>
 ) {
+  const sqlSelect =
+    `select * from empresas where id = '${id}' limit 1;`;
+  const sqlUpdate =
+    `update empresas set <payload> where id = '${id}' returning *;`;
+
+  console.log("[Diagnostico UPDATE] SQL SELECT antes do UPDATE:", sqlSelect);
+
+  const {
+    data: empresaAntesDoUpdate,
+    error: erroSelectAntesDoUpdate,
+  } = await supabase
+    .from("empresas")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  console.log("[Diagnostico UPDATE] Resultado do SELECT antes do UPDATE:", {
+    idUsado: id,
+    slugUsado: dados.slug,
+    sqlExecutado: sqlSelect,
+    data: empresaAntesDoUpdate,
+    error: erroSelectAntesDoUpdate,
+  });
+
+  console.log("[Diagnostico UPDATE] Antes do UPDATE:", {
+    idUsado: id,
+    slugUsado: dados.slug,
+    payloadEnviado: dados,
+    sqlExecutado: sqlUpdate,
+  });
+
   const { data, error } = await supabase
     .from("empresas")
     .update(dados)
     .eq("id", id)
     .select();
+
+  console.log("[Diagnostico UPDATE] Resultado do UPDATE:", {
+    idUsado: id,
+    slugUsado: dados.slug,
+    payloadEnviado: dados,
+    sqlExecutado: sqlUpdate,
+    data,
+    error,
+    linhasAfetadas: data?.length ?? 0,
+  });
 
   if (error) {
     return {
