@@ -138,7 +138,9 @@ export default function PublicEmpresaPage() {
           logo={empresa.logo}
           nome={empresa.nome}
           logoExibicao={
-            (empresa as Empresa & { logo_exibicao?: "normal" | "pequeno" | "oculto" })
+            (empresa as Empresa & {
+              logo_exibicao?: "normal" | "small" | "hidden" | "pequeno" | "oculto";
+            })
               .logo_exibicao || "normal"
           }
         />
