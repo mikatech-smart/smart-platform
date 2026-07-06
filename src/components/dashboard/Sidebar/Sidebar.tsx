@@ -1,30 +1,20 @@
 import {
   Building2,
-  LayoutDashboard,
-  Send,
+  Settings,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 const menu = [
   {
     to: "/dashboard",
-    icon: LayoutDashboard,
-    title: "Dashboard",
-  },
-  {
-    to: "/dashboard/empresas",
     icon: Building2,
-    title: "Empresa",
+    title: "Empresas",
+    end: true,
   },
   {
-    to: "/dashboard/empresa",
-    icon: Building2,
-    title: "Workspace",
-  },
-  {
-    to: "/dashboard/publicar",
-    icon: Send,
-    title: "Publicar",
+    to: "/dashboard/configuracoes",
+    icon: Settings,
+    title: "Configuracoes",
   },
 ];
 
@@ -37,7 +27,7 @@ export default function Sidebar({
   nomeEmpresa,
   logoEmpresa,
 }: SidebarProps) {
-  const nomeWorkspace = nomeEmpresa || "Empresa";
+  const nomeWorkspace = nomeEmpresa || "Mikatech Admin";
 
   return (
     <aside className="w-72 bg-white border-r min-h-screen shadow-sm">
@@ -57,7 +47,7 @@ export default function Sidebar({
             </h1>
 
             <p className="text-gray-500 mt-1">
-              Workspace da Empresa
+              Painel Administrativo
             </p>
 
             <p className="mt-1 text-xs text-gray-400">
@@ -75,7 +65,7 @@ export default function Sidebar({
             <NavLink
               key={item.title}
               to={item.to}
-              end={item.to === "/dashboard"}
+              end={item.end}
               className={({ isActive }) =>
                 isActive
                   ? "w-full flex items-center gap-4 p-4 rounded-xl bg-green-50 text-green-700 transition text-left mb-2"

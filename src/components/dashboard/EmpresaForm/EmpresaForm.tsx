@@ -2,10 +2,8 @@ import { useEffect, useState } from "react";
 
 import {
   buscarEmpresaPorSlug,
-  listarEmpresas,
   atualizarEmpresa,
 } from "../../../services/empresa/empresa.service";
-import type { Empresa } from "../../../models/Empresa";
 
 import Card from "../../ui/Card";
 import Input from "../../ui/Input";
@@ -158,14 +156,13 @@ export default function EmpresaForm({
   onEmpresaAtualChange,
 }: EmpresaFormProps) {
   const [abaAtiva, setAbaAtiva] = useState<AbaEmpresa>("informacoes");
-  const [empresas, setEmpresas] = useState<Array<Pick<Empresa, "id" | "nome" | "slug">>>([]);
-  const [carregandoEmpresas, setCarregandoEmpresas] = useState(true);
   const [empresaId, setEmpresaId] = useState("");
   const [slug, setSlug] = useState("");
   const [slugAdmin, setSlugAdmin] = useState("");
   const [linkCopiado, setLinkCopiado] = useState(false);
 
   const [nome, setNome] = useState("");
+  const [tipoGerenciamento, setTipoGerenciamento] = useState("mikatech");
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -214,30 +211,7 @@ export default function EmpresaForm({
   const linkPublico = slugPublico ? `${baseUrlPublica}/${slugPublico}` : "";
 
   useEffect(() => {
-    async function carregarListaEmpresas() {
-      const { data, error } = await listarEmpresas();
-
-      if (error) {
-        console.error("Erro ao listar empresas:", error);
-        await carregarEmpresa("mikatech");
-        setCarregandoEmpresas(false);
-        return;
-      }
-
-      setEmpresas(data || []);
-
-      if (empresaInicialSlug) {
-        await carregarEmpresa(empresaInicialSlug);
-      } else if (data?.[0]?.slug) {
-        await carregarEmpresa(data[0].slug);
-      } else {
-        await carregarEmpresa("mikatech");
-      }
-
-      setCarregandoEmpresas(false);
-    }
-
-    carregarListaEmpresas();
+    carregarEmpresa(empresaInicialSlug || "mikatech");
   }, [empresaInicialSlug]);
 
   async function carregarEmpresa(slugEmpresa: string) {
@@ -255,6 +229,7 @@ export default function EmpresaForm({
     setSlugAdmin(data.slug || "");
 
     setNome(data.nome || "");
+    setTipoGerenciamento(data.tipo || "mikatech");
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
 
@@ -393,6 +368,7 @@ export default function EmpresaForm({
     const dadosEmpresa = {
       nome,
       slug: slugFinal,
+      tipo: tipoGerenciamento,
       categoria,
       descricao,
 
@@ -435,17 +411,6 @@ export default function EmpresaForm({
 
     setSlug(slugFinal);
     setSlugAdmin(slugFinal);
-    setEmpresas((empresasAtuais) =>
-      empresasAtuais.map((empresa) =>
-        empresa.id === empresaId
-          ? {
-              ...empresa,
-              nome,
-              slug: slugFinal,
-            }
-          : empresa
-      )
-    );
     onEmpresaAtualChange?.({
       nome,
       logo,
@@ -521,63 +486,6 @@ export default function EmpresaForm({
 
   return (
     <div className="space-y-6">
-      <Card
-        title="Admin de Empresas"
-        subtitle="Selecione a empresa que deseja gerenciar."
-      >
-        {carregandoEmpresas ? (
-          <p className="text-slate-500">
-            Carregando empresas...
-          </p>
-        ) : (
-          <div className="grid gap-3">
-            {empresas.map((empresa) => {
-              const linkEmpresa = `${baseUrlPublica}/${empresa.slug}`;
-              const selecionada = empresa.id === empresaId;
-
-              return (
-                <div
-                  key={empresa.id}
-                  className={
-                    selecionada
-                      ? "rounded-2xl border border-green-600 bg-green-50 p-4"
-                      : "rounded-2xl border bg-white p-4"
-                  }
-                >
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="min-w-0">
-                      <h3 className="font-bold text-slate-800">
-                        {empresa.nome || "Empresa sem nome"}
-                      </h3>
-
-                      <p className="text-sm text-slate-500">
-                        Slug: {empresa.slug || "-"}
-                      </p>
-
-                      <p className="break-all text-sm text-slate-500">
-                        {linkEmpresa}
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => carregarEmpresa(empresa.slug)}
-                      className={
-                        selecionada
-                          ? "rounded-xl bg-green-700 px-4 py-2 font-bold text-white"
-                          : "rounded-xl border px-4 py-2 font-bold text-slate-700"
-                      }
-                    >
-                      {selecionada ? "Editando" : "Editar"}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </Card>
-
       <div className="flex flex-wrap gap-2 rounded-2xl border bg-white p-2 shadow-sm">
         {abasEmpresa.map((aba) => (
           <button
@@ -655,6 +563,26 @@ export default function EmpresaForm({
             <p className="mt-2 text-sm text-slate-500">
               Campo reservado para administrador Mikatech.
             </p>
+          </div>
+
+          <div>
+            <label className="block mb-2 font-medium">
+              Tipo de gerenciamento
+            </label>
+
+            <select
+              className="w-full border rounded-xl p-3 bg-white"
+              value={tipoGerenciamento}
+              onChange={(e) => setTipoGerenciamento(e.target.value)}
+            >
+              <option value="mikatech">
+                Administrada pela Mikatech
+              </option>
+
+              <option value="cliente">
+                Cliente administra
+              </option>
+            </select>
           </div>
 
           <div className="lg:col-span-3">
