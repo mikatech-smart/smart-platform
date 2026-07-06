@@ -13,7 +13,8 @@ export default function HeroEmpresa({
   nome,
   logoExibicao = "normal",
 }: HeroEmpresaProps) {
-  const temBanner = Boolean(banner);
+  const bannerUrl = banner?.trim() || "";
+  const temBanner = Boolean(bannerUrl);
   const deveExibirLogo = Boolean(logo) && logoExibicao !== "oculto";
 
   return (
@@ -27,8 +28,8 @@ export default function HeroEmpresa({
       >
         {temBanner ? (
           <img
-            key={banner}
-            src={banner || ""}
+            key={bannerUrl}
+            src={bannerUrl}
             alt={`Banner ${nome}`}
             decoding="async"
             className="public-empresa-banner"
