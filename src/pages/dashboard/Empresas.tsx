@@ -31,9 +31,16 @@ function tipoEhCliente(tipo?: string | null) {
   return tipo === "cliente";
 }
 
+function obterTipoGerenciamento(tipo?: string | null) {
+  return tipoEhCliente(tipo)
+    ? "Cliente administra"
+    : "Administrada pela Mikatech";
+}
+
 export default function Empresas() {
   const [empresas, setEmpresas] = useState<EmpresaResumo[]>([]);
   const [carregando, setCarregando] = useState(true);
+  const [busca, setBusca] = useState("");
   const [linkCopiado, setLinkCopiado] = useState("");
   const [slugEmEdicao, setSlugEmEdicao] = useState("");
   const [mostrarNovaEmpresa, setMostrarNovaEmpresa] = useState(false);
@@ -47,6 +54,22 @@ export default function Empresas() {
   const baseUrlPublica = (
     import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin
   ).replace(/\/$/, "");
+  const termoBusca = busca.trim().toLowerCase();
+  const empresasFiltradas = termoBusca
+    ? empresas.filter((empresa) => {
+        const camposBusca = [
+          empresa.nome,
+          empresa.slug,
+          empresa.categoria,
+          empresa.tipo,
+          obterTipoGerenciamento(empresa.tipo),
+        ];
+
+        return camposBusca.some((campo) =>
+          (campo || "").toLowerCase().includes(termoBusca)
+        );
+      })
+    : empresas;
 
   async function carregarEmpresas() {
     const { data, error } = await listarEmpresas();
@@ -239,63 +262,77 @@ export default function Empresas() {
           Carregando empresas...
         </div>
       ) : (
-        <div className="grid gap-4">
-          {empresas.map((empresa) => {
+        <div className="grid gap-3">
+          <div className="rounded-2xl bg-white p-4 shadow-sm">
+            <label className="mb-2 block text-sm font-bold text-slate-700">
+              Buscar empresas
+            </label>
+
+            <input
+              type="search"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Busque por nome, slug, categoria ou tipo"
+              className="w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition focus:border-green-600 focus:ring-2 focus:ring-green-100"
+            />
+
+            <p className="mt-2 text-xs font-medium text-slate-500">
+              {empresasFiltradas.length} de {empresas.length} empresas
+            </p>
+          </div>
+
+          {empresasFiltradas.map((empresa) => {
             const slug = empresa.slug || "";
             const linkPublico = slug ? `${baseUrlPublica}/${slug}` : "";
             const clienteAdministra = tipoEhCliente(empresa.tipo);
+            const tipoGerenciamento = obterTipoGerenciamento(empresa.tipo);
 
             return (
               <Fragment key={empresa.id}>
-                <article className="rounded-2xl bg-white p-5 shadow-sm">
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex min-w-0 items-center gap-4">
+                <article className="rounded-2xl bg-white p-4 shadow-sm">
+                  <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                    <div className="flex min-w-0 items-center gap-3">
                       {empresa.logo ? (
                         <img
                           src={empresa.logo}
                           alt={empresa.nome || "Empresa"}
-                          className="h-16 w-16 rounded-2xl border object-cover"
+                          className="h-12 w-12 rounded-xl border object-cover"
                         />
                       ) : (
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border bg-slate-50 font-bold text-slate-400">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl border bg-slate-50 font-bold text-slate-400">
                           {empresa.nome?.charAt(0) || "E"}
                         </div>
                       )}
 
                       <div className="min-w-0">
-                        <h3 className="truncate text-lg font-bold text-slate-900">
+                        <h3 className="truncate text-base font-bold text-slate-900">
                           {empresa.nome || "Empresa sem nome"}
                         </h3>
 
-                        <p className="text-sm text-slate-500">
-                          {empresa.categoria || "Sem categoria"}
-                        </p>
+                        <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
+                          <span>{empresa.categoria || "Sem categoria"}</span>
+                          <span>Slug: {slug || "-"}</span>
+                        </div>
 
-                        <p className="text-sm text-slate-500">
-                          Slug: {slug || "-"}
-                        </p>
-
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                          <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-600">
                             {empresa.ativo ? "Ativa" : "Teste"}
                           </span>
 
                           <span
                             className={
                               clienteAdministra
-                                ? "inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700"
-                                : "inline-flex rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-green-700"
+                                ? "inline-flex rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-blue-700"
+                                : "inline-flex rounded-full bg-green-50 px-2.5 py-0.5 text-[11px] font-bold text-green-700"
                             }
                           >
-                            {clienteAdministra
-                              ? "Cliente administra"
-                              : "Administrada pela Mikatech"}
+                            {tipoGerenciamento}
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="grid gap-2 sm:grid-cols-4 lg:min-w-[620px]">
+                    <div className="grid gap-2 sm:grid-cols-4 xl:min-w-[540px]">
                       <button
                         type="button"
                         disabled={!slug}
@@ -303,7 +340,7 @@ export default function Empresas() {
                           setMostrarNovaEmpresa(false);
                           setSlugEmEdicao(slug);
                         }}
-                        className="rounded-xl bg-green-700 px-4 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-xl bg-green-700 px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Editar
                       </button>
@@ -312,16 +349,16 @@ export default function Empresas() {
                         href={linkPublico || undefined}
                         target="_blank"
                         rel="noreferrer"
-                        className="rounded-xl border px-4 py-3 text-center font-bold text-slate-700"
+                        className="rounded-xl border px-3 py-2 text-center text-sm font-bold text-slate-700"
                       >
-                        Abrir pagina publica
+                        Abrir página
                       </a>
 
                       <button
                         type="button"
                         disabled={!linkPublico}
                         onClick={() => copiarLink(linkPublico)}
-                        className="rounded-xl border px-4 py-3 font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-xl border px-3 py-2 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Copiar link
                       </button>
@@ -329,7 +366,7 @@ export default function Empresas() {
                       <button
                         type="button"
                         onClick={() => excluirEmpresa(empresa.id, empresa.nome)}
-                        className="rounded-xl border border-red-200 px-4 py-3 font-bold text-red-700 hover:bg-red-50"
+                        className="rounded-xl border border-red-200 px-3 py-2 text-sm font-bold text-red-700 hover:bg-red-50"
                       >
                         Excluir
                       </button>
@@ -377,6 +414,12 @@ export default function Empresas() {
               </Fragment>
             );
           })}
+
+          {empresasFiltradas.length === 0 && (
+            <div className="rounded-2xl bg-white p-6 text-center text-sm font-medium text-slate-500 shadow-sm">
+              Nenhuma empresa encontrada para essa busca.
+            </div>
+          )}
         </div>
       )}
     </section>
