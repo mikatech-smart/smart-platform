@@ -11,7 +11,7 @@
 }
 
 .public-empresa-hero--sem-banner {
-  background: var(--mc-hero-background, var(--mc-primary, #1f3d36));
+  background: #ffffff;
 }
 
 .public-empresa-banner {
@@ -29,12 +29,7 @@
 .public-empresa-banner__fallback {
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    135deg,
-    var(--mc-primary, #1f3d36) 0%,
-    color-mix(in srgb, var(--mc-primary, #1f3d36) 76%, white) 48%,
-    var(--mc-accent, #b77c36) 100%
-  );
+  background: #ffffff;
 }
 
 .public-empresa-logo {
