@@ -144,6 +144,63 @@ function gerarSlug(valor: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+function obterDigitos(valor: string) {
+  return valor.replace(/\D/g, "");
+}
+
+function obterTelefoneLocal(valor: string) {
+  const digitos = obterDigitos(valor);
+
+  if ((digitos.length === 12 || digitos.length === 13) && digitos.startsWith("55")) {
+    return digitos.slice(2);
+  }
+
+  return digitos;
+}
+
+function formatarTelefone(valor: string) {
+  const digitos = obterTelefoneLocal(valor).slice(0, 11);
+  const ddd = digitos.slice(0, 2);
+  const parteInicial = digitos.length > 10
+    ? digitos.slice(2, 7)
+    : digitos.slice(2, 6);
+  const parteFinal = digitos.length > 10
+    ? digitos.slice(7, 11)
+    : digitos.slice(6, 10);
+
+  if (digitos.length <= 2) return ddd;
+  if (!parteFinal) return `(${ddd}) ${parteInicial}`;
+
+  return `(${ddd}) ${parteInicial}-${parteFinal}`;
+}
+
+function normalizarUsuarioRedeSocial(valor: string) {
+  const texto = valor.trim();
+
+  if (!texto) return "";
+
+  try {
+    const url = new URL(
+      texto.startsWith("http://") || texto.startsWith("https://")
+        ? texto
+        : `https://${texto}`
+    );
+    const partes = url.pathname
+      .split("/")
+      .map((parte) => parte.trim())
+      .filter(Boolean);
+    const usuario = partes.find((parte) =>
+      !["p", "reel", "reels", "tv", "channel", "c", "user"].includes(
+        parte.toLowerCase()
+      )
+    );
+
+    return (usuario || "").replace(/^@+/, "").split("?")[0];
+  } catch {
+    return texto.replace(/^@+/, "").replace(/\s+/g, "");
+  }
+}
+
 interface EmpresaFormProps {
   empresaInicialId?: string;
   empresaInicialSlug?: string;
@@ -260,19 +317,19 @@ export default function EmpresaForm({
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
 
-    setTelefone(data.telefone || "");
-    setWhatsapp(data.whatsapp || "");
+    setTelefone(formatarTelefone(data.telefone || ""));
+    setWhatsapp(formatarTelefone(data.whatsapp || ""));
     setEmail(data.email || "");
 
     setSite(data.site || "");
-    setInstagram(data.instagram || "");
+    setInstagram(normalizarUsuarioRedeSocial(data.instagram || ""));
     setTemCamposRedesExtras(
       "tiktok" in data || "youtube" in data || "kwai" in data
     );
-    setTiktok(data.tiktok || "");
-    setYoutube(data.youtube || "");
-    setKwai(data.kwai || "");
-    setFacebook(data.facebook || "");
+    setTiktok(normalizarUsuarioRedeSocial(data.tiktok || ""));
+    setYoutube(normalizarUsuarioRedeSocial(data.youtube || ""));
+    setKwai(normalizarUsuarioRedeSocial(data.kwai || ""));
+    setFacebook(normalizarUsuarioRedeSocial(data.facebook || ""));
     setEndereco(data.endereco || "");
     setHorarioAtendimento(data.horario_atendimento || "");
     const horarioCarregado = lerTextoHorario(data.horario_atendimento || "");
@@ -403,6 +460,19 @@ export default function EmpresaForm({
       return;
     }
 
+    const whatsappLocal = obterTelefoneLocal(whatsapp);
+    const telefoneLocal = obterTelefoneLocal(telefone);
+
+    if (whatsappLocal && whatsappLocal.length < 10) {
+      alert("Informe um WhatsApp valido com DDD.");
+      return;
+    }
+
+    if (telefoneLocal && telefoneLocal.length < 10) {
+      alert("Informe um telefone valido com DDD.");
+      return;
+    }
+
     const dadosEmpresa = {
       nome,
       slug: slugFinal,
@@ -410,13 +480,13 @@ export default function EmpresaForm({
       categoria,
       descricao,
 
-      telefone,
-      whatsapp,
+      telefone: telefoneLocal,
+      whatsapp: whatsappLocal ? `55${whatsappLocal}` : "",
       email,
 
       site,
-      instagram,
-      facebook,
+      instagram: normalizarUsuarioRedeSocial(instagram),
+      facebook: normalizarUsuarioRedeSocial(facebook),
       endereco,
       horario_atendimento: horarioAtendimento,
       google_review_url: googleReviewUrl,
@@ -432,9 +502,9 @@ export default function EmpresaForm({
       banner,
       ...(temCamposRedesExtras
         ? {
-            tiktok,
-            youtube,
-            kwai,
+            tiktok: normalizarUsuarioRedeSocial(tiktok),
+            youtube: normalizarUsuarioRedeSocial(youtube),
+            kwai: normalizarUsuarioRedeSocial(kwai),
           }
         : {}),
     };
@@ -740,13 +810,15 @@ export default function EmpresaForm({
           <Input
             label="WhatsApp"
             value={whatsapp}
-            onChange={(e) => setWhatsapp(e.target.value)}
+            onChange={(e) => setWhatsapp(formatarTelefone(e.target.value))}
+            placeholder="(15) 99741-4078"
           />
 
           <Input
             label="Telefone"
             value={telefone}
-            onChange={(e) => setTelefone(e.target.value)}
+            onChange={(e) => setTelefone(formatarTelefone(e.target.value))}
+            placeholder="(15) 3333-4444"
           />
 
           <Input
@@ -997,31 +1069,46 @@ export default function EmpresaForm({
           <Input
             label="Instagram"
             value={instagram}
-            onChange={(e) => setInstagram(e.target.value)}
+            onChange={(e) =>
+              setInstagram(normalizarUsuarioRedeSocial(e.target.value))
+            }
+            helperText="Digite apenas o usuário, sem @ e sem link."
           />
 
           <Input
             label="TikTok"
             value={tiktok}
-            onChange={(e) => setTiktok(e.target.value)}
+            onChange={(e) =>
+              setTiktok(normalizarUsuarioRedeSocial(e.target.value))
+            }
+            helperText="Digite apenas o usuário, sem @ e sem link."
           />
 
           <Input
             label="YouTube"
             value={youtube}
-            onChange={(e) => setYoutube(e.target.value)}
+            onChange={(e) =>
+              setYoutube(normalizarUsuarioRedeSocial(e.target.value))
+            }
+            helperText="Digite apenas o usuário, sem @ e sem link."
           />
 
           <Input
             label="Kwai"
             value={kwai}
-            onChange={(e) => setKwai(e.target.value)}
+            onChange={(e) =>
+              setKwai(normalizarUsuarioRedeSocial(e.target.value))
+            }
+            helperText="Digite apenas o usuário, sem @ e sem link."
           />
 
           <Input
             label="Facebook"
             value={facebook}
-            onChange={(e) => setFacebook(e.target.value)}
+            onChange={(e) =>
+              setFacebook(normalizarUsuarioRedeSocial(e.target.value))
+            }
+            helperText="Digite apenas o usuário, sem @ e sem link."
           />
 
           <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
