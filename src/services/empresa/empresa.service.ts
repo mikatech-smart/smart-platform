@@ -14,6 +14,18 @@ export async function buscarEmpresaPorSlug(slug: string) {
   };
 }
 
+export async function listarEmpresas() {
+  const { data, error } = await supabase
+    .from("empresas")
+    .select("id,nome,slug")
+    .order("nome", { ascending: true });
+
+  return {
+    data,
+    error,
+  };
+}
+
 export async function atualizarEmpresa(
   id: string,
   dados: Partial<Empresa>
