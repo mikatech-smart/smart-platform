@@ -14,6 +14,19 @@ export async function buscarEmpresaPorSlug(slug: string) {
   };
 }
 
+export async function buscarEmpresaPorId(id: string) {
+  const { data, error } = await supabase
+    .from("empresas")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  return {
+    data,
+    error,
+  };
+}
+
 export async function listarEmpresas() {
   const { data, error } = await supabase
     .from("empresas")

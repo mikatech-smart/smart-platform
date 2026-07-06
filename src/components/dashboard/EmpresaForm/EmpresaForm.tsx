@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import {
+  buscarEmpresaPorId,
   buscarEmpresaPorSlug,
   atualizarEmpresa,
 } from "../../../services/empresa/empresa.service";
@@ -144,6 +145,7 @@ function gerarSlug(valor: string) {
 }
 
 interface EmpresaFormProps {
+  empresaInicialId?: string;
   empresaInicialSlug?: string;
   onSalvar?: () => void;
   onExcluir?: () => void | Promise<void>;
@@ -154,6 +156,7 @@ interface EmpresaFormProps {
 }
 
 export default function EmpresaForm({
+  empresaInicialId,
   empresaInicialSlug,
   onSalvar,
   onExcluir,
@@ -215,11 +218,16 @@ export default function EmpresaForm({
   const linkPublico = slugPublico ? `${baseUrlPublica}/${slugPublico}` : "";
 
   useEffect(() => {
-    carregarEmpresa(empresaInicialSlug || "mikatech");
-  }, [empresaInicialSlug]);
+    carregarEmpresa({
+      id: empresaInicialId,
+      slug: empresaInicialSlug || "mikatech",
+    });
+  }, [empresaInicialId, empresaInicialSlug]);
 
-  async function carregarEmpresa(slugEmpresa: string) {
-    const { data, error } = await buscarEmpresaPorSlug(slugEmpresa);
+  async function carregarEmpresa(empresa: { id?: string; slug: string }) {
+    const { data, error } = empresa.id
+      ? await buscarEmpresaPorId(empresa.id)
+      : await buscarEmpresaPorSlug(empresa.slug);
 
     if (error) {
       console.error("Erro ao carregar empresa:", error);
@@ -370,6 +378,11 @@ export default function EmpresaForm({
   async function salvar() {
     const slugFinal = gerarSlug(slugAdmin || slug);
 
+    if (!empresaId) {
+      alert("Empresa ainda nao foi carregada. Tente novamente.");
+      return;
+    }
+
     if (!slugFinal) {
       alert("Informe um slug valido antes de salvar.");
       return;
@@ -431,9 +444,12 @@ export default function EmpresaForm({
   }
 
   async function salvarLogo(url: string) {
-    setLogo(url);
+    if (!empresaId) {
+      alert("Empresa ainda nao foi carregada. Tente novamente antes de alterar a logo.");
+      return;
+    }
 
-    if (!empresaId) return;
+    setLogo(url);
 
     const { error } = await atualizarEmpresa(empresaId, {
       logo: url,
@@ -460,11 +476,14 @@ export default function EmpresaForm({
   }
 
   async function salvarBanner(url: string) {
+    if (!empresaId) {
+      alert("Empresa ainda nao foi carregada. Tente novamente antes de alterar o banner.");
+      return;
+    }
+
     const bannerAtualizado = url ? adicionarVersaoImagem(url) : "";
 
     setBanner(bannerAtualizado);
-
-    if (!empresaId) return;
 
     const { error } = await atualizarEmpresa(empresaId, {
       banner: bannerAtualizado,
@@ -671,7 +690,7 @@ export default function EmpresaForm({
           <UploadImagem
             titulo="Logo"
             imagem={logo}
-            pasta={`${empresaId || "mikatech"}/logo`}
+            pasta={empresaId ? `${empresaId}/logo` : undefined}
             onUpload={salvarLogo}
           />
 
