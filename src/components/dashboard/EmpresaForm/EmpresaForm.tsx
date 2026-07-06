@@ -268,7 +268,6 @@ export default function EmpresaForm({
   const [banner, setBanner] = useState("");
   const [logoExibicao, setLogoExibicao] =
     useState<LogoExibicao>("normal");
-  const [temCamposRedesExtras, setTemCamposRedesExtras] = useState(false);
   const categoriaSelecionada = categoriasEmpresa.includes(categoria)
     ? categoria
     : "Outra";
@@ -327,9 +326,6 @@ export default function EmpresaForm({
 
     setSite(data.site || "");
     setInstagram(normalizarUsuarioRedeSocial(data.instagram || ""));
-    setTemCamposRedesExtras(
-      "tiktok" in data || "youtube" in data || "kwai" in data
-    );
     setTiktok(normalizarUsuarioRedeSocial(data.tiktok || ""));
     setYoutube(normalizarUsuarioRedeSocial(data.youtube || ""));
     setKwai(normalizarUsuarioRedeSocial(data.kwai || ""));
@@ -506,13 +502,9 @@ export default function EmpresaForm({
       logo,
       banner,
       logo_exibicao: logoExibicao,
-      ...(temCamposRedesExtras
-        ? {
-            tiktok: normalizarUsuarioRedeSocial(tiktok),
-            youtube: normalizarUsuarioRedeSocial(youtube),
-            kwai: normalizarUsuarioRedeSocial(kwai),
-          }
-        : {}),
+      tiktok: normalizarUsuarioRedeSocial(tiktok),
+      youtube: normalizarUsuarioRedeSocial(youtube),
+      kwai: normalizarUsuarioRedeSocial(kwai),
     };
 
     console.log("[Diagnostico UPDATE] Antes de chamar atualizarEmpresa:", {
