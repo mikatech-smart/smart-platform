@@ -145,6 +145,7 @@ function gerarSlug(valor: string) {
 
 interface EmpresaFormProps {
   empresaInicialSlug?: string;
+  onSalvar?: () => void;
   onEmpresaAtualChange?: (empresa: {
     nome: string;
     logo?: string | null;
@@ -153,6 +154,7 @@ interface EmpresaFormProps {
 
 export default function EmpresaForm({
   empresaInicialSlug,
+  onSalvar,
   onEmpresaAtualChange,
 }: EmpresaFormProps) {
   const [abaAtiva, setAbaAtiva] = useState<AbaEmpresa>("informacoes");
@@ -365,6 +367,12 @@ export default function EmpresaForm({
 
   async function salvar() {
     const slugFinal = gerarSlug(slugAdmin || slug);
+
+    if (!slugFinal) {
+      alert("Informe um slug valido antes de salvar.");
+      return;
+    }
+
     const dadosEmpresa = {
       nome,
       slug: slugFinal,
@@ -417,6 +425,7 @@ export default function EmpresaForm({
     });
 
     alert("Dados salvos com sucesso!");
+    onSalvar?.();
   }
 
   async function salvarLogo(url: string) {

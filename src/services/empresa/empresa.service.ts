@@ -115,6 +115,17 @@ export async function criarEmpresa(dados: {
   };
 }
 
+export async function excluirEmpresa(id: string) {
+  const { error } = await supabase
+    .from("empresas")
+    .delete()
+    .eq("id", id);
+
+  return {
+    error,
+  };
+}
+
 export async function atualizarEmpresa(
   id: string,
   dados: Partial<Empresa>
