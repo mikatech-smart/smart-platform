@@ -181,6 +181,22 @@ function normalizarUsuarioRedeSocial(valor: string) {
 
   if (!texto) return "";
 
+  const textoSemArroba = texto.replace(/^@+/, "");
+  const contemLink =
+    /^https?:\/\//i.test(texto) ||
+    /^www\./i.test(texto) ||
+    /(^|\.)instagram\.com/i.test(texto) ||
+    /(^|\.)facebook\.com/i.test(texto) ||
+    /(^|\.)tiktok\.com/i.test(texto) ||
+    /(^|\.)youtube\.com/i.test(texto) ||
+    /(^|\.)youtu\.be/i.test(texto) ||
+    /(^|\.)kwai\.com/i.test(texto) ||
+    /(^|\.)k\.kwai\.com/i.test(texto);
+
+  if (!contemLink) {
+    return textoSemArroba.replace(/\s+/g, "");
+  }
+
   try {
     const url = new URL(
       texto.startsWith("http://") || texto.startsWith("https://")
@@ -197,9 +213,9 @@ function normalizarUsuarioRedeSocial(valor: string) {
       )
     );
 
-    return (usuario || "").replace(/^@+/, "").split("?")[0];
+    return (usuario || textoSemArroba).replace(/^@+/, "").split("?")[0];
   } catch {
-    return texto.replace(/^@+/, "").replace(/\s+/g, "");
+    return textoSemArroba.replace(/\s+/g, "");
   }
 }
 
@@ -1120,9 +1136,11 @@ export default function EmpresaForm({
             label="Instagram"
             value={instagram}
             onChange={(e) => setInstagram(e.target.value)}
-            onBlur={(e) =>
-              setInstagram(normalizarUsuarioRedeSocial(e.target.value))
-            }
+            onBlur={(e) => {
+              const valorNormalizado = normalizarUsuarioRedeSocial(e.target.value);
+
+              setInstagram(valorNormalizado);
+            }}
             helperText="Digite apenas o usuário, sem @ e sem link."
           />
 
@@ -1130,9 +1148,11 @@ export default function EmpresaForm({
             label="TikTok"
             value={tiktok}
             onChange={(e) => setTiktok(e.target.value)}
-            onBlur={(e) =>
-              setTiktok(normalizarUsuarioRedeSocial(e.target.value))
-            }
+            onBlur={(e) => {
+              const valorNormalizado = normalizarUsuarioRedeSocial(e.target.value);
+
+              setTiktok(valorNormalizado);
+            }}
             helperText="Digite apenas o usuário, sem @ e sem link."
           />
 
@@ -1140,9 +1160,11 @@ export default function EmpresaForm({
             label="YouTube"
             value={youtube}
             onChange={(e) => setYoutube(e.target.value)}
-            onBlur={(e) =>
-              setYoutube(normalizarUsuarioRedeSocial(e.target.value))
-            }
+            onBlur={(e) => {
+              const valorNormalizado = normalizarUsuarioRedeSocial(e.target.value);
+
+              setYoutube(valorNormalizado);
+            }}
             helperText="Digite apenas o usuário, sem @ e sem link."
           />
 
@@ -1150,9 +1172,11 @@ export default function EmpresaForm({
             label="Kwai"
             value={kwai}
             onChange={(e) => setKwai(e.target.value)}
-            onBlur={(e) =>
-              setKwai(normalizarUsuarioRedeSocial(e.target.value))
-            }
+            onBlur={(e) => {
+              const valorNormalizado = normalizarUsuarioRedeSocial(e.target.value);
+
+              setKwai(valorNormalizado);
+            }}
             helperText="Digite apenas o usuário, sem @ e sem link."
           />
 
@@ -1160,9 +1184,11 @@ export default function EmpresaForm({
             label="Facebook"
             value={facebook}
             onChange={(e) => setFacebook(e.target.value)}
-            onBlur={(e) =>
-              setFacebook(normalizarUsuarioRedeSocial(e.target.value))
-            }
+            onBlur={(e) => {
+              const valorNormalizado = normalizarUsuarioRedeSocial(e.target.value);
+
+              setFacebook(valorNormalizado);
+            }}
             helperText="Digite apenas o usuário, sem @ e sem link."
           />
 
