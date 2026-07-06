@@ -1127,7 +1127,8 @@ export default function EmpresaForm({
           <Input
             label="Instagram"
             value={instagram}
-            onChange={(e) =>
+            onChange={(e) => setInstagram(e.target.value)}
+            onBlur={(e) =>
               setInstagram(normalizarUsuarioRedeSocial(e.target.value))
             }
             helperText="Digite apenas o usuário, sem @ e sem link."
@@ -1136,7 +1137,8 @@ export default function EmpresaForm({
           <Input
             label="TikTok"
             value={tiktok}
-            onChange={(e) =>
+            onChange={(e) => setTiktok(e.target.value)}
+            onBlur={(e) =>
               setTiktok(normalizarUsuarioRedeSocial(e.target.value))
             }
             helperText="Digite apenas o usuário, sem @ e sem link."
@@ -1145,7 +1147,8 @@ export default function EmpresaForm({
           <Input
             label="YouTube"
             value={youtube}
-            onChange={(e) =>
+            onChange={(e) => setYoutube(e.target.value)}
+            onBlur={(e) =>
               setYoutube(normalizarUsuarioRedeSocial(e.target.value))
             }
             helperText="Digite apenas o usuário, sem @ e sem link."
@@ -1154,7 +1157,8 @@ export default function EmpresaForm({
           <Input
             label="Kwai"
             value={kwai}
-            onChange={(e) =>
+            onChange={(e) => setKwai(e.target.value)}
+            onBlur={(e) =>
               setKwai(normalizarUsuarioRedeSocial(e.target.value))
             }
             helperText="Digite apenas o usuário, sem @ e sem link."
@@ -1163,7 +1167,8 @@ export default function EmpresaForm({
           <Input
             label="Facebook"
             value={facebook}
-            onChange={(e) =>
+            onChange={(e) => setFacebook(e.target.value)}
+            onBlur={(e) =>
               setFacebook(normalizarUsuarioRedeSocial(e.target.value))
             }
             helperText="Digite apenas o usuário, sem @ e sem link."
