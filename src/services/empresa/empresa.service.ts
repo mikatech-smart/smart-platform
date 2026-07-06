@@ -17,12 +17,101 @@ export async function buscarEmpresaPorSlug(slug: string) {
 export async function listarEmpresas() {
   const { data, error } = await supabase
     .from("empresas")
-    .select("id,nome,slug")
+    .select("id,nome,slug,categoria,logo,ativo,tipo")
     .order("nome", { ascending: true });
 
   return {
     data,
     error,
+  };
+}
+
+export async function criarEmpresa(dados: {
+  nome: string;
+  slug: string;
+  tipoGerenciamento: string;
+}) {
+  const { data: sessao } = await supabase.auth.getSession();
+  const userId = sessao.session?.user.id;
+  const dadosEmpresa = {
+      nome: dados.nome,
+      slug: dados.slug,
+      tipo: dados.tipoGerenciamento,
+      categoria: "",
+      descricao: "",
+      telefone: "",
+      whatsapp: "",
+      email: "",
+      instagram: "",
+      facebook: "",
+      site: "",
+      endereco: "",
+      pix: "",
+      logo: "",
+      banner: "",
+      ativo: true,
+  };
+
+  async function inserirEmpresa(payload: Record<string, unknown>) {
+    return supabase
+      .from("empresas")
+      .insert(payload)
+      .select()
+      .single();
+  }
+
+  const primeiraTentativa = userId
+    ? await inserirEmpresa({
+        ...dadosEmpresa,
+        user_id: userId,
+      })
+    : await inserirEmpresa(dadosEmpresa);
+
+  if (!primeiraTentativa.error) {
+    return {
+      data: primeiraTentativa.data,
+      error: null,
+    };
+  }
+
+  const erroPrimeiraTentativa = primeiraTentativa.error;
+  const colunaUserIdNaoExiste =
+    erroPrimeiraTentativa.code === "PGRST204" ||
+    erroPrimeiraTentativa.message
+      ?.toLowerCase()
+      .includes("user_id");
+
+  if (userId && colunaUserIdNaoExiste) {
+    const { data, error } = await inserirEmpresa(dadosEmpresa);
+
+    return {
+      data,
+      error,
+    };
+  }
+
+  const erroRls =
+    erroPrimeiraTentativa.message
+      ?.toLowerCase()
+      .includes("row-level security") ||
+    erroPrimeiraTentativa.message
+      ?.toLowerCase()
+      .includes("rls");
+
+  if (erroRls && !userId) {
+    return {
+      data: null,
+      error: {
+        ...erroPrimeiraTentativa,
+        message:
+          "Insert bloqueado pela RLS do Supabase: o Admin precisa estar autenticado para criar empresas.",
+      },
+    };
+  }
+
+  return {
+    data: null,
+    error: erroPrimeiraTentativa,
   };
 }
 

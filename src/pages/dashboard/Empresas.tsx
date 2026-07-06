@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 
 import EmpresaForm from "../../components/dashboard/EmpresaForm";
-import { supabase } from "../../lib/supabase";
+import {
+  criarEmpresa as criarEmpresaService,
+  listarEmpresas,
+} from "../../services/empresa/empresa.service";
 
 type EmpresaResumo = {
   id: string;
@@ -43,10 +46,7 @@ export default function Empresas() {
   ).replace(/\/$/, "");
 
   async function carregarEmpresas() {
-    const { data, error } = await supabase
-      .from("empresas")
-      .select("id,nome,slug,categoria,logo,ativo,tipo")
-      .order("nome", { ascending: true });
+    const { data, error } = await listarEmpresas();
 
     if (error) {
       console.error("Erro ao carregar empresas:", error);
@@ -74,35 +74,26 @@ export default function Empresas() {
   async function criarEmpresa() {
     const slug = gerarSlug(novoSlug || novoNome);
 
-    if (!novoNome || !slug) return;
+    if (!novoNome || !slug) {
+      alert("Informe o nome e o slug da empresa.");
+      return;
+    }
 
     try {
       setSalvandoNovaEmpresa(true);
 
-      const { error } = await supabase
-        .from("empresas")
-        .insert({
-          nome: novoNome,
-          slug,
-          tipo: novoTipo,
-          categoria: "",
-          descricao: "",
-          telefone: "",
-          whatsapp: "",
-          email: "",
-          instagram: "",
-          facebook: "",
-          site: "",
-          endereco: "",
-          pix: "",
-          logo: "",
-          banner: "",
-          ativo: true,
-        });
+      const { error } = await criarEmpresaService({
+        nome: novoNome,
+        slug,
+        tipoGerenciamento: novoTipo,
+      });
 
       if (error) {
-        console.error("Erro ao criar empresa:", error);
-        alert(error.message || "Erro ao criar empresa.");
+        console.error("Erro completo ao criar empresa:", error);
+        alert(
+          error.message ||
+            "Erro ao criar empresa. Verifique as permissoes do Admin no Supabase."
+        );
         return;
       }
 
@@ -110,7 +101,7 @@ export default function Empresas() {
       setNovoSlug("");
       setNovoTipo("mikatech");
       setMostrarNovaEmpresa(false);
-      setSlugEmEdicao(slug);
+      setSlugEmEdicao("");
       await carregarEmpresas();
     } finally {
       setSalvandoNovaEmpresa(false);
@@ -132,7 +123,10 @@ export default function Empresas() {
 
         <button
           type="button"
-          onClick={() => setMostrarNovaEmpresa((valor) => !valor)}
+          onClick={() => {
+            setSlugEmEdicao("");
+            setMostrarNovaEmpresa((valor) => !valor);
+          }}
           className="rounded-xl bg-green-700 px-5 py-3 font-bold text-white"
         >
           + Nova Empresa
@@ -275,7 +269,10 @@ export default function Empresas() {
                     <button
                       type="button"
                       disabled={!slug}
-                      onClick={() => setSlugEmEdicao(slug)}
+                      onClick={() => {
+                        setMostrarNovaEmpresa(false);
+                        setSlugEmEdicao(slug);
+                      }}
                       className="rounded-xl bg-green-700 px-4 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Editar
@@ -334,7 +331,13 @@ export default function Empresas() {
             </button>
           </div>
 
-          <EmpresaForm empresaInicialSlug={slugEmEdicao} />
+          <EmpresaForm
+            empresaInicialSlug={slugEmEdicao}
+            onSalvar={() => {
+              setSlugEmEdicao("");
+              carregarEmpresas();
+            }}
+          />
         </div>
       )}
     </section>
