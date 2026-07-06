@@ -146,6 +146,7 @@ function gerarSlug(valor: string) {
 interface EmpresaFormProps {
   empresaInicialSlug?: string;
   onSalvar?: () => void;
+  onExcluir?: () => void | Promise<void>;
   onEmpresaAtualChange?: (empresa: {
     nome: string;
     logo?: string | null;
@@ -155,6 +156,7 @@ interface EmpresaFormProps {
 export default function EmpresaForm({
   empresaInicialSlug,
   onSalvar,
+  onExcluir,
   onEmpresaAtualChange,
 }: EmpresaFormProps) {
   const [abaAtiva, setAbaAtiva] = useState<AbaEmpresa>("informacoes");
@@ -992,6 +994,33 @@ export default function EmpresaForm({
           Salvar alteracoes
         </Button>
       </div>
+
+      {onExcluir && (
+        <Card
+          title="Zona de Perigo"
+          subtitle="Acoes irreversiveis para esta empresa."
+        >
+          <div className="flex flex-col gap-4 rounded-xl border border-red-100 bg-red-50/50 p-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h3 className="font-bold text-red-800">
+                Excluir empresa
+              </h3>
+
+              <p className="mt-1 text-sm text-red-700">
+                Esta acao remove a empresa e nao podera ser desfeita.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={onExcluir}
+              className="rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-bold text-red-700 transition hover:bg-red-100"
+            >
+              Excluir Empresa
+            </button>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

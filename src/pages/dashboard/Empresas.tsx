@@ -135,9 +135,9 @@ export default function Empresas() {
     }
   }
 
-  async function excluirEmpresa(id: string, nome?: string | null) {
+  async function excluirEmpresa(id: string) {
     const confirmado = window.confirm(
-      `Deseja realmente excluir a empresa ${nome || "selecionada"}?`
+      "Tem certeza que deseja excluir esta empresa? Esta ação não poderá ser desfeita."
     );
 
     if (!confirmado) return;
@@ -332,7 +332,7 @@ export default function Empresas() {
                       </div>
                     </div>
 
-                    <div className="grid gap-2 sm:grid-cols-4 xl:min-w-[540px]">
+                    <div className="grid gap-2 sm:grid-cols-3 xl:min-w-[420px]">
                       <button
                         type="button"
                         disabled={!slug}
@@ -363,13 +363,6 @@ export default function Empresas() {
                         Copiar link
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => excluirEmpresa(empresa.id, empresa.nome)}
-                        className="rounded-xl border border-red-200 px-3 py-2 text-sm font-bold text-red-700 hover:bg-red-50"
-                      >
-                        Excluir
-                      </button>
                     </div>
                   </div>
 
@@ -404,6 +397,7 @@ export default function Empresas() {
 
                     <EmpresaForm
                       empresaInicialSlug={slugEmEdicao}
+                      onExcluir={() => excluirEmpresa(empresa.id)}
                       onSalvar={() => {
                         setSlugEmEdicao("");
                         carregarEmpresas();
