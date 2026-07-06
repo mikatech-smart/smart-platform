@@ -458,7 +458,7 @@ export default function EmpresaForm({
   }
 
   async function salvarBanner(url: string) {
-    const bannerAtualizado = adicionarVersaoImagem(url);
+    const bannerAtualizado = url ? adicionarVersaoImagem(url) : "";
 
     setBanner(bannerAtualizado);
 

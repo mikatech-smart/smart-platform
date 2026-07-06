@@ -78,7 +78,7 @@ export default function UploadImagem({
     inputRef.current?.click();
   }
 
-  function removerImagem() {
+  async function removerImagem() {
     setPreviewLocal("");
     setImagemRemovida(true);
     setNome("");
@@ -86,6 +86,24 @@ export default function UploadImagem({
     setTipo("");
     setResolucao("");
     setQualidade("");
+
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
+
+    if (!onUpload) return;
+
+    try {
+      setEnviando(true);
+      await onUpload("");
+    } catch (error) {
+      const mensagemErro = obterMensagemErroSupabase(error);
+
+      console.error("Erro ao remover imagem:", error);
+      alert(`Erro ao remover imagem: ${mensagemErro}`);
+    } finally {
+      setEnviando(false);
+    }
   }
 
   async function selecionarArquivo(
@@ -237,6 +255,7 @@ export default function UploadImagem({
             <button
               type="button"
               onClick={removerImagem}
+              disabled={enviando}
               className="px-4 rounded-xl border"
             >
               Remover
