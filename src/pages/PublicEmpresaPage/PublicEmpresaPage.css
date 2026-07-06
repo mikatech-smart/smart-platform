@@ -50,17 +50,13 @@
   position: relative;
   width: 100%;
   height: var(--public-empresa-hero-height);
-  background: var(--mc-primary);
+  background: transparent;
   border-radius: 24px 24px 18px 18px;
   overflow: hidden;
 }
 
 .public-empresa-hero::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.08) 0%, rgba(0, 0, 0, 0.34) 100%);
-  pointer-events: none;
+  display: none;
 }
 
 .public-empresa-hero img {
@@ -69,6 +65,9 @@
   object-fit: cover;
   object-position: center;
   display: block;
+  opacity: 1;
+  filter: none;
+  mix-blend-mode: normal;
 }
 
 .public-empresa-banner__fallback {
