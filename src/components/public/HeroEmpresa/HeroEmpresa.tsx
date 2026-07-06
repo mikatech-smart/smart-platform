@@ -11,15 +11,24 @@ export default function HeroEmpresa({
   logo,
   nome,
 }: HeroEmpresaProps) {
+  const temBanner = Boolean(banner);
+
   return (
     <>
-      <div className="public-empresa-hero">
-        {banner ? (
+      <div
+        className={
+          temBanner
+            ? "public-empresa-hero public-empresa-hero--com-banner"
+            : "public-empresa-hero public-empresa-hero--sem-banner"
+        }
+      >
+        {temBanner ? (
           <img
             key={banner}
-            src={banner}
+            src={banner || ""}
             alt={`Banner ${nome}`}
             decoding="async"
+            className="public-empresa-banner"
           />
         ) : (
           <div className="public-empresa-banner__fallback" />
