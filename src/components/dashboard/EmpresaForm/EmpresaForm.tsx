@@ -42,6 +42,8 @@ type AbaEmpresa =
   | "redes"
   | "conectividade";
 
+type LogoExibicao = "normal" | "pequeno" | "oculto";
+
 const abasEmpresa: Array<{
   id: AbaEmpresa;
   label: string;
@@ -264,6 +266,8 @@ export default function EmpresaForm({
 
   const [logo, setLogo] = useState("");
   const [banner, setBanner] = useState("");
+  const [logoExibicao, setLogoExibicao] =
+    useState<LogoExibicao>("normal");
   const [temCamposRedesExtras, setTemCamposRedesExtras] = useState(false);
   const categoriaSelecionada = categoriasEmpresa.includes(categoria)
     ? categoria
@@ -349,6 +353,7 @@ export default function EmpresaForm({
 
     setLogo(data.logo || "");
     setBanner(data.banner || "");
+    setLogoExibicao(data.logo_exibicao || "normal");
     onEmpresaAtualChange?.({
       nome: data.nome || "",
       logo: data.logo || "",
@@ -500,6 +505,7 @@ export default function EmpresaForm({
 
       logo,
       banner,
+      logo_exibicao: logoExibicao,
       ...(temCamposRedesExtras
         ? {
             tiktok: normalizarUsuarioRedeSocial(tiktok),
@@ -783,6 +789,58 @@ export default function EmpresaForm({
         title="Identidade Visual"
         subtitle="Configure a logo e o banner que aparecem na pagina publica."
       >
+        <div className="mb-5">
+          <label className="mb-3 block text-sm font-semibold text-slate-700">
+            Exibição do logo na página
+          </label>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            {[
+              {
+                valor: "normal",
+                titulo: "Exibir logo normal",
+                descricao: "Mantem o logo em destaque sobre o banner.",
+              },
+              {
+                valor: "pequeno",
+                titulo: "Exibir logo pequeno",
+                descricao: "Reduz o logo para nao cobrir o centro do banner.",
+              },
+              {
+                valor: "oculto",
+                titulo: "Não exibir logo",
+                descricao: "Mostra apenas o banner na pagina publica.",
+              },
+            ].map((opcao) => (
+              <label
+                key={opcao.valor}
+                className={`cursor-pointer rounded-2xl border p-4 transition ${
+                  logoExibicao === opcao.valor
+                    ? "border-green-600 bg-green-50"
+                    : "border-slate-200 bg-white hover:border-green-200"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="logoExibicao"
+                  value={opcao.valor}
+                  checked={logoExibicao === opcao.valor}
+                  onChange={() => setLogoExibicao(opcao.valor as LogoExibicao)}
+                  className="mr-2"
+                />
+
+                <span className="font-bold text-slate-800">
+                  {opcao.titulo}
+                </span>
+
+                <p className="mt-2 text-sm text-slate-500">
+                  {opcao.descricao}
+                </p>
+              </label>
+            ))}
+          </div>
+        </div>
+
         <div className="grid xl:grid-cols-2 gap-4 max-w-5xl">
           <UploadImagem
             titulo="Logo"

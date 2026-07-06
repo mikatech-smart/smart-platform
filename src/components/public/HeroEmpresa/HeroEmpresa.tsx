@@ -4,14 +4,17 @@ interface HeroEmpresaProps {
   banner?: string | null;
   logo?: string | null;
   nome: string;
+  logoExibicao?: "normal" | "pequeno" | "oculto";
 }
 
 export default function HeroEmpresa({
   banner,
   logo,
   nome,
+  logoExibicao = "normal",
 }: HeroEmpresaProps) {
   const temBanner = Boolean(banner);
+  const deveExibirLogo = Boolean(logo) && logoExibicao !== "oculto";
 
   return (
     <>
@@ -35,10 +38,10 @@ export default function HeroEmpresa({
         )}
       </div>
 
-      {logo && (
+      {deveExibirLogo && (
         <img
-          className="public-empresa-logo"
-          src={logo}
+          className={`public-empresa-logo public-empresa-logo--${logoExibicao}`}
+          src={logo || ""}
           alt={`Logo ${nome}`}
         />
       )}

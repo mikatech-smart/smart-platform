@@ -137,6 +137,10 @@ export default function PublicEmpresaPage() {
           banner={empresa.banner}
           logo={empresa.logo}
           nome={empresa.nome}
+          logoExibicao={
+            (empresa as Empresa & { logo_exibicao?: "normal" | "pequeno" | "oculto" })
+              .logo_exibicao || "normal"
+          }
         />
 
         <div className="public-empresa-content">
