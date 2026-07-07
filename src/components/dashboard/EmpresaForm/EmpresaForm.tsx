@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 
 import {
   buscarEmpresaPorId,
@@ -37,12 +37,15 @@ const categoriasEmpresa = [
 type AbaEmpresa =
   | "informacoes"
   | "visual"
+  | "aparencia"
   | "contato"
   | "endereco"
   | "redes"
   | "conectividade";
 
 type LogoExibicao = "normal" | "hidden";
+type TipoFundo = "solida" | "gradiente";
+type DirecaoGradiente = "horizontal" | "vertical" | "diagonal";
 
 const abasEmpresa: Array<{
   id: AbaEmpresa;
@@ -50,10 +53,74 @@ const abasEmpresa: Array<{
 }> = [
   { id: "informacoes", label: "Informações" },
   { id: "visual", label: "Identidade Visual" },
+  { id: "aparencia", label: "Aparencia" },
   { id: "contato", label: "Contato" },
   { id: "endereco", label: "Endereço" },
   { id: "redes", label: "Redes Sociais" },
   { id: "conectividade", label: "Conectividade" },
+];
+
+const paletasAparencia = [
+  {
+    nome: "Verde Mikatech",
+    corPrincipal: "#1f3d36",
+    corSecundaria: "#32bcad",
+    corBotoes: "#ffffff",
+    corTextoBotoes: "#1f3d36",
+    corFundo: "#f1eee8",
+    gradienteInicio: "#fbfaf8",
+    gradienteFim: "#f1eee8",
+  },
+  {
+    nome: "Preto Premium",
+    corPrincipal: "#111827",
+    corSecundaria: "#d4af37",
+    corBotoes: "#ffffff",
+    corTextoBotoes: "#111827",
+    corFundo: "#f4f4f5",
+    gradienteInicio: "#ffffff",
+    gradienteFim: "#e7e5e4",
+  },
+  {
+    nome: "Azul Profissional",
+    corPrincipal: "#1d4ed8",
+    corSecundaria: "#38bdf8",
+    corBotoes: "#ffffff",
+    corTextoBotoes: "#1e3a8a",
+    corFundo: "#eff6ff",
+    gradienteInicio: "#ffffff",
+    gradienteFim: "#dbeafe",
+  },
+  {
+    nome: "Dourado Luxo",
+    corPrincipal: "#6b4e16",
+    corSecundaria: "#c9a227",
+    corBotoes: "#ffffff",
+    corTextoBotoes: "#6b4e16",
+    corFundo: "#faf6e8",
+    gradienteInicio: "#fffdf5",
+    gradienteFim: "#f3e7bd",
+  },
+  {
+    nome: "Rosa Elegante",
+    corPrincipal: "#9d174d",
+    corSecundaria: "#f472b6",
+    corBotoes: "#ffffff",
+    corTextoBotoes: "#9d174d",
+    corFundo: "#fdf2f8",
+    gradienteInicio: "#ffffff",
+    gradienteFim: "#fce7f3",
+  },
+  {
+    nome: "Neutro Claro",
+    corPrincipal: "#334155",
+    corSecundaria: "#94a3b8",
+    corBotoes: "#ffffff",
+    corTextoBotoes: "#334155",
+    corFundo: "#f8fafc",
+    gradienteInicio: "#ffffff",
+    gradienteFim: "#f1f5f9",
+  },
 ];
 
 const diasAtendimento = [
@@ -286,6 +353,16 @@ export default function EmpresaForm({
   const [banner, setBanner] = useState("");
   const [logoExibicao, setLogoExibicao] =
     useState<LogoExibicao>("normal");
+  const [corPrincipal, setCorPrincipal] = useState("");
+  const [corSecundaria, setCorSecundaria] = useState("");
+  const [corBotoes, setCorBotoes] = useState("");
+  const [corTextoBotoes, setCorTextoBotoes] = useState("");
+  const [corFundoPagina, setCorFundoPagina] = useState("");
+  const [tipoFundo, setTipoFundo] = useState<TipoFundo>("solida");
+  const [gradienteInicio, setGradienteInicio] = useState("");
+  const [gradienteFim, setGradienteFim] = useState("");
+  const [gradienteDirecao, setGradienteDirecao] =
+    useState<DirecaoGradiente>("vertical");
   const categoriaSelecionada = categoriasEmpresa.includes(categoria)
     ? categoria
     : "Outra";
@@ -368,6 +445,19 @@ export default function EmpresaForm({
     setLogo(data.logo || "");
     setBanner(data.banner || "");
     setLogoExibicao(data.logo_exibicao === "hidden" ? "hidden" : "normal");
+    setCorPrincipal(data.cor_principal || "");
+    setCorSecundaria(data.cor_secundaria || "");
+    setCorBotoes(data.cor_botoes || "");
+    setCorTextoBotoes(data.cor_texto_botoes || "");
+    setCorFundoPagina(data.cor_fundo_pagina || "");
+    setTipoFundo(data.tipo_fundo === "gradiente" ? "gradiente" : "solida");
+    setGradienteInicio(data.gradiente_inicio || "");
+    setGradienteFim(data.gradiente_fim || "");
+    setGradienteDirecao(
+      ["horizontal", "vertical", "diagonal"].includes(data.gradiente_direcao)
+        ? data.gradiente_direcao
+        : "vertical"
+    );
     onEmpresaAtualChange?.({
       nome: data.nome || "",
       logo: data.logo || "",
@@ -520,6 +610,15 @@ export default function EmpresaForm({
       logo,
       banner,
       logo_exibicao: logoExibicao,
+      cor_principal: corPrincipal,
+      cor_secundaria: corSecundaria,
+      cor_botoes: corBotoes,
+      cor_texto_botoes: corTextoBotoes,
+      cor_fundo_pagina: corFundoPagina,
+      tipo_fundo: tipoFundo,
+      gradiente_inicio: gradienteInicio,
+      gradiente_fim: gradienteFim,
+      gradiente_direcao: gradienteDirecao,
       tiktok: normalizarUsuarioRedeSocial(tiktok),
       youtube: normalizarUsuarioRedeSocial(youtube),
       kwai: normalizarUsuarioRedeSocial(kwai),
@@ -625,6 +724,16 @@ export default function EmpresaForm({
     window.setTimeout(() => {
       setLinkCopiado(false);
     }, 2000);
+  }
+
+  function aplicarPaletaAparencia(paleta: (typeof paletasAparencia)[number]) {
+    setCorPrincipal(paleta.corPrincipal);
+    setCorSecundaria(paleta.corSecundaria);
+    setCorBotoes(paleta.corBotoes);
+    setCorTextoBotoes(paleta.corTextoBotoes);
+    setCorFundoPagina(paleta.corFundo);
+    setGradienteInicio(paleta.gradienteInicio);
+    setGradienteFim(paleta.gradienteFim);
   }
 
   return (
@@ -866,6 +975,175 @@ export default function EmpresaForm({
           />
         </div>
       </Card>
+      )}
+
+      {abaAtiva === "aparencia" && (
+        <Card
+          title="Aparencia"
+          subtitle="Personalize as cores da pagina publica desta empresa."
+        >
+          <div className="space-y-6">
+            <div>
+              <h3 className="mb-3 font-bold text-slate-800">
+                Paletas rapidas
+              </h3>
+
+              <div className="grid gap-3 md:grid-cols-3">
+                {paletasAparencia.map((paleta) => (
+                  <button
+                    key={paleta.nome}
+                    type="button"
+                    onClick={() => aplicarPaletaAparencia(paleta)}
+                    className="rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-green-300 hover:shadow-sm"
+                  >
+                    <span className="font-bold text-slate-800">
+                      {paleta.nome}
+                    </span>
+
+                    <span className="mt-3 flex gap-2">
+                      {[
+                        paleta.corPrincipal,
+                        paleta.corSecundaria,
+                        paleta.corFundo,
+                      ].map((cor) => (
+                        <span
+                          key={cor}
+                          className="h-7 w-7 rounded-full border border-slate-200"
+                          style={{ backgroundColor: cor }}
+                        />
+                      ))}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {[
+                ["Cor principal", corPrincipal, setCorPrincipal],
+                ["Cor secundaria", corSecundaria, setCorSecundaria],
+                ["Cor dos botoes", corBotoes, setCorBotoes],
+                ["Cor do texto dos botoes", corTextoBotoes, setCorTextoBotoes],
+                ["Cor de fundo da pagina", corFundoPagina, setCorFundoPagina],
+              ].map(([label, valor, alterar]) => (
+                <label key={label as string} className="block">
+                  <span className="mb-2 block font-medium">
+                    {label as string}
+                  </span>
+
+                  <div className="flex gap-3">
+                    <input
+                      type="color"
+                      value={(valor as string) || "#ffffff"}
+                      onChange={(e) =>
+                        (alterar as Dispatch<SetStateAction<string>>)(
+                          e.target.value
+                        )
+                      }
+                      className="h-12 w-14 rounded-xl border bg-white p-1"
+                    />
+
+                    <input
+                      value={valor as string}
+                      onChange={(e) =>
+                        (alterar as Dispatch<SetStateAction<string>>)(
+                          e.target.value
+                        )
+                      }
+                      placeholder="#1f3d36"
+                      className="w-full rounded-xl border p-3"
+                    />
+                  </div>
+                </label>
+              ))}
+
+              <div>
+                <label className="mb-2 block font-medium">
+                  Tipo de fundo
+                </label>
+
+                <select
+                  className="w-full rounded-xl border bg-white p-3"
+                  value={tipoFundo}
+                  onChange={(e) => setTipoFundo(e.target.value as TipoFundo)}
+                >
+                  <option value="solida">
+                    Cor solida
+                  </option>
+
+                  <option value="gradiente">
+                    Gradiente
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            {tipoFundo === "gradiente" && (
+              <div className="grid gap-5 md:grid-cols-3">
+                {[
+                  ["Cor inicial", gradienteInicio, setGradienteInicio],
+                  ["Cor final", gradienteFim, setGradienteFim],
+                ].map(([label, valor, alterar]) => (
+                  <label key={label as string} className="block">
+                    <span className="mb-2 block font-medium">
+                      {label as string}
+                    </span>
+
+                    <div className="flex gap-3">
+                      <input
+                        type="color"
+                        value={(valor as string) || "#ffffff"}
+                        onChange={(e) =>
+                          (alterar as Dispatch<SetStateAction<string>>)(
+                            e.target.value
+                          )
+                        }
+                        className="h-12 w-14 rounded-xl border bg-white p-1"
+                      />
+
+                      <input
+                        value={valor as string}
+                        onChange={(e) =>
+                          (alterar as Dispatch<SetStateAction<string>>)(
+                            e.target.value
+                          )
+                        }
+                        placeholder="#ffffff"
+                        className="w-full rounded-xl border p-3"
+                      />
+                    </div>
+                  </label>
+                ))}
+
+                <div>
+                  <label className="mb-2 block font-medium">
+                    Direcao
+                  </label>
+
+                  <select
+                    className="w-full rounded-xl border bg-white p-3"
+                    value={gradienteDirecao}
+                    onChange={(e) =>
+                      setGradienteDirecao(e.target.value as DirecaoGradiente)
+                    }
+                  >
+                    <option value="horizontal">
+                      Horizontal
+                    </option>
+
+                    <option value="vertical">
+                      Vertical
+                    </option>
+
+                    <option value="diagonal">
+                      Diagonal
+                    </option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+        </Card>
       )}
 
       {abaAtiva === "contato" && (

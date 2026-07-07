@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useParams } from "react-router-dom";
 
 import { buscarEmpresaPorSlug } from "../../services/empresa/empresa.service";
@@ -9,6 +9,18 @@ import ContatosEmpresa from "../../components/public/ContatosEmpresa/ContatosEmp
 import RodapeEmpresa from "../../components/public/RodapeEmpresa/RodapeEmpresa";
 
 import "./PublicEmpresaPage.css";
+
+type AparenciaEmpresa = Empresa & {
+  cor_principal?: string | null;
+  cor_secundaria?: string | null;
+  cor_botoes?: string | null;
+  cor_texto_botoes?: string | null;
+  cor_fundo_pagina?: string | null;
+  tipo_fundo?: string | null;
+  gradiente_inicio?: string | null;
+  gradiente_fim?: string | null;
+  gradiente_direcao?: string | null;
+};
 
 const diasSemana = [
   { label: "Segunda", chave: "segunda" },
@@ -80,6 +92,58 @@ function criarGoogleMapsUrl(endereco?: string | null) {
   )}`;
 }
 
+function obterDirecaoGradiente(direcao?: string | null) {
+  if (direcao === "horizontal") return "90deg";
+  if (direcao === "diagonal") return "135deg";
+
+  return "180deg";
+}
+
+function criarEstiloAparencia(empresa: Empresa): CSSProperties {
+  const aparencia = empresa as AparenciaEmpresa;
+  const estilo = {} as CSSProperties & Record<string, string>;
+  const corPrincipal = aparencia.cor_principal?.trim();
+  const corSecundaria = aparencia.cor_secundaria?.trim();
+  const corBotoes = aparencia.cor_botoes?.trim();
+  const corTextoBotoes = aparencia.cor_texto_botoes?.trim();
+  const corFundoPagina = aparencia.cor_fundo_pagina?.trim();
+  const gradienteInicio = aparencia.gradiente_inicio?.trim();
+  const gradienteFim = aparencia.gradiente_fim?.trim();
+
+  if (corPrincipal) {
+    estilo["--mc-primary"] = corPrincipal;
+    estilo["--mc-text"] = corPrincipal;
+  }
+
+  if (corSecundaria) {
+    estilo["--mc-secondary"] = corSecundaria;
+    estilo["--mc-accent"] = corSecundaria;
+  }
+
+  if (corBotoes) {
+    estilo["--mc-button-background"] = corBotoes;
+  }
+
+  if (corTextoBotoes) {
+    estilo["--mc-button-text"] = corTextoBotoes;
+  }
+
+  if (corFundoPagina) {
+    estilo["--mc-background"] = corFundoPagina;
+    estilo["--mc-background-soft"] = corFundoPagina;
+  }
+
+  if (aparencia.tipo_fundo === "gradiente" && gradienteInicio && gradienteFim) {
+    estilo["--mc-page-background"] = `linear-gradient(${obterDirecaoGradiente(
+      aparencia.gradiente_direcao
+    )}, ${gradienteInicio} 0%, ${gradienteFim} 100%)`;
+  } else if (corFundoPagina) {
+    estilo["--mc-page-background"] = corFundoPagina;
+  }
+
+  return estilo;
+}
+
 export default function PublicEmpresaPage() {
   const { slug } = useParams();
 
@@ -129,9 +193,10 @@ export default function PublicEmpresaPage() {
     empresa.horario_atendimento
   );
   const googleMapsUrl = criarGoogleMapsUrl(empresa.endereco);
+  const estiloAparencia = criarEstiloAparencia(empresa);
 
   return (
-    <main className="public-empresa-page">
+    <main className="public-empresa-page" style={estiloAparencia}>
       <section className="public-empresa-card">
         <HeroEmpresa
           banner={empresa.banner}
