@@ -47,6 +47,7 @@ export default function HeroEmpresa({
       {deveExibirLogo && (
         <img
           className={`public-empresa-logo public-empresa-logo--${logoModo}`}
+          data-logo-exibicao={logoModo}
           src={logo || ""}
           alt={`Logo ${nome}`}
         />
