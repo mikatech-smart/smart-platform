@@ -42,10 +42,14 @@ export default function AppRouter() {
           />
         </Route>
 
-        <Route
-          path="/painel/:slug"
-          element={<PainelCliente />}
-        />
+        <Route path="/painel">
+          <Route index element={<PainelCliente />} />
+
+          <Route
+            path=":slug"
+            element={<PainelCliente />}
+          />
+        </Route>
 
         <Route
           path="/:slug"
