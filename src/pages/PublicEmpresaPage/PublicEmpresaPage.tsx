@@ -149,7 +149,6 @@ export default function PublicEmpresaPage() {
           <section className="public-empresa-profile-card">
             <InformacoesEmpresa
               nome={empresa.nome}
-              categoria={empresa.categoria}
               descricao={empresa.descricao}
             />
           </section>

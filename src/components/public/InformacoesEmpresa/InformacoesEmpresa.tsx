@@ -2,25 +2,17 @@ import "./InformacoesEmpresa.css";
 
 interface InformacoesEmpresaProps {
   nome: string;
-  categoria?: string | null;
   descricao?: string | null;
   googleReviewUrl?: string | null;
 }
 
 export default function InformacoesEmpresa({
   nome,
-  categoria,
   descricao,
   googleReviewUrl,
 }: InformacoesEmpresaProps) {
   return (
     <>
-      {categoria && (
-        <p className="public-empresa-category">
-          {categoria}
-        </p>
-      )}
-
       <h1>{nome}</h1>
 
       {descricao && (
