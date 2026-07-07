@@ -42,7 +42,7 @@ type AbaEmpresa =
   | "redes"
   | "conectividade";
 
-type LogoExibicao = "normal" | "pequeno" | "oculto";
+type LogoExibicao = "normal" | "hidden";
 
 const abasEmpresa: Array<{
   id: AbaEmpresa;
@@ -365,7 +365,7 @@ export default function EmpresaForm({
 
     setLogo(data.logo || "");
     setBanner(data.banner || "");
-    setLogoExibicao(data.logo_exibicao || "normal");
+    setLogoExibicao(data.logo_exibicao === "hidden" ? "hidden" : "normal");
     onEmpresaAtualChange?.({
       nome: data.nome || "",
       logo: data.logo || "",
@@ -806,16 +806,11 @@ export default function EmpresaForm({
             {[
               {
                 valor: "normal",
-                titulo: "Exibir logo normal",
+                titulo: "Exibir logo",
                 descricao: "Mantem o logo em destaque sobre o banner.",
               },
               {
-                valor: "pequeno",
-                titulo: "Exibir logo pequeno",
-                descricao: "Reduz o logo para nao cobrir o centro do banner.",
-              },
-              {
-                valor: "oculto",
+                valor: "hidden",
                 titulo: "Não exibir logo",
                 descricao: "Mostra apenas o banner na pagina publica.",
               },
