@@ -222,6 +222,7 @@ function normalizarUsuarioRedeSocial(valor: string) {
 interface EmpresaFormProps {
   empresaInicialId?: string;
   empresaInicialSlug?: string;
+  modoCliente?: boolean;
   onSalvar?: () => void;
   onExcluir?: () => void | Promise<void>;
   onEmpresaAtualChange?: (empresa: {
@@ -233,6 +234,7 @@ interface EmpresaFormProps {
 export default function EmpresaForm({
   empresaInicialId,
   empresaInicialSlug,
+  modoCliente = false,
   onSalvar,
   onExcluir,
   onEmpresaAtualChange,
@@ -694,37 +696,41 @@ export default function EmpresaForm({
             />
           )}
 
-          <div>
-            <Input
-              label="Slug administrativo"
-              value={slugAdmin}
-              onChange={(e) => setSlugAdmin(gerarSlug(e.target.value))}
-            />
+          {!modoCliente && (
+            <>
+              <div>
+                <Input
+                  label="Slug administrativo"
+                  value={slugAdmin}
+                  onChange={(e) => setSlugAdmin(gerarSlug(e.target.value))}
+                />
 
-            <p className="mt-2 text-sm text-slate-500">
-              Campo reservado para administrador Mikatech.
-            </p>
-          </div>
+                <p className="mt-2 text-sm text-slate-500">
+                  Campo reservado para administrador Mikatech.
+                </p>
+              </div>
 
-          <div>
-            <label className="block mb-2 font-medium">
-              Tipo de gerenciamento
-            </label>
+              <div>
+                <label className="block mb-2 font-medium">
+                  Tipo de gerenciamento
+                </label>
 
-            <select
-              className="w-full border rounded-xl p-3 bg-white"
-              value={tipoGerenciamento}
-              onChange={(e) => setTipoGerenciamento(e.target.value)}
-            >
-              <option value="mikatech">
-                Administrada pela Mikatech
-              </option>
+                <select
+                  className="w-full border rounded-xl p-3 bg-white"
+                  value={tipoGerenciamento}
+                  onChange={(e) => setTipoGerenciamento(e.target.value)}
+                >
+                  <option value="mikatech">
+                    Administrada pela Mikatech
+                  </option>
 
-              <option value="cliente">
-                Cliente administra
-              </option>
-            </select>
-          </div>
+                  <option value="cliente">
+                    Cliente administra
+                  </option>
+                </select>
+              </div>
+            </>
+          )}
 
           <div className="lg:col-span-3">
             <label className="block mb-2 font-medium">
@@ -741,7 +747,7 @@ export default function EmpresaForm({
         </div>
       </Card>
 
-          {linkPublico && (
+          {!modoCliente && linkPublico && (
             <Card
               title="Link da Página Pública"
               subtitle="Compartilhe este link com seus clientes."
@@ -779,7 +785,7 @@ export default function EmpresaForm({
             </Card>
           )}
 
-          {!linkPublico && (
+          {!modoCliente && !linkPublico && (
             <Card
               title="Compartilhamento"
               subtitle="O link publico sera exibido assim que a empresa carregar."

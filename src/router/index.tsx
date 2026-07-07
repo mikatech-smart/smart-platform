@@ -6,6 +6,7 @@ import PublicEmpresaPage from "../pages/PublicEmpresaPage/PublicEmpresaPage";
 import Dashboard from "../pages/dashboard/Dashboard";
 import Empresas from "../pages/dashboard/Empresas";
 import Configuracoes from "../pages/dashboard/Configuracoes";
+import PainelCliente from "../pages/PainelCliente/PainelCliente";
 
 export default function AppRouter() {
   return (
@@ -40,6 +41,11 @@ export default function AppRouter() {
             element={<Configuracoes />}
           />
         </Route>
+
+        <Route
+          path="/painel/:slug"
+          element={<PainelCliente />}
+        />
 
         <Route
           path="/:slug"
