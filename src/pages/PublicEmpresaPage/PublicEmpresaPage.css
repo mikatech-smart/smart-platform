@@ -37,6 +37,20 @@
   text-align: center;
 }
 
+.public-empresa-page--preview {
+  min-height: auto;
+  width: 100%;
+  padding: clamp(10px, 3vw, 18px);
+}
+
+.public-empresa-page--preview .public-empresa-card {
+  width: min(100%, 520px);
+}
+
+.public-empresa-page--preview .public-empresa-scroll-hint {
+  display: none;
+}
+
 .public-empresa-card {
   --public-empresa-hero-height: clamp(92px, 25vw, 154px);
   --public-empresa-logo-size: clamp(116px, 34vw, 132px);

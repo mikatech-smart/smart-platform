@@ -1,4 +1,10 @@
-import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import {
+  useEffect,
+  useState,
+  type CSSProperties,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 
 import {
   buscarEmpresaPorId,
@@ -10,6 +16,11 @@ import Card from "../../ui/Card";
 import Input from "../../ui/Input";
 import Button from "../../ui/Button";
 import UploadImagem from "../UploadImagem";
+import HeroEmpresa from "../../public/HeroEmpresa/HeroEmpresa";
+import InformacoesEmpresa from "../../public/InformacoesEmpresa/InformacoesEmpresa";
+import ContatosEmpresa from "../../public/ContatosEmpresa/ContatosEmpresa";
+
+import "../../../pages/PublicEmpresaPage/PublicEmpresaPage.css";
 
 const categoriasEmpresa = [
   "Comunicação Visual",
@@ -46,6 +57,17 @@ type AbaEmpresa =
 type LogoExibicao = "normal" | "hidden";
 type TipoFundo = "solida" | "gradiente";
 type DirecaoGradiente = "horizontal" | "vertical" | "diagonal";
+type AparenciaConfig = {
+  corPrincipal: string;
+  corSecundaria: string;
+  corBotoes: string;
+  corTextoBotoes: string;
+  corFundoPagina: string;
+  tipoFundo: TipoFundo;
+  gradienteInicio: string;
+  gradienteFim: string;
+  gradienteDirecao: DirecaoGradiente;
+};
 
 const abasEmpresa: Array<{
   id: AbaEmpresa;
@@ -53,7 +75,7 @@ const abasEmpresa: Array<{
 }> = [
   { id: "informacoes", label: "Informações" },
   { id: "visual", label: "Identidade Visual" },
-  { id: "aparencia", label: "Aparencia" },
+  { id: "aparencia", label: "Personalizar Página" },
   { id: "contato", label: "Contato" },
   { id: "endereco", label: "Endereço" },
   { id: "redes", label: "Redes Sociais" },
@@ -122,6 +144,18 @@ const paletasAparencia = [
     gradienteFim: "#f1f5f9",
   },
 ];
+
+const aparenciaPadraoMikatech: AparenciaConfig = {
+  corPrincipal: paletasAparencia[0].corPrincipal,
+  corSecundaria: paletasAparencia[0].corSecundaria,
+  corBotoes: paletasAparencia[0].corBotoes,
+  corTextoBotoes: paletasAparencia[0].corTextoBotoes,
+  corFundoPagina: paletasAparencia[0].corFundo,
+  tipoFundo: "solida",
+  gradienteInicio: paletasAparencia[0].gradienteInicio,
+  gradienteFim: paletasAparencia[0].gradienteFim,
+  gradienteDirecao: "vertical",
+};
 
 const diasAtendimento = [
   { id: "segunda", label: "Segunda" },
@@ -363,6 +397,8 @@ export default function EmpresaForm({
   const [gradienteFim, setGradienteFim] = useState("");
   const [gradienteDirecao, setGradienteDirecao] =
     useState<DirecaoGradiente>("vertical");
+  const [aparenciaSalva, setAparenciaSalva] =
+    useState<AparenciaConfig>(aparenciaPadraoMikatech);
   const categoriaSelecionada = categoriasEmpresa.includes(categoria)
     ? categoria
     : "Outra";
@@ -371,6 +407,19 @@ export default function EmpresaForm({
   ).replace(/\/$/, "");
   const slugPublico = slugAdmin || slug;
   const linkPublico = slugPublico ? `${baseUrlPublica}/${slugPublico}` : "";
+  const aparenciaAtual: AparenciaConfig = {
+    corPrincipal,
+    corSecundaria,
+    corBotoes,
+    corTextoBotoes,
+    corFundoPagina,
+    tipoFundo,
+    gradienteInicio,
+    gradienteFim,
+    gradienteDirecao,
+  };
+  const possuiAlteracoesAparencia =
+    JSON.stringify(aparenciaAtual) !== JSON.stringify(aparenciaSalva);
 
   useEffect(() => {
     console.log("[Diagnostico UPDATE] ID recebido no EmpresaForm:", {
@@ -445,19 +494,30 @@ export default function EmpresaForm({
     setLogo(data.logo || "");
     setBanner(data.banner || "");
     setLogoExibicao(data.logo_exibicao === "hidden" ? "hidden" : "normal");
-    setCorPrincipal(data.cor_principal || "");
-    setCorSecundaria(data.cor_secundaria || "");
-    setCorBotoes(data.cor_botoes || "");
-    setCorTextoBotoes(data.cor_texto_botoes || "");
-    setCorFundoPagina(data.cor_fundo_pagina || "");
-    setTipoFundo(data.tipo_fundo === "gradiente" ? "gradiente" : "solida");
-    setGradienteInicio(data.gradiente_inicio || "");
-    setGradienteFim(data.gradiente_fim || "");
-    setGradienteDirecao(
-      ["horizontal", "vertical", "diagonal"].includes(data.gradiente_direcao)
+    const aparenciaCarregada: AparenciaConfig = {
+      corPrincipal: data.cor_principal || "",
+      corSecundaria: data.cor_secundaria || "",
+      corBotoes: data.cor_botoes || "",
+      corTextoBotoes: data.cor_texto_botoes || "",
+      corFundoPagina: data.cor_fundo_pagina || "",
+      tipoFundo: data.tipo_fundo === "gradiente" ? "gradiente" : "solida",
+      gradienteInicio: data.gradiente_inicio || "",
+      gradienteFim: data.gradiente_fim || "",
+      gradienteDirecao: ["horizontal", "vertical", "diagonal"].includes(data.gradiente_direcao)
         ? data.gradiente_direcao
-        : "vertical"
-    );
+        : "vertical",
+    };
+
+    setCorPrincipal(aparenciaCarregada.corPrincipal);
+    setCorSecundaria(aparenciaCarregada.corSecundaria);
+    setCorBotoes(aparenciaCarregada.corBotoes);
+    setCorTextoBotoes(aparenciaCarregada.corTextoBotoes);
+    setCorFundoPagina(aparenciaCarregada.corFundoPagina);
+    setTipoFundo(aparenciaCarregada.tipoFundo);
+    setGradienteInicio(aparenciaCarregada.gradienteInicio);
+    setGradienteFim(aparenciaCarregada.gradienteFim);
+    setGradienteDirecao(aparenciaCarregada.gradienteDirecao);
+    setAparenciaSalva(aparenciaCarregada);
     onEmpresaAtualChange?.({
       nome: data.nome || "",
       logo: data.logo || "",
@@ -646,6 +706,17 @@ export default function EmpresaForm({
 
     setSlug(slugFinal);
     setSlugAdmin(slugFinal);
+    setAparenciaSalva({
+      corPrincipal,
+      corSecundaria,
+      corBotoes,
+      corTextoBotoes,
+      corFundoPagina,
+      tipoFundo,
+      gradienteInicio,
+      gradienteFim,
+      gradienteDirecao,
+    });
     onEmpresaAtualChange?.({
       nome,
       logo,
@@ -734,6 +805,62 @@ export default function EmpresaForm({
     setCorFundoPagina(paleta.corFundo);
     setGradienteInicio(paleta.gradienteInicio);
     setGradienteFim(paleta.gradienteFim);
+  }
+
+  function aplicarAparencia(aparencia: AparenciaConfig) {
+    setCorPrincipal(aparencia.corPrincipal);
+    setCorSecundaria(aparencia.corSecundaria);
+    setCorBotoes(aparencia.corBotoes);
+    setCorTextoBotoes(aparencia.corTextoBotoes);
+    setCorFundoPagina(aparencia.corFundoPagina);
+    setTipoFundo(aparencia.tipoFundo);
+    setGradienteInicio(aparencia.gradienteInicio);
+    setGradienteFim(aparencia.gradienteFim);
+    setGradienteDirecao(aparencia.gradienteDirecao);
+  }
+
+  function obterDirecaoGradiente() {
+    if (gradienteDirecao === "horizontal") return "90deg";
+    if (gradienteDirecao === "diagonal") return "135deg";
+
+    return "180deg";
+  }
+
+  function obterEstiloPreview(): CSSProperties {
+    const estilo = {} as CSSProperties & Record<string, string>;
+
+    if (corPrincipal) {
+      estilo["--mc-primary"] = corPrincipal;
+      estilo["--mc-text"] = corPrincipal;
+    }
+
+    if (corSecundaria) {
+      estilo["--mc-secondary"] = corSecundaria;
+      estilo["--mc-accent"] = corSecundaria;
+    }
+
+    if (corBotoes) {
+      estilo["--mc-button-background"] = corBotoes;
+    }
+
+    if (corTextoBotoes) {
+      estilo["--mc-button-text"] = corTextoBotoes;
+    }
+
+    if (corFundoPagina) {
+      estilo["--mc-background"] = corFundoPagina;
+      estilo["--mc-background-soft"] = corFundoPagina;
+    }
+
+    if (tipoFundo === "gradiente") {
+      estilo["--mc-page-background"] = `linear-gradient(${obterDirecaoGradiente()}, ${
+        gradienteInicio || "#fbfaf8"
+      } 0%, ${gradienteFim || "#f1eee8"} 100%)`;
+    } else if (corFundoPagina) {
+      estilo["--mc-page-background"] = corFundoPagina;
+    }
+
+    return estilo;
   }
 
   return (
@@ -979,10 +1106,11 @@ export default function EmpresaForm({
 
       {abaAtiva === "aparencia" && (
         <Card
-          title="Aparencia"
+          title="Personalizar Página"
           subtitle="Personalize as cores da pagina publica desta empresa."
         >
-          <div className="space-y-6">
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,0.92fr)_minmax(360px,1.08fr)] xl:items-start">
+            <div className="space-y-6">
             <div>
               <h3 className="mb-3 font-bold text-slate-800">
                 Paletas rapidas
@@ -1142,6 +1270,103 @@ export default function EmpresaForm({
                 </div>
               </div>
             )}
+
+            {possuiAlteracoesAparencia && (
+              <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
+                VocÃª possui alteraÃ§Ãµes nÃ£o salvas.
+              </p>
+            )}
+
+            <div className="flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:flex-wrap">
+              <button
+                type="button"
+                onClick={() => {
+                  const confirmado = window.confirm(
+                    "Deseja restaurar o tema padrÃ£o definido pela Mikatech?"
+                  );
+
+                  if (confirmado) {
+                    aplicarAparencia(aparenciaPadraoMikatech);
+                  }
+                }}
+                className="rounded-xl border border-slate-200 px-4 py-3 font-bold text-slate-700"
+              >
+                Restaurar padrÃ£o da empresa
+              </button>
+
+              <button
+                type="button"
+                onClick={() => aplicarAparencia(aparenciaSalva)}
+                className="rounded-xl border border-slate-200 px-4 py-3 font-bold text-slate-700"
+              >
+                Cancelar alteraÃ§Ãµes
+              </button>
+
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={salvar}
+                className={
+                  possuiAlteracoesAparencia
+                    ? "shadow-lg ring-4 ring-green-100"
+                    : "opacity-80"
+                }
+              >
+                Salvar
+              </Button>
+            </div>
+            </div>
+
+            <div className="xl:sticky xl:top-6">
+              <h3 className="mb-3 font-bold text-slate-800">
+                Preview em Tempo Real
+              </h3>
+
+              <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-100 shadow-inner">
+                <div
+                  className="public-empresa-page public-empresa-page--preview"
+                  style={obterEstiloPreview()}
+                >
+                  <section className="public-empresa-card">
+                    <HeroEmpresa
+                      banner={banner}
+                      logo={logo}
+                      nome={nome || "Empresa"}
+                      logoExibicao={logoExibicao}
+                    />
+
+                    <div className="public-empresa-content">
+                      <section className="public-empresa-profile-card">
+                        <InformacoesEmpresa
+                          nome={nome || "Empresa"}
+                          descricao={descricao}
+                        />
+                      </section>
+
+                      <ContatosEmpresa
+                        nome={nome || "Empresa"}
+                        whatsapp={whatsapp}
+                        telefone={telefone}
+                        email={email}
+                        instagram={instagram}
+                        tiktok={tiktok}
+                        youtube={youtube}
+                        kwai={kwai}
+                        site={site}
+                        endereco={endereco}
+                        horarioAtendimento={horarioAtendimento}
+                        googleReviewUrl={googleReviewUrl}
+                        wifiNome={wifiNome}
+                        wifiSenha={wifiSenha}
+                        pixNome={pixNome}
+                        pixChave={pixChave || pix}
+                      />
+                    </div>
+                  </section>
+                </div>
+              </div>
+            </div>
+
           </div>
         </Card>
       )}
