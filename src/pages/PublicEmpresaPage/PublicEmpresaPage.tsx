@@ -16,6 +16,7 @@ type AparenciaEmpresa = Empresa & {
   cor_botoes?: string | null;
   cor_texto_botoes?: string | null;
   cor_fundo_pagina?: string | null;
+  cor_fundo_hero?: string | null;
   cor_area_principal?: string | null;
   tipo_fundo?: string | null;
   gradiente_inicio?: string | null;
@@ -108,6 +109,7 @@ function criarEstiloAparencia(empresa: Empresa): CSSProperties {
   const corBotoes = aparencia.cor_botoes?.trim();
   const corTextoBotoes = aparencia.cor_texto_botoes?.trim();
   const corFundoPagina = aparencia.cor_fundo_pagina?.trim();
+  const corFundoHero = aparencia.cor_fundo_hero?.trim();
   const corAreaPrincipal = aparencia.cor_area_principal?.trim();
   const gradienteInicio = aparencia.gradiente_inicio?.trim();
   const gradienteFim = aparencia.gradiente_fim?.trim();
@@ -133,6 +135,10 @@ function criarEstiloAparencia(empresa: Empresa): CSSProperties {
   if (corFundoPagina) {
     estilo["--mc-background"] = corFundoPagina;
     estilo["--mc-background-soft"] = corFundoPagina;
+  }
+
+  if (corFundoHero || corFundoPagina) {
+    estilo["--mc-hero-background"] = corFundoHero || corFundoPagina || "";
   }
 
   if (corAreaPrincipal) {
@@ -215,6 +221,10 @@ export default function PublicEmpresaPage() {
               logo_exibicao?: "normal" | "small" | "hidden" | "pequeno" | "oculto";
             })
               .logo_exibicao || "normal"
+          }
+          corFundoHero={
+            (empresa as AparenciaEmpresa).cor_fundo_hero ||
+            (empresa as AparenciaEmpresa).cor_fundo_pagina
           }
         />
 

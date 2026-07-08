@@ -1,7 +1,36 @@
+.public-empresa-hero-shell {
+  position: relative;
+  width: 100%;
+  overflow: visible;
+  --public-empresa-hero-height: clamp(92px, 24vw, 150px);
+  --public-empresa-logo-size: clamp(74px, 18vw, 96px);
+}
+
+.public-empresa-hero-shell--banner-logo {
+  padding-bottom: calc(var(--public-empresa-logo-size) * 0.44);
+  --public-empresa-logo-size: clamp(72px, 17vw, 92px);
+}
+
+.public-empresa-hero-shell--banner-sem-logo {
+  padding-bottom: 0;
+  --public-empresa-hero-height: clamp(82px, 22vw, 136px);
+}
+
+.public-empresa-hero-shell--sem-banner-logo {
+  padding-bottom: 0;
+  --public-empresa-hero-height: clamp(132px, 32vw, 190px);
+  --public-empresa-logo-size: clamp(92px, 22vw, 132px);
+}
+
+.public-empresa-hero-shell--sem-banner-sem-logo {
+  padding-bottom: 0;
+  --public-empresa-hero-height: clamp(74px, 18vw, 112px);
+}
+
 .public-empresa-hero {
   position: relative;
   width: 100%;
-  height: var(--public-empresa-hero-height, clamp(98px, 25vw, 154px));
+  height: var(--public-empresa-hero-height);
   border-radius: 24px 24px 18px 18px;
   overflow: hidden;
 }
@@ -11,7 +40,7 @@
 }
 
 .public-empresa-hero--sem-banner {
-  background: #ffffff;
+  background: var(--mc-hero-background, var(--mc-background, #ffffff));
 }
 
 .public-empresa-banner {
@@ -29,49 +58,66 @@
 .public-empresa-banner__fallback {
   width: 100%;
   height: 100%;
-  background: #ffffff;
+  background: var(--mc-hero-background, var(--mc-background, #ffffff));
 }
 
 .public-empresa-logo {
   position: absolute;
-  top: calc(
-    var(--public-empresa-hero-height, clamp(112px, 28vw, 180px)) -
-    (var(--public-empresa-logo-size, 112px) * 0.6)
-  );
   left: 50%;
   z-index: 50;
-  width: var(--public-empresa-logo-size, 112px);
-  height: var(--public-empresa-logo-size, 112px);
+  width: var(--public-empresa-logo-size);
+  height: var(--public-empresa-logo-size);
   object-fit: cover;
   background: var(--mc-surface, #ffffff);
-  border: 5px solid var(--mc-surface, #ffffff);
+  border: clamp(3px, 1vw, 5px) solid var(--mc-surface, #ffffff);
   border-radius: 999px;
   display: block;
   transform: translateX(-50%);
-  box-shadow: 0 24px 54px rgba(18, 24, 38, 0.24);
+  box-shadow: 0 22px 48px rgba(18, 24, 38, 0.22);
 }
 
-.public-empresa-logo.public-empresa-logo--small,
-.public-empresa-logo[data-logo-exibicao="small"] {
-  width: calc(var(--public-empresa-logo-size, 112px) * 0.6);
-  height: calc(var(--public-empresa-logo-size, 112px) * 0.6);
-  border-width: 4px;
-  box-shadow: 0 18px 36px rgba(18, 24, 38, 0.18);
+.public-empresa-logo--banner-logo {
+  top: calc(var(--public-empresa-hero-height) - (var(--public-empresa-logo-size) * 0.58));
+}
+
+.public-empresa-logo--sem-banner-logo {
+  top: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 20px 42px rgba(18, 24, 38, 0.18);
 }
 
 @media (min-width: 640px) {
-  .public-empresa-hero {
-    height: var(--public-empresa-hero-height, 190px);
+  .public-empresa-hero-shell {
+    --public-empresa-hero-height: 172px;
+    --public-empresa-logo-size: 104px;
   }
 
-  .public-empresa-logo {
-    width: var(--public-empresa-logo-size, 126px);
-    height: var(--public-empresa-logo-size, 126px);
+  .public-empresa-hero-shell--banner-logo {
+    --public-empresa-hero-height: 168px;
+    --public-empresa-logo-size: 88px;
   }
 
-  .public-empresa-logo.public-empresa-logo--small,
-  .public-empresa-logo[data-logo-exibicao="small"] {
-    width: calc(var(--public-empresa-logo-size, 126px) * 0.6);
-    height: calc(var(--public-empresa-logo-size, 126px) * 0.6);
+  .public-empresa-hero-shell--banner-sem-logo {
+    --public-empresa-hero-height: 148px;
+  }
+
+  .public-empresa-hero-shell--sem-banner-logo {
+    --public-empresa-hero-height: 210px;
+    --public-empresa-logo-size: 140px;
+  }
+
+  .public-empresa-hero-shell--sem-banner-sem-logo {
+    --public-empresa-hero-height: 124px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .public-empresa-hero-shell--banner-logo {
+    --public-empresa-hero-height: 178px;
+    --public-empresa-logo-size: 92px;
+  }
+
+  .public-empresa-hero-shell--banner-sem-logo {
+    --public-empresa-hero-height: 158px;
   }
 }

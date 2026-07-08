@@ -65,6 +65,7 @@ type AparenciaConfig = {
   corTextoBotoes: string;
   corFundoPagina: string;
   corAreaPrincipal: string;
+  corFundoHero: string;
   tipoFundo: TipoFundo;
   gradienteInicio: string;
   gradienteFim: string;
@@ -160,6 +161,7 @@ const aparenciaPadraoMikatech: AparenciaConfig = {
   corTextoBotoes: paletasAparencia[0].corTextoBotoes,
   corFundoPagina: paletasAparencia[0].corFundo,
   corAreaPrincipal: paletasAparencia[0].corAreaPrincipal,
+  corFundoHero: paletasAparencia[0].corFundo,
   tipoFundo: "solida",
   gradienteInicio: paletasAparencia[0].gradienteInicio,
   gradienteFim: paletasAparencia[0].gradienteFim,
@@ -401,6 +403,8 @@ export default function EmpresaForm({
   const [corTextoBotoes, setCorTextoBotoes] = useState("");
   const [corFundoPagina, setCorFundoPagina] = useState("");
   const [corAreaPrincipal, setCorAreaPrincipal] = useState("");
+  const [corFundoHero, setCorFundoHero] = useState("");
+  const [suportaCorFundoHero, setSuportaCorFundoHero] = useState(false);
   const [tipoFundo, setTipoFundo] = useState<TipoFundo>("solida");
   const [gradienteInicio, setGradienteInicio] = useState("");
   const [gradienteFim, setGradienteFim] = useState("");
@@ -419,6 +423,7 @@ export default function EmpresaForm({
     corTextoBotoes,
     corFundoPagina,
     corAreaPrincipal,
+    corFundoHero,
     tipoFundo,
     gradienteInicio,
     gradienteFim,
@@ -500,6 +505,10 @@ export default function EmpresaForm({
     setLogo(data.logo || "");
     setBanner(data.banner || "");
     setLogoExibicao(data.logo_exibicao === "hidden" ? "hidden" : "normal");
+    const dadosComAparencia = data as typeof data & {
+      cor_fundo_hero?: string | null;
+    };
+    const possuiColunaCorFundoHero = "cor_fundo_hero" in dadosComAparencia;
     const aparenciaCarregada: AparenciaConfig = {
       corPrincipal: data.cor_principal || "",
       corSecundaria: data.cor_secundaria || "",
@@ -507,6 +516,7 @@ export default function EmpresaForm({
       corTextoBotoes: data.cor_texto_botoes || "",
       corFundoPagina: data.cor_fundo_pagina || "",
       corAreaPrincipal: data.cor_area_principal || "",
+      corFundoHero: dadosComAparencia.cor_fundo_hero || data.cor_fundo_pagina || "",
       tipoFundo: data.tipo_fundo === "gradiente" ? "gradiente" : "solida",
       gradienteInicio: data.gradiente_inicio || "",
       gradienteFim: data.gradiente_fim || "",
@@ -521,6 +531,8 @@ export default function EmpresaForm({
     setCorTextoBotoes(aparenciaCarregada.corTextoBotoes);
     setCorFundoPagina(aparenciaCarregada.corFundoPagina);
     setCorAreaPrincipal(aparenciaCarregada.corAreaPrincipal);
+    setCorFundoHero(aparenciaCarregada.corFundoHero);
+    setSuportaCorFundoHero(possuiColunaCorFundoHero);
     setTipoFundo(aparenciaCarregada.tipoFundo);
     setGradienteInicio(aparenciaCarregada.gradienteInicio);
     setGradienteFim(aparenciaCarregada.gradienteFim);
@@ -650,7 +662,7 @@ export default function EmpresaForm({
       return;
     }
 
-    const dadosEmpresa = {
+    const dadosEmpresa: Record<string, unknown> = {
       nome,
       slug: slugFinal,
       tipo: tipoGerenciamento,
@@ -693,6 +705,10 @@ export default function EmpresaForm({
       kwai: normalizarUsuarioRedeSocial(kwai),
     };
 
+    if (suportaCorFundoHero) {
+      dadosEmpresa.cor_fundo_hero = corFundoHero;
+    }
+
     console.log("[Diagnóstico UPDATE] Antes de chamar atualizarEmpresa:", {
       idRecebidoNoFormulario: empresaInicialId,
       idEnviadoAoService: empresaId,
@@ -700,7 +716,10 @@ export default function EmpresaForm({
       payloadEnviado: dadosEmpresa,
     });
 
-    const { error } = await atualizarEmpresa(empresaId, dadosEmpresa);
+    const { error } = await atualizarEmpresa(
+      empresaId,
+      dadosEmpresa as Parameters<typeof atualizarEmpresa>[1]
+    );
 
     if (error) {
       console.error("Erro completo ao salvar empresa:", error);
@@ -722,6 +741,7 @@ export default function EmpresaForm({
       corTextoBotoes,
       corFundoPagina,
       corAreaPrincipal,
+      corFundoHero,
       tipoFundo,
       gradienteInicio,
       gradienteFim,
@@ -803,6 +823,7 @@ export default function EmpresaForm({
     setCorTextoBotoes(paleta.corTextoBotoes);
     setCorFundoPagina(paleta.corFundo);
     setCorAreaPrincipal(paleta.corAreaPrincipal);
+    setCorFundoHero(paleta.corFundo);
     setGradienteInicio(paleta.gradienteInicio);
     setGradienteFim(paleta.gradienteFim);
   }
@@ -814,6 +835,7 @@ export default function EmpresaForm({
     setCorTextoBotoes(aparencia.corTextoBotoes);
     setCorFundoPagina(aparencia.corFundoPagina);
     setCorAreaPrincipal(aparencia.corAreaPrincipal);
+    setCorFundoHero(aparencia.corFundoHero);
     setTipoFundo(aparencia.tipoFundo);
     setGradienteInicio(aparencia.gradienteInicio);
     setGradienteFim(aparencia.gradienteFim);
@@ -851,6 +873,10 @@ export default function EmpresaForm({
     if (corFundoPagina) {
       estilo["--mc-background"] = corFundoPagina;
       estilo["--mc-background-soft"] = corFundoPagina;
+    }
+
+    if (corFundoHero || corFundoPagina) {
+      estilo["--mc-hero-background"] = corFundoHero || corFundoPagina;
     }
 
     if (corAreaPrincipal) {
@@ -1118,6 +1144,7 @@ export default function EmpresaForm({
                 ["Cor do texto dos botões", corTextoBotoes, setCorTextoBotoes],
                 ["Cor de fundo da página", corFundoPagina, setCorFundoPagina],
                 ["Cor da área principal", corAreaPrincipal, setCorAreaPrincipal],
+                ["Cor de Fundo do Hero", corFundoHero, setCorFundoHero],
               ].map(([label, valor, alterar]) => (
                 <label key={label as string} className="block">
                   <span className="mb-2 block font-medium">
@@ -1298,6 +1325,7 @@ export default function EmpresaForm({
                       logo={logo}
                       nome={nome || "Empresa"}
                       logoExibicao={logoExibicao}
+                      corFundoHero={corFundoHero || corFundoPagina}
                     />
 
                     <div className="public-empresa-content">

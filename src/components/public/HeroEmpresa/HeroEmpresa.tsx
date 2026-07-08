@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 import "./HeroEmpresa.css";
 
 interface HeroEmpresaProps {
@@ -5,6 +7,7 @@ interface HeroEmpresaProps {
   logo?: string | null;
   nome: string;
   logoExibicao?: "normal" | "hidden" | "small" | "pequeno" | "oculto";
+  corFundoHero?: string | null;
 }
 
 export default function HeroEmpresa({
@@ -12,16 +15,34 @@ export default function HeroEmpresa({
   logo,
   nome,
   logoExibicao = "normal",
+  corFundoHero,
 }: HeroEmpresaProps) {
   const bannerUrl = banner?.trim() || "";
   const temBanner = Boolean(bannerUrl);
+  const corHero = corFundoHero?.trim() || "";
   const logoModo = logoExibicao === "hidden" || logoExibicao === "oculto"
     ? "hidden"
     : "normal";
   const deveExibirLogo = Boolean(logo) && logoModo !== "hidden";
+  const layoutHero = temBanner
+    ? deveExibirLogo
+      ? "banner-logo"
+      : "banner-sem-logo"
+    : deveExibirLogo
+      ? "sem-banner-logo"
+      : "sem-banner-sem-logo";
 
   return (
-    <>
+    <div
+      className={`public-empresa-hero-shell public-empresa-hero-shell--${layoutHero}`}
+      style={
+        corHero
+          ? ({
+              "--mc-hero-background": corHero,
+            } as CSSProperties)
+          : undefined
+      }
+    >
       <div
         className={
           temBanner
@@ -44,12 +65,13 @@ export default function HeroEmpresa({
 
       {deveExibirLogo && (
         <img
-          className={`public-empresa-logo public-empresa-logo--${logoModo}`}
+          className={`public-empresa-logo public-empresa-logo--${logoModo} public-empresa-logo--${layoutHero}`}
           data-logo-exibicao={logoModo}
+          data-hero-layout={layoutHero}
           src={logo || ""}
           alt={`Logo ${nome}`}
         />
       )}
-    </>
+    </div>
   );
 }
