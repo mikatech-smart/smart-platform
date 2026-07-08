@@ -78,6 +78,10 @@
   overflow: hidden;
 }
 
+.public-empresa-hero--com-banner {
+  height: auto;
+}
+
 .public-empresa-hero img {
   width: 100%;
   height: 100%;
@@ -411,7 +415,7 @@
     --public-empresa-logo-size: 138px;
   }
 
-  .public-empresa-hero {
+  .public-empresa-hero--sem-banner {
     height: var(--public-empresa-hero-height);
   }
 
@@ -445,7 +449,8 @@
 }
 
 .public-empresa-hero .public-empresa-banner {
-  object-fit: contain;
+  height: auto;
+  object-fit: fill;
   object-position: center center;
 }
 
