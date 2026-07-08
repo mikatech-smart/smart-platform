@@ -1680,7 +1680,7 @@ export default function EmpresaForm({
         </Button>
       </div>
 
-      {onExcluir && (
+      {!modoCliente && onExcluir && (
         <Card
           title="Zona de Perigo"
           subtitle="Ações irreversíveis para esta empresa."
