@@ -222,22 +222,181 @@ function normalizarRecursos(valor: unknown): RecursosContratados {
   );
 }
 
-const landingPageSecoesFuturas = [
-  "Hero",
-  "Sobre a empresa",
-  "Servicos",
-  "Galeria",
-  "Depoimentos",
-  "Contato",
-  "CTA",
+type LandingPageSecaoId =
+  | "hero"
+  | "sobre"
+  | "servicos"
+  | "galeria"
+  | "depoimentos"
+  | "contato"
+  | "cta";
+
+type LandingPageSecaoConfig = {
+  id: LandingPageSecaoId;
+  nome: string;
+  descricao: string;
+  ordem: number;
+  Component: typeof LandingPageSectionPlaceholder;
+};
+
+function LandingPageSectionPlaceholder({
+  nome,
+  descricao,
+}: {
+  nome: string;
+  descricao: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+      <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+        {nome}
+      </p>
+
+      <h4 className="mt-2 text-lg font-bold text-slate-900">
+        Esta seção será implementada nas próximas Sprints.
+      </h4>
+
+      <p className="mt-2 text-sm leading-6 text-slate-600">
+        {descricao}
+      </p>
+    </div>
+  );
+}
+
+function LandingHeroSection(props: { nome: string; descricao: string }) {
+  return <LandingPageSectionPlaceholder {...props} />;
+}
+
+function LandingSobreSection(props: { nome: string; descricao: string }) {
+  return <LandingPageSectionPlaceholder {...props} />;
+}
+
+function LandingServicosSection(props: { nome: string; descricao: string }) {
+  return <LandingPageSectionPlaceholder {...props} />;
+}
+
+function LandingGaleriaSection(props: { nome: string; descricao: string }) {
+  return <LandingPageSectionPlaceholder {...props} />;
+}
+
+function LandingDepoimentosSection(props: { nome: string; descricao: string }) {
+  return <LandingPageSectionPlaceholder {...props} />;
+}
+
+function LandingContatoSection(props: { nome: string; descricao: string }) {
+  return <LandingPageSectionPlaceholder {...props} />;
+}
+
+function LandingCtaSection(props: { nome: string; descricao: string }) {
+  return <LandingPageSectionPlaceholder {...props} />;
+}
+
+const landingPageSections: LandingPageSecaoConfig[] = [
+  {
+    id: "hero",
+    nome: "Hero",
+    descricao: "Area principal para promessa, imagem e chamada inicial.",
+    ordem: 10,
+    Component: LandingHeroSection,
+  },
+  {
+    id: "sobre",
+    nome: "Sobre",
+    descricao: "Bloco institucional para apresentar a empresa.",
+    ordem: 20,
+    Component: LandingSobreSection,
+  },
+  {
+    id: "servicos",
+    nome: "Serviços",
+    descricao: "Estrutura futura para listar servicos, planos ou ofertas.",
+    ordem: 30,
+    Component: LandingServicosSection,
+  },
+  {
+    id: "galeria",
+    nome: "Galeria",
+    descricao: "Espaco reservado para imagens e provas visuais.",
+    ordem: 40,
+    Component: LandingGaleriaSection,
+  },
+  {
+    id: "depoimentos",
+    nome: "Depoimentos",
+    descricao: "Area preparada para relatos, reviews e prova social.",
+    ordem: 50,
+    Component: LandingDepoimentosSection,
+  },
+  {
+    id: "contato",
+    nome: "Contato",
+    descricao: "Base para canais de contato e atendimento.",
+    ordem: 60,
+    Component: LandingContatoSection,
+  },
+  {
+    id: "cta",
+    nome: "CTA",
+    descricao: "Chamada final para conversao, agendamento ou compra.",
+    ordem: 70,
+    Component: LandingCtaSection,
+  },
 ];
 
+const landingPageSectionRegistry = [...landingPageSections].sort(
+  (a, b) => a.ordem - b.ordem
+);
+
 const landingPageArquiteturaFutura = [
-  "Geracao automatica por IA",
+  "Publicacao independente",
   "Dominio personalizado",
+  "IA",
   "Analytics",
-  "Publicacao independente da Pagina Publica",
+  "SEO",
 ];
+
+function LandingPagePreviewPlaceholder({
+  secoes,
+  nomeEmpresa,
+  secaoAtiva,
+}: {
+  secoes: LandingPageSecaoConfig[];
+  nomeEmpresa: string;
+  secaoAtiva: LandingPageSecaoId;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="rounded-2xl bg-slate-900 p-4 text-white">
+        <p className="text-xs font-bold uppercase tracking-wide text-green-300">
+          Preview em tempo real
+        </p>
+
+        <h4 className="mt-2 text-xl font-bold">
+          {nomeEmpresa || "Landing Page"}
+        </h4>
+
+        <p className="mt-2 text-sm leading-6 text-slate-300">
+          Estrutura visual reservada para acompanhar futuras edicoes antes da publicacao.
+        </p>
+      </div>
+
+      <div className="mt-4 space-y-2">
+        {secoes.map((secao) => (
+          <div
+            key={secao.id}
+            className={`rounded-xl border px-3 py-2 text-sm font-semibold ${
+              secao.id === secaoAtiva
+                ? "border-green-600 bg-green-50 text-green-800"
+                : "border-slate-200 bg-slate-50 text-slate-500"
+            }`}
+          >
+            {secao.nome}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 type TemaOficial = {
   id:
@@ -627,6 +786,8 @@ export default function EmpresaForm({
     useState<RecursosContratados>(() => ({ ...recursosPadrao }));
   const [landingPagePlaceholderAberto, setLandingPagePlaceholderAberto] =
     useState(false);
+  const [landingPageSecaoAtiva, setLandingPageSecaoAtiva] =
+    useState<LandingPageSecaoId>("hero");
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -752,6 +913,7 @@ export default function EmpresaForm({
       normalizarRecursos(dadosComPlano.recursos_contratados)
     );
     setLandingPagePlaceholderAberto(false);
+    setLandingPageSecaoAtiva("hero");
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
 
@@ -1481,15 +1643,15 @@ export default function EmpresaForm({
                 <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div className="min-w-0">
                     <p className="text-sm font-bold uppercase tracking-wide text-green-700">
-                      Estrutura preparada
+                      Editor da Landing Page
                     </p>
 
                     <h3 className="mt-2 text-xl font-bold text-slate-900">
-                      Configuracao da Landing Page
+                      Estrutura de configuracao
                     </h3>
 
                     <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                      Esta tela ainda e um placeholder. Nas proximas sprints ela podera receber editor visual, geracao por IA, dominio personalizado, publicacao independente e metricas de Analytics.
+                      O editor ainda nao publica a landing. Esta base prepara secoes independentes, preview em tempo real, ordenacao futura e integracoes de crescimento.
                     </p>
                   </div>
 
@@ -1502,40 +1664,68 @@ export default function EmpresaForm({
                   </button>
                 </div>
 
-                <div className="mt-5 grid gap-4 lg:grid-cols-2">
-                  <div className="rounded-2xl bg-slate-50 p-4">
+                <div className="mt-5 grid gap-4 xl:grid-cols-[220px_minmax(0,1fr)_300px]">
+                  <aside className="rounded-2xl bg-slate-50 p-3">
                     <h4 className="font-bold text-slate-900">
-                      Secoes futuras
+                      Seções
                     </h4>
 
-                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                      {landingPageSecoesFuturas.map((secao) => (
-                        <span
-                          key={secao}
-                          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600"
+                    <div className="mt-3 grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3 xl:flex xl:flex-col">
+                      {landingPageSectionRegistry.map((secao) => (
+                        <button
+                          key={secao.id}
+                          type="button"
+                          onClick={() => setLandingPageSecaoAtiva(secao.id)}
+                          className={`min-w-0 rounded-xl border px-3 py-2 text-left text-sm font-bold transition xl:w-full ${
+                            landingPageSecaoAtiva === secao.id
+                              ? "border-green-600 bg-green-700 text-white"
+                              : "border-slate-200 bg-white text-slate-600 hover:border-green-200"
+                          }`}
                         >
-                          {secao}
-                        </span>
+                          {secao.nome}
+                        </button>
                       ))}
+                    </div>
+                  </aside>
+
+                  <div className="min-w-0 space-y-4">
+                    {landingPageSectionRegistry
+                      .filter((secao) => secao.id === landingPageSecaoAtiva)
+                      .map((secao) => {
+                        const SecaoLanding = secao.Component;
+
+                        return (
+                          <SecaoLanding
+                            key={secao.id}
+                            nome={secao.nome}
+                            descricao={secao.descricao}
+                          />
+                        );
+                      })}
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                      <h4 className="font-bold text-slate-900">
+                        Base preparada
+                      </h4>
+
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        {landingPageArquiteturaFutura.map((item) => (
+                          <span
+                            key={item}
+                            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-600"
+                          >
+                            {item}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="rounded-2xl bg-slate-50 p-4">
-                    <h4 className="font-bold text-slate-900">
-                      Integracoes planejadas
-                    </h4>
-
-                    <div className="mt-3 grid gap-2">
-                      {landingPageArquiteturaFutura.map((item) => (
-                        <span
-                          key={item}
-                          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600"
-                        >
-                          {item}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+                  <LandingPagePreviewPlaceholder
+                    secoes={landingPageSectionRegistry}
+                    nomeEmpresa={nome}
+                    secaoAtiva={landingPageSecaoAtiva}
+                  />
                 </div>
               </div>
             )}
