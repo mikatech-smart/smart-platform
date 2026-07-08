@@ -59,6 +59,7 @@ type LogoExibicao = "normal" | "hidden";
 type TipoFundo = "solida" | "gradiente";
 type DirecaoGradiente = "horizontal" | "vertical" | "diagonal";
 type AparenciaConfig = {
+  logoExibicao: LogoExibicao;
   corPrincipal: string;
   corSecundaria: string;
   corBotoes: string;
@@ -89,8 +90,8 @@ const paletasAparencia = [
     nome: "Verde Mikatech",
     corPrincipal: "#1f3d36",
     corSecundaria: "#32bcad",
-    corBotoes: "#166534",
-    corTextoBotoes: "#ffffff",
+    corBotoes: "#ffffff",
+    corTextoBotoes: "#1f3d36",
     corFundo: "#f1eee8",
     corAreaPrincipal: "#ffffff",
     gradienteInicio: "#fbfaf8",
@@ -153,17 +154,18 @@ const paletasAparencia = [
   },
 ];
 
-const aparenciaPadraoMikatech: AparenciaConfig = {
-  corPrincipal: paletasAparencia[0].corPrincipal,
-  corSecundaria: paletasAparencia[0].corSecundaria,
-  corBotoes: paletasAparencia[0].corBotoes,
-  corTextoBotoes: paletasAparencia[0].corTextoBotoes,
-  corFundoPagina: paletasAparencia[0].corFundo,
-  corAreaPrincipal: paletasAparencia[0].corAreaPrincipal,
-  corFundoHero: paletasAparencia[0].corFundo,
+const TemaPadraoMikatech: AparenciaConfig = {
+  logoExibicao: "normal",
+  corPrincipal: "#1f3d36",
+  corSecundaria: "#32bcad",
+  corBotoes: "#ffffff",
+  corTextoBotoes: "#1f3d36",
+  corFundoPagina: "#f1eee8",
+  corAreaPrincipal: "#ffffff",
+  corFundoHero: "#f1eee8",
   tipoFundo: "solida",
-  gradienteInicio: paletasAparencia[0].gradienteInicio,
-  gradienteFim: paletasAparencia[0].gradienteFim,
+  gradienteInicio: "#fbfaf8",
+  gradienteFim: "#f1eee8",
   gradienteDirecao: "vertical",
 };
 
@@ -410,12 +412,13 @@ export default function EmpresaForm({
   const [gradienteDirecao, setGradienteDirecao] =
     useState<DirecaoGradiente>("vertical");
   const [aparenciaSalva, setAparenciaSalva] =
-    useState<AparenciaConfig>(aparenciaPadraoMikatech);
+    useState<AparenciaConfig>(TemaPadraoMikatech);
   const categoriaSelecionada = categoriasEmpresa.includes(categoria)
     ? categoria
     : "Outra";
   const slugPublico = slugAdmin || slug;
   const aparenciaAtual: AparenciaConfig = {
+    logoExibicao,
     corPrincipal,
     corSecundaria,
     corBotoes,
@@ -509,13 +512,17 @@ export default function EmpresaForm({
     };
     const possuiColunaCorFundoHero = "cor_fundo_hero" in dadosComAparencia;
     const aparenciaCarregada: AparenciaConfig = {
-      corPrincipal: data.cor_principal || "",
-      corSecundaria: data.cor_secundaria || "",
-      corBotoes: data.cor_botoes || "",
-      corTextoBotoes: data.cor_texto_botoes || "",
-      corFundoPagina: data.cor_fundo_pagina || "",
-      corAreaPrincipal: data.cor_area_principal || "",
-      corFundoHero: dadosComAparencia.cor_fundo_hero || data.cor_fundo_pagina || "",
+      logoExibicao: data.logo_exibicao === "hidden" ? "hidden" : "normal",
+      corPrincipal: data.cor_principal || TemaPadraoMikatech.corPrincipal,
+      corSecundaria: data.cor_secundaria || TemaPadraoMikatech.corSecundaria,
+      corBotoes: data.cor_botoes || TemaPadraoMikatech.corBotoes,
+      corTextoBotoes: data.cor_texto_botoes || TemaPadraoMikatech.corTextoBotoes,
+      corFundoPagina: data.cor_fundo_pagina || TemaPadraoMikatech.corFundoPagina,
+      corAreaPrincipal: data.cor_area_principal || TemaPadraoMikatech.corAreaPrincipal,
+      corFundoHero:
+        dadosComAparencia.cor_fundo_hero ||
+        data.cor_fundo_pagina ||
+        TemaPadraoMikatech.corFundoHero,
       tipoFundo: "solida",
       gradienteInicio: data.gradiente_inicio || "",
       gradienteFim: data.gradiente_fim || "",
@@ -536,6 +543,7 @@ export default function EmpresaForm({
     setGradienteInicio(aparenciaCarregada.gradienteInicio);
     setGradienteFim(aparenciaCarregada.gradienteFim);
     setGradienteDirecao(aparenciaCarregada.gradienteDirecao);
+    setLogoExibicao(aparenciaCarregada.logoExibicao);
     setAparenciaSalva(aparenciaCarregada);
     onEmpresaAtualChange?.({
       nome: data.nome || "",
@@ -734,6 +742,7 @@ export default function EmpresaForm({
     setSlug(slugFinal);
     setSlugAdmin(slugFinal);
     setAparenciaSalva({
+      logoExibicao,
       corPrincipal,
       corSecundaria,
       corBotoes,
@@ -828,6 +837,7 @@ export default function EmpresaForm({
   }
 
   function aplicarAparencia(aparencia: AparenciaConfig) {
+    setLogoExibicao(aparencia.logoExibicao);
     setCorPrincipal(aparencia.corPrincipal);
     setCorSecundaria(aparencia.corSecundaria);
     setCorBotoes(aparencia.corBotoes);
@@ -841,56 +851,34 @@ export default function EmpresaForm({
     setGradienteDirecao(aparencia.gradienteDirecao);
   }
 
-  function obterDirecaoGradiente() {
-    if (gradienteDirecao === "horizontal") return "90deg";
-    if (gradienteDirecao === "diagonal") return "135deg";
-
-    return "180deg";
-  }
-
   function obterEstiloPreview(): CSSProperties {
     const estilo = {} as CSSProperties & Record<string, string>;
+    const tema = {
+      corPrincipal: corPrincipal || TemaPadraoMikatech.corPrincipal,
+      corSecundaria: corSecundaria || TemaPadraoMikatech.corSecundaria,
+      corBotoes: corBotoes || TemaPadraoMikatech.corBotoes,
+      corTextoBotoes:
+        corTextoBotoes || TemaPadraoMikatech.corTextoBotoes,
+      corFundoPagina:
+        corFundoPagina || TemaPadraoMikatech.corFundoPagina,
+      corAreaPrincipal:
+        corAreaPrincipal || TemaPadraoMikatech.corAreaPrincipal,
+      corFundoHero: corFundoHero || TemaPadraoMikatech.corFundoHero,
+    };
 
-    if (corPrincipal) {
-      estilo["--mc-primary"] = corPrincipal;
-      estilo["--mc-text"] = corPrincipal;
-    }
-
-    if (corSecundaria) {
-      estilo["--mc-secondary"] = corSecundaria;
-      estilo["--mc-accent"] = corSecundaria;
-    }
-
-    if (corBotoes) {
-      estilo["--mc-button-background"] = corBotoes;
-    }
-
-    if (corTextoBotoes) {
-      estilo["--mc-button-text"] = corTextoBotoes;
-    }
-
-    if (corFundoPagina) {
-      estilo["--mc-background"] = corFundoPagina;
-      estilo["--mc-background-soft"] = corFundoPagina;
-    }
-
-    if (corFundoHero || corFundoPagina) {
-      estilo["--mc-hero-background"] = corFundoHero || corFundoPagina;
-    }
-
-    if (corAreaPrincipal) {
-      estilo["--mc-content-background"] = corAreaPrincipal;
-      estilo["--mc-card"] = corAreaPrincipal;
-      estilo["--mc-surface"] = corAreaPrincipal;
-    }
-
-    if (tipoFundo === "gradiente") {
-      estilo["--mc-page-background"] = `linear-gradient(${obterDirecaoGradiente()}, ${
-        gradienteInicio || "#fbfaf8"
-      } 0%, ${gradienteFim || "#f1eee8"} 100%)`;
-    } else if (corFundoPagina) {
-      estilo["--mc-page-background"] = corFundoPagina;
-    }
+    estilo["--mc-primary"] = tema.corPrincipal;
+    estilo["--mc-text"] = tema.corPrincipal;
+    estilo["--mc-secondary"] = tema.corSecundaria;
+    estilo["--mc-accent"] = tema.corSecundaria;
+    estilo["--mc-button-background"] = tema.corBotoes;
+    estilo["--mc-button-text"] = tema.corTextoBotoes;
+    estilo["--mc-background"] = tema.corFundoPagina;
+    estilo["--mc-background-soft"] = tema.corFundoPagina;
+    estilo["--mc-hero-background"] = tema.corFundoHero;
+    estilo["--mc-content-background"] = tema.corAreaPrincipal;
+    estilo["--mc-card"] = tema.corAreaPrincipal;
+    estilo["--mc-surface"] = tema.corAreaPrincipal;
+    estilo["--mc-page-background"] = tema.corFundoPagina;
 
     return estilo;
   }
@@ -1339,13 +1327,12 @@ export default function EmpresaForm({
                   );
 
                   if (confirmado) {
-                    aplicarAparencia(aparenciaPadraoMikatech);
-                    setLogoExibicao("normal");
+                    aplicarAparencia(TemaPadraoMikatech);
                   }
                 }}
                 className="rounded-xl border border-slate-200 px-4 py-3 font-bold text-slate-700"
               >
-                Restaurar padrão
+                Restaurar padrão Mikatech
               </button>
 
               <button

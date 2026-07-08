@@ -24,6 +24,16 @@ type AparenciaEmpresa = Empresa & {
   gradiente_direcao?: string | null;
 };
 
+const TemaPadraoMikatech = {
+  corPrincipal: "#1f3d36",
+  corSecundaria: "#32bcad",
+  corBotoes: "#ffffff",
+  corTextoBotoes: "#1f3d36",
+  corFundoPagina: "#f1eee8",
+  corAreaPrincipal: "#ffffff",
+  corFundoHero: "#f1eee8",
+};
+
 const diasSemana = [
   { label: "Segunda", chave: "segunda" },
   { label: "Terça", chave: "terca" },
@@ -97,49 +107,34 @@ function criarGoogleMapsUrl(endereco?: string | null) {
 function criarEstiloAparencia(empresa: Empresa): CSSProperties {
   const aparencia = empresa as AparenciaEmpresa;
   const estilo = {} as CSSProperties & Record<string, string>;
-  const corPrincipal = aparencia.cor_principal?.trim();
-  const corSecundaria = aparencia.cor_secundaria?.trim();
-  const corBotoes = aparencia.cor_botoes?.trim();
-  const corTextoBotoes = aparencia.cor_texto_botoes?.trim();
-  const corFundoPagina = aparencia.cor_fundo_pagina?.trim();
-  const corFundoHero = aparencia.cor_fundo_hero?.trim();
-  const corAreaPrincipal = aparencia.cor_area_principal?.trim();
-  if (corPrincipal) {
-    estilo["--mc-primary"] = corPrincipal;
-    estilo["--mc-text"] = corPrincipal;
-  }
+  const corPrincipal =
+    aparencia.cor_principal?.trim() || TemaPadraoMikatech.corPrincipal;
+  const corSecundaria =
+    aparencia.cor_secundaria?.trim() || TemaPadraoMikatech.corSecundaria;
+  const corBotoes =
+    aparencia.cor_botoes?.trim() || TemaPadraoMikatech.corBotoes;
+  const corTextoBotoes =
+    aparencia.cor_texto_botoes?.trim() || TemaPadraoMikatech.corTextoBotoes;
+  const corFundoPagina =
+    aparencia.cor_fundo_pagina?.trim() || TemaPadraoMikatech.corFundoPagina;
+  const corFundoHero =
+    aparencia.cor_fundo_hero?.trim() || TemaPadraoMikatech.corFundoHero;
+  const corAreaPrincipal =
+    aparencia.cor_area_principal?.trim() || TemaPadraoMikatech.corAreaPrincipal;
 
-  if (corSecundaria) {
-    estilo["--mc-secondary"] = corSecundaria;
-    estilo["--mc-accent"] = corSecundaria;
-  }
-
-  if (corBotoes) {
-    estilo["--mc-button-background"] = corBotoes;
-  }
-
-  if (corTextoBotoes) {
-    estilo["--mc-button-text"] = corTextoBotoes;
-  }
-
-  if (corFundoPagina) {
-    estilo["--mc-background"] = corFundoPagina;
-    estilo["--mc-background-soft"] = corFundoPagina;
-  }
-
-  if (corFundoHero || corFundoPagina) {
-    estilo["--mc-hero-background"] = corFundoHero || corFundoPagina || "";
-  }
-
-  if (corAreaPrincipal) {
-    estilo["--mc-content-background"] = corAreaPrincipal;
-    estilo["--mc-card"] = corAreaPrincipal;
-    estilo["--mc-surface"] = corAreaPrincipal;
-  }
-
-  if (corFundoPagina) {
-    estilo["--mc-page-background"] = corFundoPagina;
-  }
+  estilo["--mc-primary"] = corPrincipal;
+  estilo["--mc-text"] = corPrincipal;
+  estilo["--mc-secondary"] = corSecundaria;
+  estilo["--mc-accent"] = corSecundaria;
+  estilo["--mc-button-background"] = corBotoes;
+  estilo["--mc-button-text"] = corTextoBotoes;
+  estilo["--mc-background"] = corFundoPagina;
+  estilo["--mc-background-soft"] = corFundoPagina;
+  estilo["--mc-hero-background"] = corFundoHero;
+  estilo["--mc-content-background"] = corAreaPrincipal;
+  estilo["--mc-card"] = corAreaPrincipal;
+  estilo["--mc-surface"] = corAreaPrincipal;
+  estilo["--mc-page-background"] = corFundoPagina;
 
   return estilo;
 }
