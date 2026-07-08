@@ -1405,6 +1405,7 @@ export default function EmpresaForm({
             value={whatsapp}
             onChange={(e) => setWhatsapp(formatarTelefone(e.target.value))}
             placeholder="(15) 99741-4078"
+            helperText="Digite apenas os números."
           />
 
           <Input
@@ -1412,6 +1413,7 @@ export default function EmpresaForm({
             value={telefone}
             onChange={(e) => setTelefone(formatarTelefone(e.target.value))}
             placeholder="(15) 3333-4444"
+            helperText="Digite apenas os números."
           />
 
           <Input
@@ -1741,7 +1743,7 @@ export default function EmpresaForm({
           title="Zona de Perigo"
           subtitle="Ações irreversíveis para esta empresa."
         >
-          <div className="flex flex-col gap-4 rounded-xl border border-red-100 bg-red-50/50 p-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-4 rounded-xl border border-red-200 bg-red-50 p-4 md:flex-row md:items-center md:justify-between">
             <div>
               <h3 className="font-bold text-red-800">
                 Excluir empresa
@@ -1755,9 +1757,9 @@ export default function EmpresaForm({
             <button
               type="button"
               onClick={onExcluir}
-              className="rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-bold text-red-700 transition hover:bg-red-100"
+              className="rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-700"
             >
-              Excluir Empresa
+              Excluir empresa
             </button>
           </div>
         </Card>

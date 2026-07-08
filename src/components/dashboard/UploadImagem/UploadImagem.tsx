@@ -56,12 +56,12 @@ export default function UploadImagem({
     ? [
         "Recomendado: JPG ou PNG",
         "Ideal: 1580x500px",
-        "Use imagem horizontal",
+        "Use uma imagem horizontal para melhor resultado.",
       ]
     : [
         "Recomendado: PNG",
         "Ideal: 500x500px",
-        "Fundo transparente recomendado",
+        "Use PNG com fundo transparente, se possível.",
       ];
   const previewClassName = isBanner
     ? "w-40 h-16 object-contain"

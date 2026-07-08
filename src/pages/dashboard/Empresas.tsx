@@ -362,7 +362,7 @@ export default function Empresas() {
                         type="button"
                         disabled={!linkPublico}
                         onClick={() => copiarLink(linkPublico)}
-                        className="rounded-xl border px-3 py-2 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-xl bg-blue-600 px-3 py-2 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Copiar link
                       </button>
