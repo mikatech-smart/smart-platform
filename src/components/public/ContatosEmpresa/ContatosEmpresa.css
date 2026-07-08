@@ -22,8 +22,8 @@
   min-height: 74px;
   padding: 0 20px;
   border-radius: 18px;
-  background: var(--mc-surface, #ffffff);
-  color: var(--mc-primary, #1f3d36);
+  background: var(--mc-button-background, var(--mc-surface, #ffffff));
+  color: var(--mc-button-text, var(--mc-primary, #1f3d36));
   border: 1px solid var(--mc-border, rgba(88, 73, 54, 0.1));
   font: inherit;
   font-weight: 800;
@@ -64,30 +64,32 @@
 }
 
 .public-empresa-action[aria-expanded="true"] {
-  background: var(--mc-surface, #ffffff);
+  background: var(--mc-button-background, var(--mc-surface, #ffffff));
+  color: var(--mc-button-text, var(--mc-primary, #1f3d36));
   border-color: var(--mc-border, rgba(88, 73, 54, 0.1));
   box-shadow: var(--mc-shadow, 0 14px 34px rgba(38, 31, 24, 0.08));
 }
 
 .public-empresa-action--primary {
-  background: var(--mc-surface, #ffffff);
-  color: var(--mc-primary, #1f3d36);
+  background: var(--mc-button-background, var(--mc-surface, #ffffff));
+  color: var(--mc-button-text, var(--mc-primary, #1f3d36));
   border-color: var(--mc-border, rgba(88, 73, 54, 0.1));
 }
 
 .public-empresa-action--light {
-  background: var(--mc-surface, #ffffff);
+  background: var(--mc-button-background, var(--mc-surface, #ffffff));
+  color: var(--mc-button-text, var(--mc-primary, #1f3d36));
 }
 
 .public-empresa-action--google {
-  background: var(--mc-surface, #ffffff);
-  color: var(--mc-primary, #1f3d36);
+  background: var(--mc-button-background, var(--mc-surface, #ffffff));
+  color: var(--mc-button-text, var(--mc-primary, #1f3d36));
   border-color: var(--mc-border, rgba(88, 73, 54, 0.1));
 }
 
 .public-empresa-action--whatsapp {
-  background: var(--mc-surface, #ffffff);
-  color: var(--mc-primary, #1f3d36);
+  background: var(--mc-button-background, var(--mc-surface, #ffffff));
+  color: var(--mc-button-text, var(--mc-primary, #1f3d36));
 }
 
 .public-empresa-action--whatsapp:hover {
@@ -204,7 +206,7 @@
   padding: 14px;
   border: 1px solid var(--mc-border, #e4dbcf);
   border-radius: 16px;
-  background: var(--mc-surface, #ffffff);
+  background: var(--mc-content-background, var(--mc-surface, #ffffff));
   text-align: left;
   box-shadow: var(--mc-shadow, 0 14px 34px rgba(38, 31, 24, 0.08));
 }
@@ -249,8 +251,8 @@
   margin-top: 10px;
   border: 1px solid var(--mc-primary, #1f3d36);
   border-radius: 14px;
-  background: var(--mc-primary, #1f3d36);
-  color: var(--mc-surface, #ffffff);
+  background: var(--mc-button-background, var(--mc-primary, #1f3d36));
+  color: var(--mc-button-text, var(--mc-surface, #ffffff));
   font: inherit;
   font-weight: 800;
   cursor: pointer;
@@ -303,8 +305,8 @@
   gap: 8px;
   border: 1px solid var(--mc-border-strong, rgba(31, 61, 54, 0.2));
   border-radius: 14px;
-  background: var(--mc-surface, #ffffff);
-  color: var(--mc-primary, #1f3d36);
+  background: var(--mc-button-background, var(--mc-surface, #ffffff));
+  color: var(--mc-button-text, var(--mc-primary, #1f3d36));
   font: inherit;
   font-weight: 800;
   opacity: 1;

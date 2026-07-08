@@ -6,6 +6,7 @@
   --mc-background-soft: #fbfaf8;
   --mc-surface: #ffffff;
   --mc-card: rgba(255, 255, 255, 0.96);
+  --mc-content-background: var(--mc-card);
   --mc-text: #161616;
   --mc-text-muted: #5f5b54;
   --mc-border: rgba(88, 73, 54, 0.1);
@@ -56,7 +57,7 @@
   --public-empresa-logo-size: clamp(116px, 34vw, 132px);
   width: min(100%, 760px);
   position: relative;
-  background: var(--mc-card);
+  background: var(--mc-content-background);
   border: 1px solid var(--mc-border);
   border-radius: var(--mc-radius-lg);
   overflow: visible;
@@ -100,7 +101,7 @@
 .public-empresa-profile-card,
 .public-empresa-section,
 .public-empresa-empty {
-  background: var(--mc-surface);
+  background: var(--mc-content-background);
   border: 1px solid var(--mc-border);
   border-radius: var(--mc-radius-md);
   box-shadow: var(--mc-shadow);
@@ -115,6 +116,7 @@
 .public-empresa-profile-card {
   position: relative;
   z-index: 1;
+  background: var(--mc-content-background);
   padding: 4px 18px 20px;
   text-align: center;
 }
@@ -195,7 +197,8 @@
 }
 
 .public-empresa-action--light {
-  background: var(--mc-surface);
+  background: var(--mc-button-background);
+  color: var(--mc-button-text);
 }
 
 .public-empresa-info-card {
@@ -249,8 +252,8 @@
   justify-content: center;
   border: 1px solid var(--mc-border-strong);
   border-radius: 14px;
-  background: var(--mc-surface);
-  color: var(--mc-primary);
+  background: var(--mc-button-background);
+  color: var(--mc-button-text);
   font-weight: 800;
   text-decoration: none;
   box-shadow: var(--mc-shadow);

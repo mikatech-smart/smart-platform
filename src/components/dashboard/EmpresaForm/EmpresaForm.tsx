@@ -63,6 +63,7 @@ type AparenciaConfig = {
   corBotoes: string;
   corTextoBotoes: string;
   corFundoPagina: string;
+  corAreaPrincipal: string;
   tipoFundo: TipoFundo;
   gradienteInicio: string;
   gradienteFim: string;
@@ -90,6 +91,7 @@ const paletasAparencia = [
     corBotoes: "#ffffff",
     corTextoBotoes: "#1f3d36",
     corFundo: "#f1eee8",
+    corAreaPrincipal: "#ffffff",
     gradienteInicio: "#fbfaf8",
     gradienteFim: "#f1eee8",
   },
@@ -100,6 +102,7 @@ const paletasAparencia = [
     corBotoes: "#ffffff",
     corTextoBotoes: "#111827",
     corFundo: "#f4f4f5",
+    corAreaPrincipal: "#ffffff",
     gradienteInicio: "#ffffff",
     gradienteFim: "#e7e5e4",
   },
@@ -110,6 +113,7 @@ const paletasAparencia = [
     corBotoes: "#ffffff",
     corTextoBotoes: "#1e3a8a",
     corFundo: "#eff6ff",
+    corAreaPrincipal: "#ffffff",
     gradienteInicio: "#ffffff",
     gradienteFim: "#dbeafe",
   },
@@ -120,6 +124,7 @@ const paletasAparencia = [
     corBotoes: "#ffffff",
     corTextoBotoes: "#6b4e16",
     corFundo: "#faf6e8",
+    corAreaPrincipal: "#fffaf0",
     gradienteInicio: "#fffdf5",
     gradienteFim: "#f3e7bd",
   },
@@ -130,6 +135,7 @@ const paletasAparencia = [
     corBotoes: "#ffffff",
     corTextoBotoes: "#9d174d",
     corFundo: "#fdf2f8",
+    corAreaPrincipal: "#ffffff",
     gradienteInicio: "#ffffff",
     gradienteFim: "#fce7f3",
   },
@@ -140,6 +146,7 @@ const paletasAparencia = [
     corBotoes: "#ffffff",
     corTextoBotoes: "#334155",
     corFundo: "#f8fafc",
+    corAreaPrincipal: "#ffffff",
     gradienteInicio: "#ffffff",
     gradienteFim: "#f1f5f9",
   },
@@ -151,6 +158,7 @@ const aparenciaPadraoMikatech: AparenciaConfig = {
   corBotoes: paletasAparencia[0].corBotoes,
   corTextoBotoes: paletasAparencia[0].corTextoBotoes,
   corFundoPagina: paletasAparencia[0].corFundo,
+  corAreaPrincipal: paletasAparencia[0].corAreaPrincipal,
   tipoFundo: "solida",
   gradienteInicio: paletasAparencia[0].gradienteInicio,
   gradienteFim: paletasAparencia[0].gradienteFim,
@@ -392,6 +400,7 @@ export default function EmpresaForm({
   const [corBotoes, setCorBotoes] = useState("");
   const [corTextoBotoes, setCorTextoBotoes] = useState("");
   const [corFundoPagina, setCorFundoPagina] = useState("");
+  const [corAreaPrincipal, setCorAreaPrincipal] = useState("");
   const [tipoFundo, setTipoFundo] = useState<TipoFundo>("solida");
   const [gradienteInicio, setGradienteInicio] = useState("");
   const [gradienteFim, setGradienteFim] = useState("");
@@ -413,6 +422,7 @@ export default function EmpresaForm({
     corBotoes,
     corTextoBotoes,
     corFundoPagina,
+    corAreaPrincipal,
     tipoFundo,
     gradienteInicio,
     gradienteFim,
@@ -500,6 +510,7 @@ export default function EmpresaForm({
       corBotoes: data.cor_botoes || "",
       corTextoBotoes: data.cor_texto_botoes || "",
       corFundoPagina: data.cor_fundo_pagina || "",
+      corAreaPrincipal: data.cor_area_principal || "",
       tipoFundo: data.tipo_fundo === "gradiente" ? "gradiente" : "solida",
       gradienteInicio: data.gradiente_inicio || "",
       gradienteFim: data.gradiente_fim || "",
@@ -513,6 +524,7 @@ export default function EmpresaForm({
     setCorBotoes(aparenciaCarregada.corBotoes);
     setCorTextoBotoes(aparenciaCarregada.corTextoBotoes);
     setCorFundoPagina(aparenciaCarregada.corFundoPagina);
+    setCorAreaPrincipal(aparenciaCarregada.corAreaPrincipal);
     setTipoFundo(aparenciaCarregada.tipoFundo);
     setGradienteInicio(aparenciaCarregada.gradienteInicio);
     setGradienteFim(aparenciaCarregada.gradienteFim);
@@ -675,6 +687,7 @@ export default function EmpresaForm({
       cor_botoes: corBotoes,
       cor_texto_botoes: corTextoBotoes,
       cor_fundo_pagina: corFundoPagina,
+      cor_area_principal: corAreaPrincipal,
       tipo_fundo: tipoFundo,
       gradiente_inicio: gradienteInicio,
       gradiente_fim: gradienteFim,
@@ -712,6 +725,7 @@ export default function EmpresaForm({
       corBotoes,
       corTextoBotoes,
       corFundoPagina,
+      corAreaPrincipal,
       tipoFundo,
       gradienteInicio,
       gradienteFim,
@@ -803,6 +817,7 @@ export default function EmpresaForm({
     setCorBotoes(paleta.corBotoes);
     setCorTextoBotoes(paleta.corTextoBotoes);
     setCorFundoPagina(paleta.corFundo);
+    setCorAreaPrincipal(paleta.corAreaPrincipal);
     setGradienteInicio(paleta.gradienteInicio);
     setGradienteFim(paleta.gradienteFim);
   }
@@ -813,6 +828,7 @@ export default function EmpresaForm({
     setCorBotoes(aparencia.corBotoes);
     setCorTextoBotoes(aparencia.corTextoBotoes);
     setCorFundoPagina(aparencia.corFundoPagina);
+    setCorAreaPrincipal(aparencia.corAreaPrincipal);
     setTipoFundo(aparencia.tipoFundo);
     setGradienteInicio(aparencia.gradienteInicio);
     setGradienteFim(aparencia.gradienteFim);
@@ -850,6 +866,12 @@ export default function EmpresaForm({
     if (corFundoPagina) {
       estilo["--mc-background"] = corFundoPagina;
       estilo["--mc-background-soft"] = corFundoPagina;
+    }
+
+    if (corAreaPrincipal) {
+      estilo["--mc-content-background"] = corAreaPrincipal;
+      estilo["--mc-card"] = corAreaPrincipal;
+      estilo["--mc-surface"] = corAreaPrincipal;
     }
 
     if (tipoFundo === "gradiente") {
@@ -1153,6 +1175,7 @@ export default function EmpresaForm({
                 ["Cor dos botoes", corBotoes, setCorBotoes],
                 ["Cor do texto dos botoes", corTextoBotoes, setCorTextoBotoes],
                 ["Cor de fundo da pagina", corFundoPagina, setCorFundoPagina],
+                ["Cor da area principal", corAreaPrincipal, setCorAreaPrincipal],
               ].map(([label, valor, alterar]) => (
                 <label key={label as string} className="block">
                   <span className="mb-2 block font-medium">

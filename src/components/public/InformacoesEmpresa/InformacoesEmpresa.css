@@ -20,8 +20,8 @@
   margin: 18px auto 0;
   padding: 0 18px;
   border-radius: 8px;
-  background: var(--mc-primary, #1f3d36);
-  color: var(--mc-surface, #ffffff);
+  background: var(--mc-button-background, var(--mc-primary, #1f3d36));
+  color: var(--mc-button-text, var(--mc-surface, #ffffff));
   font-weight: 800;
   text-decoration: none;
   transition: transform var(--mc-transition, 200ms ease), box-shadow var(--mc-transition, 200ms ease);
