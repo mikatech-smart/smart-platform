@@ -48,6 +48,7 @@ type AbaEmpresa =
   | "informacoes"
   | "aparencia"
   | "plano"
+  | "landing"
   | "contato"
   | "endereco"
   | "redes"
@@ -79,6 +80,7 @@ const abasEmpresa: Array<{
   { id: "informacoes", label: "Informações" },
   { id: "aparencia", label: "Personalizar Página" },
   { id: "plano", label: "Plano e Recursos", adminOnly: true },
+  { id: "landing", label: "Landing Page" },
   { id: "contato", label: "Contato" },
   { id: "endereco", label: "Endereço" },
   { id: "redes", label: "Redes Sociais" },
@@ -219,6 +221,23 @@ function normalizarRecursos(valor: unknown): RecursosContratados {
     { ...recursosPadrao }
   );
 }
+
+const landingPageSecoesFuturas = [
+  "Hero",
+  "Sobre a empresa",
+  "Servicos",
+  "Galeria",
+  "Depoimentos",
+  "Contato",
+  "CTA",
+];
+
+const landingPageArquiteturaFutura = [
+  "Geracao automatica por IA",
+  "Dominio personalizado",
+  "Analytics",
+  "Publicacao independente da Pagina Publica",
+];
 
 type TemaOficial = {
   id:
@@ -606,6 +625,8 @@ export default function EmpresaForm({
   const [plano, setPlano] = useState<PlanoEmpresa>("starter");
   const [recursosContratados, setRecursosContratados] =
     useState<RecursosContratados>(() => ({ ...recursosPadrao }));
+  const [landingPagePlaceholderAberto, setLandingPagePlaceholderAberto] =
+    useState(false);
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -730,6 +751,7 @@ export default function EmpresaForm({
     setRecursosContratados(
       normalizarRecursos(dadosComPlano.recursos_contratados)
     );
+    setLandingPagePlaceholderAberto(false);
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
 
@@ -1398,6 +1420,125 @@ export default function EmpresaForm({
                 })}
               </div>
             </div>
+          </div>
+        </Card>
+      )}
+
+      {abaAtiva === "landing" && (
+        <Card
+          title="Landing Page"
+          subtitle="Estrutura base para uma landing independente, preparada para planos, IA, dominio e analytics."
+        >
+          <div className="space-y-5">
+            <div
+              className={`rounded-2xl border p-4 ${
+                recursosContratados.landing_page
+                  ? "border-green-200 bg-green-50"
+                  : "border-amber-200 bg-amber-50"
+              }`}
+            >
+              <div className="flex min-w-0 flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="min-w-0">
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+                      recursosContratados.landing_page
+                        ? "bg-green-700 text-white"
+                        : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {recursosContratados.landing_page ? "Ativo" : "Não contratado"}
+                  </span>
+
+                  <h3 className="mt-3 text-xl font-bold text-slate-900">
+                    {recursosContratados.landing_page
+                      ? "Landing Page liberada"
+                      : "Landing Page ainda nao contratada"}
+                  </h3>
+
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                    Este modulo foi preparado para funcionar separado da Pagina Publica, com estrutura propria para campanhas, dominios personalizados e leitura de resultados.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setLandingPagePlaceholderAberto(true)}
+                  className={`w-full rounded-xl px-4 py-3 text-sm font-bold text-white md:w-auto ${
+                    recursosContratados.landing_page
+                      ? "bg-green-700 hover:bg-green-800"
+                      : "bg-amber-600 hover:bg-amber-700"
+                  }`}
+                >
+                  {recursosContratados.landing_page
+                    ? "Configurar Landing Page"
+                    : "Conhecer recurso"}
+                </button>
+              </div>
+            </div>
+
+            {landingPagePlaceholderAberto && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+                      Estrutura preparada
+                    </p>
+
+                    <h3 className="mt-2 text-xl font-bold text-slate-900">
+                      Configuracao da Landing Page
+                    </h3>
+
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                      Esta tela ainda e um placeholder. Nas proximas sprints ela podera receber editor visual, geracao por IA, dominio personalizado, publicacao independente e metricas de Analytics.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setLandingPagePlaceholderAberto(false)}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 md:w-auto"
+                  >
+                    Fechar
+                  </button>
+                </div>
+
+                <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                  <div className="rounded-2xl bg-slate-50 p-4">
+                    <h4 className="font-bold text-slate-900">
+                      Secoes futuras
+                    </h4>
+
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      {landingPageSecoesFuturas.map((secao) => (
+                        <span
+                          key={secao}
+                          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600"
+                        >
+                          {secao}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl bg-slate-50 p-4">
+                    <h4 className="font-bold text-slate-900">
+                      Integracoes planejadas
+                    </h4>
+
+                    <div className="mt-3 grid gap-2">
+                      {landingPageArquiteturaFutura.map((item) => (
+                        <span
+                          key={item}
+                          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600"
+                        >
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </Card>
       )}
