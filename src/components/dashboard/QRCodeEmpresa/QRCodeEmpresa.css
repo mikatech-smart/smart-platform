@@ -193,16 +193,6 @@
   font-weight: 700;
 }
 
-.qr-code-empresa__future {
-  padding: 12px 14px;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: 12px;
-  color: #166534;
-  font-size: 0.88rem;
-  font-weight: 700;
-}
-
 @media (min-width: 768px) {
   .qr-code-empresa {
     padding: 28px;
@@ -212,8 +202,7 @@
     grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
   }
 
-  .qr-code-empresa__card--main,
-  .qr-code-empresa__future {
+  .qr-code-empresa__card--main {
     grid-column: 1 / -1;
   }
 

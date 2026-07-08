@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Copy, ExternalLink, QrCode, Radio } from "lucide-react";
+import { Copy, Download, ExternalLink, QrCode, Radio } from "lucide-react";
 
 import "./QRCodeEmpresa.css";
 
@@ -13,14 +13,33 @@ export default function QRCodeEmpresa({
   nomeEmpresa,
 }: QRCodeEmpresaProps) {
   const [copiado, setCopiado] = useState<"link" | "nfc" | null>(null);
+  const [baixando, setBaixando] = useState(false);
 
   const publicUrl = useMemo(() => {
-    const baseUrl =
-      import.meta.env.VITE_PUBLIC_APP_URL ||
-      window.location.origin;
-
-    return `${baseUrl.replace(/\/$/, "")}/${slug}`;
+    return `https://smart.mikatech.com.br/${slug}`;
   }, [slug]);
+
+  const qrCodeUrl = useMemo(() => {
+    const parametros = new URLSearchParams({
+      size: "720x720",
+      margin: "24",
+      data: publicUrl,
+    });
+
+    return `https://api.qrserver.com/v1/create-qr-code/?${parametros.toString()}`;
+  }, [publicUrl]);
+
+  const nomeArquivo = useMemo(() => {
+    const nome = (nomeEmpresa || slug || "empresa")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+    return `qrcode-${nome || "empresa"}.png`;
+  }, [nomeEmpresa, slug]);
 
   async function copiarLink(tipo: "link" | "nfc") {
     await navigator.clipboard.writeText(publicUrl);
@@ -32,24 +51,70 @@ export default function QRCodeEmpresa({
     }, 2500);
   }
 
+  async function baixarQRCode() {
+    try {
+      setBaixando(true);
+
+      const resposta = await fetch(qrCodeUrl);
+
+      if (!resposta.ok) {
+        throw new Error("Não foi possível gerar o arquivo PNG do QR Code.");
+      }
+
+      const blob = await resposta.blob();
+      const urlTemporaria = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = urlTemporaria;
+      link.download = nomeArquivo;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(urlTemporaria);
+    } catch (error) {
+      console.error("Erro ao baixar QR Code:", error);
+      window.open(qrCodeUrl, "_blank", "noreferrer");
+    } finally {
+      setBaixando(false);
+    }
+  }
+
+  if (!slug) {
+    return (
+      <section className="qr-code-empresa">
+        <div className="qr-code-empresa__header">
+          <p className="qr-code-empresa__eyebrow">
+            NFC e QR Code
+          </p>
+
+          <h3>NFC e QR Code</h3>
+
+          <p className="qr-code-empresa__subtitle">
+            Cadastre o slug da empresa para gerar o QR Code.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="qr-code-empresa">
       <div className="qr-code-empresa__header">
         <p className="qr-code-empresa__eyebrow">
-          Compartilhamento
+          NFC e QR Code
         </p>
 
-        <h3>Centro de Compartilhamento</h3>
+        <h3>NFC e QR Code</h3>
 
         <p className="qr-code-empresa__subtitle">
-          Utilize este link em QR Codes, Tags NFC, redes sociais e materiais impressos.
+          Gere o acesso da página pública para NFC, displays, placas, balcão e materiais impressos.
         </p>
       </div>
 
       <div className="qr-code-empresa__grid">
         <section className="qr-code-empresa__card qr-code-empresa__card--main">
           <div>
-            <h4>Página Pública</h4>
+            <h4>Link público da empresa</h4>
             <p>Compartilhe este link com seus clientes.</p>
           </div>
 
@@ -75,13 +140,13 @@ export default function QRCodeEmpresa({
               className="qr-code-empresa__button"
             >
               <Copy size={18} />
-              Copiar Link
+              Copiar link
             </button>
           </div>
 
           {copiado === "link" && (
             <p className="qr-code-empresa__feedback">
-              Link copiado com sucesso
+              Link copiado com sucesso.
             </p>
           )}
         </section>
@@ -93,7 +158,7 @@ export default function QRCodeEmpresa({
           </div>
 
           <p>
-            Grave este mesmo link em uma Tag NFC para abrir automaticamente a página da empresa.
+            Grave este link na tag NFC para direcionar o cliente à página pública.
           </p>
 
           <button
@@ -102,12 +167,12 @@ export default function QRCodeEmpresa({
             className="qr-code-empresa__button qr-code-empresa__button--wide"
           >
             <Copy size={18} />
-            Copiar Link para NFC
+            Copiar link para NFC
           </button>
 
           {copiado === "nfc" && (
             <p className="qr-code-empresa__feedback">
-              Link copiado com sucesso
+              Link copiado com sucesso.
             </p>
           )}
         </section>
@@ -118,28 +183,33 @@ export default function QRCodeEmpresa({
             <h4>QR Code</h4>
           </div>
 
-          <div className="qr-code-empresa__placeholder">
-            <div className="qr-code-empresa__placeholder-box">
-              <QrCode size={42} />
-              <strong>QR CODE</strong>
-              <span>(em breve)</span>
+          <div className="qr-code-empresa__qr-content">
+            <div className="qr-code-empresa__qr-box">
+              <img
+                src={qrCodeUrl}
+                alt={`QR Code da página pública de ${nomeEmpresa || "empresa"}`}
+              />
             </div>
 
             <p>
-              Na próxima atualização será possível gerar e baixar o QR Code automaticamente.
+              Use o QR Code no display, placa, balcão ou material impresso.
             </p>
 
             {nomeEmpresa && (
               <small>{nomeEmpresa}</small>
             )}
+
+            <button
+              type="button"
+              onClick={baixarQRCode}
+              disabled={baixando}
+              className="qr-code-empresa__button qr-code-empresa__button--wide"
+            >
+              <Download size={18} />
+              {baixando ? "Baixando..." : "Baixar QR Code"}
+            </button>
           </div>
         </section>
-
-        <div className="qr-code-empresa__future">
-          <span>
-            Preparado para QR Code, Download PNG, Download SVG, NFC, compartilhar e analytics.
-          </span>
-        </div>
       </div>
     </section>
   );
