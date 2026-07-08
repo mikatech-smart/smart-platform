@@ -47,6 +47,7 @@ const categoriasEmpresa = [
 type AbaEmpresa =
   | "informacoes"
   | "aparencia"
+  | "plano"
   | "contato"
   | "endereco"
   | "redes"
@@ -73,14 +74,151 @@ type AparenciaConfig = {
 const abasEmpresa: Array<{
   id: AbaEmpresa;
   label: string;
+  adminOnly?: boolean;
 }> = [
   { id: "informacoes", label: "Informações" },
   { id: "aparencia", label: "Personalizar Página" },
+  { id: "plano", label: "Plano e Recursos", adminOnly: true },
   { id: "contato", label: "Contato" },
   { id: "endereco", label: "Endereço" },
   { id: "redes", label: "Redes Sociais" },
   { id: "conectividade", label: "Conectividade" },
 ];
+
+type PlanoEmpresa = "starter" | "pro" | "premium";
+type RecursoEmpresaId =
+  | "pagina_publica"
+  | "painel_cliente"
+  | "landing_page"
+  | "dominio_personalizado"
+  | "cardapio_digital"
+  | "wifi"
+  | "google_reviews"
+  | "nfc"
+  | "qr_code";
+
+type RecursosContratados = Record<RecursoEmpresaId, boolean>;
+
+const planosEmpresa: Array<{
+  id: PlanoEmpresa;
+  nome: string;
+  descricao: string;
+}> = [
+  {
+    id: "starter",
+    nome: "Starter",
+    descricao: "Base para pagina publica, painel, NFC e QR Code.",
+  },
+  {
+    id: "pro",
+    nome: "Pro",
+    descricao: "Preparado para modulos comerciais e relacionamento.",
+  },
+  {
+    id: "premium",
+    nome: "Premium",
+    descricao: "Estrutura completa para recursos avancados e modulos avulsos.",
+  },
+];
+
+const recursosPadrao: RecursosContratados = {
+  pagina_publica: true,
+  painel_cliente: true,
+  landing_page: false,
+  dominio_personalizado: false,
+  cardapio_digital: false,
+  wifi: false,
+  google_reviews: false,
+  nfc: true,
+  qr_code: true,
+};
+
+const recursosEmpresa: Array<{
+  id: RecursoEmpresaId;
+  nome: string;
+  descricao: string;
+  statusInativo: "Em breve" | "Nao contratado";
+}> = [
+  {
+    id: "pagina_publica",
+    nome: "Pagina Publica",
+    descricao: "Vitrine principal acessada por clientes.",
+    statusInativo: "Nao contratado",
+  },
+  {
+    id: "painel_cliente",
+    nome: "Painel do Cliente",
+    descricao: "Permite que o cliente edite dados da propria empresa.",
+    statusInativo: "Nao contratado",
+  },
+  {
+    id: "landing_page",
+    nome: "Landing Page",
+    descricao: "Modulo reservado para campanhas e ofertas.",
+    statusInativo: "Em breve",
+  },
+  {
+    id: "dominio_personalizado",
+    nome: "Dominio Personalizado",
+    descricao: "Uso de dominio proprio ou white label.",
+    statusInativo: "Em breve",
+  },
+  {
+    id: "cardapio_digital",
+    nome: "Cardapio Digital",
+    descricao: "Estrutura futura para produtos, categorias e pedidos.",
+    statusInativo: "Em breve",
+  },
+  {
+    id: "wifi",
+    nome: "Wi-Fi",
+    descricao: "Exibicao de dados de rede para clientes autorizados.",
+    statusInativo: "Nao contratado",
+  },
+  {
+    id: "google_reviews",
+    nome: "Google Reviews",
+    descricao: "Atalho para avaliacoes e reputacao no Google.",
+    statusInativo: "Nao contratado",
+  },
+  {
+    id: "nfc",
+    nome: "NFC",
+    descricao: "Link preparado para gravacao em etiquetas NFC.",
+    statusInativo: "Nao contratado",
+  },
+  {
+    id: "qr_code",
+    nome: "QR Code",
+    descricao: "Geracao e uso do QR Code da empresa.",
+    statusInativo: "Nao contratado",
+  },
+];
+
+function normalizarPlano(valor: unknown): PlanoEmpresa {
+  return planosEmpresa.some((plano) => plano.id === valor)
+    ? (valor as PlanoEmpresa)
+    : "starter";
+}
+
+function normalizarRecursos(valor: unknown): RecursosContratados {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return { ...recursosPadrao };
+  }
+
+  const recursosRecebidos = valor as Partial<Record<RecursoEmpresaId, unknown>>;
+
+  return recursosEmpresa.reduce<RecursosContratados>(
+    (recursos, recurso) => ({
+      ...recursos,
+      [recurso.id]:
+        typeof recursosRecebidos[recurso.id] === "boolean"
+          ? Boolean(recursosRecebidos[recurso.id])
+          : recursosPadrao[recurso.id],
+    }),
+    { ...recursosPadrao }
+  );
+}
 
 type TemaOficial = {
   id:
@@ -465,6 +603,9 @@ export default function EmpresaForm({
 
   const [nome, setNome] = useState("");
   const [tipoGerenciamento, setTipoGerenciamento] = useState("mikatech");
+  const [plano, setPlano] = useState<PlanoEmpresa>("starter");
+  const [recursosContratados, setRecursosContratados] =
+    useState<RecursosContratados>(() => ({ ...recursosPadrao }));
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -578,8 +719,17 @@ export default function EmpresaForm({
     setSlug(data.slug || "");
     setSlugAdmin(data.slug || "");
 
+    const dadosComPlano = data as typeof data & {
+      plano?: string | null;
+      recursos_contratados?: unknown;
+    };
+
     setNome(data.nome || "");
     setTipoGerenciamento(data.tipo || "mikatech");
+    setPlano(normalizarPlano(dadosComPlano.plano));
+    setRecursosContratados(
+      normalizarRecursos(dadosComPlano.recursos_contratados)
+    );
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
 
@@ -749,6 +899,13 @@ export default function EmpresaForm({
     setHorarioAtendimento(gerarTextoHorario(novosHorarios));
   }
 
+  function alternarRecurso(recursoId: RecursoEmpresaId) {
+    setRecursosContratados((recursosAtuais) => ({
+      ...recursosAtuais,
+      [recursoId]: !recursosAtuais[recursoId],
+    }));
+  }
+
   async function salvar() {
     const slugFinal = gerarSlug(slugAdmin || slug);
 
@@ -820,6 +977,11 @@ export default function EmpresaForm({
 
     if (suportaCorFundoHero) {
       dadosEmpresa.cor_fundo_hero = corFundoHero;
+    }
+
+    if (!modoCliente) {
+      dadosEmpresa.plano = plano;
+      dadosEmpresa.recursos_contratados = recursosContratados;
     }
 
     console.log("[Diagnóstico UPDATE] Antes de chamar atualizarEmpresa:", {
@@ -1005,7 +1167,9 @@ export default function EmpresaForm({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap gap-2 rounded-2xl border bg-white p-2 shadow-sm">
-        {abasEmpresa.map((aba) => (
+        {abasEmpresa
+          .filter((aba) => !aba.adminOnly || !modoCliente)
+          .map((aba) => (
           <button
             key={aba.id}
             type="button"
@@ -1128,6 +1292,114 @@ export default function EmpresaForm({
           />
 
         </>
+      )}
+
+      {abaAtiva === "plano" && !modoCliente && (
+        <Card
+          title="Plano e Recursos"
+          subtitle="Controle quais funcionalidades esta empresa possui contratadas."
+        >
+          <div className="space-y-6">
+            <div>
+              <h3 className="mb-3 font-bold text-slate-800">
+                Plano contratado
+              </h3>
+
+              <div className="grid gap-3 md:grid-cols-3">
+                {planosEmpresa.map((opcao) => (
+                  <button
+                    key={opcao.id}
+                    type="button"
+                    onClick={() => setPlano(opcao.id)}
+                    className={`rounded-2xl border p-4 text-left transition ${
+                      plano === opcao.id
+                        ? "border-green-600 bg-green-50 ring-4 ring-green-100"
+                        : "border-slate-200 bg-white hover:border-green-200"
+                    }`}
+                  >
+                    <span className="block font-bold text-slate-900">
+                      {opcao.nome}
+                    </span>
+
+                    <span className="mt-2 block text-sm leading-6 text-slate-500">
+                      {opcao.descricao}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-3">
+                <h3 className="font-bold text-slate-800">
+                  Recursos contratados
+                </h3>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Ative apenas os modulos liberados para esta empresa. Modulos futuros podem ser cadastrados aqui sem alterar a logica do painel.
+                </p>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {recursosEmpresa.map((recurso) => {
+                  const ativo = recursosContratados[recurso.id];
+
+                  return (
+                    <button
+                      key={recurso.id}
+                      type="button"
+                      onClick={() => alternarRecurso(recurso.id)}
+                      className={`flex min-h-32 flex-col justify-between rounded-2xl border p-4 text-left transition ${
+                        ativo
+                          ? "border-green-600 bg-green-50"
+                          : "border-slate-200 bg-white hover:border-slate-300"
+                      }`}
+                    >
+                      <span>
+                        <span className="flex items-start justify-between gap-3">
+                          <span>
+                            <span className="block font-bold text-slate-900">
+                              {recurso.nome}
+                            </span>
+
+                            <span className="mt-1 block text-sm leading-6 text-slate-500">
+                              {recurso.descricao}
+                            </span>
+                          </span>
+
+                          <span
+                            className={`relative h-7 w-12 shrink-0 rounded-full transition ${
+                              ativo ? "bg-green-600" : "bg-slate-300"
+                            }`}
+                            aria-hidden="true"
+                          >
+                            <span
+                              className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${
+                                ativo ? "left-6" : "left-1"
+                              }`}
+                            />
+                          </span>
+                        </span>
+                      </span>
+
+                      <span
+                        className={`mt-4 inline-flex w-fit rounded-full px-3 py-1 text-xs font-bold ${
+                          ativo
+                            ? "bg-green-700 text-white"
+                            : recurso.statusInativo === "Em breve"
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        {ativo ? "Ativo" : recurso.statusInativo}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </Card>
       )}
 
       {abaAtiva === "aparencia" && (

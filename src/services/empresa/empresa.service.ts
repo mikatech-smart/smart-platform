@@ -1,6 +1,18 @@
 import { supabase } from "../../lib/supabase";
 import type { Empresa } from "../../models/Empresa";
 
+const recursosContratadosPadrao = {
+  pagina_publica: true,
+  painel_cliente: true,
+  landing_page: false,
+  dominio_personalizado: false,
+  cardapio_digital: false,
+  wifi: false,
+  google_reviews: false,
+  nfc: true,
+  qr_code: true,
+};
+
 export async function buscarEmpresaPorSlug(slug: string) {
   const { data, error } = await supabase
     .from("empresas")
@@ -30,7 +42,7 @@ export async function buscarEmpresaPorId(id: string) {
 export async function listarEmpresas() {
   const { data, error } = await supabase
     .from("empresas")
-    .select("id,nome,slug,categoria,logo,ativo,tipo")
+    .select("id,nome,slug,categoria,logo,ativo,tipo,plano")
     .order("nome", { ascending: true });
 
   return {
@@ -67,6 +79,8 @@ export async function criarEmpresa(dados: {
       wifi_senha: "",
       logo: "",
       banner: "",
+      plano: "starter",
+      recursos_contratados: recursosContratadosPadrao,
       ativo: true,
   };
 

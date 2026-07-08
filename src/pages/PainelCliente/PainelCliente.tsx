@@ -5,6 +5,20 @@ import EmpresaForm from "../../components/dashboard/EmpresaForm";
 import { buscarEmpresaPorSlug } from "../../services/empresa/empresa.service";
 import type { Empresa } from "../../models/Empresa";
 
+function recursoPainelClienteAtivo(empresa: Empresa) {
+  const empresaComRecursos = empresa as Empresa & {
+    recursos_contratados?: {
+      painel_cliente?: unknown;
+    } | null;
+  };
+
+  if (!empresaComRecursos.recursos_contratados) {
+    return true;
+  }
+
+  return empresaComRecursos.recursos_contratados.painel_cliente !== false;
+}
+
 export default function PainelCliente() {
   const { slug } = useParams();
   const [empresa, setEmpresa] = useState<Empresa | null>(null);
@@ -71,6 +85,26 @@ export default function PainelCliente() {
 
           <p className="mt-2 text-slate-600">
             Esta empresa é administrada pela Mikatech.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (!recursoPainelClienteAtivo(empresa)) {
+    return (
+      <main className="min-h-screen bg-slate-100 p-6 md:p-10">
+        <div className="mx-auto max-w-6xl rounded-2xl bg-white p-6 shadow-sm">
+          <p className="text-sm font-bold uppercase tracking-wide text-amber-600">
+            Nao contratado
+          </p>
+
+          <h1 className="mt-2 text-2xl font-bold text-slate-900">
+            Painel do Cliente indisponivel
+          </h1>
+
+          <p className="mt-2 text-slate-600">
+            Este recurso nao esta ativo no plano contratado por {empresa.nome || "esta empresa"}.
           </p>
         </div>
       </main>
