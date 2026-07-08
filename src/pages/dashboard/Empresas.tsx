@@ -118,7 +118,7 @@ export default function Empresas() {
         console.error("Erro completo ao criar empresa:", error);
         alert(
           error.message ||
-            "Erro ao criar empresa. Verifique as permissoes do Admin no Supabase."
+            "Erro ao criar empresa. Verifique as permissões do Admin no Supabase."
         );
         return;
       }
@@ -336,7 +336,7 @@ export default function Empresas() {
                       <button
                         type="button"
                         onClick={() => {
-                          console.log("[Diagnostico UPDATE] ID enviado ao EmpresaForm:", {
+                          console.log("[Diagnóstico UPDATE] ID enviado ao EmpresaForm:", {
                             id: empresa.id,
                             slug,
                             nome: empresa.nome,

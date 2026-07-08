@@ -23,13 +23,13 @@ export default function PainelCliente() {
 
       if (error) {
         console.error("Erro ao carregar painel do cliente:", error);
-        setErro("Nao foi possivel carregar esta empresa.");
+        setErro("Não foi possível carregar esta empresa.");
         setCarregando(false);
         return;
       }
 
       if (!data) {
-        setErro("Empresa nao encontrada.");
+        setErro("Empresa não encontrada.");
         setCarregando(false);
         return;
       }
@@ -55,7 +55,7 @@ export default function PainelCliente() {
     return (
       <main className="min-h-screen bg-slate-100 p-6 md:p-10">
         <div className="mx-auto max-w-6xl rounded-2xl bg-white p-6 text-slate-600 shadow-sm">
-          {erro || "Empresa nao encontrada."}
+          {erro || "Empresa não encontrada."}
         </div>
       </main>
     );
@@ -70,7 +70,7 @@ export default function PainelCliente() {
           </h1>
 
           <p className="mt-2 text-slate-600">
-            Esta empresa e administrada pela Mikatech.
+            Esta empresa é administrada pela Mikatech.
           </p>
         </div>
       </main>
@@ -86,7 +86,7 @@ export default function PainelCliente() {
           </h1>
 
           <p className="mt-2 text-slate-500">
-            Edite as informacoes publicas de {empresa.nome || "sua empresa"}.
+            Edite as informações públicas de {empresa.nome || "sua empresa"}.
           </p>
         </header>
 

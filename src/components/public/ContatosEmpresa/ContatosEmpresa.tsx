@@ -77,11 +77,11 @@ function normalizarValor(valor?: string | null) {
 
 const diasSemana = [
   { id: "segunda", label: "Segunda" },
-  { id: "terca", label: "Terca" },
+  { id: "terca", label: "Terça" },
   { id: "quarta", label: "Quarta" },
   { id: "quinta", label: "Quinta" },
   { id: "sexta", label: "Sexta" },
-  { id: "sabado", label: "Sabado" },
+  { id: "sabado", label: "Sábado" },
   { id: "domingo", label: "Domingo" },
 ];
 
@@ -118,7 +118,7 @@ function agruparHorarioAtendimento(horarioAtendimento?: string | null) {
 
     if (diaIndex < 0 || !horario) return;
 
-    horariosPorDia[diaIndex] = `${horario[1]} as ${horario[2]}`;
+    horariosPorDia[diaIndex] = `${horario[1]} às ${horario[2]}`;
   });
 
   const grupos: Array<{ dias: string; horario: string }> = [];
@@ -569,7 +569,7 @@ export default function ContatosEmpresa({
         <section className="public-empresa-section public-empresa-info-card">
           <div className="public-empresa-info-heading">
             <MapPin size={20} />
-            <span>Endereco</span>
+            <span>Endereço</span>
           </div>
           <p>
             {endereco}
@@ -589,7 +589,7 @@ export default function ContatosEmpresa({
         <section className="public-empresa-section public-empresa-info-card public-empresa-hours-card">
           <div className="public-empresa-info-heading">
             <Clock size={20} />
-            <span>Horario de atendimento</span>
+            <span>Horário de atendimento</span>
           </div>
 
           <div className="public-empresa-hours-list">

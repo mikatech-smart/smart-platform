@@ -25,11 +25,11 @@ type AparenciaEmpresa = Empresa & {
 
 const diasSemana = [
   { label: "Segunda", chave: "segunda" },
-  { label: "Terca", chave: "terca" },
+  { label: "Terça", chave: "terca" },
   { label: "Quarta", chave: "quarta" },
   { label: "Quinta", chave: "quinta" },
   { label: "Sexta", chave: "sexta" },
-  { label: "Sabado", chave: "sabado" },
+  { label: "Sábado", chave: "sabado" },
   { label: "Domingo", chave: "domingo" },
 ];
 
@@ -64,7 +64,7 @@ function agruparHorarioAtendimento(horarioAtendimento?: string | null) {
 
     if (diaIndex < 0 || !horario) return;
 
-    horariosPorDia[diaIndex] = `${horario[1]} as ${horario[2]}`;
+    horariosPorDia[diaIndex] = `${horario[1]} às ${horario[2]}`;
   });
 
   const grupos: Array<{ dias: string; horario: string }> = [];
@@ -168,7 +168,7 @@ export default function PublicEmpresaPage() {
       const { data, error } = await buscarEmpresaPorSlug(slug);
 
       if (error && error.code !== "PGRST116") {
-        console.error("Erro ao carregar empresa publica:", error);
+        console.error("Erro ao carregar empresa pública:", error);
       }
 
       setEmpresa(data);
@@ -181,7 +181,7 @@ export default function PublicEmpresaPage() {
   if (carregando) {
     return (
       <main className="public-empresa-page public-empresa-page--center">
-        <p>Carregando empresa...</p>
+          <p>Carregando empresa...</p>
       </main>
     );
   }
@@ -190,7 +190,7 @@ export default function PublicEmpresaPage() {
     return (
       <main className="public-empresa-page public-empresa-page--center">
         <section className="public-empresa-empty">
-          <h1>Empresa nao encontrada</h1>
+          <h1>Empresa não encontrada</h1>
           <p>Confira o link acessado ou tente novamente mais tarde.</p>
         </section>
       </main>
@@ -246,7 +246,7 @@ export default function PublicEmpresaPage() {
           {empresa.endereco && (
             <section className="public-empresa-section public-empresa-address-card">
               <div className="public-empresa-address-heading">
-                <span>Endereco</span>
+                <span>Endereço</span>
               </div>
 
               <p>{empresa.endereco}</p>
@@ -267,7 +267,7 @@ export default function PublicEmpresaPage() {
           {horariosAgrupados.length > 0 && (
             <section className="public-empresa-section public-empresa-hours-card">
               <div className="public-empresa-hours-heading">
-                <span>Horario de atendimento</span>
+                <span>Horário de atendimento</span>
               </div>
 
               <div className="public-empresa-hours-list">

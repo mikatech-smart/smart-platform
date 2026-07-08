@@ -153,7 +153,7 @@ export async function atualizarEmpresa(
   const sqlUpdate =
     `update empresas set <payload> where id = '${id}' returning *;`;
 
-  console.log("[Diagnostico UPDATE] SQL SELECT antes do UPDATE:", sqlSelect);
+  console.log("[Diagnóstico UPDATE] SQL SELECT antes do UPDATE:", sqlSelect);
 
   const {
     data: empresaAntesDoUpdate,
@@ -164,7 +164,7 @@ export async function atualizarEmpresa(
     .eq("id", id)
     .maybeSingle();
 
-  console.log("[Diagnostico UPDATE] Resultado do SELECT antes do UPDATE:", {
+  console.log("[Diagnóstico UPDATE] Resultado do SELECT antes do UPDATE:", {
     idUsado: id,
     slugUsado: dados.slug,
     sqlExecutado: sqlSelect,
@@ -172,7 +172,7 @@ export async function atualizarEmpresa(
     error: erroSelectAntesDoUpdate,
   });
 
-  console.log("[Diagnostico UPDATE] Antes do UPDATE:", {
+  console.log("[Diagnóstico UPDATE] Antes do UPDATE:", {
     idUsado: id,
     slugUsado: dados.slug,
     payloadEnviado: dados,
@@ -185,7 +185,7 @@ export async function atualizarEmpresa(
     .eq("id", id)
     .select();
 
-  console.log("[Diagnostico UPDATE] Resultado do UPDATE:", {
+  console.log("[Diagnóstico UPDATE] Resultado do UPDATE:", {
     idUsado: id,
     slugUsado: dados.slug,
     payloadEnviado: dados,
@@ -203,7 +203,7 @@ export async function atualizarEmpresa(
   }
 
   if (!data || data.length === 0) {
-    console.error("UPDATE empresas nao afetou nenhuma linha:", {
+    console.error("UPDATE empresas não afetou nenhuma linha:", {
       idUsado: id,
       slugUsado: dados.slug,
       payloadEnviado: dados,

@@ -167,11 +167,11 @@ const aparenciaPadraoMikatech: AparenciaConfig = {
 
 const diasAtendimento = [
   { id: "segunda", label: "Segunda" },
-  { id: "terca", label: "Terca" },
+  { id: "terca", label: "Terça" },
   { id: "quarta", label: "Quarta" },
   { id: "quinta", label: "Quinta" },
   { id: "sexta", label: "Sexta" },
-  { id: "sabado", label: "Sabado" },
+  { id: "sabado", label: "Sábado" },
   { id: "domingo", label: "Domingo" },
 ];
 
@@ -202,7 +202,7 @@ function gerarTextoHorario(horarios: HorariosAtendimento) {
     .filter((dia) => horarios[dia.id]?.ativo)
     .map((dia) => {
       const horario = horarios[dia.id];
-      return `${dia.label}: ${horario.abertura} as ${horario.fechamento}`;
+      return `${dia.label}: ${horario.abertura} às ${horario.fechamento}`;
     })
     .join("\n");
 }
@@ -432,7 +432,7 @@ export default function EmpresaForm({
     JSON.stringify(aparenciaAtual) !== JSON.stringify(aparenciaSalva);
 
   useEffect(() => {
-    console.log("[Diagnostico UPDATE] ID recebido no EmpresaForm:", {
+    console.log("[Diagnóstico UPDATE] ID recebido no EmpresaForm:", {
       empresaInicialId,
       empresaInicialSlug,
     });
@@ -444,13 +444,13 @@ export default function EmpresaForm({
   }, [empresaInicialId, empresaInicialSlug]);
 
   async function carregarEmpresa(empresa: { id?: string; slug: string }) {
-    console.log("[Diagnostico UPDATE] Carregando empresa para edicao:", empresa);
+    console.log("[Diagnóstico UPDATE] Carregando empresa para edição:", empresa);
 
     const { data, error } = empresa.id
       ? await buscarEmpresaPorId(empresa.id)
       : await buscarEmpresaPorSlug(empresa.slug);
 
-    console.log("[Diagnostico UPDATE] Resultado do SELECT no EmpresaForm:", {
+    console.log("[Diagnóstico UPDATE] Resultado do SELECT no EmpresaForm:", {
       filtroUsado: empresa.id
         ? `id = ${empresa.id}`
         : `slug = ${empresa.slug}`,
@@ -573,7 +573,7 @@ export default function EmpresaForm({
         const dados = await resposta.json();
 
         if (dados.erro) {
-          setCepErro("CEP nao encontrado.");
+        setCepErro("CEP não encontrado.");
           return;
         }
 
@@ -596,7 +596,7 @@ export default function EmpresaForm({
         );
       } catch (error) {
         console.error("Erro ao buscar CEP:", error);
-        setCepErro("Nao foi possivel buscar este CEP.");
+        setCepErro("Não foi possível buscar este CEP.");
       } finally {
         setBuscandoCep(false);
       }
@@ -632,12 +632,12 @@ export default function EmpresaForm({
     const slugFinal = gerarSlug(slugAdmin || slug);
 
     if (!empresaId) {
-      alert("Empresa ainda nao foi carregada. Tente novamente.");
+      alert("Empresa ainda não foi carregada. Tente novamente.");
       return;
     }
 
     if (!slugFinal) {
-      alert("Informe um slug valido antes de salvar.");
+      alert("Informe um slug válido antes de salvar.");
       return;
     }
 
@@ -645,12 +645,12 @@ export default function EmpresaForm({
     const telefoneLocal = obterTelefoneLocal(telefone);
 
     if (whatsappLocal && whatsappLocal.length < 10) {
-      alert("Informe um WhatsApp valido com DDD.");
+      alert("Informe um WhatsApp válido com DDD.");
       return;
     }
 
     if (telefoneLocal && telefoneLocal.length < 10) {
-      alert("Informe um telefone valido com DDD.");
+      alert("Informe um telefone válido com DDD.");
       return;
     }
 
@@ -697,7 +697,7 @@ export default function EmpresaForm({
       kwai: normalizarUsuarioRedeSocial(kwai),
     };
 
-    console.log("[Diagnostico UPDATE] Antes de chamar atualizarEmpresa:", {
+    console.log("[Diagnóstico UPDATE] Antes de chamar atualizarEmpresa:", {
       idRecebidoNoFormulario: empresaInicialId,
       idEnviadoAoService: empresaId,
       slugUsado: slugFinal,
@@ -742,7 +742,7 @@ export default function EmpresaForm({
 
   async function salvarLogo(url: string) {
     if (!empresaId) {
-      alert("Empresa ainda nao foi carregada. Tente novamente antes de alterar a logo.");
+      alert("Empresa ainda não foi carregada. Tente novamente antes de alterar a logo.");
       return;
     }
 
@@ -755,7 +755,7 @@ export default function EmpresaForm({
     if (error) {
       const mensagemErro = [
         error.message,
-        error.code ? `codigo ${error.code}` : "",
+        error.code ? `código ${error.code}` : "",
       ]
         .filter(Boolean)
         .join(" - ");
@@ -774,7 +774,7 @@ export default function EmpresaForm({
 
   async function salvarBanner(url: string) {
     if (!empresaId) {
-      alert("Empresa ainda nao foi carregada. Tente novamente antes de alterar o banner.");
+      alert("Empresa ainda não foi carregada. Tente novamente antes de alterar o banner.");
       return;
     }
 
@@ -789,7 +789,7 @@ export default function EmpresaForm({
     if (error) {
       const mensagemErro = [
         error.message,
-        error.code ? `codigo ${error.code}` : "",
+        error.code ? `código ${error.code}` : "",
       ]
         .filter(Boolean)
         .join(" - ");
@@ -908,7 +908,7 @@ export default function EmpresaForm({
         <>
           <Card
         title="Identidade da Empresa"
-        subtitle="Dados principais exibidos no painel e na pagina publica."
+        subtitle="Dados principais exibidos no painel e na página pública."
       >
         <div className="grid lg:grid-cols-3 gap-5">
           <Input
@@ -964,7 +964,7 @@ export default function EmpresaForm({
                 />
 
                 <p className="mt-2 text-sm text-slate-500">
-                  Campo reservado para administrador Mikatech.
+                  Campo reservado para o administrador Mikatech.
                 </p>
               </div>
 
@@ -992,7 +992,7 @@ export default function EmpresaForm({
 
           <div className="lg:col-span-3">
             <label className="block mb-2 font-medium">
-              Descricao
+              Descrição
             </label>
 
             <textarea
@@ -1046,10 +1046,10 @@ export default function EmpresaForm({
           {!modoCliente && !linkPublico && (
             <Card
               title="Compartilhamento"
-              subtitle="O link publico sera exibido assim que a empresa carregar."
+              subtitle="O link público será exibido assim que a empresa carregar."
             >
               <p className="text-slate-500">
-                Carregando informacoes da pagina publica.
+                Carregando informações da página pública.
               </p>
             </Card>
           )}
@@ -1059,7 +1059,7 @@ export default function EmpresaForm({
       {abaAtiva === "visual" && (
         <Card
         title="Identidade Visual"
-        subtitle="Configure a logo e o banner que aparecem na pagina publica."
+        subtitle="Configure a logo e o banner que aparecem na página pública."
       >
         <div className="mb-5">
           <label className="mb-3 block text-sm font-semibold text-slate-700">
@@ -1071,12 +1071,12 @@ export default function EmpresaForm({
               {
                 valor: "normal",
                 titulo: "Exibir logo",
-                descricao: "Mantem o logo em destaque sobre o banner.",
+                descricao: "Mantém o logo em destaque sobre o banner.",
               },
               {
                 valor: "hidden",
                 titulo: "Não exibir logo",
-                descricao: "Mostra apenas o banner na pagina publica.",
+                descricao: "Mostra apenas o banner na página pública.",
               },
             ].map((opcao) => (
               <label
@@ -1129,13 +1129,13 @@ export default function EmpresaForm({
       {abaAtiva === "aparencia" && (
         <Card
           title="Personalizar Página"
-          subtitle="Personalize as cores da pagina publica desta empresa."
+          subtitle="Personalize as cores da página pública desta empresa."
         >
           <div className="grid gap-6 xl:grid-cols-[minmax(0,0.92fr)_minmax(360px,1.08fr)] xl:items-start">
             <div className="space-y-6">
             <div>
               <h3 className="mb-3 font-bold text-slate-800">
-                Paletas rapidas
+                Paletas rápidas
               </h3>
 
               <div className="grid gap-3 md:grid-cols-3">
@@ -1172,10 +1172,10 @@ export default function EmpresaForm({
               {[
                 ["Cor principal", corPrincipal, setCorPrincipal],
                 ["Cor secundaria", corSecundaria, setCorSecundaria],
-                ["Cor dos botoes", corBotoes, setCorBotoes],
-                ["Cor do texto dos botoes", corTextoBotoes, setCorTextoBotoes],
-                ["Cor de fundo da pagina", corFundoPagina, setCorFundoPagina],
-                ["Cor da area principal", corAreaPrincipal, setCorAreaPrincipal],
+                ["Cor dos botões", corBotoes, setCorBotoes],
+                ["Cor do texto dos botões", corTextoBotoes, setCorTextoBotoes],
+                ["Cor de fundo da página", corFundoPagina, setCorFundoPagina],
+                ["Cor da área principal", corAreaPrincipal, setCorAreaPrincipal],
               ].map(([label, valor, alterar]) => (
                 <label key={label as string} className="block">
                   <span className="mb-2 block font-medium">
@@ -1219,7 +1219,7 @@ export default function EmpresaForm({
                   onChange={(e) => setTipoFundo(e.target.value as TipoFundo)}
                 >
                   <option value="solida">
-                    Cor solida
+                    Cor sólida
                   </option>
 
                   <option value="gradiente">
@@ -1268,7 +1268,7 @@ export default function EmpresaForm({
 
                 <div>
                   <label className="mb-2 block font-medium">
-                    Direcao
+                    Direção
                   </label>
 
                   <select
@@ -1296,7 +1296,7 @@ export default function EmpresaForm({
 
             {possuiAlteracoesAparencia && (
               <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
-                VocÃª possui alteraÃ§Ãµes nÃ£o salvas.
+                Você possui alterações não salvas.
               </p>
             )}
 
@@ -1305,7 +1305,7 @@ export default function EmpresaForm({
                 type="button"
                 onClick={() => {
                   const confirmado = window.confirm(
-                    "Deseja restaurar o tema padrÃ£o definido pela Mikatech?"
+                    "Deseja restaurar o tema padrão definido pela Mikatech?"
                   );
 
                   if (confirmado) {
@@ -1314,7 +1314,7 @@ export default function EmpresaForm({
                 }}
                 className="rounded-xl border border-slate-200 px-4 py-3 font-bold text-slate-700"
               >
-                Restaurar padrÃ£o da empresa
+                Restaurar padrão da empresa
               </button>
 
               <button
@@ -1322,7 +1322,7 @@ export default function EmpresaForm({
                 onClick={() => aplicarAparencia(aparenciaSalva)}
                 className="rounded-xl border border-slate-200 px-4 py-3 font-bold text-slate-700"
               >
-                Cancelar alteraÃ§Ãµes
+                Cancelar alterações
               </button>
 
               <Button
@@ -1431,8 +1431,8 @@ export default function EmpresaForm({
 
       {abaAtiva === "endereco" && (
         <Card
-        title="Endereco"
-        subtitle="Localizacao e horario de atendimento exibidos para o cliente."
+        title="Endereço"
+        subtitle="Localização e horário de atendimento exibidos para o cliente."
       >
         <div className="grid lg:grid-cols-2 gap-5">
           <div>
@@ -1444,7 +1444,7 @@ export default function EmpresaForm({
 
             {buscandoCep && (
               <p className="mt-2 text-sm text-slate-500">
-                Buscando endereco...
+                Buscando endereço...
               </p>
             )}
 
@@ -1526,7 +1526,7 @@ export default function EmpresaForm({
           </div>
 
           <Input
-            label="Endereco atual"
+            label="Endereço atual"
             value={endereco}
             onChange={(e) => setEndereco(e.target.value)}
           />
@@ -1534,10 +1534,10 @@ export default function EmpresaForm({
           <div className="lg:col-span-2">
             <div className="mb-3">
               <label className="block font-medium">
-                Horario de atendimento
+                Horário de atendimento
               </label>
               <p className="text-sm text-slate-500">
-                Configure os dias ativos e os horarios de abertura e fechamento.
+                Configure os dias ativos e os horários de abertura e fechamento.
               </p>
             </div>
 
@@ -1610,7 +1610,7 @@ export default function EmpresaForm({
       {abaAtiva === "conectividade" && (
         <Card
         title="Conectividade"
-        subtitle="Dados rapidos para Wi-Fi, PIX e avaliacoes no Google."
+        subtitle="Dados rápidos para Wi-Fi, PIX e avaliações no Google."
       >
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
           <Input
@@ -1644,7 +1644,7 @@ export default function EmpresaForm({
           />
 
           <Input
-            label="Link para Avaliacao Google"
+            label="Link para Avaliação Google"
             value={googleReviewUrl}
             onChange={(e) => setGoogleReviewUrl(e.target.value)}
             placeholder="https://g.page/r/..."
@@ -1656,7 +1656,7 @@ export default function EmpresaForm({
       {abaAtiva === "redes" && (
         <Card
         title="Redes Sociais"
-        subtitle="Perfis sociais usados para relacionamento e divulgacao."
+        subtitle="Perfis sociais usados para relacionamento e divulgação."
       >
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
           <Input
@@ -1720,7 +1720,7 @@ export default function EmpresaForm({
           />
 
           <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
-            Vitrine Digital sera preparada em uma sprint futura.
+            Vitrine Digital será preparada em uma sprint futura.
           </div>
         </div>
       </Card>
@@ -1732,14 +1732,14 @@ export default function EmpresaForm({
           size="lg"
           onClick={salvar}
         >
-          Salvar alteracoes
+          Salvar alterações
         </Button>
       </div>
 
       {onExcluir && (
         <Card
           title="Zona de Perigo"
-          subtitle="Acoes irreversiveis para esta empresa."
+          subtitle="Ações irreversíveis para esta empresa."
         >
           <div className="flex flex-col gap-4 rounded-xl border border-red-100 bg-red-50/50 p-4 md:flex-row md:items-center md:justify-between">
             <div>
@@ -1748,7 +1748,7 @@ export default function EmpresaForm({
               </h3>
 
               <p className="mt-1 text-sm text-red-700">
-                Esta acao remove a empresa e nao podera ser desfeita.
+                Esta ação remove a empresa e não poderá ser desfeita.
               </p>
             </div>
 

@@ -49,12 +49,12 @@ export default function QRCodeEmpresa({
       <div className="qr-code-empresa__grid">
         <section className="qr-code-empresa__card qr-code-empresa__card--main">
           <div>
-            <h4>Pagina Publica</h4>
+            <h4>Página Pública</h4>
             <p>Compartilhe este link com seus clientes.</p>
           </div>
 
           <div className="qr-code-empresa__url-box">
-            <span>URL publica</span>
+            <span>URL pública</span>
             <strong>{publicUrl}</strong>
           </div>
 
@@ -66,7 +66,7 @@ export default function QRCodeEmpresa({
               className="qr-code-empresa__button qr-code-empresa__button--primary"
             >
               <ExternalLink size={18} />
-              Abrir Pagina
+              Abrir Página
             </a>
 
             <button

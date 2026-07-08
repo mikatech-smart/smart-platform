@@ -234,7 +234,7 @@ export default function UploadImagem({
             </div>
 
             <div>
-              <strong>Resolucao:</strong> {resolucao || "-"}
+              <strong>Resolução:</strong> {resolucao || "-"}
             </div>
 
             <div>

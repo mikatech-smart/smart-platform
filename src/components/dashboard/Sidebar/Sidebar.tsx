@@ -14,7 +14,7 @@ const menu = [
   {
     to: "/dashboard/configuracoes",
     icon: Settings,
-    title: "Configuracoes",
+    title: "Configurações",
   },
 ];
 
