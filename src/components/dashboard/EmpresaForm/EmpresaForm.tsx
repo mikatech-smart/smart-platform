@@ -48,7 +48,6 @@ const categoriasEmpresa = [
 
 type AbaEmpresa =
   | "informacoes"
-  | "visual"
   | "aparencia"
   | "contato"
   | "endereco"
@@ -1009,76 +1008,6 @@ export default function EmpresaForm({
           />
 
         </>
-      )}
-
-      {abaAtiva === "visual" && (
-        <Card
-        title="Identidade Visual"
-        subtitle="Configure a logo e o banner que aparecem na página pública."
-      >
-        <div className="mb-5">
-          <label className="mb-3 block text-sm font-semibold text-slate-700">
-            Exibição do logo na página
-          </label>
-
-          <div className="grid gap-3 md:grid-cols-3">
-            {[
-              {
-                valor: "normal",
-                titulo: "Exibir logo",
-                descricao: "Mantém o logo em destaque sobre o banner.",
-              },
-              {
-                valor: "hidden",
-                titulo: "Não exibir logo",
-                descricao: "Mostra apenas o banner na página pública.",
-              },
-            ].map((opcao) => (
-              <label
-                key={opcao.valor}
-                className={`cursor-pointer rounded-2xl border p-4 transition ${
-                  logoExibicao === opcao.valor
-                    ? "border-green-600 bg-green-50"
-                    : "border-slate-200 bg-white hover:border-green-200"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="logoExibicao"
-                  value={opcao.valor}
-                  checked={logoExibicao === opcao.valor}
-                  onChange={() => setLogoExibicao(opcao.valor as LogoExibicao)}
-                  className="mr-2"
-                />
-
-                <span className="font-bold text-slate-800">
-                  {opcao.titulo}
-                </span>
-
-                <p className="mt-2 text-sm text-slate-500">
-                  {opcao.descricao}
-                </p>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid xl:grid-cols-2 gap-4 max-w-5xl">
-          <UploadImagem
-            titulo="Logo"
-            imagem={logo}
-            pasta={empresaId ? `${empresaId}/logo` : undefined}
-            onUpload={salvarLogo}
-          />
-
-          <UploadImagem
-            titulo="Banner"
-            imagem={banner}
-            pasta={empresaId ? `${empresaId}/banner` : undefined}
-            onUpload={salvarBanner}
-          />
-        </div>
-      </Card>
       )}
 
       {abaAtiva === "aparencia" && (
