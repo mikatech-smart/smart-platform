@@ -57,8 +57,8 @@ export default function PainelCliente() {
 
   if (carregando) {
     return (
-      <main className="min-h-screen bg-slate-100 p-6 md:p-10">
-        <div className="mx-auto max-w-6xl rounded-2xl bg-white p-6 text-slate-500 shadow-sm">
+      <main className="min-h-screen overflow-x-hidden bg-slate-100 p-4 md:p-10">
+        <div className="mx-auto max-w-6xl rounded-2xl bg-white p-4 text-slate-500 shadow-sm md:p-6">
           Carregando painel...
         </div>
       </main>
@@ -67,8 +67,8 @@ export default function PainelCliente() {
 
   if (erro || !empresa) {
     return (
-      <main className="min-h-screen bg-slate-100 p-6 md:p-10">
-        <div className="mx-auto max-w-6xl rounded-2xl bg-white p-6 text-slate-600 shadow-sm">
+      <main className="min-h-screen overflow-x-hidden bg-slate-100 p-4 md:p-10">
+        <div className="mx-auto max-w-6xl rounded-2xl bg-white p-4 text-slate-600 shadow-sm md:p-6">
           {erro || "Empresa não encontrada."}
         </div>
       </main>
@@ -77,8 +77,8 @@ export default function PainelCliente() {
 
   if (empresa.tipo !== "cliente") {
     return (
-      <main className="min-h-screen bg-slate-100 p-6 md:p-10">
-        <div className="mx-auto max-w-6xl rounded-2xl bg-white p-6 shadow-sm">
+      <main className="min-h-screen overflow-x-hidden bg-slate-100 p-4 md:p-10">
+        <div className="mx-auto max-w-6xl rounded-2xl bg-white p-4 shadow-sm md:p-6">
           <h1 className="text-2xl font-bold text-slate-900">
             {empresa.nome || "Empresa"}
           </h1>
@@ -93,8 +93,8 @@ export default function PainelCliente() {
 
   if (!recursoPainelClienteAtivo(empresa)) {
     return (
-      <main className="min-h-screen bg-slate-100 p-6 md:p-10">
-        <div className="mx-auto max-w-6xl rounded-2xl bg-white p-6 shadow-sm">
+      <main className="min-h-screen overflow-x-hidden bg-slate-100 p-4 md:p-10">
+        <div className="mx-auto max-w-6xl rounded-2xl bg-white p-4 shadow-sm md:p-6">
           <p className="text-sm font-bold uppercase tracking-wide text-amber-600">
             Nao contratado
           </p>
@@ -112,9 +112,9 @@ export default function PainelCliente() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 p-6 md:p-10">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <header className="rounded-2xl bg-white p-6 shadow-sm">
+    <main className="min-h-screen overflow-x-hidden bg-slate-100 p-4 md:p-10">
+      <div className="mx-auto max-w-6xl min-w-0 space-y-6">
+        <header className="rounded-2xl bg-white p-4 shadow-sm md:p-6">
           <h1 className="text-3xl font-bold text-slate-900">
             Painel da Empresa
           </h1>

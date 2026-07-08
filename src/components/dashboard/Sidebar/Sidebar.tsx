@@ -3,6 +3,7 @@ import {
   Settings,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import "./Sidebar.css";
 
 const menu = [
   {
@@ -30,8 +31,8 @@ export default function Sidebar({
   const nomeWorkspace = nomeEmpresa || "Mikatech Admin";
 
   return (
-    <aside className="w-72 bg-white border-r min-h-screen shadow-sm">
-      <div className="p-8">
+    <aside className="dashboard-sidebar w-72 bg-white border-r min-h-screen shadow-sm">
+      <div className="dashboard-sidebar__brand p-8">
         <div className="flex items-center gap-3">
           {logoEmpresa && (
             <img
@@ -57,7 +58,7 @@ export default function Sidebar({
         </div>
       </div>
 
-      <nav className="px-4">
+      <nav className="dashboard-sidebar__nav px-4">
         {menu.map((item) => {
           const Icon = item.icon;
 
@@ -68,8 +69,8 @@ export default function Sidebar({
               end={item.end}
               className={({ isActive }) =>
                 isActive
-                  ? "w-full flex items-center gap-4 p-4 rounded-xl bg-green-50 text-green-700 transition text-left mb-2"
-                  : "w-full flex items-center gap-4 p-4 rounded-xl hover:bg-green-50 transition text-left mb-2"
+                  ? "dashboard-sidebar__link w-full flex items-center gap-4 p-4 rounded-xl bg-green-50 text-green-700 transition text-left mb-2"
+                  : "dashboard-sidebar__link w-full flex items-center gap-4 p-4 rounded-xl hover:bg-green-50 transition text-left mb-2"
               }
             >
               <Icon size={22} />

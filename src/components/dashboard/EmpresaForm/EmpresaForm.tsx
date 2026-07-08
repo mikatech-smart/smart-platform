@@ -1165,8 +1165,8 @@ export default function EmpresaForm({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap gap-2 rounded-2xl border bg-white p-2 shadow-sm">
+    <div className="min-w-0 max-w-full space-y-6 overflow-x-hidden">
+      <div className="flex max-w-full flex-wrap gap-2 overflow-x-auto rounded-2xl border bg-white p-2 shadow-sm">
         {abasEmpresa
           .filter((aba) => !aba.adminOnly || !modoCliente)
           .map((aba) => (
@@ -1176,8 +1176,8 @@ export default function EmpresaForm({
             onClick={() => setAbaAtiva(aba.id)}
             className={
               abaAtiva === aba.id
-                ? "rounded-xl bg-green-700 px-4 py-2 text-sm font-bold text-white"
-                : "rounded-xl px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100"
+                ? "shrink-0 rounded-xl bg-green-700 px-4 py-2 text-sm font-bold text-white"
+                : "shrink-0 rounded-xl px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100"
             }
           >
             {aba.label}

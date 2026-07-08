@@ -155,9 +155,9 @@ export default function Empresas() {
   }
 
   return (
-    <section className="space-y-6">
-      <div className="flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
-        <div>
+    <section className="min-w-0 max-w-full space-y-6 overflow-x-hidden">
+      <div className="flex min-w-0 flex-col gap-4 rounded-2xl bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between md:p-6">
+        <div className="min-w-0">
           <h2 className="text-2xl font-bold text-slate-900">
             Empresas
           </h2>
@@ -180,12 +180,12 @@ export default function Empresas() {
       </div>
 
       {mostrarNovaEmpresa && (
-        <div className="rounded-2xl bg-white p-6 shadow-sm">
+        <div className="min-w-0 rounded-2xl bg-white p-4 shadow-sm md:p-6">
           <h3 className="text-lg font-bold text-slate-900">
             Nova Empresa
           </h3>
 
-          <div className="mt-4 grid gap-4 md:grid-cols-3">
+          <div className="mt-4 grid min-w-0 gap-4 md:grid-cols-3">
             <div>
               <label className="mb-2 block font-medium">
                 Nome
@@ -262,8 +262,8 @@ export default function Empresas() {
           Carregando empresas...
         </div>
       ) : (
-        <div className="grid gap-3">
-          <div className="rounded-2xl bg-white p-4 shadow-sm">
+        <div className="grid min-w-0 gap-3">
+          <div className="min-w-0 rounded-2xl bg-white p-4 shadow-sm">
             <label className="mb-2 block text-sm font-bold text-slate-700">
               Buscar empresas
             </label>
@@ -289,8 +289,8 @@ export default function Empresas() {
 
             return (
               <Fragment key={empresa.id}>
-                <article className="rounded-2xl bg-white p-4 shadow-sm">
-                  <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                <article className="min-w-0 rounded-2xl bg-white p-4 shadow-sm">
+                  <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                     <div className="flex min-w-0 items-center gap-3">
                       {empresa.logo ? (
                         <img
@@ -332,7 +332,7 @@ export default function Empresas() {
                       </div>
                     </div>
 
-                    <div className="grid gap-2 sm:grid-cols-3 xl:min-w-[420px]">
+                    <div className="grid min-w-0 gap-2 sm:grid-cols-3 xl:min-w-[420px]">
                       <button
                         type="button"
                         onClick={() => {
@@ -344,7 +344,7 @@ export default function Empresas() {
                           setMostrarNovaEmpresa(false);
                           setEmpresaIdEmEdicao(empresa.id);
                         }}
-                        className="rounded-xl bg-green-700 px-3 py-2 text-sm font-bold text-white"
+                        className="min-w-0 rounded-xl bg-green-700 px-3 py-2 text-sm font-bold text-white"
                       >
                         Editar
                       </button>
@@ -353,7 +353,7 @@ export default function Empresas() {
                         href={linkPublico || undefined}
                         target="_blank"
                         rel="noreferrer"
-                        className="rounded-xl border px-3 py-2 text-center text-sm font-bold text-slate-700"
+                        className="min-w-0 rounded-xl border px-3 py-2 text-center text-sm font-bold text-slate-700"
                       >
                         Abrir página
                       </a>
@@ -362,7 +362,7 @@ export default function Empresas() {
                         type="button"
                         disabled={!linkPublico}
                         onClick={() => copiarLink(linkPublico)}
-                        className="rounded-xl bg-blue-600 px-3 py-2 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="min-w-0 rounded-xl bg-blue-600 px-3 py-2 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Copiar link
                       </button>
@@ -378,7 +378,7 @@ export default function Empresas() {
                 </article>
 
                 {empresaIdEmEdicao === empresa.id && (
-                  <div className="rounded-2xl bg-white p-6 shadow-sm">
+                  <div className="min-w-0 rounded-2xl bg-white p-4 shadow-sm md:p-6">
                     <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div>
                         <h3 className="text-xl font-bold text-slate-900">
