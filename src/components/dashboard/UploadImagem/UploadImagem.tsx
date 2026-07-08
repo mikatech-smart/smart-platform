@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 
 import { uploadImagem } from "../../../services/storage/storage.service";
 import type { UploadImagemProps } from "./UploadImagem.types";
+import "./UploadImagem.css";
 
 function obterMensagemErroSupabase(error: unknown) {
   if (error && typeof error === "object") {
@@ -47,15 +48,31 @@ export default function UploadImagem({
   const [enviando, setEnviando] = useState(false);
 
   const isBanner = titulo.toLowerCase().includes("banner");
+  const placeholder = isBanner
+    ? {
+        tipo: "BANNER",
+        tamanho: "1920 x 600 px",
+        formato: "PNG - JPG - WEBP",
+        detalhe: "Imagem horizontal.",
+      }
+    : {
+        tipo: "LOGO",
+        tamanho: "800 x 800 px",
+        formato: "PNG com fundo transparente",
+        detalhe: "Formato quadrado.",
+      };
   const orientacao = isBanner
     ? "Use imagem horizontal para melhor resultado."
     : "Recomendado: PNG com fundo transparente.";
   const previewClassName = isBanner
-    ? "w-40 h-16 object-contain"
-    : "w-24 h-24 object-contain";
+    ? "upload-imagem__preview upload-imagem__preview--banner"
+    : "upload-imagem__preview upload-imagem__preview--logo";
   const previewWrapperClassName = isBanner
-    ? "w-44 min-h-20"
-    : "w-28 min-h-28";
+    ? "upload-imagem__preview-box upload-imagem__preview-box--banner"
+    : "upload-imagem__preview-box upload-imagem__preview-box--logo";
+  const contentClassName = isBanner
+    ? "upload-imagem__content upload-imagem__content--banner"
+    : "upload-imagem__content upload-imagem__content--logo";
 
   const preview = imagemRemovida
     ? ""
@@ -143,7 +160,7 @@ export default function UploadImagem({
   }
 
   return (
-    <div className="border rounded-2xl p-3 bg-white shadow-sm">
+    <div className="upload-imagem border rounded-2xl p-3 bg-white shadow-sm">
       <div className="mb-2">
         <h3 className="font-semibold text-base">
           {titulo}
@@ -162,8 +179,8 @@ export default function UploadImagem({
         onChange={selecionarArquivo}
       />
 
-      <div className="flex flex-col sm:flex-row gap-3 items-start">
-        <div className={`border-2 border-dashed rounded-xl p-2 bg-slate-50 flex items-center justify-center shrink-0 ${previewWrapperClassName}`}>
+      <div className={contentClassName}>
+        <div className={previewWrapperClassName}>
           {preview ? (
             <img
               src={preview}
@@ -171,19 +188,22 @@ export default function UploadImagem({
               className={previewClassName}
             />
           ) : (
-            <div className="text-center text-xs text-gray-400">
-              Nenhuma imagem
+            <div className="upload-imagem__placeholder" aria-label={`Placeholder de ${titulo}`}>
+              <strong>{placeholder.tipo}</strong>
+              <span>{placeholder.tamanho}</span>
+              <small>{placeholder.formato}</small>
+              <em>{placeholder.detalhe}</em>
             </div>
           )}
         </div>
 
         <div className="flex-1 min-w-0 w-full">
-          <div className="flex gap-2">
+          <div className="upload-imagem__actions">
             <button
               type="button"
               onClick={abrirExplorador}
               disabled={enviando}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-xl py-2"
+              className="upload-imagem__action-button upload-imagem__action-button--primary bg-green-600 hover:bg-green-700 text-white rounded-xl py-2"
             >
               {enviando ? "Enviando..." : "Alterar"}
             </button>
@@ -192,7 +212,7 @@ export default function UploadImagem({
               type="button"
               onClick={removerImagem}
               disabled={enviando}
-              className="px-4 rounded-xl border"
+              className="upload-imagem__action-button px-4 rounded-xl border"
             >
               Remover
             </button>
