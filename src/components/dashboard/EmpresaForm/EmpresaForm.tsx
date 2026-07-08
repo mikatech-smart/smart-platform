@@ -2,8 +2,6 @@ import {
   useEffect,
   useState,
   type CSSProperties,
-  type Dispatch,
-  type SetStateAction,
 } from "react";
 
 import {
@@ -84,89 +82,198 @@ const abasEmpresa: Array<{
   { id: "conectividade", label: "Conectividade" },
 ];
 
-const paletasAparencia = [
-  {
-    nome: "Verde Mikatech",
-    corPrincipal: "#1f3d36",
-    corSecundaria: "#32bcad",
-    corBotoes: "#ffffff",
-    corTextoBotoes: "#1f3d36",
-    corFundo: "#f1eee8",
-    corAreaPrincipal: "#ffffff",
-    gradienteInicio: "#fbfaf8",
-    gradienteFim: "#f1eee8",
-  },
-  {
-    nome: "Preto Premium",
-    corPrincipal: "#111827",
-    corSecundaria: "#d4af37",
-    corBotoes: "#ffffff",
-    corTextoBotoes: "#111827",
-    corFundo: "#f4f4f5",
-    corAreaPrincipal: "#ffffff",
-    gradienteInicio: "#ffffff",
-    gradienteFim: "#e7e5e4",
-  },
-  {
-    nome: "Azul Profissional",
-    corPrincipal: "#1d4ed8",
-    corSecundaria: "#38bdf8",
-    corBotoes: "#ffffff",
-    corTextoBotoes: "#1e3a8a",
-    corFundo: "#eff6ff",
-    corAreaPrincipal: "#ffffff",
-    gradienteInicio: "#ffffff",
-    gradienteFim: "#dbeafe",
-  },
-  {
-    nome: "Dourado Luxo",
-    corPrincipal: "#6b4e16",
-    corSecundaria: "#c9a227",
-    corBotoes: "#ffffff",
-    corTextoBotoes: "#6b4e16",
-    corFundo: "#faf6e8",
-    corAreaPrincipal: "#fffaf0",
-    gradienteInicio: "#fffdf5",
-    gradienteFim: "#f3e7bd",
-  },
-  {
-    nome: "Rosa Elegante",
-    corPrincipal: "#9d174d",
-    corSecundaria: "#f472b6",
-    corBotoes: "#ffffff",
-    corTextoBotoes: "#9d174d",
-    corFundo: "#fdf2f8",
-    corAreaPrincipal: "#ffffff",
-    gradienteInicio: "#ffffff",
-    gradienteFim: "#fce7f3",
-  },
-  {
-    nome: "Neutro Claro",
-    corPrincipal: "#334155",
-    corSecundaria: "#94a3b8",
-    corBotoes: "#ffffff",
-    corTextoBotoes: "#334155",
-    corFundo: "#f8fafc",
-    corAreaPrincipal: "#ffffff",
-    gradienteInicio: "#ffffff",
-    gradienteFim: "#f1f5f9",
-  },
-];
-
-const TemaPadraoMikatech: AparenciaConfig = {
-  logoExibicao: "normal",
-  corPrincipal: "#1f3d36",
-  corSecundaria: "#32bcad",
-  corBotoes: "#ffffff",
-  corTextoBotoes: "#1f3d36",
-  corFundoPagina: "#f1eee8",
-  corAreaPrincipal: "#ffffff",
-  corFundoHero: "#f1eee8",
-  tipoFundo: "solida",
-  gradienteInicio: "#fbfaf8",
-  gradienteFim: "#f1eee8",
-  gradienteDirecao: "vertical",
+type TemaOficial = {
+  id:
+    | "TemaPadraoMikatech"
+    | "TemaAutoCenter"
+    | "TemaRestaurante"
+    | "TemaClinica"
+    | "TemaBarbearia"
+    | "TemaLoja"
+    | "TemaPetShop"
+    | "TemaPremiumEscuro";
+  nome: string;
+  descricao: string;
+  categorias: string[];
+  miniatura: {
+    tipo: "faixas";
+  };
+  aparencia: AparenciaConfig;
 };
+
+const ThemeRegistry: Record<TemaOficial["id"], TemaOficial> = {
+  TemaPadraoMikatech: {
+    id: "TemaPadraoMikatech",
+    nome: "Padrão Mikatech",
+    descricao: "Visual institucional claro com destaque verde.",
+    categorias: ["institucional", "padrao", "mikatech"],
+    miniatura: { tipo: "faixas" },
+    aparencia: {
+      logoExibicao: "normal",
+      corPrincipal: "#1f3d36",
+      corSecundaria: "#32bcad",
+      corBotoes: "#ffffff",
+      corTextoBotoes: "#1f3d36",
+      corFundoPagina: "#f1eee8",
+      corAreaPrincipal: "#ffffff",
+      corFundoHero: "#f1eee8",
+      tipoFundo: "solida",
+      gradienteInicio: "#fbfaf8",
+      gradienteFim: "#f1eee8",
+      gradienteDirecao: "vertical",
+    },
+  },
+  TemaAutoCenter: {
+    id: "TemaAutoCenter",
+    nome: "Auto Center / Borracharia",
+    descricao: "Contraste forte, cinza técnico e detalhe amarelo.",
+    categorias: ["oficina", "auto center", "borracharia"],
+    miniatura: { tipo: "faixas" },
+    aparencia: {
+      logoExibicao: "normal",
+      corPrincipal: "#1f2937",
+      corSecundaria: "#f59e0b",
+      corBotoes: "#f59e0b",
+      corTextoBotoes: "#111827",
+      corFundoPagina: "#e5e7eb",
+      corAreaPrincipal: "#ffffff",
+      corFundoHero: "#d1d5db",
+      tipoFundo: "solida",
+      gradienteInicio: "#f9fafb",
+      gradienteFim: "#d1d5db",
+      gradienteDirecao: "vertical",
+    },
+  },
+  TemaRestaurante: {
+    id: "TemaRestaurante",
+    nome: "Restaurante / Lanchonete",
+    descricao: "Tons quentes para cardápios, lanches e delivery.",
+    categorias: ["restaurante", "lanchonete", "padaria"],
+    miniatura: { tipo: "faixas" },
+    aparencia: {
+      logoExibicao: "normal",
+      corPrincipal: "#7f1d1d",
+      corSecundaria: "#f97316",
+      corBotoes: "#f97316",
+      corTextoBotoes: "#ffffff",
+      corFundoPagina: "#fff7ed",
+      corAreaPrincipal: "#ffffff",
+      corFundoHero: "#ffedd5",
+      tipoFundo: "solida",
+      gradienteInicio: "#fff7ed",
+      gradienteFim: "#fed7aa",
+      gradienteDirecao: "vertical",
+    },
+  },
+  TemaClinica: {
+    id: "TemaClinica",
+    nome: "Clínica / Saúde",
+    descricao: "Limpo, leve e confiável para atendimento profissional.",
+    categorias: ["clinica", "saude", "consultorio", "farmacia"],
+    miniatura: { tipo: "faixas" },
+    aparencia: {
+      logoExibicao: "normal",
+      corPrincipal: "#0f766e",
+      corSecundaria: "#38bdf8",
+      corBotoes: "#0f766e",
+      corTextoBotoes: "#ffffff",
+      corFundoPagina: "#ecfeff",
+      corAreaPrincipal: "#ffffff",
+      corFundoHero: "#cffafe",
+      tipoFundo: "solida",
+      gradienteInicio: "#f0fdfa",
+      gradienteFim: "#cffafe",
+      gradienteDirecao: "vertical",
+    },
+  },
+  TemaBarbearia: {
+    id: "TemaBarbearia",
+    nome: "Salão / Barbearia",
+    descricao: "Elegante, marcante e pronto para serviços de beleza.",
+    categorias: ["salao", "barbearia", "beleza"],
+    miniatura: { tipo: "faixas" },
+    aparencia: {
+      logoExibicao: "normal",
+      corPrincipal: "#581c87",
+      corSecundaria: "#e879f9",
+      corBotoes: "#581c87",
+      corTextoBotoes: "#ffffff",
+      corFundoPagina: "#faf5ff",
+      corAreaPrincipal: "#ffffff",
+      corFundoHero: "#f3e8ff",
+      tipoFundo: "solida",
+      gradienteInicio: "#faf5ff",
+      gradienteFim: "#f3e8ff",
+      gradienteDirecao: "vertical",
+    },
+  },
+  TemaLoja: {
+    id: "TemaLoja",
+    nome: "Loja / Varejo",
+    descricao: "Azul comercial com leitura rápida e visual organizado.",
+    categorias: ["loja", "varejo", "papelaria", "imobiliaria"],
+    miniatura: { tipo: "faixas" },
+    aparencia: {
+      logoExibicao: "normal",
+      corPrincipal: "#1d4ed8",
+      corSecundaria: "#22c55e",
+      corBotoes: "#1d4ed8",
+      corTextoBotoes: "#ffffff",
+      corFundoPagina: "#eff6ff",
+      corAreaPrincipal: "#ffffff",
+      corFundoHero: "#dbeafe",
+      tipoFundo: "solida",
+      gradienteInicio: "#ffffff",
+      gradienteFim: "#dbeafe",
+      gradienteDirecao: "vertical",
+    },
+  },
+  TemaPetShop: {
+    id: "TemaPetShop",
+    nome: "Pet Shop",
+    descricao: "Amigável, fresco e colorido para cuidados pet.",
+    categorias: ["pet shop", "pet"],
+    miniatura: { tipo: "faixas" },
+    aparencia: {
+      logoExibicao: "normal",
+      corPrincipal: "#166534",
+      corSecundaria: "#facc15",
+      corBotoes: "#16a34a",
+      corTextoBotoes: "#ffffff",
+      corFundoPagina: "#f0fdf4",
+      corAreaPrincipal: "#ffffff",
+      corFundoHero: "#dcfce7",
+      tipoFundo: "solida",
+      gradienteInicio: "#f0fdf4",
+      gradienteFim: "#dcfce7",
+      gradienteDirecao: "vertical",
+    },
+  },
+  TemaPremiumEscuro: {
+    id: "TemaPremiumEscuro",
+    nome: "Premium Escuro",
+    descricao: "Escuro sofisticado com detalhe dourado.",
+    categorias: ["premium", "hotel", "advocacia", "academia"],
+    miniatura: { tipo: "faixas" },
+    aparencia: {
+      logoExibicao: "normal",
+      corPrincipal: "#f8fafc",
+      corSecundaria: "#d4af37",
+      corBotoes: "#d4af37",
+      corTextoBotoes: "#111827",
+      corFundoPagina: "#111827",
+      corAreaPrincipal: "#1f2937",
+      corFundoHero: "#0f172a",
+      tipoFundo: "solida",
+      gradienteInicio: "#111827",
+      gradienteFim: "#0f172a",
+      gradienteDirecao: "vertical",
+    },
+  },
+};
+
+const TemaPadraoMikatech = ThemeRegistry.TemaPadraoMikatech.aparencia;
+const temasProntos = Object.values(ThemeRegistry);
 
 const diasAtendimento = [
   { id: "segunda", label: "Segunda" },
@@ -522,7 +629,7 @@ export default function EmpresaForm({
         dadosComAparencia.cor_fundo_hero ||
         data.cor_fundo_pagina ||
         TemaPadraoMikatech.corFundoHero,
-      tipoFundo: "solida",
+      tipoFundo: data.tipo_fundo === "gradiente" ? "gradiente" : "solida",
       gradienteInicio: data.gradiente_inicio || "",
       gradienteFim: data.gradiente_fim || "",
       gradienteDirecao: ["horizontal", "vertical", "diagonal"].includes(data.gradiente_direcao)
@@ -823,16 +930,11 @@ export default function EmpresaForm({
     }
   }
 
-  function aplicarPaletaAparencia(paleta: (typeof paletasAparencia)[number]) {
-    setCorPrincipal(paleta.corPrincipal);
-    setCorSecundaria(paleta.corSecundaria);
-    setCorBotoes(paleta.corBotoes);
-    setCorTextoBotoes(paleta.corTextoBotoes);
-    setCorFundoPagina(paleta.corFundo);
-    setCorAreaPrincipal(paleta.corAreaPrincipal);
-    setCorFundoHero(paleta.corFundo);
-    setGradienteInicio(paleta.gradienteInicio);
-    setGradienteFim(paleta.gradienteFim);
+  function aplicarTemaPronto(tema: TemaOficial) {
+    aplicarAparencia({
+      ...tema.aparencia,
+      logoExibicao,
+    });
   }
 
   function aplicarAparencia(aparencia: AparenciaConfig) {
@@ -863,7 +965,18 @@ export default function EmpresaForm({
       corAreaPrincipal:
         corAreaPrincipal || TemaPadraoMikatech.corAreaPrincipal,
       corFundoHero: corFundoHero || TemaPadraoMikatech.corFundoHero,
+      tipoFundo: tipoFundo || TemaPadraoMikatech.tipoFundo,
+      gradienteInicio:
+        gradienteInicio || TemaPadraoMikatech.gradienteInicio,
+      gradienteFim: gradienteFim || TemaPadraoMikatech.gradienteFim,
+      gradienteDirecao:
+        gradienteDirecao || TemaPadraoMikatech.gradienteDirecao,
     };
+    const direcaoGradiente = {
+      horizontal: "90deg",
+      vertical: "180deg",
+      diagonal: "135deg",
+    }[tema.gradienteDirecao];
 
     estilo["--mc-primary"] = tema.corPrincipal;
     estilo["--mc-text"] = tema.corPrincipal;
@@ -878,6 +991,13 @@ export default function EmpresaForm({
     estilo["--mc-card"] = tema.corAreaPrincipal;
     estilo["--mc-surface"] = tema.corAreaPrincipal;
     estilo["--mc-page-background"] = tema.corFundoPagina;
+    estilo["--mc-border"] = `color-mix(in srgb, ${tema.corPrincipal} 16%, transparent)`;
+    estilo["--mc-border-strong"] = `color-mix(in srgb, ${tema.corPrincipal} 28%, transparent)`;
+
+    if (tema.tipoFundo === "gradiente") {
+      estilo["--mc-page-background"] =
+        `linear-gradient(${direcaoGradiente}, ${tema.gradienteInicio} 0%, ${tema.gradienteFim} 100%)`;
+    }
 
     return estilo;
   }
@@ -1013,7 +1133,7 @@ export default function EmpresaForm({
       {abaAtiva === "aparencia" && (
         <Card
           title="Personalizar Página"
-          subtitle="Personalize as cores da página pública desta empresa."
+          subtitle="Escolha um tema pronto para a página pública desta empresa."
         >
           <div className="grid gap-6 xl:grid-cols-[minmax(0,0.92fr)_minmax(360px,1.08fr)] xl:items-start">
             <div className="space-y-6">
@@ -1083,163 +1203,68 @@ export default function EmpresaForm({
               </div>
             <div>
               <h3 className="mb-3 font-bold text-slate-800">
-                Paletas rápidas
+                Temas
               </h3>
 
-              <div className="grid gap-3 md:grid-cols-3">
-                {paletasAparencia.map((paleta) => (
-                  <button
-                    key={paleta.nome}
-                    type="button"
-                    onClick={() => aplicarPaletaAparencia(paleta)}
-                    className="rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-green-300 hover:shadow-sm"
-                  >
-                    <span className="font-bold text-slate-800">
-                      {paleta.nome}
-                    </span>
+              <div className="grid gap-3 md:grid-cols-2">
+                {temasProntos.map((tema) => {
+                  const aparenciaTema = tema.aparencia;
+                  const temaSelecionado =
+                    corPrincipal === aparenciaTema.corPrincipal &&
+                    corSecundaria === aparenciaTema.corSecundaria &&
+                    corBotoes === aparenciaTema.corBotoes &&
+                    corTextoBotoes === aparenciaTema.corTextoBotoes &&
+                    corFundoPagina === aparenciaTema.corFundoPagina &&
+                    corAreaPrincipal === aparenciaTema.corAreaPrincipal &&
+                    corFundoHero === aparenciaTema.corFundoHero &&
+                    tipoFundo === aparenciaTema.tipoFundo &&
+                    gradienteInicio === aparenciaTema.gradienteInicio &&
+                    gradienteFim === aparenciaTema.gradienteFim &&
+                    gradienteDirecao === aparenciaTema.gradienteDirecao;
 
-                    <span className="mt-3 flex gap-2">
-                      {[
-                        paleta.corPrincipal,
-                        paleta.corSecundaria,
-                        paleta.corFundo,
-                      ].map((cor) => (
-                        <span
-                          key={cor}
-                          className="h-7 w-7 rounded-full border border-slate-200"
-                          style={{ backgroundColor: cor }}
-                        />
-                      ))}
-                    </span>
-                  </button>
-                ))}
+                  return (
+                    <button
+                      key={tema.id}
+                      type="button"
+                      onClick={() => aplicarTemaPronto(tema)}
+                      className={`rounded-2xl border bg-white p-4 text-left transition hover:border-green-300 hover:shadow-sm ${
+                        temaSelecionado
+                          ? "border-green-600 shadow-sm ring-4 ring-green-100"
+                          : "border-slate-200"
+                      }`}
+                    >
+                      <span className="font-bold text-slate-800">
+                        {tema.nome}
+                      </span>
+
+                      <span className="mt-1 block text-sm text-slate-500">
+                        {tema.descricao}
+                      </span>
+
+                      <span
+                        className="mt-4 grid grid-cols-5 overflow-hidden rounded-xl border border-slate-200"
+                        aria-hidden="true"
+                        data-theme-thumbnail={tema.miniatura.tipo}
+                      >
+                        {[
+                          aparenciaTema.corFundoPagina,
+                          aparenciaTema.corAreaPrincipal,
+                          aparenciaTema.corPrincipal,
+                          aparenciaTema.corSecundaria,
+                          aparenciaTema.corBotoes,
+                        ].map((cor, indice) => (
+                          <span
+                            key={`${tema.id}-${cor}-${indice}`}
+                            className="h-9"
+                            style={{ backgroundColor: cor }}
+                          />
+                        ))}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {[
-                ["Cor dos botões", corBotoes, setCorBotoes],
-                ["Cor do texto dos botões", corTextoBotoes, setCorTextoBotoes],
-                ["Cor de fundo da página", corFundoPagina, setCorFundoPagina],
-                ["Cor da área principal", corAreaPrincipal, setCorAreaPrincipal],
-                ["Cor de Fundo do Hero", corFundoHero, setCorFundoHero],
-              ].map(([label, valor, alterar]) => (
-                <label key={label as string} className="block">
-                  <span className="mb-2 block font-medium">
-                    {label as string}
-                  </span>
-
-                  <div className="flex gap-3">
-                    <input
-                      type="color"
-                      value={(valor as string) || "#ffffff"}
-                      onChange={(e) =>
-                        (alterar as Dispatch<SetStateAction<string>>)(
-                          e.target.value
-                        )
-                      }
-                      className="h-12 w-14 rounded-xl border bg-white p-1"
-                    />
-
-                    <input
-                      value={valor as string}
-                      onChange={(e) =>
-                        (alterar as Dispatch<SetStateAction<string>>)(
-                          e.target.value
-                        )
-                      }
-                      placeholder="#1f3d36"
-                      className="w-full rounded-xl border p-3"
-                    />
-                  </div>
-                </label>
-              ))}
-
-              <div>
-                <label className="mb-2 block font-medium">
-                  Tipo de fundo
-                </label>
-
-                <select
-                  className="w-full rounded-xl border bg-white p-3"
-                  value={tipoFundo}
-                  onChange={(e) => setTipoFundo(e.target.value as TipoFundo)}
-                >
-                  <option value="solida">
-                    Cor sólida
-                  </option>
-
-                  <option value="gradiente">
-                    Gradiente
-                  </option>
-                </select>
-              </div>
-            </div>
-
-            {false && tipoFundo === "gradiente" && (
-              <div className="grid gap-5 md:grid-cols-3">
-                {[
-                  ["Cor inicial", gradienteInicio, setGradienteInicio],
-                  ["Cor final", gradienteFim, setGradienteFim],
-                ].map(([label, valor, alterar]) => (
-                  <label key={label as string} className="block">
-                    <span className="mb-2 block font-medium">
-                      {label as string}
-                    </span>
-
-                    <div className="flex gap-3">
-                      <input
-                        type="color"
-                        value={(valor as string) || "#ffffff"}
-                        onChange={(e) =>
-                          (alterar as Dispatch<SetStateAction<string>>)(
-                            e.target.value
-                          )
-                        }
-                        className="h-12 w-14 rounded-xl border bg-white p-1"
-                      />
-
-                      <input
-                        value={valor as string}
-                        onChange={(e) =>
-                          (alterar as Dispatch<SetStateAction<string>>)(
-                            e.target.value
-                          )
-                        }
-                        placeholder="#ffffff"
-                        className="w-full rounded-xl border p-3"
-                      />
-                    </div>
-                  </label>
-                ))}
-
-                <div>
-                  <label className="mb-2 block font-medium">
-                    Direção
-                  </label>
-
-                  <select
-                    className="w-full rounded-xl border bg-white p-3"
-                    value={gradienteDirecao}
-                    onChange={(e) =>
-                      setGradienteDirecao(e.target.value as DirecaoGradiente)
-                    }
-                  >
-                    <option value="horizontal">
-                      Horizontal
-                    </option>
-
-                    <option value="vertical">
-                      Vertical
-                    </option>
-
-                    <option value="diagonal">
-                      Diagonal
-                    </option>
-                  </select>
-                </div>
-              </div>
-            )}
 
             {possuiAlteracoesAparencia && (
               <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
@@ -1262,14 +1287,6 @@ export default function EmpresaForm({
                 className="rounded-xl border border-slate-200 px-4 py-3 font-bold text-slate-700"
               >
                 Restaurar padrão Mikatech
-              </button>
-
-              <button
-                type="button"
-                onClick={() => aplicarAparencia(aparenciaSalva)}
-                className="rounded-xl border border-slate-200 px-4 py-3 font-bold text-slate-700"
-              >
-                Cancelar alterações
               </button>
 
               <Button

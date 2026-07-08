@@ -24,16 +24,6 @@ type AparenciaEmpresa = Empresa & {
   gradiente_direcao?: string | null;
 };
 
-const TemaPadraoMikatech = {
-  corPrincipal: "#1f3d36",
-  corSecundaria: "#32bcad",
-  corBotoes: "#ffffff",
-  corTextoBotoes: "#1f3d36",
-  corFundoPagina: "#f1eee8",
-  corAreaPrincipal: "#ffffff",
-  corFundoHero: "#f1eee8",
-};
-
 const diasSemana = [
   { label: "Segunda", chave: "segunda" },
   { label: "Terça", chave: "terca" },
@@ -104,37 +94,62 @@ function criarGoogleMapsUrl(endereco?: string | null) {
   )}`;
 }
 
+function obterDirecaoGradiente(direcao?: string | null) {
+  if (direcao === "horizontal") return "90deg";
+  if (direcao === "diagonal") return "135deg";
+
+  return "180deg";
+}
+
 function criarEstiloAparencia(empresa: Empresa): CSSProperties {
   const aparencia = empresa as AparenciaEmpresa;
   const estilo = {} as CSSProperties & Record<string, string>;
-  const corPrincipal =
-    aparencia.cor_principal?.trim() || TemaPadraoMikatech.corPrincipal;
-  const corSecundaria =
-    aparencia.cor_secundaria?.trim() || TemaPadraoMikatech.corSecundaria;
-  const corBotoes =
-    aparencia.cor_botoes?.trim() || TemaPadraoMikatech.corBotoes;
-  const corTextoBotoes =
-    aparencia.cor_texto_botoes?.trim() || TemaPadraoMikatech.corTextoBotoes;
-  const corFundoPagina =
-    aparencia.cor_fundo_pagina?.trim() || TemaPadraoMikatech.corFundoPagina;
-  const corFundoHero =
-    aparencia.cor_fundo_hero?.trim() || TemaPadraoMikatech.corFundoHero;
-  const corAreaPrincipal =
-    aparencia.cor_area_principal?.trim() || TemaPadraoMikatech.corAreaPrincipal;
+  const corPrincipal = aparencia.cor_principal?.trim();
+  const corSecundaria = aparencia.cor_secundaria?.trim();
+  const corBotoes = aparencia.cor_botoes?.trim();
+  const corTextoBotoes = aparencia.cor_texto_botoes?.trim();
+  const corFundoPagina = aparencia.cor_fundo_pagina?.trim();
+  const corFundoHero = aparencia.cor_fundo_hero?.trim();
+  const corAreaPrincipal = aparencia.cor_area_principal?.trim();
+  const gradienteInicio = aparencia.gradiente_inicio?.trim();
+  const gradienteFim = aparencia.gradiente_fim?.trim();
 
-  estilo["--mc-primary"] = corPrincipal;
-  estilo["--mc-text"] = corPrincipal;
-  estilo["--mc-secondary"] = corSecundaria;
-  estilo["--mc-accent"] = corSecundaria;
-  estilo["--mc-button-background"] = corBotoes;
-  estilo["--mc-button-text"] = corTextoBotoes;
-  estilo["--mc-background"] = corFundoPagina;
-  estilo["--mc-background-soft"] = corFundoPagina;
-  estilo["--mc-hero-background"] = corFundoHero;
-  estilo["--mc-content-background"] = corAreaPrincipal;
-  estilo["--mc-card"] = corAreaPrincipal;
-  estilo["--mc-surface"] = corAreaPrincipal;
-  estilo["--mc-page-background"] = corFundoPagina;
+  function aplicarVariavel(nome: string, valor?: string) {
+    if (valor) {
+      estilo[nome] = valor;
+    }
+  }
+
+  aplicarVariavel("--mc-primary", corPrincipal);
+  aplicarVariavel("--mc-text", corPrincipal);
+  aplicarVariavel("--mc-secondary", corSecundaria);
+  aplicarVariavel("--mc-accent", corSecundaria);
+  aplicarVariavel("--mc-button-background", corBotoes);
+  aplicarVariavel("--mc-button-text", corTextoBotoes);
+  aplicarVariavel("--mc-background", corFundoPagina);
+  aplicarVariavel("--mc-background-soft", corFundoPagina);
+  aplicarVariavel("--mc-hero-background", corFundoHero || corFundoPagina);
+  aplicarVariavel("--mc-content-background", corAreaPrincipal);
+  aplicarVariavel("--mc-card", corAreaPrincipal);
+  aplicarVariavel("--mc-surface", corAreaPrincipal);
+
+  if (corPrincipal) {
+    estilo["--mc-border"] =
+      `color-mix(in srgb, ${corPrincipal} 16%, transparent)`;
+    estilo["--mc-border-strong"] =
+      `color-mix(in srgb, ${corPrincipal} 28%, transparent)`;
+  }
+
+  if (
+    aparencia.tipo_fundo === "gradiente" &&
+    gradienteInicio &&
+    gradienteFim
+  ) {
+    estilo["--mc-page-background"] =
+      `linear-gradient(${obterDirecaoGradiente(aparencia.gradiente_direcao)}, ${gradienteInicio} 0%, ${gradienteFim} 100%)`;
+  } else {
+    aplicarVariavel("--mc-page-background", corFundoPagina);
+  }
 
   return estilo;
 }
