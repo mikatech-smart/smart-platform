@@ -1,5 +1,14 @@
-import { useMemo, useState } from "react";
-import { Copy, Download, ExternalLink, QrCode, Radio } from "lucide-react";
+import { useMemo, useState, type ReactNode } from "react";
+import {
+  Copy,
+  Download,
+  ExternalLink,
+  Globe,
+  Lock,
+  QrCode,
+  Radio,
+  UserRound,
+} from "lucide-react";
 
 import "./QRCodeEmpresa.css";
 
@@ -8,15 +17,31 @@ interface QRCodeEmpresaProps {
   nomeEmpresa?: string;
 }
 
+type LinkCompartilhamentoId = "publico" | "painel" | "nfc";
+
+interface RecursoCompartilhamento {
+  id: LinkCompartilhamentoId;
+  titulo: string;
+  descricao: string;
+  rotuloUrl: string;
+  url: string;
+  icon: ReactNode;
+  abrir?: boolean;
+}
+
 export default function QRCodeEmpresa({
   slug,
   nomeEmpresa,
 }: QRCodeEmpresaProps) {
-  const [copiado, setCopiado] = useState<"link" | "nfc" | null>(null);
+  const [copiado, setCopiado] = useState<LinkCompartilhamentoId | null>(null);
   const [baixando, setBaixando] = useState(false);
 
   const publicUrl = useMemo(() => {
     return `https://smart.mikatech.com.br/${slug}`;
+  }, [slug]);
+
+  const painelClienteUrl = useMemo(() => {
+    return `https://smart.mikatech.com.br/painel/${slug}`;
   }, [slug]);
 
   const qrCodeUrl = useMemo(() => {
@@ -41,8 +66,40 @@ export default function QRCodeEmpresa({
     return `qrcode-${nome || "empresa"}.png`;
   }, [nomeEmpresa, slug]);
 
-  async function copiarLink(tipo: "link" | "nfc") {
-    await navigator.clipboard.writeText(publicUrl);
+  const recursosCompartilhamento = useMemo<RecursoCompartilhamento[]>(
+    () => [
+      {
+        id: "publico",
+        titulo: "Página Pública",
+        descricao: "Link principal para clientes acessarem a empresa.",
+        rotuloUrl: "URL pública",
+        url: publicUrl,
+        icon: <Globe size={20} />,
+        abrir: true,
+      },
+      {
+        id: "painel",
+        titulo: "Painel do Cliente",
+        descricao: "Acesso direto para o cliente administrar a empresa.",
+        rotuloUrl: "URL do painel",
+        url: painelClienteUrl,
+        icon: <UserRound size={20} />,
+        abrir: true,
+      },
+      {
+        id: "nfc",
+        titulo: "Link para NFC",
+        descricao: "Grave este link na tag NFC para abrir a página pública.",
+        rotuloUrl: "URL para gravação",
+        url: publicUrl,
+        icon: <Radio size={20} />,
+      },
+    ],
+    [painelClienteUrl, publicUrl]
+  );
+
+  async function copiarLink(tipo: LinkCompartilhamentoId, url: string) {
+    await navigator.clipboard.writeText(url);
 
     setCopiado(tipo);
 
@@ -84,13 +141,13 @@ export default function QRCodeEmpresa({
       <section className="qr-code-empresa">
         <div className="qr-code-empresa__header">
           <p className="qr-code-empresa__eyebrow">
-            NFC e QR Code
+            Central de Compartilhamento
           </p>
 
-          <h3>NFC e QR Code</h3>
+          <h3>Central de Compartilhamento</h3>
 
           <p className="qr-code-empresa__subtitle">
-            Cadastre o slug da empresa para gerar o QR Code.
+            Cadastre o slug da empresa para liberar links, NFC e QR Code.
           </p>
         </div>
       </section>
@@ -101,81 +158,61 @@ export default function QRCodeEmpresa({
     <section className="qr-code-empresa">
       <div className="qr-code-empresa__header">
         <p className="qr-code-empresa__eyebrow">
-          NFC e QR Code
+          Central de Compartilhamento
         </p>
 
-        <h3>NFC e QR Code</h3>
+        <h3>Central de Compartilhamento</h3>
 
         <p className="qr-code-empresa__subtitle">
-          Gere o acesso da página pública para NFC, displays, placas, balcão e materiais impressos.
+          Reúna os links e recursos usados em NFC, QR Code, atendimento e materiais impressos.
         </p>
       </div>
 
       <div className="qr-code-empresa__grid">
-        <section className="qr-code-empresa__card qr-code-empresa__card--main">
-          <div>
-            <h4>Link público da empresa</h4>
-            <p>Compartilhe este link com seus clientes.</p>
-          </div>
+        {recursosCompartilhamento.map((recurso) => (
+          <section className="qr-code-empresa__card" key={recurso.id}>
+            <div className="qr-code-empresa__section-title">
+              {recurso.icon}
+              <h4>{recurso.titulo}</h4>
+            </div>
 
-          <div className="qr-code-empresa__url-box">
-            <span>URL pública</span>
-            <strong>{publicUrl}</strong>
-          </div>
+            <p>{recurso.descricao}</p>
 
-          <div className="qr-code-empresa__actions">
-            <a
-              href={publicUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="qr-code-empresa__button qr-code-empresa__button--primary"
-            >
-              <ExternalLink size={18} />
-              Abrir Página
-            </a>
+            <div className="qr-code-empresa__url-box">
+              <span>{recurso.rotuloUrl}</span>
+              <strong>{recurso.url}</strong>
+            </div>
 
-            <button
-              type="button"
-              onClick={() => copiarLink("link")}
-              className="qr-code-empresa__button"
-            >
-              <Copy size={18} />
-              Copiar link
-            </button>
-          </div>
+            <div className="qr-code-empresa__actions">
+              {recurso.abrir && (
+                <a
+                  href={recurso.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="qr-code-empresa__button qr-code-empresa__button--primary"
+                >
+                  <ExternalLink size={18} />
+                  Abrir
+                </a>
+              )}
 
-          {copiado === "link" && (
-            <p className="qr-code-empresa__feedback">
-              Link copiado com sucesso.
-            </p>
-          )}
-        </section>
+              <button
+                type="button"
+                onClick={() => copiarLink(recurso.id, recurso.url)}
+                className="qr-code-empresa__button"
+              >
+                <Copy size={18} />
+                Copiar
+              </button>
+            </div>
 
-        <section className="qr-code-empresa__card">
-          <div className="qr-code-empresa__section-title">
-            <Radio size={20} />
-            <h4>NFC</h4>
-          </div>
-
-          <p>
-            Grave este link na tag NFC para direcionar o cliente à página pública.
-          </p>
-
-          <button
-            type="button"
-            onClick={() => copiarLink("nfc")}
-            className="qr-code-empresa__button qr-code-empresa__button--wide"
-          >
-            <Copy size={18} />
-            Copiar link para NFC
-          </button>
-
-          {copiado === "nfc" && (
-            <p className="qr-code-empresa__feedback">
-              Link copiado com sucesso.
-            </p>
-          )}
-        </section>
+            {copiado === recurso.id && (
+              <p className="qr-code-empresa__feedback">
+                Link copiado com sucesso.
+              </p>
+            )}
+          </section>
+        ))}
 
         <section className="qr-code-empresa__card qr-code-empresa__qr-card">
           <div className="qr-code-empresa__section-title">
@@ -206,9 +243,27 @@ export default function QRCodeEmpresa({
               className="qr-code-empresa__button qr-code-empresa__button--wide"
             >
               <Download size={18} />
-              {baixando ? "Baixando..." : "Baixar QR Code"}
+              {baixando ? "Baixando..." : "Baixar PNG"}
             </button>
           </div>
+        </section>
+
+        <section className="qr-code-empresa__card qr-code-empresa__card--disabled">
+          <div className="qr-code-empresa__section-title">
+            <Lock size={20} />
+            <h4>Landing Page</h4>
+          </div>
+
+          <p>Recurso reservado para um módulo futuro.</p>
+        </section>
+
+        <section className="qr-code-empresa__card qr-code-empresa__card--disabled">
+          <div className="qr-code-empresa__section-title">
+            <Lock size={20} />
+            <h4>Domínio Personalizado</h4>
+          </div>
+
+          <p>Recurso reservado para configuração futura de domínio próprio.</p>
         </section>
       </div>
     </section>
