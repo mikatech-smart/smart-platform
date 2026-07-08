@@ -2,6 +2,7 @@ import {
   useEffect,
   useState,
   type CSSProperties,
+  type ReactElement,
 } from "react";
 
 import {
@@ -231,21 +232,51 @@ type LandingPageSecaoId =
   | "contato"
   | "cta";
 
+type LandingPageHeroConfig = {
+  titulo: string;
+  subtitulo: string;
+  botaoTexto: string;
+  botaoLink: string;
+  imagemDestaque: string;
+};
+
+type LandingPageSectionProps = {
+  nome: string;
+  descricao: string;
+  landingPageContratada: boolean;
+  hero: LandingPageHeroConfig;
+  onHeroChange: (campo: keyof LandingPageHeroConfig, valor: string) => void;
+};
+
 type LandingPageSecaoConfig = {
   id: LandingPageSecaoId;
   nome: string;
   descricao: string;
   ordem: number;
-  Component: typeof LandingPageSectionPlaceholder;
+  Component: (props: LandingPageSectionProps) => ReactElement;
+};
+
+const landingPageHeroPadrao: LandingPageHeroConfig = {
+  titulo: "",
+  subtitulo: "",
+  botaoTexto: "",
+  botaoLink: "",
+  imagemDestaque: "",
+};
+
+const landingPageHeroExemplo: LandingPageHeroConfig = {
+  titulo: "Transforme visitantes em clientes",
+  subtitulo:
+    "Uma landing page objetiva, bonita e preparada para destacar sua empresa.",
+  botaoTexto: "Falar agora",
+  botaoLink: "#contato",
+  imagemDestaque: "",
 };
 
 function LandingPageSectionPlaceholder({
   nome,
   descricao,
-}: {
-  nome: string;
-  descricao: string;
-}) {
+}: LandingPageSectionProps) {
   return (
     <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
       <p className="text-sm font-bold uppercase tracking-wide text-green-700">
@@ -263,31 +294,111 @@ function LandingPageSectionPlaceholder({
   );
 }
 
-function LandingHeroSection(props: { nome: string; descricao: string }) {
+function LandingHeroSection({
+  landingPageContratada,
+  hero,
+  onHeroChange,
+}: LandingPageSectionProps) {
+  const camposDesabilitados = !landingPageContratada;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+            Hero
+          </p>
+
+          <h4 className="mt-2 text-lg font-bold text-slate-900">
+            Primeira seção real da Landing Page
+          </h4>
+
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Configure a chamada principal que aparece no topo da landing.
+          </p>
+        </div>
+
+        {!landingPageContratada && (
+          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
+            Não contratado
+          </span>
+        )}
+      </div>
+
+      <fieldset
+        disabled={camposDesabilitados}
+        className="mt-5 grid gap-4 disabled:opacity-60"
+      >
+        <Input
+          label="Título principal"
+          value={hero.titulo}
+          onChange={(e) => onHeroChange("titulo", e.target.value)}
+          placeholder={landingPageHeroExemplo.titulo}
+        />
+
+        <div>
+          <label className="block font-medium text-slate-700">
+            Subtítulo
+          </label>
+
+          <textarea
+            value={hero.subtitulo}
+            onChange={(e) => onHeroChange("subtitulo", e.target.value)}
+            placeholder={landingPageHeroExemplo.subtitulo}
+            rows={3}
+            className="mt-1 w-full resize-none rounded-xl border border-slate-200 px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+          />
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <Input
+            label="Texto do botão principal"
+            value={hero.botaoTexto}
+            onChange={(e) => onHeroChange("botaoTexto", e.target.value)}
+            placeholder={landingPageHeroExemplo.botaoTexto}
+          />
+
+          <Input
+            label="Link do botão principal"
+            value={hero.botaoLink}
+            onChange={(e) => onHeroChange("botaoLink", e.target.value)}
+            placeholder="https://wa.me/5500000000000"
+          />
+        </div>
+
+        <Input
+          label="Imagem de destaque"
+          value={hero.imagemDestaque}
+          onChange={(e) => onHeroChange("imagemDestaque", e.target.value)}
+          placeholder="https://exemplo.com/imagem.jpg"
+          helperText="Informe a URL da imagem. O upload sera preparado em uma sprint futura."
+        />
+      </fieldset>
+    </div>
+  );
+}
+
+function LandingSobreSection(props: LandingPageSectionProps) {
   return <LandingPageSectionPlaceholder {...props} />;
 }
 
-function LandingSobreSection(props: { nome: string; descricao: string }) {
+function LandingServicosSection(props: LandingPageSectionProps) {
   return <LandingPageSectionPlaceholder {...props} />;
 }
 
-function LandingServicosSection(props: { nome: string; descricao: string }) {
+function LandingGaleriaSection(props: LandingPageSectionProps) {
   return <LandingPageSectionPlaceholder {...props} />;
 }
 
-function LandingGaleriaSection(props: { nome: string; descricao: string }) {
+function LandingDepoimentosSection(props: LandingPageSectionProps) {
   return <LandingPageSectionPlaceholder {...props} />;
 }
 
-function LandingDepoimentosSection(props: { nome: string; descricao: string }) {
+function LandingContatoSection(props: LandingPageSectionProps) {
   return <LandingPageSectionPlaceholder {...props} />;
 }
 
-function LandingContatoSection(props: { nome: string; descricao: string }) {
-  return <LandingPageSectionPlaceholder {...props} />;
-}
-
-function LandingCtaSection(props: { nome: string; descricao: string }) {
+function LandingCtaSection(props: LandingPageSectionProps) {
   return <LandingPageSectionPlaceholder {...props} />;
 }
 
@@ -359,25 +470,62 @@ function LandingPagePreviewPlaceholder({
   secoes,
   nomeEmpresa,
   secaoAtiva,
+  hero,
 }: {
   secoes: LandingPageSecaoConfig[];
   nomeEmpresa: string;
   secaoAtiva: LandingPageSecaoId;
+  hero: LandingPageHeroConfig;
 }) {
+  const heroPreview = {
+    titulo: hero.titulo.trim() || landingPageHeroExemplo.titulo,
+    subtitulo: hero.subtitulo.trim() || landingPageHeroExemplo.subtitulo,
+    botaoTexto: hero.botaoTexto.trim() || landingPageHeroExemplo.botaoTexto,
+    botaoLink: hero.botaoLink.trim() || landingPageHeroExemplo.botaoLink,
+    imagemDestaque: hero.imagemDestaque.trim(),
+  };
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4">
-      <div className="rounded-2xl bg-slate-900 p-4 text-white">
+      <div className="overflow-hidden rounded-2xl bg-slate-900 text-white">
+        {heroPreview.imagemDestaque ? (
+          <img
+            src={heroPreview.imagemDestaque}
+            alt=""
+            className="h-36 w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-36 items-center justify-center bg-slate-800 px-4 text-center text-sm font-semibold text-slate-400">
+            Imagem de destaque
+          </div>
+        )}
+
+        <div className="p-4">
         <p className="text-xs font-bold uppercase tracking-wide text-green-300">
           Preview em tempo real
         </p>
 
         <h4 className="mt-2 text-xl font-bold">
-          {nomeEmpresa || "Landing Page"}
+          {heroPreview.titulo}
         </h4>
 
         <p className="mt-2 text-sm leading-6 text-slate-300">
-          Estrutura visual reservada para acompanhar futuras edicoes antes da publicacao.
+          {heroPreview.subtitulo}
         </p>
+
+        <a
+          href={heroPreview.botaoLink}
+          className="mt-4 inline-flex max-w-full rounded-xl bg-green-400 px-4 py-2 text-sm font-bold text-slate-950"
+        >
+          <span className="truncate">
+            {heroPreview.botaoTexto}
+          </span>
+        </a>
+
+        <p className="mt-3 text-xs font-semibold text-slate-500">
+          {nomeEmpresa || "Landing Page"}
+        </p>
+        </div>
       </div>
 
       <div className="mt-4 space-y-2">
@@ -788,6 +936,8 @@ export default function EmpresaForm({
     useState(false);
   const [landingPageSecaoAtiva, setLandingPageSecaoAtiva] =
     useState<LandingPageSecaoId>("hero");
+  const [landingPageHero, setLandingPageHero] =
+    useState<LandingPageHeroConfig>(() => ({ ...landingPageHeroPadrao }));
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -914,6 +1064,7 @@ export default function EmpresaForm({
     );
     setLandingPagePlaceholderAberto(false);
     setLandingPageSecaoAtiva("hero");
+    setLandingPageHero({ ...landingPageHeroPadrao });
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
 
@@ -1087,6 +1238,16 @@ export default function EmpresaForm({
     setRecursosContratados((recursosAtuais) => ({
       ...recursosAtuais,
       [recursoId]: !recursosAtuais[recursoId],
+    }));
+  }
+
+  function atualizarLandingPageHero(
+    campo: keyof LandingPageHeroConfig,
+    valor: string
+  ) {
+    setLandingPageHero((heroAtual) => ({
+      ...heroAtual,
+      [campo]: valor,
     }));
   }
 
@@ -1699,6 +1860,11 @@ export default function EmpresaForm({
                             key={secao.id}
                             nome={secao.nome}
                             descricao={secao.descricao}
+                            landingPageContratada={
+                              recursosContratados.landing_page
+                            }
+                            hero={landingPageHero}
+                            onHeroChange={atualizarLandingPageHero}
                           />
                         );
                       })}
@@ -1725,6 +1891,7 @@ export default function EmpresaForm({
                     secoes={landingPageSectionRegistry}
                     nomeEmpresa={nome}
                     secaoAtiva={landingPageSecaoAtiva}
+                    hero={landingPageHero}
                   />
                 </div>
               </div>
