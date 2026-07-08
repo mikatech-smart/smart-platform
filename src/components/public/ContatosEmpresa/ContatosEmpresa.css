@@ -5,6 +5,7 @@
 .public-empresa-actions {
   display: grid;
   gap: 14px;
+  grid-template-columns: 1fr;
 }
 
 .public-empresa-action-shell {
@@ -19,8 +20,9 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 74px;
-  padding: 0 20px;
+  min-width: 0;
+  min-height: 68px;
+  padding: 0 16px;
   border-radius: 18px;
   background: var(--mc-button-background, var(--mc-surface, #ffffff));
   color: var(--mc-button-text, var(--mc-primary, #1f3d36));
@@ -38,18 +40,23 @@
 }
 
 .public-empresa-action-content {
-  width: min(100%, 190px);
-  display: grid;
-  grid-template-columns: 44px 1fr;
+  width: 100%;
+  min-width: 0;
+  display: flex;
   align-items: center;
-  column-gap: 14px;
+  justify-content: center;
+  gap: 12px;
 }
 
 .public-empresa-action-label {
   min-width: 0;
-  text-align: left;
-  line-height: 1.15;
-  overflow-wrap: anywhere;
+  max-width: 100%;
+  flex: 0 1 auto;
+  text-align: center;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .public-empresa-action:hover {
@@ -112,15 +119,16 @@
 }
 
 .public-empresa-action-icon-wrap {
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  flex: 0 0 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 15px;
-  background: transparent;
-  color: currentColor;
+  border-radius: 14px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  color: var(--mc-button-text, currentColor);
 }
 
 .public-empresa-inline-hint {
@@ -153,48 +161,59 @@
 }
 
 .public-empresa-brand-svg {
-  width: 36px;
-  height: 36px;
+  width: 31px;
+  height: 31px;
   display: block;
 }
 
 .public-empresa-action-icon-wrap > svg:not(.public-empresa-brand-svg) {
-  width: 30px;
-  height: 30px;
+  width: 27px;
+  height: 27px;
+}
+
+.public-empresa-action .public-empresa-brand-svg path,
+.public-empresa-action .public-empresa-brand-svg rect,
+.public-empresa-action .public-empresa-brand-svg circle {
+  fill: currentColor;
+  stroke: currentColor;
+}
+
+.public-empresa-action .public-empresa-brand-svg [fill="none"] {
+  fill: none;
 }
 
 .public-empresa-action-icon-wrap--wifi,
 .public-empresa-action-icon-wrap--site,
 .public-empresa-action-icon-wrap--pix {
-  color: var(--mc-secondary, #32bcad);
+  color: var(--mc-button-text, currentColor);
 }
 
 .public-empresa-action-icon-wrap--contact {
-  color: var(--mc-primary, #1f3d36);
+  color: var(--mc-button-text, currentColor);
 }
 
 .public-empresa-action-icon-wrap--whatsapp {
-  color: #25d366;
+  color: var(--mc-button-text, currentColor);
 }
 
 .public-empresa-action-icon-wrap--google {
-  color: #d9a320;
+  color: var(--mc-button-text, currentColor);
 }
 
 .public-empresa-action-icon-wrap--instagram {
-  color: #c13584;
+  color: var(--mc-button-text, currentColor);
 }
 
 .public-empresa-action-icon-wrap--tiktok {
-  color: #111111;
+  color: var(--mc-button-text, currentColor);
 }
 
 .public-empresa-action-icon-wrap--youtube {
-  color: #ff0000;
+  color: var(--mc-button-text, currentColor);
 }
 
 .public-empresa-action-icon-wrap--kwai {
-  color: #ff6b00;
+  color: var(--mc-button-text, currentColor);
 }
 
 .public-empresa-info-card {
@@ -395,10 +414,54 @@
   }
 
   .public-empresa-actions {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .public-empresa-inline-hint {
     display: none;
+  }
+}
+
+@media (min-width: 860px) {
+  .public-empresa-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.public-empresa-page--preview .public-empresa-actions {
+  grid-template-columns: 1fr !important;
+}
+
+@media (max-width: 480px) {
+  .public-empresa-action {
+    min-height: 86px;
+    padding: 10px 12px;
+  }
+
+  .public-empresa-action-content {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .public-empresa-action-icon-wrap {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    flex-basis: 34px;
+    border-radius: 12px;
+  }
+
+  .public-empresa-brand-svg {
+    width: 27px;
+    height: 27px;
+  }
+
+  .public-empresa-action-icon-wrap > svg:not(.public-empresa-brand-svg) {
+    width: 24px;
+    height: 24px;
+  }
+
+  .public-empresa-action-label {
+    width: 100%;
   }
 }

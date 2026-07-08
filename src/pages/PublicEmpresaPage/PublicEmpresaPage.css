@@ -53,6 +53,10 @@
   display: none;
 }
 
+.public-empresa-page--preview .public-empresa-actions {
+  grid-template-columns: 1fr !important;
+}
+
 .public-empresa-card {
   --public-empresa-hero-height: clamp(92px, 25vw, 154px);
   --public-empresa-logo-size: clamp(116px, 34vw, 132px);
@@ -176,12 +180,14 @@
 .public-empresa-actions {
   display: grid;
   gap: 12px;
+  grid-template-columns: 1fr;
 }
 
 .public-empresa-action {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 0;
   min-height: 72px;
   padding: 0 18px;
   border-radius: 18px;
@@ -427,6 +433,12 @@
     padding: 18px;
   }
 
+  .public-empresa-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 860px) {
   .public-empresa-actions {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }

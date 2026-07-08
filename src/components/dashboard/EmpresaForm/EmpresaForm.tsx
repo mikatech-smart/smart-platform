@@ -154,7 +154,7 @@ const ThemeRegistry: Record<TemaOficial["id"], TemaOficial> = {
       logoExibicao: "normal",
       corPrincipal: "#7f1d1d",
       corSecundaria: "#f97316",
-      corBotoes: "#f97316",
+      corBotoes: "#c2410c",
       corTextoBotoes: "#ffffff",
       corFundoPagina: "#fff7ed",
       corAreaPrincipal: "#ffffff",
@@ -238,7 +238,7 @@ const ThemeRegistry: Record<TemaOficial["id"], TemaOficial> = {
       logoExibicao: "normal",
       corPrincipal: "#166534",
       corSecundaria: "#facc15",
-      corBotoes: "#16a34a",
+      corBotoes: "#15803d",
       corTextoBotoes: "#ffffff",
       corFundoPagina: "#f0fdf4",
       corAreaPrincipal: "#ffffff",
@@ -1226,6 +1226,7 @@ export default function EmpresaForm({
                     <button
                       key={tema.id}
                       type="button"
+                      data-theme-id={tema.id}
                       onClick={() => aplicarTemaPronto(tema)}
                       className={`rounded-2xl border bg-white p-4 text-left transition hover:border-green-300 hover:shadow-sm ${
                         temaSelecionado
