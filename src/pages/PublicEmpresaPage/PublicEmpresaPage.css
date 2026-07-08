@@ -98,6 +98,15 @@
   overflow: visible;
 }
 
+.public-empresa-card:has(.public-empresa-hero-shell--banner-sem-logo) .public-empresa-content,
+.public-empresa-card:has(.public-empresa-hero-shell--sem-banner-sem-logo) .public-empresa-content {
+  padding-top: clamp(10px, 3vw, 16px);
+}
+
+.public-empresa-card:has(.public-empresa-hero-shell--sem-banner-logo) .public-empresa-content {
+  padding-top: clamp(12px, 3vw, 18px);
+}
+
 .public-empresa-profile-card,
 .public-empresa-section,
 .public-empresa-empty {
@@ -420,4 +429,23 @@
   .public-empresa-actions {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+}
+
+.public-empresa-hero .public-empresa-banner {
+  object-fit: contain;
+  object-position: center center;
+}
+
+.public-empresa-hero-shell .public-empresa-logo {
+  width: var(--public-empresa-logo-size);
+  height: var(--public-empresa-logo-size);
+}
+
+.public-empresa-card:has(.public-empresa-hero-shell--banner-sem-logo) .public-empresa-content,
+.public-empresa-card:has(.public-empresa-hero-shell--sem-banner-sem-logo) .public-empresa-content {
+  padding-top: clamp(10px, 3vw, 16px);
+}
+
+.public-empresa-card:has(.public-empresa-hero-shell--sem-banner-logo) .public-empresa-content {
+  padding-top: clamp(12px, 3vw, 18px);
 }

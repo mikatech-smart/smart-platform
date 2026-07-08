@@ -77,7 +77,6 @@ const abasEmpresa: Array<{
   label: string;
 }> = [
   { id: "informacoes", label: "Informações" },
-  { id: "visual", label: "Identidade Visual" },
   { id: "aparencia", label: "Personalizar Página" },
   { id: "contato", label: "Contato" },
   { id: "endereco", label: "Endereço" },
@@ -90,8 +89,8 @@ const paletasAparencia = [
     nome: "Verde Mikatech",
     corPrincipal: "#1f3d36",
     corSecundaria: "#32bcad",
-    corBotoes: "#ffffff",
-    corTextoBotoes: "#1f3d36",
+    corBotoes: "#166534",
+    corTextoBotoes: "#ffffff",
     corFundo: "#f1eee8",
     corAreaPrincipal: "#ffffff",
     gradienteInicio: "#fbfaf8",
@@ -517,7 +516,7 @@ export default function EmpresaForm({
       corFundoPagina: data.cor_fundo_pagina || "",
       corAreaPrincipal: data.cor_area_principal || "",
       corFundoHero: dadosComAparencia.cor_fundo_hero || data.cor_fundo_pagina || "",
-      tipoFundo: data.tipo_fundo === "gradiente" ? "gradiente" : "solida",
+      tipoFundo: "solida",
       gradienteInicio: data.gradiente_inicio || "",
       gradienteFim: data.gradiente_fim || "",
       gradienteDirecao: ["horizontal", "vertical", "diagonal"].includes(data.gradiente_direcao)
@@ -696,7 +695,7 @@ export default function EmpresaForm({
       cor_texto_botoes: corTextoBotoes,
       cor_fundo_pagina: corFundoPagina,
       cor_area_principal: corAreaPrincipal,
-      tipo_fundo: tipoFundo,
+      tipo_fundo: "solida",
       gradiente_inicio: gradienteInicio,
       gradiente_fim: gradienteFim,
       gradiente_direcao: gradienteDirecao,
@@ -967,7 +966,7 @@ export default function EmpresaForm({
 
           {!modoCliente && (
             <>
-              <div>
+              <div className="hidden">
                 <Input
                   label="Slug administrativo"
                   value={slugAdmin}
@@ -1101,6 +1100,70 @@ export default function EmpresaForm({
         >
           <div className="grid gap-6 xl:grid-cols-[minmax(0,0.92fr)_minmax(360px,1.08fr)] xl:items-start">
             <div className="space-y-6">
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <h3 className="mb-3 font-bold text-slate-800">
+                  Logo e Banner
+                </h3>
+
+                <div className="mb-4 grid gap-3 sm:grid-cols-2">
+                  {[
+                    {
+                      valor: "normal",
+                      titulo: "Exibir logo",
+                      descricao: "Mostra o logo na página pública.",
+                    },
+                    {
+                      valor: "hidden",
+                      titulo: "Não exibir logo",
+                      descricao: "Mostra a página apenas com o banner.",
+                    },
+                  ].map((opcao) => (
+                    <label
+                      key={opcao.valor}
+                      className={`cursor-pointer rounded-2xl border p-4 transition ${
+                        logoExibicao === opcao.valor
+                          ? "border-green-600 bg-green-50"
+                          : "border-slate-200 bg-white hover:border-green-200"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="logoExibicao"
+                        value={opcao.valor}
+                        checked={logoExibicao === opcao.valor}
+                        onChange={() =>
+                          setLogoExibicao(opcao.valor as LogoExibicao)
+                        }
+                        className="mr-2"
+                      />
+
+                      <span className="font-bold text-slate-800">
+                        {opcao.titulo}
+                      </span>
+
+                      <p className="mt-2 text-sm text-slate-500">
+                        {opcao.descricao}
+                      </p>
+                    </label>
+                  ))}
+                </div>
+
+                <div className="grid gap-4">
+                  <UploadImagem
+                    titulo="Logo"
+                    imagem={logo}
+                    pasta={empresaId ? `${empresaId}/logo` : undefined}
+                    onUpload={salvarLogo}
+                  />
+
+                  <UploadImagem
+                    titulo="Banner"
+                    imagem={banner}
+                    pasta={empresaId ? `${empresaId}/banner` : undefined}
+                    onUpload={salvarBanner}
+                  />
+                </div>
+              </div>
             <div>
               <h3 className="mb-3 font-bold text-slate-800">
                 Paletas rápidas
@@ -1138,8 +1201,6 @@ export default function EmpresaForm({
 
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {[
-                ["Cor principal", corPrincipal, setCorPrincipal],
-                ["Cor secundaria", corSecundaria, setCorSecundaria],
                 ["Cor dos botões", corBotoes, setCorBotoes],
                 ["Cor do texto dos botões", corTextoBotoes, setCorTextoBotoes],
                 ["Cor de fundo da página", corFundoPagina, setCorFundoPagina],
@@ -1198,7 +1259,7 @@ export default function EmpresaForm({
               </div>
             </div>
 
-            {tipoFundo === "gradiente" && (
+            {false && tipoFundo === "gradiente" && (
               <div className="grid gap-5 md:grid-cols-3">
                 {[
                   ["Cor inicial", gradienteInicio, setGradienteInicio],
@@ -1279,11 +1340,12 @@ export default function EmpresaForm({
 
                   if (confirmado) {
                     aplicarAparencia(aparenciaPadraoMikatech);
+                    setLogoExibicao("normal");
                   }
                 }}
                 className="rounded-xl border border-slate-200 px-4 py-3 font-bold text-slate-700"
               >
-                Restaurar padrão da empresa
+                Restaurar padrão
               </button>
 
               <button
@@ -1304,7 +1366,7 @@ export default function EmpresaForm({
                     : "opacity-80"
                 }
               >
-                Salvar
+                Salvar alterações
               </Button>
             </div>
             </div>

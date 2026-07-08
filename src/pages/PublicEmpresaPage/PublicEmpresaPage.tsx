@@ -94,13 +94,6 @@ function criarGoogleMapsUrl(endereco?: string | null) {
   )}`;
 }
 
-function obterDirecaoGradiente(direcao?: string | null) {
-  if (direcao === "horizontal") return "90deg";
-  if (direcao === "diagonal") return "135deg";
-
-  return "180deg";
-}
-
 function criarEstiloAparencia(empresa: Empresa): CSSProperties {
   const aparencia = empresa as AparenciaEmpresa;
   const estilo = {} as CSSProperties & Record<string, string>;
@@ -111,9 +104,6 @@ function criarEstiloAparencia(empresa: Empresa): CSSProperties {
   const corFundoPagina = aparencia.cor_fundo_pagina?.trim();
   const corFundoHero = aparencia.cor_fundo_hero?.trim();
   const corAreaPrincipal = aparencia.cor_area_principal?.trim();
-  const gradienteInicio = aparencia.gradiente_inicio?.trim();
-  const gradienteFim = aparencia.gradiente_fim?.trim();
-
   if (corPrincipal) {
     estilo["--mc-primary"] = corPrincipal;
     estilo["--mc-text"] = corPrincipal;
@@ -147,11 +137,7 @@ function criarEstiloAparencia(empresa: Empresa): CSSProperties {
     estilo["--mc-surface"] = corAreaPrincipal;
   }
 
-  if (aparencia.tipo_fundo === "gradiente" && gradienteInicio && gradienteFim) {
-    estilo["--mc-page-background"] = `linear-gradient(${obterDirecaoGradiente(
-      aparencia.gradiente_direcao
-    )}, ${gradienteInicio} 0%, ${gradienteFim} 100%)`;
-  } else if (corFundoPagina) {
+  if (corFundoPagina) {
     estilo["--mc-page-background"] = corFundoPagina;
   }
 

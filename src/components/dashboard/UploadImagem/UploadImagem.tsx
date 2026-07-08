@@ -44,25 +44,12 @@ export default function UploadImagem({
 
   const [previewLocal, setPreviewLocal] = useState<string | null>(null);
   const [imagemRemovida, setImagemRemovida] = useState(false);
-  const [nome, setNome] = useState("");
-  const [peso, setPeso] = useState("");
-  const [tipo, setTipo] = useState("");
-  const [resolucao, setResolucao] = useState("");
-  const [qualidade, setQualidade] = useState("");
   const [enviando, setEnviando] = useState(false);
 
   const isBanner = titulo.toLowerCase().includes("banner");
-  const orientacoes = isBanner
-    ? [
-        "Recomendado: JPG ou PNG",
-        "Ideal: 1580x500px",
-        "Use uma imagem horizontal para melhor resultado.",
-      ]
-    : [
-        "Recomendado: PNG",
-        "Ideal: 500x500px",
-        "Use PNG com fundo transparente, se possível.",
-      ];
+  const orientacao = isBanner
+    ? "Use imagem horizontal para melhor resultado."
+    : "Recomendado: PNG com fundo transparente.";
   const previewClassName = isBanner
     ? "w-40 h-16 object-contain"
     : "w-24 h-24 object-contain";
@@ -81,11 +68,6 @@ export default function UploadImagem({
   async function removerImagem() {
     setPreviewLocal("");
     setImagemRemovida(true);
-    setNome("");
-    setPeso("");
-    setTipo("");
-    setResolucao("");
-    setQualidade("");
 
     if (inputRef.current) {
       inputRef.current.value = "";
@@ -117,25 +99,6 @@ export default function UploadImagem({
 
     setPreviewLocal(url);
     setImagemRemovida(false);
-    setNome(arquivo.name);
-    setPeso(`${(arquivo.size / 1024).toFixed(1)} KB`);
-    setTipo(arquivo.type);
-
-    const img = new Image();
-
-    img.onload = () => {
-      setResolucao(`${img.width} x ${img.height}px`);
-
-      if (img.width >= 1000) {
-        setQualidade("Excelente");
-      } else if (img.width >= 600) {
-        setQualidade("Boa");
-      } else {
-        setQualidade("Baixa");
-      }
-    };
-
-    img.src = url;
 
     if (onUpload && pasta) {
       try {
@@ -146,7 +109,6 @@ export default function UploadImagem({
           .pop();
 
         const caminho = `${pasta}/${Date.now()}.${extensao}`;
-
         const urlPublica = await uploadImagem(
           caminho,
           arquivo
@@ -187,13 +149,9 @@ export default function UploadImagem({
           {titulo}
         </h3>
 
-        <ul className="mt-1 grid gap-0.5 text-xs text-slate-500">
-          {orientacoes.map((orientacao) => (
-            <li key={orientacao}>
-              {orientacao}
-            </li>
-          ))}
-        </ul>
+        <p className="mt-1 text-xs text-slate-500">
+          {orientacao}
+        </p>
       </div>
 
       <input
@@ -220,29 +178,7 @@ export default function UploadImagem({
         </div>
 
         <div className="flex-1 min-w-0 w-full">
-          <div className="grid gap-y-1 text-xs text-slate-600">
-            <div className="truncate">
-              <strong>Arquivo:</strong> {nome || "-"}
-            </div>
-
-            <div>
-              <strong>Tipo:</strong> {tipo || "-"}
-            </div>
-
-            <div>
-              <strong>Tamanho:</strong> {peso || "-"}
-            </div>
-
-            <div>
-              <strong>Resolução:</strong> {resolucao || "-"}
-            </div>
-
-            <div>
-              <strong>Qualidade:</strong> {qualidade || "-"}
-            </div>
-          </div>
-
-          <div className="flex gap-2 mt-3">
+          <div className="flex gap-2">
             <button
               type="button"
               onClick={abrirExplorador}
