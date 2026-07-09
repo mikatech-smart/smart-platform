@@ -262,6 +262,13 @@ type LandingPageDepoimentoConfig = {
   texto: string;
 };
 
+type LandingPageContatoConfig = {
+  telefone: string;
+  whatsapp: string;
+  email: string;
+  endereco: string;
+};
+
 type LandingPageSectionProps = {
   nome: string;
   descricao: string;
@@ -271,6 +278,7 @@ type LandingPageSectionProps = {
   servicos: LandingPageServicoConfig[];
   galeria: LandingPageGaleriaImagemConfig[];
   depoimentos: LandingPageDepoimentoConfig[];
+  contato: LandingPageContatoConfig;
   onHeroChange: (campo: keyof LandingPageHeroConfig, valor: string) => void;
   onSobreChange: (campo: keyof LandingPageSobreConfig, valor: string) => void;
   onServicoChange: (
@@ -294,6 +302,7 @@ type LandingPageSectionProps = {
   ) => void;
   onDepoimentoAdd: () => void;
   onDepoimentoRemove: (indice: number) => void;
+  onContatoChange: (campo: keyof LandingPageContatoConfig, valor: string) => void;
 };
 
 type LandingPageSecaoConfig = {
@@ -410,6 +419,13 @@ const landingPageDepoimentosExemplo: LandingPageDepoimentoConfig[] = [
       "Recomendo para quem busca qualidade, organizacao e suporte de verdade.",
   },
 ];
+
+const landingPageContatoPadrao: LandingPageContatoConfig = {
+  telefone: "",
+  whatsapp: "",
+  email: "",
+  endereco: "",
+};
 
 function LandingPageSectionPlaceholder({
   nome,
@@ -940,8 +956,90 @@ function LandingDepoimentosSection({
   );
 }
 
-function LandingContatoSection(props: LandingPageSectionProps) {
-  return <LandingPageSectionPlaceholder {...props} />;
+function LandingContatoSection({
+  landingPageContratada,
+  contato,
+  onContatoChange,
+}: LandingPageSectionProps) {
+  const camposDesabilitados = !landingPageContratada;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+            Contato
+          </p>
+
+          <h4 className="mt-2 text-lg font-bold text-slate-900">
+            Contato da Landing Page
+          </h4>
+
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Defina canais especificos da landing ou deixe vazio para usar os dados da empresa.
+          </p>
+        </div>
+
+        {!landingPageContratada && (
+          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
+            Nao contratado
+          </span>
+        )}
+      </div>
+
+      <fieldset
+        disabled={camposDesabilitados}
+        className="mt-5 grid gap-4 disabled:opacity-60"
+      >
+        <div className="grid gap-4 md:grid-cols-2">
+          <Input
+            label="Telefone"
+            value={contato.telefone}
+            onChange={(e) =>
+              onContatoChange("telefone", formatarTelefone(e.target.value))
+            }
+            placeholder="Usar telefone da empresa"
+            helperText="Se ficar vazio, o preview usa o telefone cadastrado na empresa."
+          />
+
+          <Input
+            label="WhatsApp"
+            value={contato.whatsapp}
+            onChange={(e) =>
+              onContatoChange("whatsapp", formatarTelefone(e.target.value))
+            }
+            placeholder="Usar WhatsApp da empresa"
+            helperText="Se ficar vazio, o preview usa o WhatsApp cadastrado na empresa."
+          />
+
+          <Input
+            label="E-mail"
+            type="email"
+            value={contato.email}
+            onChange={(e) => onContatoChange("email", e.target.value)}
+            placeholder="Usar e-mail da empresa"
+          />
+
+          <Input
+            label="Endereco"
+            value={contato.endereco}
+            onChange={(e) => onContatoChange("endereco", e.target.value)}
+            placeholder="Usar endereco da empresa"
+          />
+        </div>
+
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+          <h5 className="font-bold text-slate-900">
+            Google Maps
+          </h5>
+
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Esta area fica preparada para receber mapa, coordenadas ou link incorporado em uma sprint futura.
+          </p>
+        </div>
+      </fieldset>
+    </div>
+  );
 }
 
 function LandingCtaSection(props: LandingPageSectionProps) {
@@ -1021,6 +1119,8 @@ function LandingPagePreviewPlaceholder({
   servicos,
   galeria,
   depoimentos,
+  contato,
+  contatoPadrao,
 }: {
   secoes: LandingPageSecaoConfig[];
   nomeEmpresa: string;
@@ -1030,6 +1130,8 @@ function LandingPagePreviewPlaceholder({
   servicos: LandingPageServicoConfig[];
   galeria: LandingPageGaleriaImagemConfig[];
   depoimentos: LandingPageDepoimentoConfig[];
+  contato: LandingPageContatoConfig;
+  contatoPadrao: LandingPageContatoConfig;
 }) {
   const heroPreview = {
     titulo: hero.titulo.trim() || landingPageHeroExemplo.titulo,
@@ -1094,6 +1196,30 @@ function LandingPagePreviewPlaceholder({
             "Relato breve do cliente sobre a experiencia com a empresa.",
         }))
       : landingPageDepoimentosExemplo;
+  const contatoPreview: LandingPageContatoConfig = {
+    telefone: contato.telefone.trim() || contatoPadrao.telefone.trim(),
+    whatsapp: contato.whatsapp.trim() || contatoPadrao.whatsapp.trim(),
+    email: contato.email.trim() || contatoPadrao.email.trim(),
+    endereco: contato.endereco.trim() || contatoPadrao.endereco.trim(),
+  };
+  const contatosPreview = [
+    {
+      label: "Telefone",
+      valor: contatoPreview.telefone,
+    },
+    {
+      label: "WhatsApp",
+      valor: contatoPreview.whatsapp,
+    },
+    {
+      label: "E-mail",
+      valor: contatoPreview.email,
+    },
+    {
+      label: "Endereco",
+      valor: contatoPreview.endereco,
+    },
+  ].filter((item) => item.valor);
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -1256,6 +1382,43 @@ function LandingPagePreviewPlaceholder({
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4">
+        <p className="text-xs font-bold uppercase tracking-wide text-green-700">
+          Contato
+        </p>
+
+        <h4 className="mt-2 text-lg font-bold text-slate-900">
+          Fale conosco
+        </h4>
+
+        <div className="mt-3 grid gap-2">
+          {contatosPreview.length > 0 ? (
+            contatosPreview.map((item) => (
+              <div
+                key={item.label}
+                className="rounded-xl border border-slate-200 bg-slate-50 p-3"
+              >
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  {item.label}
+                </p>
+
+                <p className="mt-1 break-words text-sm font-semibold leading-5 text-slate-800">
+                  {item.valor}
+                </p>
+              </div>
+            ))
+          ) : (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-500">
+              Dados de contato da empresa
+            </div>
+          )}
+        </div>
+
+        <div className="mt-3 flex h-20 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 text-center text-xs font-semibold leading-4 text-slate-500">
+          Area preparada para Google Maps
         </div>
       </div>
 
@@ -1683,6 +1846,8 @@ export default function EmpresaForm({
     useState<LandingPageDepoimentoConfig[]>(() =>
       landingPageDepoimentosPadrao.map((depoimento) => ({ ...depoimento }))
     );
+  const [landingPageContato, setLandingPageContato] =
+    useState<LandingPageContatoConfig>(() => ({ ...landingPageContatoPadrao }));
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -1820,6 +1985,7 @@ export default function EmpresaForm({
     setLandingPageDepoimentos(
       landingPageDepoimentosPadrao.map((depoimento) => ({ ...depoimento }))
     );
+    setLandingPageContato({ ...landingPageContatoPadrao });
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
 
@@ -2134,6 +2300,16 @@ export default function EmpresaForm({
         (_, indiceAtual) => indiceAtual !== indice
       );
     });
+  }
+
+  function atualizarLandingPageContato(
+    campo: keyof LandingPageContatoConfig,
+    valor: string
+  ) {
+    setLandingPageContato((contatoAtual) => ({
+      ...contatoAtual,
+      [campo]: valor,
+    }));
   }
 
   async function salvar() {
@@ -2753,6 +2929,7 @@ export default function EmpresaForm({
                             servicos={landingPageServicos}
                             galeria={landingPageGaleria}
                             depoimentos={landingPageDepoimentos}
+                            contato={landingPageContato}
                             onHeroChange={atualizarLandingPageHero}
                             onSobreChange={atualizarLandingPageSobre}
                             onServicoChange={atualizarLandingPageServico}
@@ -2774,6 +2951,7 @@ export default function EmpresaForm({
                             onDepoimentoRemove={
                               removerLandingPageDepoimento
                             }
+                            onContatoChange={atualizarLandingPageContato}
                           />
                         );
                       })}
@@ -2805,6 +2983,13 @@ export default function EmpresaForm({
                     servicos={landingPageServicos}
                     galeria={landingPageGaleria}
                     depoimentos={landingPageDepoimentos}
+                    contato={landingPageContato}
+                    contatoPadrao={{
+                      telefone,
+                      whatsapp,
+                      email,
+                      endereco,
+                    }}
                   />
                 </div>
               </div>
