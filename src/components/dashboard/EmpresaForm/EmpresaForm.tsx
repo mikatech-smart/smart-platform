@@ -278,6 +278,23 @@ type LandingPageContatoConfig = {
   endereco: string;
 };
 
+type LandingPageFormularioCampoId =
+  | "nome"
+  | "telefone"
+  | "whatsapp"
+  | "email"
+  | "mensagem";
+
+type LandingPageFormularioCampoConfig = {
+  ativo: boolean;
+  obrigatorio: boolean;
+};
+
+type LandingPageFormularioContatoConfig = Record<
+  LandingPageFormularioCampoId,
+  LandingPageFormularioCampoConfig
+>;
+
 type LandingPageCtaConfig = {
   titulo: string;
   texto: string;
@@ -309,6 +326,7 @@ type LandingPageConfig = {
   galeria: LandingPageGaleriaImagemConfig[];
   depoimentos: LandingPageDepoimentoConfig[];
   contato: LandingPageContatoConfig;
+  formularioContato: LandingPageFormularioContatoConfig;
   cta: LandingPageCtaConfig;
   seo: LandingPageSeoConfig;
   ordemSecoes: LandingPageSecaoConteudoId[];
@@ -337,6 +355,7 @@ type LandingPageSectionProps = {
   galeria: LandingPageGaleriaImagemConfig[];
   depoimentos: LandingPageDepoimentoConfig[];
   contato: LandingPageContatoConfig;
+  formularioContato: LandingPageFormularioContatoConfig;
   cta: LandingPageCtaConfig;
   seo: LandingPageSeoConfig;
   ordemSecoes: LandingPageSecaoConteudoId[];
@@ -365,6 +384,11 @@ type LandingPageSectionProps = {
   onDepoimentoAdd: () => void;
   onDepoimentoRemove: (indice: number) => void;
   onContatoChange: (campo: keyof LandingPageContatoConfig, valor: string) => void;
+  onFormularioContatoChange: (
+    campo: LandingPageFormularioCampoId,
+    propriedade: keyof LandingPageFormularioCampoConfig,
+    valor: boolean
+  ) => void;
   onCtaChange: (campo: keyof LandingPageCtaConfig, valor: string) => void;
   onSeoChange: (campo: keyof LandingPageSeoConfig, valor: string) => void;
   onTemplateApply: (template: LandingPageTemplateConfig) => void;
@@ -519,6 +543,25 @@ const landingPageContatoPadrao: LandingPageContatoConfig = {
   whatsapp: "",
   email: "",
   endereco: "",
+};
+
+const landingPageFormularioCampos: Array<{
+  id: LandingPageFormularioCampoId;
+  label: string;
+}> = [
+  { id: "nome", label: "Nome" },
+  { id: "telefone", label: "Telefone" },
+  { id: "whatsapp", label: "WhatsApp" },
+  { id: "email", label: "E-mail" },
+  { id: "mensagem", label: "Mensagem" },
+];
+
+const landingPageFormularioContatoPadrao: LandingPageFormularioContatoConfig = {
+  nome: { ativo: true, obrigatorio: true },
+  telefone: { ativo: true, obrigatorio: false },
+  whatsapp: { ativo: false, obrigatorio: false },
+  email: { ativo: true, obrigatorio: true },
+  mensagem: { ativo: true, obrigatorio: true },
 };
 
 const landingPageCtaPadrao: LandingPageCtaConfig = {
@@ -857,6 +900,7 @@ function criarLandingPageConfigPadrao(): LandingPageConfig {
       ...depoimento,
     })),
     contato: { ...landingPageContatoPadrao },
+    formularioContato: structuredClone(landingPageFormularioContatoPadrao),
     cta: { ...landingPageCtaPadrao },
     seo: { ...landingPageSeoPadrao },
     ordemSecoes: [...landingPageOrdemSecoesPadrao],
@@ -919,6 +963,48 @@ function normalizarListaLanding<T extends Record<string, string>>(
   return itens.length > 0 ? itens : padrao.map((item) => ({ ...item }));
 }
 
+function normalizarFormularioContatoLanding(
+  valor: unknown,
+  fallback: LandingPageFormularioContatoConfig
+): LandingPageFormularioContatoConfig {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return structuredClone(fallback);
+  }
+
+  const formularioRecebido = valor as Record<string, unknown>;
+
+  return landingPageFormularioCampos.reduce<LandingPageFormularioContatoConfig>(
+    (formulario, campo) => {
+      const configCampo = formularioRecebido[campo.id];
+      const fallbackCampo = fallback[campo.id];
+
+      if (!configCampo || typeof configCampo !== "object" || Array.isArray(configCampo)) {
+        return {
+          ...formulario,
+          [campo.id]: { ...fallbackCampo },
+        };
+      }
+
+      const configRecebida = configCampo as Record<string, unknown>;
+
+      return {
+        ...formulario,
+        [campo.id]: {
+          ativo:
+            typeof configRecebida.ativo === "boolean"
+              ? configRecebida.ativo
+              : fallbackCampo.ativo,
+          obrigatorio:
+            typeof configRecebida.obrigatorio === "boolean"
+              ? configRecebida.obrigatorio
+              : fallbackCampo.obrigatorio,
+        },
+      };
+    },
+    structuredClone(fallback)
+  );
+}
+
 function normalizarOrdemSecoesLanding(valor: unknown): LandingPageSecaoConteudoId[] {
   if (!Array.isArray(valor)) {
     return [...landingPageOrdemSecoesPadrao];
@@ -974,6 +1060,7 @@ function criarLandingPagePublicavel(config: LandingPagePublicavelConfig) {
     galeria: config.galeria.map((imagem) => ({ ...imagem })),
     depoimentos: config.depoimentos.map((depoimento) => ({ ...depoimento })),
     contato: { ...config.contato },
+    formularioContato: structuredClone(config.formularioContato),
     cta: { ...config.cta },
     seo: { ...config.seo },
     ordemSecoes: [...config.ordemSecoes],
@@ -1027,6 +1114,10 @@ function normalizarLandingPagePublicavelConfig(
       "email",
       "endereco",
     ]),
+    formularioContato: normalizarFormularioContatoLanding(
+      config.formularioContato,
+      fallback.formularioContato
+    ),
     cta: normalizarObjetoLanding(config.cta, fallback.cta, [
       "titulo",
       "texto",
@@ -1089,6 +1180,10 @@ function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
       configRecebida.contato,
       landingPageContatoPadrao,
       ["telefone", "whatsapp", "email", "endereco"]
+    ),
+    formularioContato: normalizarFormularioContatoLanding(
+      configRecebida.formularioContato,
+      landingPageFormularioContatoPadrao
     ),
     cta: normalizarObjetoLanding(
       configRecebida.cta,
@@ -1676,6 +1771,8 @@ function LandingContatoSection({
   landingPageContratada,
   contato,
   onContatoChange,
+  formularioContato,
+  onFormularioContatoChange,
 }: LandingPageSectionProps) {
   const camposDesabilitados = !landingPageContratada;
 
@@ -1752,6 +1849,72 @@ function LandingContatoSection({
           <p className="mt-2 text-sm leading-6 text-slate-600">
             Esta area fica preparada para receber mapa, coordenadas ou link incorporado em uma sprint futura.
           </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
+            <div className="min-w-0">
+              <h5 className="font-bold text-slate-900">
+                Formulario de contato
+              </h5>
+
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Escolha quais campos aparecem na Landing Page e quais serao obrigatorios.
+              </p>
+            </div>
+
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-600 ring-1 ring-slate-200">
+              E-mail e WhatsApp em breve
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-3">
+            {landingPageFormularioCampos.map((campo) => {
+              const configCampo = formularioContato[campo.id];
+
+              return (
+                <div
+                  key={campo.id}
+                  className="grid gap-3 rounded-xl border border-slate-200 bg-white p-3 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center"
+                >
+                  <strong className="text-sm text-slate-800">
+                    {campo.label}
+                  </strong>
+
+                  <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={configCampo.ativo}
+                      onChange={(e) =>
+                        onFormularioContatoChange(
+                          campo.id,
+                          "ativo",
+                          e.target.checked
+                        )
+                      }
+                    />
+                    Exibir campo
+                  </label>
+
+                  <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={configCampo.obrigatorio}
+                      disabled={!configCampo.ativo}
+                      onChange={(e) =>
+                        onFormularioContatoChange(
+                          campo.id,
+                          "obrigatorio",
+                          e.target.checked
+                        )
+                      }
+                    />
+                    Obrigatorio
+                  </label>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </fieldset>
     </div>
@@ -2773,6 +2936,10 @@ export default function EmpresaForm({
     );
   const [landingPageContato, setLandingPageContato] =
     useState<LandingPageContatoConfig>(() => ({ ...landingPageContatoPadrao }));
+  const [landingPageFormularioContato, setLandingPageFormularioContato] =
+    useState<LandingPageFormularioContatoConfig>(() =>
+      structuredClone(landingPageFormularioContatoPadrao)
+    );
   const [landingPageCta, setLandingPageCta] =
     useState<LandingPageCtaConfig>(() => ({ ...landingPageCtaPadrao }));
   const [landingPageSeo, setLandingPageSeo] =
@@ -2932,6 +3099,7 @@ export default function EmpresaForm({
     setLandingPageGaleria(landingPageConfig.galeria);
     setLandingPageDepoimentos(landingPageConfig.depoimentos);
     setLandingPageContato(landingPageConfig.contato);
+    setLandingPageFormularioContato(landingPageConfig.formularioContato);
     setLandingPageCta(landingPageConfig.cta);
     setLandingPageSeo(landingPageConfig.seo);
     setLandingPageOrdemSecoes(landingPageConfig.ordemSecoes);
@@ -3268,6 +3436,20 @@ export default function EmpresaForm({
     }));
   }
 
+  function atualizarLandingPageFormularioContato(
+    campo: LandingPageFormularioCampoId,
+    propriedade: keyof LandingPageFormularioCampoConfig,
+    valor: boolean
+  ) {
+    setLandingPageFormularioContato((formularioAtual) => ({
+      ...formularioAtual,
+      [campo]: {
+        ...formularioAtual[campo],
+        [propriedade]: valor,
+      },
+    }));
+  }
+
   function atualizarLandingPageCta(
     campo: keyof LandingPageCtaConfig,
     valor: string
@@ -3363,6 +3545,7 @@ export default function EmpresaForm({
       galeria: landingPageGaleria.slice(0, 6),
       depoimentos: landingPageDepoimentos.slice(0, 6),
       contato: landingPageContato,
+      formularioContato: landingPageFormularioContato,
       cta: landingPageCta,
       seo: landingPageSeo,
       ordemSecoes: landingPageOrdemSecoes,
@@ -3393,6 +3576,7 @@ export default function EmpresaForm({
     setLandingPageGaleria(config.galeria);
     setLandingPageDepoimentos(config.depoimentos);
     setLandingPageContato(config.contato);
+    setLandingPageFormularioContato(config.formularioContato);
     setLandingPageCta(config.cta);
     setLandingPageSeo(config.seo);
     setLandingPageOrdemSecoes(config.ordemSecoes);
@@ -4270,6 +4454,7 @@ export default function EmpresaForm({
                               galeria={landingPageGaleria}
                               depoimentos={landingPageDepoimentos}
                               contato={landingPageContato}
+                              formularioContato={landingPageFormularioContato}
                               cta={landingPageCta}
                               seo={landingPageSeo}
                               ordemSecoes={landingPageOrdemSecoes}
@@ -4302,6 +4487,9 @@ export default function EmpresaForm({
                                 removerLandingPageDepoimento
                               }
                               onContatoChange={atualizarLandingPageContato}
+                              onFormularioContatoChange={
+                                atualizarLandingPageFormularioContato
+                              }
                               onCtaChange={atualizarLandingPageCta}
                               onSeoChange={atualizarLandingPageSeo}
                               onTemplateApply={aplicarLandingPageTemplate}

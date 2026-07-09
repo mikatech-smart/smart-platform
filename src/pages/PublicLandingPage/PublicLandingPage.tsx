@@ -49,6 +49,23 @@ type LandingPageContatoConfig = {
   endereco: string;
 };
 
+type LandingPageFormularioCampoId =
+  | "nome"
+  | "telefone"
+  | "whatsapp"
+  | "email"
+  | "mensagem";
+
+type LandingPageFormularioCampoConfig = {
+  ativo: boolean;
+  obrigatorio: boolean;
+};
+
+type LandingPageFormularioContatoConfig = Record<
+  LandingPageFormularioCampoId,
+  LandingPageFormularioCampoConfig
+>;
+
 type LandingPageCtaConfig = {
   titulo: string;
   texto: string;
@@ -80,6 +97,7 @@ export type LandingPageConfig = {
   galeria: LandingPageGaleriaImagemConfig[];
   depoimentos: LandingPageDepoimentoConfig[];
   contato: LandingPageContatoConfig;
+  formularioContato: LandingPageFormularioContatoConfig;
   cta: LandingPageCtaConfig;
   seo: LandingPageSeoConfig;
   ordemSecoes: LandingPageSecaoConteudoId[];
@@ -151,6 +169,13 @@ const landingPageConfigPadrao: LandingPageConfig = {
     email: "",
     endereco: "",
   },
+  formularioContato: {
+    nome: { ativo: true, obrigatorio: true },
+    telefone: { ativo: true, obrigatorio: false },
+    whatsapp: { ativo: false, obrigatorio: false },
+    email: { ativo: true, obrigatorio: true },
+    mensagem: { ativo: true, obrigatorio: true },
+  },
   cta: {
     titulo: "",
     texto: "",
@@ -189,6 +214,33 @@ const landingPageConfigPadrao: LandingPageConfig = {
 const landingPageOrdemSecoesPadrao = landingPageConfigPadrao.ordemSecoes;
 const landingPageVisibilidadeSecoesPadrao =
   landingPageConfigPadrao.visibilidadeSecoes;
+const landingPageFormularioCampos: Array<{
+  id: LandingPageFormularioCampoId;
+  label: string;
+  type: string;
+  placeholder: string;
+}> = [
+  { id: "nome", label: "Nome", type: "text", placeholder: "Seu nome" },
+  {
+    id: "telefone",
+    label: "Telefone",
+    type: "tel",
+    placeholder: "(00) 0000-0000",
+  },
+  {
+    id: "whatsapp",
+    label: "WhatsApp",
+    type: "tel",
+    placeholder: "(00) 00000-0000",
+  },
+  { id: "email", label: "E-mail", type: "email", placeholder: "seu@email.com" },
+  {
+    id: "mensagem",
+    label: "Mensagem",
+    type: "textarea",
+    placeholder: "Como podemos ajudar?",
+  },
+];
 
 function texto(valor: unknown) {
   return typeof valor === "string" ? valor : "";
@@ -236,6 +288,48 @@ function normalizarLista<T extends Record<string, string>>(
     .map((item) => normalizarObjeto(item, padrao[0], campos));
 
   return itens.length > 0 ? itens : padrao.map((item) => ({ ...item }));
+}
+
+function normalizarFormularioContato(
+  valor: unknown,
+  fallback: LandingPageFormularioContatoConfig
+): LandingPageFormularioContatoConfig {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return structuredClone(fallback);
+  }
+
+  const formularioRecebido = valor as Record<string, unknown>;
+
+  return landingPageFormularioCampos.reduce<LandingPageFormularioContatoConfig>(
+    (formulario, campo) => {
+      const configCampo = formularioRecebido[campo.id];
+      const fallbackCampo = fallback[campo.id];
+
+      if (!configCampo || typeof configCampo !== "object" || Array.isArray(configCampo)) {
+        return {
+          ...formulario,
+          [campo.id]: { ...fallbackCampo },
+        };
+      }
+
+      const configRecebida = configCampo as Record<string, unknown>;
+
+      return {
+        ...formulario,
+        [campo.id]: {
+          ativo:
+            typeof configRecebida.ativo === "boolean"
+              ? configRecebida.ativo
+              : fallbackCampo.ativo,
+          obrigatorio:
+            typeof configRecebida.obrigatorio === "boolean"
+              ? configRecebida.obrigatorio
+              : fallbackCampo.obrigatorio,
+        },
+      };
+    },
+    structuredClone(fallback)
+  );
 }
 
 function normalizarOrdemSecoes(valor: unknown): LandingPageSecaoConteudoId[] {
@@ -293,6 +387,7 @@ function criarLandingPagePublicavel(config: LandingPagePublicavelConfig) {
     galeria: config.galeria.map((imagem) => ({ ...imagem })),
     depoimentos: config.depoimentos.map((depoimento) => ({ ...depoimento })),
     contato: { ...config.contato },
+    formularioContato: structuredClone(config.formularioContato),
     cta: { ...config.cta },
     seo: { ...config.seo },
     ordemSecoes: [...config.ordemSecoes],
@@ -343,6 +438,10 @@ function normalizarLandingPagePublicavelConfig(
       "email",
       "endereco",
     ]),
+    formularioContato: normalizarFormularioContato(
+      config.formularioContato,
+      fallback.formularioContato
+    ),
     cta: normalizarObjeto(config.cta, fallback.cta, [
       "titulo",
       "texto",
@@ -402,6 +501,10 @@ function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
       "email",
       "endereco",
     ]),
+    formularioContato: normalizarFormularioContato(
+      config.formularioContato,
+      landingPageConfigPadrao.formularioContato
+    ),
     cta: normalizarObjeto(config.cta, landingPageConfigPadrao.cta, [
       "titulo",
       "texto",
@@ -590,12 +693,15 @@ export function PublicLandingPageContent({
     email: landingPage.contato.email.trim() || empresa.email || "",
     endereco: landingPage.contato.endereco.trim() || empresa.endereco || "",
   };
+  const camposFormularioContato = landingPageFormularioCampos.filter(
+    (campo) => landingPage.formularioContato[campo.id]?.ativo
+  );
   const contatoVisivel = temTexto(
     contato.telefone,
     contato.whatsapp,
     contato.email,
     contato.endereco
-  );
+  ) || camposFormularioContato.length > 0;
   const ctaVisivel = temTexto(
     landingPage.cta.titulo,
     landingPage.cta.texto,
@@ -739,33 +845,73 @@ export function PublicLandingPageContent({
               <h2>Fale conosco</h2>
             </div>
 
-            <div className="public-landing-contact__list">
-              {contato.telefone && (
-                <a href={`tel:${contato.telefone.replace(/\D/g, "")}`}>
-                  <span>Telefone</span>
-                  <strong>{contato.telefone}</strong>
-                </a>
-              )}
+            <div className="public-landing-contact__wrap">
+              <div className="public-landing-contact__list">
+                {contato.telefone && (
+                  <a href={`tel:${contato.telefone.replace(/\D/g, "")}`}>
+                    <span>Telefone</span>
+                    <strong>{contato.telefone}</strong>
+                  </a>
+                )}
 
-              {contato.whatsapp && (
-                <a href={whatsappLink} target="_blank" rel="noreferrer">
-                  <span>WhatsApp</span>
-                  <strong>{contato.whatsapp}</strong>
-                </a>
-              )}
+                {contato.whatsapp && (
+                  <a href={whatsappLink} target="_blank" rel="noreferrer">
+                    <span>WhatsApp</span>
+                    <strong>{contato.whatsapp}</strong>
+                  </a>
+                )}
 
-              {contato.email && (
-                <a href={`mailto:${contato.email}`}>
-                  <span>E-mail</span>
-                  <strong>{contato.email}</strong>
-                </a>
-              )}
+                {contato.email && (
+                  <a href={`mailto:${contato.email}`}>
+                    <span>E-mail</span>
+                    <strong>{contato.email}</strong>
+                  </a>
+                )}
 
-              {contato.endereco && (
-                <a href={mapsLink} target="_blank" rel="noreferrer">
-                  <span>Endereco</span>
-                  <strong>{contato.endereco}</strong>
-                </a>
+                {contato.endereco && (
+                  <a href={mapsLink} target="_blank" rel="noreferrer">
+                    <span>Endereco</span>
+                    <strong>{contato.endereco}</strong>
+                  </a>
+                )}
+              </div>
+
+              {camposFormularioContato.length > 0 && (
+                <form
+                  className="public-landing-contact__form"
+                  onSubmit={(event) => event.preventDefault()}
+                >
+                  {camposFormularioContato.map((campo) => {
+                    const configCampo = landingPage.formularioContato[campo.id];
+
+                    return (
+                      <label key={campo.id}>
+                        <span>
+                          {campo.label}
+                          {configCampo.obrigatorio && " *"}
+                        </span>
+
+                        {campo.type === "textarea" ? (
+                          <textarea
+                            name={campo.id}
+                            required={configCampo.obrigatorio}
+                            placeholder={campo.placeholder}
+                            rows={4}
+                          />
+                        ) : (
+                          <input
+                            name={campo.id}
+                            type={campo.type}
+                            required={configCampo.obrigatorio}
+                            placeholder={campo.placeholder}
+                          />
+                        )}
+                      </label>
+                    );
+                  })}
+
+                  <button type="submit">Enviar mensagem</button>
+                </form>
               )}
             </div>
           </section>
