@@ -251,6 +251,11 @@ type LandingPageServicoConfig = {
   descricao: string;
 };
 
+type LandingPageGaleriaImagemConfig = {
+  url: string;
+  alt: string;
+};
+
 type LandingPageSectionProps = {
   nome: string;
   descricao: string;
@@ -258,6 +263,7 @@ type LandingPageSectionProps = {
   hero: LandingPageHeroConfig;
   sobre: LandingPageSobreConfig;
   servicos: LandingPageServicoConfig[];
+  galeria: LandingPageGaleriaImagemConfig[];
   onHeroChange: (campo: keyof LandingPageHeroConfig, valor: string) => void;
   onSobreChange: (campo: keyof LandingPageSobreConfig, valor: string) => void;
   onServicoChange: (
@@ -267,6 +273,13 @@ type LandingPageSectionProps = {
   ) => void;
   onServicoAdd: () => void;
   onServicoRemove: (indice: number) => void;
+  onGaleriaImagemChange: (
+    indice: number,
+    campo: keyof LandingPageGaleriaImagemConfig,
+    valor: string
+  ) => void;
+  onGaleriaImagemAdd: () => void;
+  onGaleriaImagemRemove: (indice: number) => void;
 };
 
 type LandingPageSecaoConfig = {
@@ -326,6 +339,32 @@ const landingPageServicosExemplo: LandingPageServicoConfig[] = [
   {
     titulo: "Suporte rapido",
     descricao: "Canais simples para tirar duvidas e solicitar atendimento.",
+  },
+];
+
+const landingPageGaleriaPadrao: LandingPageGaleriaImagemConfig[] = [
+  {
+    url: "",
+    alt: "",
+  },
+];
+
+const landingPageGaleriaExemplo: LandingPageGaleriaImagemConfig[] = [
+  {
+    url: "",
+    alt: "Ambiente preparado para receber clientes",
+  },
+  {
+    url: "",
+    alt: "Produto ou servico em destaque",
+  },
+  {
+    url: "",
+    alt: "Equipe realizando um atendimento",
+  },
+  {
+    url: "",
+    alt: "Detalhe visual do trabalho entregue",
   },
 ];
 
@@ -609,8 +648,126 @@ function LandingServicosSection({
   );
 }
 
-function LandingGaleriaSection(props: LandingPageSectionProps) {
-  return <LandingPageSectionPlaceholder {...props} />;
+function LandingGaleriaSection({
+  landingPageContratada,
+  galeria,
+  onGaleriaImagemChange,
+  onGaleriaImagemAdd,
+  onGaleriaImagemRemove,
+}: LandingPageSectionProps) {
+  const camposDesabilitados = !landingPageContratada;
+  const limiteImagens = 6;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+            Galeria
+          </p>
+
+          <h4 className="mt-2 text-lg font-bold text-slate-900">
+            Galeria da Landing Page
+          </h4>
+
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Cadastre ate 6 imagens por URL para exibir no preview da Landing Page.
+          </p>
+        </div>
+
+        {!landingPageContratada && (
+          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
+            Nao contratado
+          </span>
+        )}
+      </div>
+
+      <fieldset
+        disabled={camposDesabilitados}
+        className="mt-5 grid gap-4 disabled:opacity-60"
+      >
+        {galeria.map((imagem, indice) => {
+          const imagemUrl = imagem.url.trim();
+          const textoAlternativo =
+            imagem.alt.trim() ||
+            landingPageGaleriaExemplo[indice]?.alt ||
+            `Imagem da galeria ${indice + 1}`;
+
+          return (
+            <div
+              key={`galeria-${indice}`}
+              className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+            >
+              <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h5 className="font-bold text-slate-900">
+                  Imagem {indice + 1}
+                </h5>
+
+                {galeria.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => onGaleriaImagemRemove(indice)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 sm:w-auto"
+                  >
+                    Remover
+                  </button>
+                )}
+              </div>
+
+              <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_180px]">
+                <div className="grid gap-4">
+                  <Input
+                    label={`URL da imagem ${indice + 1}`}
+                    value={imagem.url}
+                    onChange={(e) =>
+                      onGaleriaImagemChange(indice, "url", e.target.value)
+                    }
+                    placeholder="https://exemplo.com/galeria.jpg"
+                    helperText="Informe a URL da imagem. O upload sera conectado a este campo em uma sprint futura."
+                  />
+
+                  <Input
+                    label="Texto alternativo / descricao curta"
+                    value={imagem.alt}
+                    onChange={(e) =>
+                      onGaleriaImagemChange(indice, "alt", e.target.value)
+                    }
+                    placeholder={
+                      landingPageGaleriaExemplo[indice]?.alt ||
+                      "Descricao curta da imagem"
+                    }
+                  />
+                </div>
+
+                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                  {imagemUrl ? (
+                    <img
+                      src={imagemUrl}
+                      alt={textoAlternativo}
+                      className="h-36 w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-36 items-center justify-center bg-white px-4 text-center text-sm font-semibold leading-5 text-slate-400">
+                      {textoAlternativo}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        <button
+          type="button"
+          onClick={onGaleriaImagemAdd}
+          disabled={camposDesabilitados || galeria.length >= limiteImagens}
+          className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Adicionar imagem
+        </button>
+      </fieldset>
+    </div>
+  );
 }
 
 function LandingDepoimentosSection(props: LandingPageSectionProps) {
@@ -696,6 +853,7 @@ function LandingPagePreviewPlaceholder({
   hero,
   sobre,
   servicos,
+  galeria,
 }: {
   secoes: LandingPageSecaoConfig[];
   nomeEmpresa: string;
@@ -703,6 +861,7 @@ function LandingPagePreviewPlaceholder({
   hero: LandingPageHeroConfig;
   sobre: LandingPageSobreConfig;
   servicos: LandingPageServicoConfig[];
+  galeria: LandingPageGaleriaImagemConfig[];
 }) {
   const heroPreview = {
     titulo: hero.titulo.trim() || landingPageHeroExemplo.titulo,
@@ -732,6 +891,19 @@ function LandingPagePreviewPlaceholder({
             "Descrição breve do serviço.",
         }))
       : landingPageServicosExemplo;
+  const galeriaPreenchida = galeria
+    .filter((imagem) => imagem.url.trim() || imagem.alt.trim())
+    .slice(0, 6);
+  const galeriaPreview =
+    galeriaPreenchida.length > 0
+      ? galeriaPreenchida.map((imagem, indice) => ({
+          url: imagem.url.trim(),
+          alt:
+            imagem.alt.trim() ||
+            landingPageGaleriaExemplo[indice]?.alt ||
+            `Imagem da galeria ${indice + 1}`,
+        }))
+      : landingPageGaleriaExemplo;
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -826,6 +998,37 @@ function LandingPagePreviewPlaceholder({
               <p className="mt-1 text-sm leading-5 text-slate-600">
                 {servico.descricao}
               </p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4">
+        <p className="text-xs font-bold uppercase tracking-wide text-green-700">
+          Galeria
+        </p>
+
+        <h4 className="mt-2 text-lg font-bold text-slate-900">
+          Imagens em destaque
+        </h4>
+
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {galeriaPreview.map((imagem, indice) => (
+            <div
+              key={`${imagem.alt}-${indice}`}
+              className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
+            >
+              {imagem.url ? (
+                <img
+                  src={imagem.url}
+                  alt={imagem.alt}
+                  className="h-24 w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-24 items-center justify-center px-3 text-center text-xs font-semibold leading-4 text-slate-500">
+                  {imagem.alt}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -1247,6 +1450,10 @@ export default function EmpresaForm({
     useState<LandingPageServicoConfig[]>(() =>
       landingPageServicosPadrao.map((servico) => ({ ...servico }))
     );
+  const [landingPageGaleria, setLandingPageGaleria] =
+    useState<LandingPageGaleriaImagemConfig[]>(() =>
+      landingPageGaleriaPadrao.map((imagem) => ({ ...imagem }))
+    );
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -1377,6 +1584,9 @@ export default function EmpresaForm({
     setLandingPageSobre({ ...landingPageSobrePadrao });
     setLandingPageServicos(
       landingPageServicosPadrao.map((servico) => ({ ...servico }))
+    );
+    setLandingPageGaleria(
+      landingPageGaleriaPadrao.map((imagem) => ({ ...imagem }))
     );
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
@@ -1610,6 +1820,45 @@ export default function EmpresaForm({
       if (servicosAtuais.length <= 1) return servicosAtuais;
 
       return servicosAtuais.filter((_, indiceAtual) => indiceAtual !== indice);
+    });
+  }
+
+  function atualizarLandingPageGaleriaImagem(
+    indice: number,
+    campo: keyof LandingPageGaleriaImagemConfig,
+    valor: string
+  ) {
+    setLandingPageGaleria((galeriaAtual) =>
+      galeriaAtual.map((imagem, indiceAtual) =>
+        indiceAtual === indice
+          ? {
+              ...imagem,
+              [campo]: valor,
+            }
+          : imagem
+      )
+    );
+  }
+
+  function adicionarLandingPageGaleriaImagem() {
+    setLandingPageGaleria((galeriaAtual) => {
+      if (galeriaAtual.length >= 6) return galeriaAtual;
+
+      return [
+        ...galeriaAtual,
+        {
+          url: "",
+          alt: "",
+        },
+      ];
+    });
+  }
+
+  function removerLandingPageGaleriaImagem(indice: number) {
+    setLandingPageGaleria((galeriaAtual) => {
+      if (galeriaAtual.length <= 1) return galeriaAtual;
+
+      return galeriaAtual.filter((_, indiceAtual) => indiceAtual !== indice);
     });
   }
 
@@ -2228,11 +2477,21 @@ export default function EmpresaForm({
                             hero={landingPageHero}
                             sobre={landingPageSobre}
                             servicos={landingPageServicos}
+                            galeria={landingPageGaleria}
                             onHeroChange={atualizarLandingPageHero}
                             onSobreChange={atualizarLandingPageSobre}
                             onServicoChange={atualizarLandingPageServico}
                             onServicoAdd={adicionarLandingPageServico}
                             onServicoRemove={removerLandingPageServico}
+                            onGaleriaImagemChange={
+                              atualizarLandingPageGaleriaImagem
+                            }
+                            onGaleriaImagemAdd={
+                              adicionarLandingPageGaleriaImagem
+                            }
+                            onGaleriaImagemRemove={
+                              removerLandingPageGaleriaImagem
+                            }
                           />
                         );
                       })}
@@ -2262,6 +2521,7 @@ export default function EmpresaForm({
                     hero={landingPageHero}
                     sobre={landingPageSobre}
                     servicos={landingPageServicos}
+                    galeria={landingPageGaleria}
                   />
                 </div>
               </div>
