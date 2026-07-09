@@ -116,6 +116,10 @@ type LandingPagePublicavelConfig = Omit<
   "versaoPublicada" | "alteracoesNaoPublicadas" | "historicoVersoes"
 >;
 
+type LandingPageRecursoExtraId =
+  | "landing_page_audios"
+  | "landing_page_produtos_digitais";
+
 export type EmpresaLanding = Empresa & {
   logo_exibicao?: "normal" | "small" | "hidden" | "pequeno" | "oculto" | null;
   cor_principal?: string | null;
@@ -129,9 +133,11 @@ export type EmpresaLanding = Empresa & {
   gradiente_inicio?: string | null;
   gradiente_fim?: string | null;
   gradiente_direcao?: string | null;
-  recursos_contratados?: {
-    landing_page?: boolean;
-  } | null;
+  recursos_contratados?:
+    | ({
+        landing_page?: boolean;
+      } & Partial<Record<LandingPageRecursoExtraId, boolean>>)
+    | null;
 };
 
 const landingPageConfigPadrao: LandingPageConfig = {

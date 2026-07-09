@@ -232,6 +232,7 @@ type LandingPageSecaoId =
   | "templates"
   | "ordenacao"
   | "historico"
+  | "blocosExtras"
   | "hero"
   | "sobre"
   | "servicos"
@@ -431,6 +432,14 @@ type LandingPageTemplateConfig = {
   cta: LandingPageCtaConfig;
 };
 
+type LandingPageBlocoExtraConfig = {
+  id: "audios" | "produtos_digitais_partituras";
+  nome: string;
+  segmento: string;
+  descricao: string;
+  recursoFuturo: string;
+};
+
 const landingPageHeroPadrao: LandingPageHeroConfig = {
   titulo: "",
   subtitulo: "",
@@ -585,6 +594,25 @@ const landingPageSeoPadrao: LandingPageSeoConfig = {
   palavrasChave: "",
   imagemCompartilhamento: "",
 };
+
+const landingPageBlocosExtras: LandingPageBlocoExtraConfig[] = [
+  {
+    id: "audios",
+    nome: "Audios",
+    segmento: "Musica, aulas e conteudo sonoro",
+    descricao:
+      "Espaco preparado para destacar demonstracoes, aulas, previews ou materiais em audio dentro da Landing Page.",
+    recursoFuturo: "landing_page_audios",
+  },
+  {
+    id: "produtos_digitais_partituras",
+    nome: "Produtos digitais / Partituras",
+    segmento: "Produtos digitais e materiais musicais",
+    descricao:
+      "Base reservada para catalogo de partituras, PDFs, apostilas e outros produtos digitais por segmento.",
+    recursoFuturo: "landing_page_produtos_digitais",
+  },
+];
 
 const landingPageOrdemSecoesPadrao: LandingPageSecaoConteudoId[] = [
   "hero",
@@ -2166,6 +2194,98 @@ function LandingTemplatesSection({
   );
 }
 
+function LandingBlocosExtrasSection({
+  landingPageContratada,
+}: LandingPageSectionProps) {
+  const status = landingPageContratada ? "Em breve" : "Nao contratado";
+  const statusClassName = landingPageContratada
+    ? "bg-blue-50 text-blue-700 ring-blue-100"
+    : "bg-amber-100 text-amber-700 ring-amber-100";
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+            Blocos Extras
+          </p>
+
+          <h4 className="mt-2 text-lg font-bold text-slate-900">
+            Modulos extras por segmento
+          </h4>
+
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Placeholders preparados para ativacao futura por plano, recurso contratado e segmento da empresa.
+          </p>
+        </div>
+
+        {!landingPageContratada && (
+          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
+            Nao contratado
+          </span>
+        )}
+      </div>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-2">
+        {landingPageBlocosExtras.map((bloco) => (
+          <article
+            key={bloco.id}
+            className="flex min-w-0 flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50 p-4"
+          >
+            <div className="min-w-0">
+              <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <span className="inline-flex w-fit rounded-full bg-white px-3 py-1 text-xs font-bold text-green-700">
+                  {bloco.segmento}
+                </span>
+
+                <span
+                  className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-bold ring-1 ${statusClassName}`}
+                >
+                  {status}
+                </span>
+              </div>
+
+              <h5 className="mt-3 text-base font-bold text-slate-900">
+                {bloco.nome}
+              </h5>
+
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                {bloco.descricao}
+              </p>
+
+              <p className="mt-3 break-all rounded-xl border border-dashed border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-500">
+                Recurso futuro: {bloco.recursoFuturo}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                window.alert(
+                  "Este recurso sera liberado em uma etapa futura da Landing Page."
+                )
+              }
+              className="mt-4 w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50"
+            >
+              Conhecer recurso
+            </button>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+        <h5 className="font-bold text-slate-900">
+          Ativacao futura
+        </h5>
+
+        <p className="mt-2 text-sm leading-6 text-slate-600">
+          A estrutura ja separa cada bloco por identificador de recurso, permitindo liberar modulos por plano, contrato ou segmento sem refazer o editor.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function LandingOrdenacaoSection({
   landingPageContratada,
   ordemSecoes,
@@ -2426,6 +2546,13 @@ const landingPageSections: LandingPageSecaoConfig[] = [
     Component: LandingTemplatesSection,
   },
   {
+    id: "blocosExtras",
+    nome: "Blocos Extras",
+    descricao: "Placeholders para modulos extras por segmento.",
+    ordem: 6,
+    Component: LandingBlocosExtrasSection,
+  },
+  {
     id: "hero",
     nome: "Hero",
     descricao: "Area principal para promessa, imagem e chamada inicial.",
@@ -2493,6 +2620,7 @@ const landingPageArquiteturaFutura = [
   "IA",
   "Analytics",
   "SEO",
+  "Blocos extras por segmento",
 ];
 
 function LandingPagePreviewReal({
