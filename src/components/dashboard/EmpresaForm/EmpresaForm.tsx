@@ -311,6 +311,7 @@ type LandingPageConfig = {
   cta: LandingPageCtaConfig;
   seo: LandingPageSeoConfig;
   ordemSecoes: LandingPageSecaoConteudoId[];
+  visibilidadeSecoes: Record<LandingPageSecaoConteudoId, boolean>;
 };
 
 type LandingPageSectionProps = {
@@ -326,6 +327,7 @@ type LandingPageSectionProps = {
   cta: LandingPageCtaConfig;
   seo: LandingPageSeoConfig;
   ordemSecoes: LandingPageSecaoConteudoId[];
+  visibilidadeSecoes: Record<LandingPageSecaoConteudoId, boolean>;
   onHeroChange: (campo: keyof LandingPageHeroConfig, valor: string) => void;
   onSobreChange: (campo: keyof LandingPageSobreConfig, valor: string) => void;
   onServicoChange: (
@@ -354,6 +356,10 @@ type LandingPageSectionProps = {
   onSeoChange: (campo: keyof LandingPageSeoConfig, valor: string) => void;
   onTemplateApply: (template: LandingPageTemplateConfig) => void;
   onSecaoMove: (secao: LandingPageSecaoConteudoId, direcao: "up" | "down") => void;
+  onSecaoVisibilityChange: (
+    secao: LandingPageSecaoConteudoId,
+    visivel: boolean
+  ) => void;
 };
 
 type LandingPageSecaoConfig = {
@@ -541,6 +547,19 @@ const landingPageSecoesOrdenaveis: Array<{
   { id: "contato", nome: "Contato" },
   { id: "cta", nome: "CTA" },
 ];
+
+const landingPageVisibilidadeSecoesPadrao: Record<
+  LandingPageSecaoConteudoId,
+  boolean
+> = {
+  hero: true,
+  sobre: true,
+  servicos: true,
+  galeria: true,
+  depoimentos: true,
+  contato: true,
+  cta: true,
+};
 
 const landingPageTemplates: LandingPageTemplateConfig[] = [
   {
@@ -823,6 +842,7 @@ function criarLandingPageConfigPadrao(): LandingPageConfig {
     cta: { ...landingPageCtaPadrao },
     seo: { ...landingPageSeoPadrao },
     ordemSecoes: [...landingPageOrdemSecoesPadrao],
+    visibilidadeSecoes: { ...landingPageVisibilidadeSecoesPadrao },
   };
 }
 
@@ -897,6 +917,29 @@ function normalizarOrdemSecoesLanding(valor: unknown): LandingPageSecaoConteudoI
   return [...ordemSemDuplicidade, ...secoesFaltantes];
 }
 
+function normalizarVisibilidadeSecoesLanding(
+  valor: unknown
+): Record<LandingPageSecaoConteudoId, boolean> {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return { ...landingPageVisibilidadeSecoesPadrao };
+  }
+
+  const visibilidadeRecebida = valor as Record<string, unknown>;
+
+  return landingPageOrdemSecoesPadrao.reduce<
+    Record<LandingPageSecaoConteudoId, boolean>
+  >(
+    (visibilidade, secao) => ({
+      ...visibilidade,
+      [secao]:
+        typeof visibilidadeRecebida[secao] === "boolean"
+          ? Boolean(visibilidadeRecebida[secao])
+          : true,
+    }),
+    { ...landingPageVisibilidadeSecoesPadrao }
+  );
+}
+
 function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
   const configPadrao = criarLandingPageConfigPadrao();
 
@@ -950,6 +993,9 @@ function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
       ["titulo", "descricao", "palavrasChave", "imagemCompartilhamento"]
     ),
     ordemSecoes: normalizarOrdemSecoesLanding(configRecebida.ordemSecoes),
+    visibilidadeSecoes: normalizarVisibilidadeSecoesLanding(
+      configRecebida.visibilidadeSecoes
+    ),
   };
 }
 
@@ -975,6 +1021,34 @@ function LandingPageSectionPlaceholder({
 }
 
 void LandingPageSectionPlaceholder;
+
+function LandingSecaoVisibilitySwitch({
+  secao,
+  visivel,
+  desabilitado,
+  onChange,
+}: {
+  secao: LandingPageSecaoConteudoId;
+  visivel: boolean;
+  desabilitado: boolean;
+  onChange: (secao: LandingPageSecaoConteudoId, visivel: boolean) => void;
+}) {
+  return (
+    <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+      <input
+        type="checkbox"
+        checked={visivel}
+        disabled={desabilitado}
+        onChange={(e) => onChange(secao, e.target.checked)}
+        className="h-5 w-5"
+      />
+
+      <span className="text-sm font-bold text-slate-700">
+        Exibir secao
+      </span>
+    </label>
+  );
+}
 
 function LandingHeroSection({
   landingPageContratada,
@@ -2428,6 +2502,10 @@ export default function EmpresaForm({
     useState<LandingPageSecaoConteudoId[]>(() => [
       ...landingPageOrdemSecoesPadrao,
     ]);
+  const [landingPageVisibilidadeSecoes, setLandingPageVisibilidadeSecoes] =
+    useState<Record<LandingPageSecaoConteudoId, boolean>>(() => ({
+      ...landingPageVisibilidadeSecoesPadrao,
+    }));
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -2568,6 +2646,7 @@ export default function EmpresaForm({
     setLandingPageCta(landingPageConfig.cta);
     setLandingPageSeo(landingPageConfig.seo);
     setLandingPageOrdemSecoes(landingPageConfig.ordemSecoes);
+    setLandingPageVisibilidadeSecoes(landingPageConfig.visibilidadeSecoes);
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
 
@@ -2970,6 +3049,16 @@ export default function EmpresaForm({
     });
   }
 
+  function atualizarLandingPageSecaoVisibilidade(
+    secao: LandingPageSecaoConteudoId,
+    visivel: boolean
+  ) {
+    setLandingPageVisibilidadeSecoes((visibilidadeAtual) => ({
+      ...visibilidadeAtual,
+      [secao]: visivel,
+    }));
+  }
+
   async function salvar() {
     const slugFinal = gerarSlug(slugAdmin || slug);
 
@@ -2996,6 +3085,7 @@ export default function EmpresaForm({
       cta: landingPageCta,
       seo: landingPageSeo,
       ordemSecoes: landingPageOrdemSecoes,
+      visibilidadeSecoes: landingPageVisibilidadeSecoes,
     };
 
     if (whatsappLocal && whatsappLocal.length < 10) {
@@ -3275,6 +3365,7 @@ export default function EmpresaForm({
     cta: landingPageCta,
     seo: landingPageSeo,
     ordemSecoes: landingPageOrdemSecoes,
+    visibilidadeSecoes: landingPageVisibilidadeSecoes,
   };
   const empresaLandingPreview: EmpresaLanding = {
     id: empresaId || "preview",
@@ -3696,51 +3787,83 @@ export default function EmpresaForm({
                       .filter((secao) => secao.id === landingPageSecaoAtiva)
                       .map((secao) => {
                         const SecaoLanding = secao.Component;
+                        const secaoConteudoAtiva =
+                          landingPageOrdemSecoesPadrao.includes(
+                            secao.id as LandingPageSecaoConteudoId
+                          )
+                            ? (secao.id as LandingPageSecaoConteudoId)
+                            : null;
 
                         return (
-                          <SecaoLanding
-                            key={secao.id}
-                            nome={secao.nome}
-                            descricao={secao.descricao}
-                            landingPageContratada={
-                              recursosContratados.landing_page
-                            }
-                            hero={landingPageHero}
-                            sobre={landingPageSobre}
-                            servicos={landingPageServicos}
-                            galeria={landingPageGaleria}
-                            depoimentos={landingPageDepoimentos}
-                            contato={landingPageContato}
-                            cta={landingPageCta}
-                            seo={landingPageSeo}
-                            ordemSecoes={landingPageOrdemSecoes}
-                            onHeroChange={atualizarLandingPageHero}
-                            onSobreChange={atualizarLandingPageSobre}
-                            onServicoChange={atualizarLandingPageServico}
-                            onServicoAdd={adicionarLandingPageServico}
-                            onServicoRemove={removerLandingPageServico}
-                            onGaleriaImagemChange={
-                              atualizarLandingPageGaleriaImagem
-                            }
-                            onGaleriaImagemAdd={
-                              adicionarLandingPageGaleriaImagem
-                            }
-                            onGaleriaImagemRemove={
-                              removerLandingPageGaleriaImagem
-                            }
-                            onDepoimentoChange={
-                              atualizarLandingPageDepoimento
-                            }
-                            onDepoimentoAdd={adicionarLandingPageDepoimento}
-                            onDepoimentoRemove={
-                              removerLandingPageDepoimento
-                            }
-                            onContatoChange={atualizarLandingPageContato}
-                            onCtaChange={atualizarLandingPageCta}
-                            onSeoChange={atualizarLandingPageSeo}
-                            onTemplateApply={aplicarLandingPageTemplate}
-                            onSecaoMove={moverLandingPageSecao}
-                          />
+                          <div key={secao.id} className="space-y-4">
+                            {secaoConteudoAtiva && (
+                              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                                <LandingSecaoVisibilitySwitch
+                                  secao={secaoConteudoAtiva}
+                                  visivel={
+                                    landingPageVisibilidadeSecoes[
+                                      secaoConteudoAtiva
+                                    ]
+                                  }
+                                  desabilitado={
+                                    !recursosContratados.landing_page
+                                  }
+                                  onChange={
+                                    atualizarLandingPageSecaoVisibilidade
+                                  }
+                                />
+                              </div>
+                            )}
+
+                            <SecaoLanding
+                              nome={secao.nome}
+                              descricao={secao.descricao}
+                              landingPageContratada={
+                                recursosContratados.landing_page
+                              }
+                              hero={landingPageHero}
+                              sobre={landingPageSobre}
+                              servicos={landingPageServicos}
+                              galeria={landingPageGaleria}
+                              depoimentos={landingPageDepoimentos}
+                              contato={landingPageContato}
+                              cta={landingPageCta}
+                              seo={landingPageSeo}
+                              ordemSecoes={landingPageOrdemSecoes}
+                              visibilidadeSecoes={
+                                landingPageVisibilidadeSecoes
+                              }
+                              onHeroChange={atualizarLandingPageHero}
+                              onSobreChange={atualizarLandingPageSobre}
+                              onServicoChange={atualizarLandingPageServico}
+                              onServicoAdd={adicionarLandingPageServico}
+                              onServicoRemove={removerLandingPageServico}
+                              onGaleriaImagemChange={
+                                atualizarLandingPageGaleriaImagem
+                              }
+                              onGaleriaImagemAdd={
+                                adicionarLandingPageGaleriaImagem
+                              }
+                              onGaleriaImagemRemove={
+                                removerLandingPageGaleriaImagem
+                              }
+                              onDepoimentoChange={
+                                atualizarLandingPageDepoimento
+                              }
+                              onDepoimentoAdd={adicionarLandingPageDepoimento}
+                              onDepoimentoRemove={
+                                removerLandingPageDepoimento
+                              }
+                              onContatoChange={atualizarLandingPageContato}
+                              onCtaChange={atualizarLandingPageCta}
+                              onSeoChange={atualizarLandingPageSeo}
+                              onTemplateApply={aplicarLandingPageTemplate}
+                              onSecaoMove={moverLandingPageSecao}
+                              onSecaoVisibilityChange={
+                                atualizarLandingPageSecaoVisibilidade
+                              }
+                            />
+                          </div>
                         );
                       })}
 

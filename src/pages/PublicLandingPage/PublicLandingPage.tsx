@@ -83,6 +83,7 @@ export type LandingPageConfig = {
   cta: LandingPageCtaConfig;
   seo: LandingPageSeoConfig;
   ordemSecoes: LandingPageSecaoConteudoId[];
+  visibilidadeSecoes: Record<LandingPageSecaoConteudoId, boolean>;
 };
 
 export type EmpresaLanding = Empresa & {
@@ -163,9 +164,20 @@ const landingPageConfigPadrao: LandingPageConfig = {
     "contato",
     "cta",
   ],
+  visibilidadeSecoes: {
+    hero: true,
+    sobre: true,
+    servicos: true,
+    galeria: true,
+    depoimentos: true,
+    contato: true,
+    cta: true,
+  },
 };
 
 const landingPageOrdemSecoesPadrao = landingPageConfigPadrao.ordemSecoes;
+const landingPageVisibilidadeSecoesPadrao =
+  landingPageConfigPadrao.visibilidadeSecoes;
 
 function texto(valor: unknown) {
   return typeof valor === "string" ? valor : "";
@@ -238,6 +250,29 @@ function normalizarOrdemSecoes(valor: unknown): LandingPageSecaoConteudoId[] {
   return [...ordemSemDuplicidade, ...secoesFaltantes];
 }
 
+function normalizarVisibilidadeSecoes(
+  valor: unknown
+): Record<LandingPageSecaoConteudoId, boolean> {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return { ...landingPageVisibilidadeSecoesPadrao };
+  }
+
+  const visibilidadeRecebida = valor as Record<string, unknown>;
+
+  return landingPageOrdemSecoesPadrao.reduce<
+    Record<LandingPageSecaoConteudoId, boolean>
+  >(
+    (visibilidade, secao) => ({
+      ...visibilidade,
+      [secao]:
+        typeof visibilidadeRecebida[secao] === "boolean"
+          ? Boolean(visibilidadeRecebida[secao])
+          : true,
+    }),
+    { ...landingPageVisibilidadeSecoesPadrao }
+  );
+}
+
 function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
   if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
     return structuredClone(landingPageConfigPadrao);
@@ -291,6 +326,9 @@ function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
       "imagemCompartilhamento",
     ]),
     ordemSecoes: normalizarOrdemSecoes(config.ordemSecoes),
+    visibilidadeSecoes: normalizarVisibilidadeSecoes(
+      config.visibilidadeSecoes
+    ),
   };
 }
 
@@ -458,13 +496,13 @@ export function PublicLandingPageContent({
     landingPage.cta.botaoLink
   );
   const possuiConteudo =
-    heroVisivel ||
-    sobreVisivel ||
-    servicos.length > 0 ||
-    galeria.length > 0 ||
-    depoimentos.length > 0 ||
-    contatoVisivel ||
-    ctaVisivel;
+    (landingPage.visibilidadeSecoes.hero && heroVisivel) ||
+    (landingPage.visibilidadeSecoes.sobre && sobreVisivel) ||
+    (landingPage.visibilidadeSecoes.servicos && servicos.length > 0) ||
+    (landingPage.visibilidadeSecoes.galeria && galeria.length > 0) ||
+    (landingPage.visibilidadeSecoes.depoimentos && depoimentos.length > 0) ||
+    (landingPage.visibilidadeSecoes.contato && contatoVisivel) ||
+    (landingPage.visibilidadeSecoes.cta && ctaVisivel);
   const estiloAparencia = criarEstiloAparencia(empresa);
   const whatsappLink = criarWhatsappLink(contato.whatsapp);
   const mapsLink = criarMapsLink(contato.endereco);
@@ -474,6 +512,10 @@ export function PublicLandingPageContent({
     empresa.logo_exibicao !== "oculto";
 
   function renderizarSecao(secao: LandingPageSecaoConteudoId) {
+    if (!landingPage.visibilidadeSecoes[secao]) {
+      return null;
+    }
+
     switch (secao) {
       case "hero":
         return heroVisivel ? (
