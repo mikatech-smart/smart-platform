@@ -3,12 +3,16 @@ import {
   useMemo,
   useState,
   type CSSProperties,
+  type FormEvent,
   type ReactElement,
 } from "react";
 import { useParams } from "react-router-dom";
 
 import type { Empresa } from "../../models/Empresa";
-import { buscarLandingPagePorSlug } from "../../services/empresa/empresa.service";
+import {
+  buscarLandingPagePorSlug,
+  salvarLeadLandingPage,
+} from "../../services/empresa/empresa.service";
 
 import "./PublicLandingPage.css";
 
@@ -723,6 +727,79 @@ export function PublicLandingPageContent({
     empresa.logo &&
     empresa.logo_exibicao !== "hidden" &&
     empresa.logo_exibicao !== "oculto";
+  const [leadEnviando, setLeadEnviando] = useState(false);
+  const [leadMensagem, setLeadMensagem] = useState<{
+    tipo: "sucesso" | "erro";
+    texto: string;
+  } | null>(null);
+
+  async function enviarFormularioContato(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (leadEnviando) return;
+
+    if (!exigirPublicacao) {
+      setLeadMensagem({
+        tipo: "erro",
+        texto: "O envio fica ativo na Landing Page publicada.",
+      });
+      return;
+    }
+
+    const formData = new FormData(event.currentTarget);
+    const valores: Record<LandingPageFormularioCampoId, string> = {
+      nome: String(formData.get("nome") || "").trim(),
+      telefone: String(formData.get("telefone") || "").trim(),
+      whatsapp: String(formData.get("whatsapp") || "").trim(),
+      email: String(formData.get("email") || "").trim(),
+      mensagem: String(formData.get("mensagem") || "").trim(),
+    };
+    const campoObrigatorioVazio = camposFormularioContato.find(
+      (campo) =>
+        landingPage.formularioContato[campo.id]?.obrigatorio &&
+        !valores[campo.id]
+    );
+
+    if (campoObrigatorioVazio) {
+      setLeadMensagem({
+        tipo: "erro",
+        texto: `Preencha o campo ${campoObrigatorioVazio.label}.`,
+      });
+      return;
+    }
+
+    setLeadEnviando(true);
+    setLeadMensagem(null);
+
+    const { error } = await salvarLeadLandingPage({
+      empresa_id: empresa.id,
+      nome: valores.nome,
+      telefone: valores.telefone,
+      whatsapp: valores.whatsapp,
+      email: valores.email,
+      mensagem: valores.mensagem,
+      origem: "landing_page",
+      data_hora: new Date().toISOString(),
+    });
+
+    setLeadEnviando(false);
+
+    if (error) {
+      setLeadMensagem({
+        tipo: "erro",
+        texto:
+          error.message ||
+          "Nao foi possivel enviar sua mensagem agora. Tente novamente em alguns instantes.",
+      });
+      return;
+    }
+
+    event.currentTarget.reset();
+    setLeadMensagem({
+      tipo: "sucesso",
+      texto: "Mensagem enviada com sucesso. Em breve entraremos em contato.",
+    });
+  }
 
   function renderizarSecao(secao: LandingPageSecaoConteudoId) {
     if (!landingPage.visibilidadeSecoes[secao]) {
@@ -879,7 +956,7 @@ export function PublicLandingPageContent({
               {camposFormularioContato.length > 0 && (
                 <form
                   className="public-landing-contact__form"
-                  onSubmit={(event) => event.preventDefault()}
+                  onSubmit={enviarFormularioContato}
                 >
                   {camposFormularioContato.map((campo) => {
                     const configCampo = landingPage.formularioContato[campo.id];
@@ -910,7 +987,17 @@ export function PublicLandingPageContent({
                     );
                   })}
 
-                  <button type="submit">Enviar mensagem</button>
+                  {leadMensagem && (
+                    <p
+                      className={`public-landing-contact__feedback public-landing-contact__feedback--${leadMensagem.tipo}`}
+                    >
+                      {leadMensagem.texto}
+                    </p>
+                  )}
+
+                  <button type="submit" disabled={leadEnviando}>
+                    {leadEnviando ? "Enviando..." : "Enviar mensagem"}
+                  </button>
                 </form>
               )}
             </div>

@@ -21,6 +21,28 @@ function erroColunaLandingPageConfig(error: { message?: string; code?: string })
   );
 }
 
+function erroEstruturaLeads(error: { message?: string; code?: string }) {
+  const mensagem = error.message?.toLowerCase() || "";
+
+  return (
+    error.code === "42P01" ||
+    error.code === "PGRST204" ||
+    mensagem.includes("leads") ||
+    mensagem.includes("schema cache")
+  );
+}
+
+export type LandingPageLeadPayload = {
+  empresa_id: string;
+  nome: string;
+  telefone: string;
+  whatsapp: string;
+  email: string;
+  mensagem: string;
+  origem: "landing_page";
+  data_hora: string;
+};
+
 export async function buscarEmpresaPorSlug(slug: string) {
   const { data, error } = await supabase
     .from("empresas")
@@ -44,6 +66,37 @@ export async function buscarLandingPagePorSlug(slug: string) {
   return {
     data,
     error,
+  };
+}
+
+export async function salvarLeadLandingPage(dados: LandingPageLeadPayload) {
+  const { data, error } = await supabase
+    .from("leads")
+    .insert(dados)
+    .select()
+    .single();
+
+  if (error) {
+    if (erroEstruturaLeads(error)) {
+      return {
+        data: null,
+        error: {
+          ...error,
+          message:
+            "A tabela leads ainda nao esta configurada no Supabase para receber contatos da Landing Page.",
+        },
+      };
+    }
+
+    return {
+      data: null,
+      error,
+    };
+  }
+
+  return {
+    data,
+    error: null,
   };
 }
 
