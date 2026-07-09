@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ReactElement,
+} from "react";
 import { useParams } from "react-router-dom";
 
 import type { Empresa } from "../../models/Empresa";
@@ -57,6 +63,15 @@ type LandingPageSeoConfig = {
   imagemCompartilhamento: string;
 };
 
+type LandingPageSecaoConteudoId =
+  | "hero"
+  | "sobre"
+  | "servicos"
+  | "galeria"
+  | "depoimentos"
+  | "contato"
+  | "cta";
+
 export type LandingPageConfig = {
   publicada: boolean;
   hero: LandingPageHeroConfig;
@@ -67,6 +82,7 @@ export type LandingPageConfig = {
   contato: LandingPageContatoConfig;
   cta: LandingPageCtaConfig;
   seo: LandingPageSeoConfig;
+  ordemSecoes: LandingPageSecaoConteudoId[];
 };
 
 export type EmpresaLanding = Empresa & {
@@ -138,7 +154,18 @@ const landingPageConfigPadrao: LandingPageConfig = {
     palavrasChave: "",
     imagemCompartilhamento: "",
   },
+  ordemSecoes: [
+    "hero",
+    "sobre",
+    "servicos",
+    "galeria",
+    "depoimentos",
+    "contato",
+    "cta",
+  ],
 };
+
+const landingPageOrdemSecoesPadrao = landingPageConfigPadrao.ordemSecoes;
 
 function texto(valor: unknown) {
   return typeof valor === "string" ? valor : "";
@@ -186,6 +213,29 @@ function normalizarLista<T extends Record<string, string>>(
     .map((item) => normalizarObjeto(item, padrao[0], campos));
 
   return itens.length > 0 ? itens : padrao.map((item) => ({ ...item }));
+}
+
+function normalizarOrdemSecoes(valor: unknown): LandingPageSecaoConteudoId[] {
+  if (!Array.isArray(valor)) {
+    return [...landingPageOrdemSecoesPadrao];
+  }
+
+  const secoesValidas = new Set<LandingPageSecaoConteudoId>(
+    landingPageOrdemSecoesPadrao
+  );
+  const ordemRecebida = valor.filter(
+    (secao): secao is LandingPageSecaoConteudoId =>
+      typeof secao === "string" &&
+      secoesValidas.has(secao as LandingPageSecaoConteudoId)
+  );
+  const ordemSemDuplicidade = ordemRecebida.filter(
+    (secao, indice, lista) => lista.indexOf(secao) === indice
+  );
+  const secoesFaltantes = landingPageOrdemSecoesPadrao.filter(
+    (secao) => !ordemSemDuplicidade.includes(secao)
+  );
+
+  return [...ordemSemDuplicidade, ...secoesFaltantes];
 }
 
 function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
@@ -240,6 +290,7 @@ function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
       "palavrasChave",
       "imagemCompartilhamento",
     ]),
+    ordemSecoes: normalizarOrdemSecoes(config.ordemSecoes),
   };
 }
 
@@ -422,77 +473,47 @@ export function PublicLandingPageContent({
     empresa.logo_exibicao !== "hidden" &&
     empresa.logo_exibicao !== "oculto";
 
-  if ((exigirPublicacao && !landingPage.publicada) || !possuiConteudo) {
-    return (
-      <main className="public-landing public-landing--center" style={estiloAparencia}>
-        <section className="public-landing-message">
-          {logoVisivel && (
-            <img
-              className="public-landing-message__logo"
-              src={empresa.logo}
-              alt={empresa.nome}
-            />
-          )}
+  function renderizarSecao(secao: LandingPageSecaoConteudoId) {
+    switch (secao) {
+      case "hero":
+        return heroVisivel ? (
+          <section className="public-landing-hero" key="hero">
+            <div className="public-landing-hero__content">
+              <p className="public-landing-kicker">{empresa.categoria || "Landing Page"}</p>
 
-          <h1>Landing Page nÃ£o publicada</h1>
-          <p>
-            {empresa.nome} ainda esta preparando esta pagina. Volte em breve.
-          </p>
-        </section>
-      </main>
-    );
-  }
+              {landingPage.hero.titulo && (
+                <h1>{landingPage.hero.titulo}</h1>
+              )}
 
-  return (
-    <main className="public-landing" style={estiloAparencia}>
-      <header className="public-landing-header">
-        <a className="public-landing-brand" href={`/${empresa.slug}`}>
-          {logoVisivel && (
-            <img src={empresa.logo} alt={empresa.nome} />
-          )}
-          <span>{empresa.nome}</span>
-        </a>
-      </header>
+              {landingPage.hero.subtitulo && (
+                <p>{landingPage.hero.subtitulo}</p>
+              )}
 
-      {heroVisivel && (
-        <section className="public-landing-hero">
-          <div className="public-landing-hero__content">
-            <p className="public-landing-kicker">{empresa.categoria || "Landing Page"}</p>
+              {landingPage.hero.botaoTexto && landingPage.hero.botaoLink && (
+                <a className="public-landing-button" href={landingPage.hero.botaoLink}>
+                  {landingPage.hero.botaoTexto}
+                </a>
+              )}
+            </div>
 
-            {landingPage.hero.titulo && (
-              <h1>{landingPage.hero.titulo}</h1>
-            )}
-
-            {landingPage.hero.subtitulo && (
-              <p>{landingPage.hero.subtitulo}</p>
-            )}
-
-            {landingPage.hero.botaoTexto && landingPage.hero.botaoLink && (
-              <a className="public-landing-button" href={landingPage.hero.botaoLink}>
-                {landingPage.hero.botaoTexto}
-              </a>
-            )}
-          </div>
-
-          {landingPage.hero.imagemDestaque ? (
-            <img
-              className="public-landing-hero__image"
-              src={landingPage.hero.imagemDestaque}
-              alt={landingPage.hero.titulo || empresa.nome}
-            />
-          ) : empresa.banner ? (
-            <img
-              className="public-landing-hero__image"
-              src={empresa.banner}
-              alt={empresa.nome}
-            />
-          ) : null}
-        </section>
-      )}
-
-      <div className="public-landing-content">
-        {sobreVisivel && (
-          <section className="public-landing-section public-landing-about">
+            {landingPage.hero.imagemDestaque ? (
+              <img
+                className="public-landing-hero__image"
+                src={landingPage.hero.imagemDestaque}
+                alt={landingPage.hero.titulo || empresa.nome}
+              />
+            ) : empresa.banner ? (
+              <img
+                className="public-landing-hero__image"
+                src={empresa.banner}
+                alt={empresa.nome}
+              />
+            ) : null}
+          </section>
+        ) : null;
+      case "sobre":
+        return sobreVisivel ? (
+          <section className="public-landing-section public-landing-about" key="sobre">
             {landingPage.sobre.imagem && (
               <img src={landingPage.sobre.imagem} alt={landingPage.sobre.titulo} />
             )}
@@ -502,10 +523,10 @@ export function PublicLandingPageContent({
               {landingPage.sobre.texto && <p>{landingPage.sobre.texto}</p>}
             </div>
           </section>
-        )}
-
-        {servicos.length > 0 && (
-          <section className="public-landing-section">
+        ) : null;
+      case "servicos":
+        return servicos.length > 0 ? (
+          <section className="public-landing-section" key="servicos">
             <div className="public-landing-section__heading">
               <span>Servicos</span>
               <h2>O que oferecemos</h2>
@@ -520,10 +541,10 @@ export function PublicLandingPageContent({
               ))}
             </div>
           </section>
-        )}
-
-        {galeria.length > 0 && (
-          <section className="public-landing-section">
+        ) : null;
+      case "galeria":
+        return galeria.length > 0 ? (
+          <section className="public-landing-section" key="galeria">
             <div className="public-landing-section__heading">
               <span>Galeria</span>
               <h2>Imagens em destaque</h2>
@@ -539,10 +560,10 @@ export function PublicLandingPageContent({
               ))}
             </div>
           </section>
-        )}
-
-        {depoimentos.length > 0 && (
-          <section className="public-landing-section">
+        ) : null;
+      case "depoimentos":
+        return depoimentos.length > 0 ? (
+          <section className="public-landing-section" key="depoimentos">
             <div className="public-landing-section__heading">
               <span>Depoimentos</span>
               <h2>O que clientes dizem</h2>
@@ -560,10 +581,10 @@ export function PublicLandingPageContent({
               ))}
             </div>
           </section>
-        )}
-
-        {contatoVisivel && (
-          <section className="public-landing-section public-landing-contact" id="contato">
+        ) : null;
+      case "contato":
+        return contatoVisivel ? (
+          <section className="public-landing-section public-landing-contact" id="contato" key="contato">
             <div className="public-landing-section__heading">
               <span>Contato</span>
               <h2>Fale conosco</h2>
@@ -599,10 +620,10 @@ export function PublicLandingPageContent({
               )}
             </div>
           </section>
-        )}
-
-        {ctaVisivel && (
-          <section className="public-landing-cta">
+        ) : null;
+      case "cta":
+        return ctaVisivel ? (
+          <section className="public-landing-cta" key="cta">
             {landingPage.cta.titulo && <h2>{landingPage.cta.titulo}</h2>}
             {landingPage.cta.texto && <p>{landingPage.cta.texto}</p>}
             {landingPage.cta.botaoTexto && landingPage.cta.botaoLink && (
@@ -611,8 +632,75 @@ export function PublicLandingPageContent({
               </a>
             )}
           </section>
-        )}
+        ) : null;
+      default:
+        return null;
+    }
+  }
+
+  const secoesOrdenadas: Array<ReactElement | null> = [];
+  let grupoConteudo: LandingPageSecaoConteudoId[] = [];
+
+  function adicionarGrupoConteudo() {
+    if (grupoConteudo.length === 0) return;
+
+    const secoesDoGrupo = [...grupoConteudo];
+
+    secoesOrdenadas.push(
+      <div
+        className="public-landing-content"
+        key={`grupo-${secoesOrdenadas.length}`}
+      >
+        {secoesDoGrupo.map((secao) => renderizarSecao(secao))}
       </div>
+    );
+    grupoConteudo = [];
+  }
+
+  landingPage.ordemSecoes.forEach((secao) => {
+    if (secao === "hero") {
+      adicionarGrupoConteudo();
+      secoesOrdenadas.push(renderizarSecao(secao));
+      return;
+    }
+
+    grupoConteudo.push(secao);
+  });
+  adicionarGrupoConteudo();
+
+  if ((exigirPublicacao && !landingPage.publicada) || !possuiConteudo) {
+    return (
+      <main className="public-landing public-landing--center" style={estiloAparencia}>
+        <section className="public-landing-message">
+          {logoVisivel && (
+            <img
+              className="public-landing-message__logo"
+              src={empresa.logo}
+              alt={empresa.nome}
+            />
+          )}
+
+          <h1>Landing Page nao publicada</h1>
+          <p>
+            {empresa.nome} ainda esta preparando esta pagina. Volte em breve.
+          </p>
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <main className="public-landing" style={estiloAparencia}>
+      <header className="public-landing-header">
+        <a className="public-landing-brand" href={`/${empresa.slug}`}>
+          {logoVisivel && (
+            <img src={empresa.logo} alt={empresa.nome} />
+          )}
+          <span>{empresa.nome}</span>
+        </a>
+      </header>
+
+      {secoesOrdenadas}
     </main>
   );
 }

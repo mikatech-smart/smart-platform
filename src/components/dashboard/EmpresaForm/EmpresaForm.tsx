@@ -19,8 +19,13 @@ import QRCodeEmpresa from "../QRCodeEmpresa/QRCodeEmpresa";
 import HeroEmpresa from "../../public/HeroEmpresa/HeroEmpresa";
 import InformacoesEmpresa from "../../public/InformacoesEmpresa/InformacoesEmpresa";
 import ContatosEmpresa from "../../public/ContatosEmpresa/ContatosEmpresa";
+import {
+  PublicLandingPageContent,
+  type EmpresaLanding,
+} from "../../../pages/PublicLandingPage/PublicLandingPage";
 
 import "../../../pages/PublicEmpresaPage/PublicEmpresaPage.css";
+import "../../../pages/PublicLandingPage/PublicLandingPage.css";
 
 const categoriasEmpresa = [
   "Comunicação Visual",
@@ -225,6 +230,7 @@ function normalizarRecursos(valor: unknown): RecursosContratados {
 
 type LandingPageSecaoId =
   | "templates"
+  | "ordenacao"
   | "hero"
   | "sobre"
   | "servicos"
@@ -285,6 +291,15 @@ type LandingPageSeoConfig = {
   imagemCompartilhamento: string;
 };
 
+type LandingPageSecaoConteudoId =
+  | "hero"
+  | "sobre"
+  | "servicos"
+  | "galeria"
+  | "depoimentos"
+  | "contato"
+  | "cta";
+
 type LandingPageConfig = {
   publicada: boolean;
   hero: LandingPageHeroConfig;
@@ -295,6 +310,7 @@ type LandingPageConfig = {
   contato: LandingPageContatoConfig;
   cta: LandingPageCtaConfig;
   seo: LandingPageSeoConfig;
+  ordemSecoes: LandingPageSecaoConteudoId[];
 };
 
 type LandingPageSectionProps = {
@@ -309,6 +325,7 @@ type LandingPageSectionProps = {
   contato: LandingPageContatoConfig;
   cta: LandingPageCtaConfig;
   seo: LandingPageSeoConfig;
+  ordemSecoes: LandingPageSecaoConteudoId[];
   onHeroChange: (campo: keyof LandingPageHeroConfig, valor: string) => void;
   onSobreChange: (campo: keyof LandingPageSobreConfig, valor: string) => void;
   onServicoChange: (
@@ -336,6 +353,7 @@ type LandingPageSectionProps = {
   onCtaChange: (campo: keyof LandingPageCtaConfig, valor: string) => void;
   onSeoChange: (campo: keyof LandingPageSeoConfig, valor: string) => void;
   onTemplateApply: (template: LandingPageTemplateConfig) => void;
+  onSecaoMove: (secao: LandingPageSecaoConteudoId, direcao: "up" | "down") => void;
 };
 
 type LandingPageSecaoConfig = {
@@ -500,6 +518,29 @@ const landingPageSeoPadrao: LandingPageSeoConfig = {
   palavrasChave: "",
   imagemCompartilhamento: "",
 };
+
+const landingPageOrdemSecoesPadrao: LandingPageSecaoConteudoId[] = [
+  "hero",
+  "sobre",
+  "servicos",
+  "galeria",
+  "depoimentos",
+  "contato",
+  "cta",
+];
+
+const landingPageSecoesOrdenaveis: Array<{
+  id: LandingPageSecaoConteudoId;
+  nome: string;
+}> = [
+  { id: "hero", nome: "Hero" },
+  { id: "sobre", nome: "Sobre" },
+  { id: "servicos", nome: "Servicos" },
+  { id: "galeria", nome: "Galeria" },
+  { id: "depoimentos", nome: "Depoimentos" },
+  { id: "contato", nome: "Contato" },
+  { id: "cta", nome: "CTA" },
+];
 
 const landingPageTemplates: LandingPageTemplateConfig[] = [
   {
@@ -781,6 +822,7 @@ function criarLandingPageConfigPadrao(): LandingPageConfig {
     contato: { ...landingPageContatoPadrao },
     cta: { ...landingPageCtaPadrao },
     seo: { ...landingPageSeoPadrao },
+    ordemSecoes: [...landingPageOrdemSecoesPadrao],
   };
 }
 
@@ -830,6 +872,29 @@ function normalizarListaLanding<T extends Record<string, string>>(
     .map((item) => normalizarObjetoLanding(item, padrao[0], campos));
 
   return itens.length > 0 ? itens : padrao.map((item) => ({ ...item }));
+}
+
+function normalizarOrdemSecoesLanding(valor: unknown): LandingPageSecaoConteudoId[] {
+  if (!Array.isArray(valor)) {
+    return [...landingPageOrdemSecoesPadrao];
+  }
+
+  const secoesValidas = new Set<LandingPageSecaoConteudoId>(
+    landingPageOrdemSecoesPadrao
+  );
+  const ordemRecebida = valor.filter(
+    (secao): secao is LandingPageSecaoConteudoId =>
+      typeof secao === "string" &&
+      secoesValidas.has(secao as LandingPageSecaoConteudoId)
+  );
+  const ordemSemDuplicidade = ordemRecebida.filter(
+    (secao, indice, lista) => lista.indexOf(secao) === indice
+  );
+  const secoesFaltantes = landingPageOrdemSecoesPadrao.filter(
+    (secao) => !ordemSemDuplicidade.includes(secao)
+  );
+
+  return [...ordemSemDuplicidade, ...secoesFaltantes];
 }
 
 function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
@@ -884,6 +949,7 @@ function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
       landingPageSeoPadrao,
       ["titulo", "descricao", "palavrasChave", "imagemCompartilhamento"]
     ),
+    ordemSecoes: normalizarOrdemSecoesLanding(configRecebida.ordemSecoes),
   };
 }
 
@@ -1749,7 +1815,93 @@ function LandingTemplatesSection({
   );
 }
 
+function LandingOrdenacaoSection({
+  landingPageContratada,
+  ordemSecoes,
+  onSecaoMove,
+}: LandingPageSectionProps) {
+  const camposDesabilitados = !landingPageContratada;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+            Ordenacao
+          </p>
+
+          <h4 className="mt-2 text-lg font-bold text-slate-900">
+            Ordem das secoes da Landing Page
+          </h4>
+
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Mova as secoes para cima ou para baixo. A ordem atualiza o preview em tempo real e sera salva junto da Landing Page.
+          </p>
+        </div>
+
+        {!landingPageContratada && (
+          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
+            Nao contratado
+          </span>
+        )}
+      </div>
+
+      <div className="mt-5 grid gap-2">
+        {ordemSecoes.map((secao, indice) => {
+          const secaoConfig = landingPageSecoesOrdenaveis.find(
+            (item) => item.id === secao
+          );
+
+          return (
+            <div
+              key={secao}
+              className="flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3"
+            >
+              <div className="min-w-0">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  Secao {indice + 1}
+                </p>
+
+                <h5 className="mt-1 font-bold text-slate-900">
+                  {secaoConfig?.nome || secao}
+                </h5>
+              </div>
+
+              <div className="flex shrink-0 gap-2">
+                <button
+                  type="button"
+                  disabled={camposDesabilitados || indice === 0}
+                  onClick={() => onSecaoMove(secao, "up")}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Subir
+                </button>
+
+                <button
+                  type="button"
+                  disabled={camposDesabilitados || indice === ordemSecoes.length - 1}
+                  onClick={() => onSecaoMove(secao, "down")}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Descer
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 const landingPageSections: LandingPageSecaoConfig[] = [
+  {
+    id: "ordenacao",
+    nome: "Ordenacao",
+    descricao: "Controle de ordem das secoes exibidas na Landing Page.",
+    ordem: 4,
+    Component: LandingOrdenacaoSection,
+  },
   {
     id: "templates",
     nome: "Templates",
@@ -1827,366 +1979,35 @@ const landingPageArquiteturaFutura = [
   "SEO",
 ];
 
-function LandingPagePreviewPlaceholder({
-  secoes,
-  nomeEmpresa,
-  secaoAtiva,
-  hero,
-  sobre,
-  servicos,
-  galeria,
-  depoimentos,
-  contato,
-  contatoPadrao,
-  cta,
+function LandingPagePreviewReal({
+  empresa,
+  landingPage,
 }: {
-  secoes: LandingPageSecaoConfig[];
-  nomeEmpresa: string;
-  secaoAtiva: LandingPageSecaoId;
-  hero: LandingPageHeroConfig;
-  sobre: LandingPageSobreConfig;
-  servicos: LandingPageServicoConfig[];
-  galeria: LandingPageGaleriaImagemConfig[];
-  depoimentos: LandingPageDepoimentoConfig[];
-  contato: LandingPageContatoConfig;
-  contatoPadrao: LandingPageContatoConfig;
-  cta: LandingPageCtaConfig;
+  empresa: EmpresaLanding;
+  landingPage: LandingPageConfig;
 }) {
-  const heroPreview = {
-    titulo: hero.titulo.trim() || landingPageHeroExemplo.titulo,
-    subtitulo: hero.subtitulo.trim() || landingPageHeroExemplo.subtitulo,
-    botaoTexto: hero.botaoTexto.trim() || landingPageHeroExemplo.botaoTexto,
-    botaoLink: hero.botaoLink.trim() || landingPageHeroExemplo.botaoLink,
-    imagemDestaque: hero.imagemDestaque.trim(),
-  };
-  const sobrePreview = {
-    titulo: sobre.titulo.trim() || landingPageSobreExemplo.titulo,
-    texto: sobre.texto.trim() || landingPageSobreExemplo.texto,
-    imagem: sobre.imagem.trim(),
-  };
-  const servicosPreenchidos = servicos.filter(
-    (servico) => servico.titulo.trim() || servico.descricao.trim()
-  );
-  const servicosPreview =
-    servicosPreenchidos.length > 0
-      ? servicosPreenchidos.map((servico, indice) => ({
-          titulo:
-            servico.titulo.trim() ||
-            landingPageServicosExemplo[indice]?.titulo ||
-            `Serviço ${indice + 1}`,
-          descricao:
-            servico.descricao.trim() ||
-            landingPageServicosExemplo[indice]?.descricao ||
-            "Descrição breve do serviço.",
-        }))
-      : landingPageServicosExemplo;
-  const galeriaPreenchida = galeria
-    .filter((imagem) => imagem.url.trim() || imagem.alt.trim())
-    .slice(0, 6);
-  const galeriaPreview =
-    galeriaPreenchida.length > 0
-      ? galeriaPreenchida.map((imagem, indice) => ({
-          url: imagem.url.trim(),
-          alt:
-            imagem.alt.trim() ||
-            landingPageGaleriaExemplo[indice]?.alt ||
-            `Imagem da galeria ${indice + 1}`,
-        }))
-      : landingPageGaleriaExemplo;
-  const depoimentosPreenchidos = depoimentos
-    .filter(
-      (depoimento) =>
-        depoimento.nome.trim() ||
-        depoimento.cargoEmpresa.trim() ||
-        depoimento.texto.trim()
-    )
-    .slice(0, 6);
-  const depoimentosPreview =
-    depoimentosPreenchidos.length > 0
-      ? depoimentosPreenchidos.map((depoimento, indice) => ({
-          nome:
-            depoimento.nome.trim() ||
-            landingPageDepoimentosExemplo[indice]?.nome ||
-            `Cliente ${indice + 1}`,
-          cargoEmpresa: depoimento.cargoEmpresa.trim(),
-          texto:
-            depoimento.texto.trim() ||
-            landingPageDepoimentosExemplo[indice]?.texto ||
-            "Relato breve do cliente sobre a experiencia com a empresa.",
-        }))
-      : landingPageDepoimentosExemplo;
-  const contatoPreview: LandingPageContatoConfig = {
-    telefone: contato.telefone.trim() || contatoPadrao.telefone.trim(),
-    whatsapp: contato.whatsapp.trim() || contatoPadrao.whatsapp.trim(),
-    email: contato.email.trim() || contatoPadrao.email.trim(),
-    endereco: contato.endereco.trim() || contatoPadrao.endereco.trim(),
-  };
-  const contatosPreview = [
-    {
-      label: "Telefone",
-      valor: contatoPreview.telefone,
-    },
-    {
-      label: "WhatsApp",
-      valor: contatoPreview.whatsapp,
-    },
-    {
-      label: "E-mail",
-      valor: contatoPreview.email,
-    },
-    {
-      label: "Endereco",
-      valor: contatoPreview.endereco,
-    },
-  ].filter((item) => item.valor);
-  const ctaPreview: LandingPageCtaConfig = {
-    titulo: cta.titulo.trim() || landingPageCtaExemplo.titulo,
-    texto: cta.texto.trim() || landingPageCtaExemplo.texto,
-    botaoTexto: cta.botaoTexto.trim() || landingPageCtaExemplo.botaoTexto,
-    botaoLink: cta.botaoLink.trim() || landingPageCtaExemplo.botaoLink,
-  };
-
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-      <div className="overflow-hidden rounded-2xl bg-slate-900 text-white">
-        {heroPreview.imagemDestaque ? (
-          <img
-            src={heroPreview.imagemDestaque}
-            alt=""
-            className="h-36 w-full object-cover"
-          />
-        ) : (
-          <div className="flex h-36 items-center justify-center bg-slate-800 px-4 text-center text-sm font-semibold text-slate-400">
-            Imagem de destaque
-          </div>
-        )}
-
-        <div className="p-4">
-        <p className="text-xs font-bold uppercase tracking-wide text-green-300">
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+        <p className="text-xs font-bold uppercase tracking-wide text-green-700">
           Preview em tempo real
         </p>
-
-        <h4 className="mt-2 text-xl font-bold">
-          {heroPreview.titulo}
-        </h4>
-
-        <p className="mt-2 text-sm leading-6 text-slate-300">
-          {heroPreview.subtitulo}
+        <p className="mt-1 text-sm text-slate-600">
+          Mesma estrutura da Landing Page publica.
         </p>
-
-        <a
-          href={heroPreview.botaoLink}
-          className="mt-4 inline-flex max-w-full rounded-xl bg-green-400 px-4 py-2 text-sm font-bold text-slate-950"
-        >
-          <span className="truncate">
-            {heroPreview.botaoTexto}
-          </span>
-        </a>
-
-        <p className="mt-3 text-xs font-semibold text-slate-500">
-          {nomeEmpresa || "Landing Page"}
-        </p>
-        </div>
       </div>
 
-      <div className="mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        {sobrePreview.imagem ? (
-          <img
-            src={sobrePreview.imagem}
-            alt=""
-            className="h-28 w-full object-cover"
-          />
-        ) : (
-          <div className="flex h-28 items-center justify-center bg-slate-100 px-4 text-center text-sm font-semibold text-slate-400">
-            Imagem da seção Sobre
-          </div>
-        )}
-
-        <div className="p-4">
-          <p className="text-xs font-bold uppercase tracking-wide text-green-700">
-            Sobre
-          </p>
-
-          <h4 className="mt-2 text-lg font-bold text-slate-900">
-            {sobrePreview.titulo}
-          </h4>
-
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            {sobrePreview.texto}
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4">
-        <p className="text-xs font-bold uppercase tracking-wide text-green-700">
-          Serviços
-        </p>
-
-        <h4 className="mt-2 text-lg font-bold text-slate-900">
-          O que oferecemos
-        </h4>
-
-        <div className="mt-3 grid gap-2">
-          {servicosPreview.map((servico, indice) => (
-            <div
-              key={`${servico.titulo}-${indice}`}
-              className="rounded-xl border border-slate-200 bg-slate-50 p-3"
-            >
-              <h5 className="text-sm font-bold text-slate-900">
-                {servico.titulo}
-              </h5>
-
-              <p className="mt-1 text-sm leading-5 text-slate-600">
-                {servico.descricao}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4">
-        <p className="text-xs font-bold uppercase tracking-wide text-green-700">
-          Galeria
-        </p>
-
-        <h4 className="mt-2 text-lg font-bold text-slate-900">
-          Imagens em destaque
-        </h4>
-
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          {galeriaPreview.map((imagem, indice) => (
-            <div
-              key={`${imagem.alt}-${indice}`}
-              className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
-            >
-              {imagem.url ? (
-                <img
-                  src={imagem.url}
-                  alt={imagem.alt}
-                  className="h-24 w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-24 items-center justify-center px-3 text-center text-xs font-semibold leading-4 text-slate-500">
-                  {imagem.alt}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4">
-        <p className="text-xs font-bold uppercase tracking-wide text-green-700">
-          Depoimentos
-        </p>
-
-        <h4 className="mt-2 text-lg font-bold text-slate-900">
-          O que clientes dizem
-        </h4>
-
-        <div className="mt-3 grid gap-2">
-          {depoimentosPreview.map((depoimento, indice) => (
-            <div
-              key={`${depoimento.nome}-${indice}`}
-              className="rounded-xl border border-slate-200 bg-slate-50 p-3"
-            >
-              <p className="text-sm leading-5 text-slate-600">
-                "{depoimento.texto}"
-              </p>
-
-              <div className="mt-3">
-                <h5 className="text-sm font-bold text-slate-900">
-                  {depoimento.nome}
-                </h5>
-
-                {depoimento.cargoEmpresa && (
-                  <p className="text-xs font-semibold text-slate-500">
-                    {depoimento.cargoEmpresa}
-                  </p>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4">
-        <p className="text-xs font-bold uppercase tracking-wide text-green-700">
-          Contato
-        </p>
-
-        <h4 className="mt-2 text-lg font-bold text-slate-900">
-          Fale conosco
-        </h4>
-
-        <div className="mt-3 grid gap-2">
-          {contatosPreview.length > 0 ? (
-            contatosPreview.map((item) => (
-              <div
-                key={item.label}
-                className="rounded-xl border border-slate-200 bg-slate-50 p-3"
-              >
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                  {item.label}
-                </p>
-
-                <p className="mt-1 break-words text-sm font-semibold leading-5 text-slate-800">
-                  {item.valor}
-                </p>
-              </div>
-            ))
-          ) : (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-500">
-              Dados de contato da empresa
-            </div>
-          )}
-        </div>
-
-        <div className="mt-3 flex h-20 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 text-center text-xs font-semibold leading-4 text-slate-500">
-          Area preparada para Google Maps
-        </div>
-      </div>
-
-      <div className="mt-3 rounded-2xl border border-green-200 bg-green-50 p-4">
-        <p className="text-xs font-bold uppercase tracking-wide text-green-700">
-          CTA
-        </p>
-
-        <h4 className="mt-2 text-lg font-bold text-slate-900">
-          {ctaPreview.titulo}
-        </h4>
-
-        <p className="mt-2 text-sm leading-6 text-slate-600">
-          {ctaPreview.texto}
-        </p>
-
-        <a
-          href={ctaPreview.botaoLink}
-          className="mt-4 inline-flex max-w-full rounded-xl bg-green-700 px-4 py-2 text-sm font-bold text-white"
-        >
-          <span className="truncate">
-            {ctaPreview.botaoTexto}
-          </span>
-        </a>
-      </div>
-
-      <div className="mt-4 space-y-2">
-        {secoes.map((secao) => (
-          <div
-            key={secao.id}
-            className={`rounded-xl border px-3 py-2 text-sm font-semibold ${
-              secao.id === secaoAtiva
-                ? "border-green-600 bg-green-50 text-green-800"
-                : "border-slate-200 bg-slate-50 text-slate-500"
-            }`}
-          >
-            {secao.nome}
-          </div>
-        ))}
+      <div className="public-landing-preview-frame max-h-[760px] overflow-y-auto bg-white">
+        <PublicLandingPageContent
+          empresa={empresa}
+          landingPage={landingPage}
+          exigirPublicacao={false}
+        />
       </div>
     </div>
   );
 }
+
 
 type TemaOficial = {
   id:
@@ -2603,6 +2424,10 @@ export default function EmpresaForm({
     useState<LandingPageCtaConfig>(() => ({ ...landingPageCtaPadrao }));
   const [landingPageSeo, setLandingPageSeo] =
     useState<LandingPageSeoConfig>(() => ({ ...landingPageSeoPadrao }));
+  const [landingPageOrdemSecoes, setLandingPageOrdemSecoes] =
+    useState<LandingPageSecaoConteudoId[]>(() => [
+      ...landingPageOrdemSecoesPadrao,
+    ]);
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -2742,6 +2567,7 @@ export default function EmpresaForm({
     setLandingPageContato(landingPageConfig.contato);
     setLandingPageCta(landingPageConfig.cta);
     setLandingPageSeo(landingPageConfig.seo);
+    setLandingPageOrdemSecoes(landingPageConfig.ordemSecoes);
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
 
@@ -3120,6 +2946,30 @@ export default function EmpresaForm({
     setLandingPageSecaoAtiva("hero");
   }
 
+  function moverLandingPageSecao(
+    secao: LandingPageSecaoConteudoId,
+    direcao: "up" | "down"
+  ) {
+    setLandingPageOrdemSecoes((ordemAtual) => {
+      const indiceAtual = ordemAtual.indexOf(secao);
+      const novoIndice = direcao === "up" ? indiceAtual - 1 : indiceAtual + 1;
+
+      if (
+        indiceAtual < 0 ||
+        novoIndice < 0 ||
+        novoIndice >= ordemAtual.length
+      ) {
+        return ordemAtual;
+      }
+
+      const novaOrdem = [...ordemAtual];
+      const [secaoMovida] = novaOrdem.splice(indiceAtual, 1);
+      novaOrdem.splice(novoIndice, 0, secaoMovida);
+
+      return novaOrdem;
+    });
+  }
+
   async function salvar() {
     const slugFinal = gerarSlug(slugAdmin || slug);
 
@@ -3145,6 +2995,7 @@ export default function EmpresaForm({
       contato: landingPageContato,
       cta: landingPageCta,
       seo: landingPageSeo,
+      ordemSecoes: landingPageOrdemSecoes,
     };
 
     if (whatsappLocal && whatsappLocal.length < 10) {
@@ -3413,6 +3264,60 @@ export default function EmpresaForm({
   }
 
   const contextoLandingPageIa = montarContextoLandingPageIa();
+  const landingPagePreviewConfig: LandingPageConfig = {
+    publicada: true,
+    hero: landingPageHero,
+    sobre: landingPageSobre,
+    servicos: landingPageServicos.slice(0, 6),
+    galeria: landingPageGaleria.slice(0, 6),
+    depoimentos: landingPageDepoimentos.slice(0, 6),
+    contato: landingPageContato,
+    cta: landingPageCta,
+    seo: landingPageSeo,
+    ordemSecoes: landingPageOrdemSecoes,
+  };
+  const empresaLandingPreview: EmpresaLanding = {
+    id: empresaId || "preview",
+    nome: nome || "Landing Page",
+    slug: slugPublico || "preview",
+    categoria,
+    tipo: tipoGerenciamento,
+    descricao,
+    telefone,
+    whatsapp,
+    email,
+    instagram,
+    tiktok,
+    youtube,
+    kwai,
+    facebook,
+    site,
+    endereco,
+    horario_atendimento: horarioAtendimento,
+    google_review_url: googleReviewUrl,
+    pix,
+    pix_nome: pixNome,
+    pix_chave: pixChave,
+    wifi_nome: wifiNome,
+    wifi_senha: wifiSenha,
+    landing_page_config: landingPagePreviewConfig,
+    logo,
+    banner,
+    ativo: true,
+    logo_exibicao: logoExibicao,
+    cor_principal: corPrincipal,
+    cor_secundaria: corSecundaria,
+    cor_botoes: corBotoes,
+    cor_texto_botoes: corTextoBotoes,
+    cor_fundo_pagina: corFundoPagina,
+    cor_fundo_hero: corFundoHero,
+    cor_area_principal: corAreaPrincipal,
+    tipo_fundo: tipoFundo,
+    gradiente_inicio: gradienteInicio,
+    gradiente_fim: gradienteFim,
+    gradiente_direcao: gradienteDirecao,
+    recursos_contratados: recursosContratados,
+  };
 
   return (
     <div className="min-w-0 max-w-full space-y-6 overflow-x-hidden">
@@ -3808,6 +3713,7 @@ export default function EmpresaForm({
                             contato={landingPageContato}
                             cta={landingPageCta}
                             seo={landingPageSeo}
+                            ordemSecoes={landingPageOrdemSecoes}
                             onHeroChange={atualizarLandingPageHero}
                             onSobreChange={atualizarLandingPageSobre}
                             onServicoChange={atualizarLandingPageServico}
@@ -3833,6 +3739,7 @@ export default function EmpresaForm({
                             onCtaChange={atualizarLandingPageCta}
                             onSeoChange={atualizarLandingPageSeo}
                             onTemplateApply={aplicarLandingPageTemplate}
+                            onSecaoMove={moverLandingPageSecao}
                           />
                         );
                       })}
@@ -3855,23 +3762,9 @@ export default function EmpresaForm({
                     </div>
                   </div>
 
-                  <LandingPagePreviewPlaceholder
-                    secoes={landingPageSectionRegistry}
-                    nomeEmpresa={nome}
-                    secaoAtiva={landingPageSecaoAtiva}
-                    hero={landingPageHero}
-                    sobre={landingPageSobre}
-                    servicos={landingPageServicos}
-                    galeria={landingPageGaleria}
-                    depoimentos={landingPageDepoimentos}
-                    contato={landingPageContato}
-                    contatoPadrao={{
-                      telefone,
-                      whatsapp,
-                      email,
-                      endereco,
-                    }}
-                    cta={landingPageCta}
+                  <LandingPagePreviewReal
+                    empresa={empresaLandingPreview}
+                    landingPage={landingPagePreviewConfig}
                   />
                 </div>
               </div>
