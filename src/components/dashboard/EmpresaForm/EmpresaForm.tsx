@@ -224,6 +224,7 @@ function normalizarRecursos(valor: unknown): RecursosContratados {
 }
 
 type LandingPageSecaoId =
+  | "templates"
   | "hero"
   | "sobre"
   | "servicos"
@@ -334,6 +335,7 @@ type LandingPageSectionProps = {
   onContatoChange: (campo: keyof LandingPageContatoConfig, valor: string) => void;
   onCtaChange: (campo: keyof LandingPageCtaConfig, valor: string) => void;
   onSeoChange: (campo: keyof LandingPageSeoConfig, valor: string) => void;
+  onTemplateApply: (template: LandingPageTemplateConfig) => void;
 };
 
 type LandingPageSecaoConfig = {
@@ -350,6 +352,17 @@ type LandingPageIaContexto = {
   descricao: string;
   servicos: LandingPageServicoConfig[];
   contatos: LandingPageContatoConfig;
+};
+
+type LandingPageTemplateConfig = {
+  id: string;
+  nome: string;
+  segmento: string;
+  descricao: string;
+  hero: LandingPageHeroConfig;
+  sobre: LandingPageSobreConfig;
+  servicos: LandingPageServicoConfig[];
+  cta: LandingPageCtaConfig;
 };
 
 const landingPageHeroPadrao: LandingPageHeroConfig = {
@@ -487,6 +500,273 @@ const landingPageSeoPadrao: LandingPageSeoConfig = {
   palavrasChave: "",
   imagemCompartilhamento: "",
 };
+
+const landingPageTemplates: LandingPageTemplateConfig[] = [
+  {
+    id: "auto-center",
+    nome: "Auto Center",
+    segmento: "Automotivo",
+    descricao: "Ideal para oficinas, auto centers, borracharias e mecanicas.",
+    hero: {
+      titulo: "Cuide do seu carro com quem entende",
+      subtitulo:
+        "Servicos automotivos com atendimento rapido, diagnostico claro e compromisso com a seguranca do seu veiculo.",
+      botaoTexto: "Agendar atendimento",
+      botaoLink: "#contato",
+      imagemDestaque: "",
+    },
+    sobre: {
+      titulo: "Especialistas em manutencao automotiva",
+      texto:
+        "Atendemos motoristas que buscam confianca, transparencia e qualidade em cada etapa do servico, da avaliacao inicial ate a entrega do veiculo.",
+      imagem: "",
+    },
+    servicos: [
+      {
+        titulo: "Revisao preventiva",
+        descricao:
+          "Checklist completo para identificar problemas antes que eles virem prejuizo.",
+      },
+      {
+        titulo: "Freios e suspensao",
+        descricao:
+          "Manutencao essencial para conforto, estabilidade e seguranca na direcao.",
+      },
+      {
+        titulo: "Troca de oleo e filtros",
+        descricao:
+          "Servicos rapidos com orientacao sobre o melhor cuidado para o motor.",
+      },
+    ],
+    cta: {
+      titulo: "Seu carro merece atencao hoje",
+      texto:
+        "Fale com a equipe e agende uma avaliacao para manter seu veiculo em dia.",
+      botaoTexto: "Chamar no WhatsApp",
+      botaoLink: "#contato",
+    },
+  },
+  {
+    id: "restaurante",
+    nome: "Restaurante",
+    segmento: "Alimentacao",
+    descricao: "Pensado para restaurantes, lanchonetes, pizzarias e bares.",
+    hero: {
+      titulo: "Sabor que transforma qualquer momento",
+      subtitulo:
+        "Pratos preparados com cuidado, ingredientes selecionados e atendimento acolhedor para voce aproveitar sem pressa.",
+      botaoTexto: "Ver atendimento",
+      botaoLink: "#contato",
+      imagemDestaque: "",
+    },
+    sobre: {
+      titulo: "Uma experiencia feita para receber bem",
+      texto:
+        "Unimos sabor, ambiente agradavel e uma equipe atenta para entregar uma experiencia simples, gostosa e memoravel.",
+      imagem: "",
+    },
+    servicos: [
+      {
+        titulo: "Almoco e jantar",
+        descricao:
+          "Opcoes para diferentes momentos do dia, sempre com preparo cuidadoso.",
+      },
+      {
+        titulo: "Pedidos e reservas",
+        descricao:
+          "Canais simples para pedir, reservar mesa ou tirar duvidas antes de vir.",
+      },
+      {
+        titulo: "Eventos e grupos",
+        descricao:
+          "Atendimento preparado para encontros, comemoracoes e momentos especiais.",
+      },
+    ],
+    cta: {
+      titulo: "Bateu a vontade?",
+      texto:
+        "Entre em contato e descubra a melhor opcao para seu pedido ou reserva.",
+      botaoTexto: "Falar com o restaurante",
+      botaoLink: "#contato",
+    },
+  },
+  {
+    id: "clinica",
+    nome: "Clinica",
+    segmento: "Saude e bem-estar",
+    descricao: "Base para clinicas, consultorios, dentistas e profissionais de saude.",
+    hero: {
+      titulo: "Cuidado profissional para sua saude",
+      subtitulo:
+        "Atendimento humanizado, estrutura organizada e orientacao clara para cada etapa do seu cuidado.",
+      botaoTexto: "Agendar consulta",
+      botaoLink: "#contato",
+      imagemDestaque: "",
+    },
+    sobre: {
+      titulo: "Atendimento com proximidade e responsabilidade",
+      texto:
+        "A clinica foi preparada para receber cada paciente com atencao, respeito e foco em uma experiencia tranquila do agendamento ao retorno.",
+      imagem: "",
+    },
+    servicos: [
+      {
+        titulo: "Consultas especializadas",
+        descricao:
+          "Avaliacoes feitas com escuta ativa, orientacao clara e plano de cuidado.",
+      },
+      {
+        titulo: "Acompanhamento",
+        descricao:
+          "Suporte para acompanhar evolucao, retornos e proximos passos do tratamento.",
+      },
+      {
+        titulo: "Atendimento preventivo",
+        descricao:
+          "Cuidados pensados para prevencao, bem-estar e qualidade de vida.",
+      },
+    ],
+    cta: {
+      titulo: "Agende seu atendimento",
+      texto:
+        "Fale com a equipe e encontre o melhor horario para cuidar da sua saude.",
+      botaoTexto: "Marcar consulta",
+      botaoLink: "#contato",
+    },
+  },
+  {
+    id: "barbearia",
+    nome: "Barbearia",
+    segmento: "Beleza masculina",
+    descricao: "Template para barbearias, saloes masculinos e studios de beleza.",
+    hero: {
+      titulo: "Visual alinhado, atendimento de respeito",
+      subtitulo:
+        "Cortes, barba e cuidados masculinos em um ambiente confortavel, com profissionais atentos ao seu estilo.",
+      botaoTexto: "Reservar horario",
+      botaoLink: "#contato",
+      imagemDestaque: "",
+    },
+    sobre: {
+      titulo: "Mais que corte, uma experiencia",
+      texto:
+        "A barbearia combina tecnica, conversa boa e um atendimento pontual para deixar cada cliente pronto para a rotina ou para uma ocasiao especial.",
+      imagem: "",
+    },
+    servicos: [
+      {
+        titulo: "Corte masculino",
+        descricao:
+          "Do classico ao moderno, com acabamento pensado para o seu formato e estilo.",
+      },
+      {
+        titulo: "Barba completa",
+        descricao:
+          "Modelagem, alinhamento e acabamento para valorizar o rosto.",
+      },
+      {
+        titulo: "Pacotes de cuidado",
+        descricao:
+          "Combinacoes de corte, barba e tratamentos para manter o visual em dia.",
+      },
+    ],
+    cta: {
+      titulo: "Seu proximo horario esta aqui",
+      texto:
+        "Chame a equipe e reserve o melhor momento para renovar o visual.",
+      botaoTexto: "Agendar agora",
+      botaoLink: "#contato",
+    },
+  },
+  {
+    id: "pet-shop",
+    nome: "Pet Shop",
+    segmento: "Pets",
+    descricao: "Feito para pet shops, banho e tosa, clinicas e servicos para pets.",
+    hero: {
+      titulo: "Cuidado carinhoso para seu pet",
+      subtitulo:
+        "Servicos pensados para bem-estar, higiene e conforto, com atendimento cuidadoso para cada bichinho.",
+      botaoTexto: "Agendar para meu pet",
+      botaoLink: "#contato",
+      imagemDestaque: "",
+    },
+    sobre: {
+      titulo: "Seu pet tratado com carinho e seguranca",
+      texto:
+        "Nossa rotina valoriza atencao individual, ambiente limpo e comunicacao simples para que tutores fiquem tranquilos.",
+      imagem: "",
+    },
+    servicos: [
+      {
+        titulo: "Banho e tosa",
+        descricao:
+          "Higiene, cuidado com pelagem e acabamento de acordo com cada pet.",
+      },
+      {
+        titulo: "Produtos para pets",
+        descricao:
+          "Itens selecionados para alimentacao, conforto, diversao e cuidado diario.",
+      },
+      {
+        titulo: "Atendimento personalizado",
+        descricao:
+          "Orientacao para escolher o melhor cuidado conforme porte, idade e rotina.",
+      },
+    ],
+    cta: {
+      titulo: "Seu pet merece esse cuidado",
+      texto:
+        "Fale com a equipe e confira horarios, servicos e opcoes disponiveis.",
+      botaoTexto: "Chamar atendimento",
+      botaoLink: "#contato",
+    },
+  },
+  {
+    id: "loja",
+    nome: "Loja",
+    segmento: "Varejo",
+    descricao: "Base para lojas fisicas, boutiques, mercados e comercios locais.",
+    hero: {
+      titulo: "Encontre o que precisa com facilidade",
+      subtitulo:
+        "Produtos selecionados, atendimento proximo e uma experiencia de compra simples do primeiro contato ate a entrega.",
+      botaoTexto: "Falar com a loja",
+      botaoLink: "#contato",
+      imagemDestaque: "",
+    },
+    sobre: {
+      titulo: "Uma loja feita para atender bem",
+      texto:
+        "Trabalhamos para oferecer boas escolhas, informacao clara e suporte para que cada cliente compre com confianca.",
+      imagem: "",
+    },
+    servicos: [
+      {
+        titulo: "Produtos selecionados",
+        descricao:
+          "Curadoria de itens para facilitar sua decisao e valorizar sua rotina.",
+      },
+      {
+        titulo: "Atendimento consultivo",
+        descricao:
+          "Ajuda para escolher a opcao ideal de acordo com sua necessidade.",
+      },
+      {
+        titulo: "Compra simples",
+        descricao:
+          "Canais praticos para tirar duvidas, consultar disponibilidade e combinar entrega.",
+      },
+    ],
+    cta: {
+      titulo: "Vamos ajudar na sua escolha",
+      texto:
+        "Entre em contato e veja as melhores opcoes disponiveis para voce.",
+      botaoTexto: "Consultar produtos",
+      botaoLink: "#contato",
+    },
+  },
+];
 
 function criarLandingPageConfigPadrao(): LandingPageConfig {
   return {
@@ -1386,7 +1666,97 @@ function LandingSeoSection({
   );
 }
 
+function LandingTemplatesSection({
+  landingPageContratada,
+  onTemplateApply,
+}: LandingPageSectionProps) {
+  const camposDesabilitados = !landingPageContratada;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+            Templates
+          </p>
+
+          <h4 className="mt-2 text-lg font-bold text-slate-900">
+            Modelos prontos por segmento
+          </h4>
+
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Escolha um modelo para preencher Hero, Sobre, Servicos e CTA. A aplicacao sempre pede confirmacao antes de substituir dados existentes.
+          </p>
+        </div>
+
+        {!landingPageContratada && (
+          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
+            Nao contratado
+          </span>
+        )}
+      </div>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-2">
+        {landingPageTemplates.map((template) => (
+          <article
+            key={template.id}
+            className="flex min-w-0 flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50 p-4"
+          >
+            <div className="min-w-0">
+              <span className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-bold text-green-700">
+                {template.segmento}
+              </span>
+
+              <h5 className="mt-3 text-base font-bold text-slate-900">
+                {template.nome}
+              </h5>
+
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                {template.descricao}
+              </p>
+
+              <ul className="mt-3 grid gap-1 text-sm text-slate-500">
+                {template.servicos.slice(0, 3).map((servico) => (
+                  <li key={servico.titulo}>
+                    {servico.titulo}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <button
+              type="button"
+              disabled={camposDesabilitados}
+              onClick={() => onTemplateApply(template)}
+              className="mt-4 w-full rounded-xl bg-green-700 px-4 py-2 text-sm font-bold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              Aplicar template
+            </button>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+        <h5 className="font-bold text-slate-900">
+          Arquitetura preparada
+        </h5>
+
+        <p className="mt-2 text-sm leading-6 text-slate-600">
+          Novos segmentos podem ser adicionados na lista de templates sem alterar a estrutura de edicao da Landing Page.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 const landingPageSections: LandingPageSecaoConfig[] = [
+  {
+    id: "templates",
+    nome: "Templates",
+    descricao: "Modelos prontos por segmento para acelerar a criacao.",
+    ordem: 5,
+    Component: LandingTemplatesSection,
+  },
   {
     id: "hero",
     nome: "Hero",
@@ -2210,7 +2580,7 @@ export default function EmpresaForm({
     useState(false);
   const [landingPagePublicada, setLandingPagePublicada] = useState(false);
   const [landingPageSecaoAtiva, setLandingPageSecaoAtiva] =
-    useState<LandingPageSecaoId>("hero");
+    useState<LandingPageSecaoId>("templates");
   const [landingPageHero, setLandingPageHero] =
     useState<LandingPageHeroConfig>(() => ({ ...landingPageHeroPadrao }));
   const [landingPageSobre, setLandingPageSobre] =
@@ -2363,7 +2733,7 @@ export default function EmpresaForm({
     );
     setLandingPagePlaceholderAberto(false);
     setLandingPagePublicada(landingPageConfig.publicada);
-    setLandingPageSecaoAtiva("hero");
+    setLandingPageSecaoAtiva("templates");
     setLandingPageHero(landingPageConfig.hero);
     setLandingPageSobre(landingPageConfig.sobre);
     setLandingPageServicos(landingPageConfig.servicos);
@@ -2716,6 +3086,38 @@ export default function EmpresaForm({
       ...seoAtual,
       [campo]: valor,
     }));
+  }
+
+  function landingPageTemplatePodeSobrescrever() {
+    const heroPreenchido = Object.values(landingPageHero).some((valor) =>
+      valor.trim()
+    );
+    const sobrePreenchido = Object.values(landingPageSobre).some((valor) =>
+      valor.trim()
+    );
+    const servicosPreenchidos = landingPageServicos.some((servico) =>
+      Object.values(servico).some((valor) => valor.trim())
+    );
+    const ctaPreenchido = Object.values(landingPageCta).some((valor) =>
+      valor.trim()
+    );
+
+    return heroPreenchido || sobrePreenchido || servicosPreenchidos || ctaPreenchido;
+  }
+
+  function aplicarLandingPageTemplate(template: LandingPageTemplateConfig) {
+    const possuiDados = landingPageTemplatePodeSobrescrever();
+    const mensagem = possuiDados
+      ? `Aplicar o template "${template.nome}" vai substituir os dados atuais de Hero, Sobre, Servicos e CTA. Deseja continuar?`
+      : `Deseja aplicar o template "${template.nome}" na Landing Page?`;
+
+    if (!window.confirm(mensagem)) return;
+
+    setLandingPageHero({ ...template.hero });
+    setLandingPageSobre({ ...template.sobre });
+    setLandingPageServicos(template.servicos.map((servico) => ({ ...servico })));
+    setLandingPageCta({ ...template.cta });
+    setLandingPageSecaoAtiva("hero");
   }
 
   async function salvar() {
@@ -3430,6 +3832,7 @@ export default function EmpresaForm({
                             onContatoChange={atualizarLandingPageContato}
                             onCtaChange={atualizarLandingPageCta}
                             onSeoChange={atualizarLandingPageSeo}
+                            onTemplateApply={aplicarLandingPageTemplate}
                           />
                         );
                       })}
