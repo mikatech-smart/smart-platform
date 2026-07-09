@@ -84,7 +84,15 @@ export type LandingPageConfig = {
   seo: LandingPageSeoConfig;
   ordemSecoes: LandingPageSecaoConteudoId[];
   visibilidadeSecoes: Record<LandingPageSecaoConteudoId, boolean>;
+  versaoPublicada: LandingPagePublicavelConfig | null;
+  alteracoesNaoPublicadas: boolean;
+  historicoVersoes: LandingPagePublicavelConfig[];
 };
+
+type LandingPagePublicavelConfig = Omit<
+  LandingPageConfig,
+  "versaoPublicada" | "alteracoesNaoPublicadas" | "historicoVersoes"
+>;
 
 export type EmpresaLanding = Empresa & {
   logo_exibicao?: "normal" | "small" | "hidden" | "pequeno" | "oculto" | null;
@@ -173,6 +181,9 @@ const landingPageConfigPadrao: LandingPageConfig = {
     contato: true,
     cta: true,
   },
+  versaoPublicada: null,
+  alteracoesNaoPublicadas: false,
+  historicoVersoes: [],
 };
 
 const landingPageOrdemSecoesPadrao = landingPageConfigPadrao.ordemSecoes;
@@ -273,6 +284,84 @@ function normalizarVisibilidadeSecoes(
   );
 }
 
+function criarLandingPagePublicavel(config: LandingPagePublicavelConfig) {
+  return {
+    publicada: config.publicada,
+    hero: { ...config.hero },
+    sobre: { ...config.sobre },
+    servicos: config.servicos.map((servico) => ({ ...servico })),
+    galeria: config.galeria.map((imagem) => ({ ...imagem })),
+    depoimentos: config.depoimentos.map((depoimento) => ({ ...depoimento })),
+    contato: { ...config.contato },
+    cta: { ...config.cta },
+    seo: { ...config.seo },
+    ordemSecoes: [...config.ordemSecoes],
+    visibilidadeSecoes: { ...config.visibilidadeSecoes },
+  };
+}
+
+function normalizarLandingPagePublicavelConfig(
+  valor: unknown,
+  fallback: LandingPagePublicavelConfig
+): LandingPagePublicavelConfig {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return criarLandingPagePublicavel(fallback);
+  }
+
+  const config = valor as Partial<Record<keyof LandingPagePublicavelConfig, unknown>>;
+
+  return {
+    publicada: booleano((valor as Record<string, unknown>).publicada),
+    hero: normalizarObjeto(config.hero, fallback.hero, [
+      "titulo",
+      "subtitulo",
+      "botaoTexto",
+      "botaoLink",
+      "imagemDestaque",
+    ]),
+    sobre: normalizarObjeto(config.sobre, fallback.sobre, [
+      "titulo",
+      "texto",
+      "imagem",
+    ]),
+    servicos: normalizarLista(config.servicos, fallback.servicos, [
+      "titulo",
+      "descricao",
+    ]),
+    galeria: normalizarLista(config.galeria, fallback.galeria, [
+      "url",
+      "alt",
+    ]),
+    depoimentos: normalizarLista(config.depoimentos, fallback.depoimentos, [
+      "nome",
+      "cargoEmpresa",
+      "texto",
+    ]),
+    contato: normalizarObjeto(config.contato, fallback.contato, [
+      "telefone",
+      "whatsapp",
+      "email",
+      "endereco",
+    ]),
+    cta: normalizarObjeto(config.cta, fallback.cta, [
+      "titulo",
+      "texto",
+      "botaoTexto",
+      "botaoLink",
+    ]),
+    seo: normalizarObjeto(config.seo, fallback.seo, [
+      "titulo",
+      "descricao",
+      "palavrasChave",
+      "imagemCompartilhamento",
+    ]),
+    ordemSecoes: normalizarOrdemSecoes(config.ordemSecoes),
+    visibilidadeSecoes: normalizarVisibilidadeSecoes(
+      config.visibilidadeSecoes
+    ),
+  };
+}
+
 function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
   if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
     return structuredClone(landingPageConfigPadrao);
@@ -280,7 +369,7 @@ function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
 
   const config = valor as Partial<Record<keyof LandingPageConfig, unknown>>;
 
-  return {
+  const rascunho: LandingPagePublicavelConfig = {
     publicada: booleano((valor as Record<string, unknown>).publicada),
     hero: normalizarObjeto(config.hero, landingPageConfigPadrao.hero, [
       "titulo",
@@ -329,6 +418,24 @@ function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
     visibilidadeSecoes: normalizarVisibilidadeSecoes(
       config.visibilidadeSecoes
     ),
+  };
+  const versaoPublicada = normalizarLandingPagePublicavelConfig(
+    config.versaoPublicada,
+    rascunho
+  );
+
+  return {
+    ...rascunho,
+    versaoPublicada,
+    alteracoesNaoPublicadas:
+      JSON.stringify(rascunho) !== JSON.stringify(versaoPublicada),
+    historicoVersoes: Array.isArray(config.historicoVersoes)
+      ? config.historicoVersoes
+          .slice(0, 10)
+          .map((versao) =>
+            normalizarLandingPagePublicavelConfig(versao, versaoPublicada)
+          )
+      : [],
   };
 }
 
@@ -776,11 +883,21 @@ export default function PublicLandingPage() {
     () => normalizarLandingPageConfig(empresa?.landing_page_config),
     [empresa?.landing_page_config]
   );
+  const landingPagePublica = useMemo(
+    () =>
+      landingPage.versaoPublicada
+        ? {
+            ...landingPage,
+            ...landingPage.versaoPublicada,
+          }
+        : landingPage,
+    [landingPage]
+  );
 
   useEffect(() => {
     if (!empresa) return;
 
-    const seo = criarSeoLandingPage(empresa, landingPage);
+    const seo = criarSeoLandingPage(empresa, landingPagePublica);
 
     document.title = seo.titulo;
     atualizarMetaSeo("name", "description", seo.descricao);
@@ -790,7 +907,7 @@ export default function PublicLandingPage() {
     atualizarMetaSeo("property", "og:image", seo.imagem);
     atualizarMetaSeo("property", "og:type", "website");
     atualizarMetaSeo("property", "og:url", seo.urlPublica);
-  }, [empresa, landingPage]);
+  }, [empresa, landingPagePublica]);
 
   if (carregando) {
     return (
@@ -813,7 +930,7 @@ export default function PublicLandingPage() {
   return (
     <PublicLandingPageContent
       empresa={empresa}
-      landingPage={landingPage}
+      landingPage={landingPagePublica}
     />
   );
 }

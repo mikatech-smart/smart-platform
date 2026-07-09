@@ -312,7 +312,15 @@ type LandingPageConfig = {
   seo: LandingPageSeoConfig;
   ordemSecoes: LandingPageSecaoConteudoId[];
   visibilidadeSecoes: Record<LandingPageSecaoConteudoId, boolean>;
+  versaoPublicada: LandingPagePublicavelConfig | null;
+  alteracoesNaoPublicadas: boolean;
+  historicoVersoes: LandingPagePublicavelConfig[];
 };
+
+type LandingPagePublicavelConfig = Omit<
+  LandingPageConfig,
+  "versaoPublicada" | "alteracoesNaoPublicadas" | "historicoVersoes"
+>;
 
 type LandingPageSectionProps = {
   nome: string;
@@ -829,7 +837,7 @@ const landingPageTemplates: LandingPageTemplateConfig[] = [
 ];
 
 function criarLandingPageConfigPadrao(): LandingPageConfig {
-  return {
+  const rascunhoPadrao: LandingPagePublicavelConfig = {
     publicada: false,
     hero: { ...landingPageHeroPadrao },
     sobre: { ...landingPageSobrePadrao },
@@ -843,6 +851,13 @@ function criarLandingPageConfigPadrao(): LandingPageConfig {
     seo: { ...landingPageSeoPadrao },
     ordemSecoes: [...landingPageOrdemSecoesPadrao],
     visibilidadeSecoes: { ...landingPageVisibilidadeSecoesPadrao },
+  };
+
+  return {
+    ...rascunhoPadrao,
+    versaoPublicada: { ...rascunhoPadrao },
+    alteracoesNaoPublicadas: false,
+    historicoVersoes: [],
   };
 }
 
@@ -940,6 +955,85 @@ function normalizarVisibilidadeSecoesLanding(
   );
 }
 
+function criarLandingPagePublicavel(config: LandingPagePublicavelConfig) {
+  return {
+    publicada: config.publicada,
+    hero: { ...config.hero },
+    sobre: { ...config.sobre },
+    servicos: config.servicos.map((servico) => ({ ...servico })),
+    galeria: config.galeria.map((imagem) => ({ ...imagem })),
+    depoimentos: config.depoimentos.map((depoimento) => ({ ...depoimento })),
+    contato: { ...config.contato },
+    cta: { ...config.cta },
+    seo: { ...config.seo },
+    ordemSecoes: [...config.ordemSecoes],
+    visibilidadeSecoes: { ...config.visibilidadeSecoes },
+  };
+}
+
+function normalizarLandingPagePublicavelConfig(
+  valor: unknown,
+  fallback: LandingPagePublicavelConfig
+): LandingPagePublicavelConfig {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return criarLandingPagePublicavel(fallback);
+  }
+
+  const config = valor as Partial<Record<keyof LandingPagePublicavelConfig, unknown>>;
+  const objetoRecebido = valor as Record<string, unknown>;
+
+  return {
+    publicada: lerCampoBooleano(objetoRecebido, "publicada"),
+    hero: normalizarObjetoLanding(config.hero, fallback.hero, [
+      "titulo",
+      "subtitulo",
+      "botaoTexto",
+      "botaoLink",
+      "imagemDestaque",
+    ]),
+    sobre: normalizarObjetoLanding(config.sobre, fallback.sobre, [
+      "titulo",
+      "texto",
+      "imagem",
+    ]),
+    servicos: normalizarListaLanding(config.servicos, fallback.servicos, [
+      "titulo",
+      "descricao",
+    ]),
+    galeria: normalizarListaLanding(config.galeria, fallback.galeria, [
+      "url",
+      "alt",
+    ]),
+    depoimentos: normalizarListaLanding(
+      config.depoimentos,
+      fallback.depoimentos,
+      ["nome", "cargoEmpresa", "texto"]
+    ),
+    contato: normalizarObjetoLanding(config.contato, fallback.contato, [
+      "telefone",
+      "whatsapp",
+      "email",
+      "endereco",
+    ]),
+    cta: normalizarObjetoLanding(config.cta, fallback.cta, [
+      "titulo",
+      "texto",
+      "botaoTexto",
+      "botaoLink",
+    ]),
+    seo: normalizarObjetoLanding(config.seo, fallback.seo, [
+      "titulo",
+      "descricao",
+      "palavrasChave",
+      "imagemCompartilhamento",
+    ]),
+    ordemSecoes: normalizarOrdemSecoesLanding(config.ordemSecoes),
+    visibilidadeSecoes: normalizarVisibilidadeSecoesLanding(
+      config.visibilidadeSecoes
+    ),
+  };
+}
+
 function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
   const configPadrao = criarLandingPageConfigPadrao();
 
@@ -950,7 +1044,7 @@ function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
   const configRecebida = valor as Partial<Record<keyof LandingPageConfig, unknown>>;
   const objetoRecebido = valor as Record<string, unknown>;
 
-  return {
+  const rascunho: LandingPagePublicavelConfig = {
     publicada: lerCampoBooleano(objetoRecebido, "publicada"),
     hero: normalizarObjetoLanding(
       configRecebida.hero,
@@ -996,6 +1090,24 @@ function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
     visibilidadeSecoes: normalizarVisibilidadeSecoesLanding(
       configRecebida.visibilidadeSecoes
     ),
+  };
+  const versaoPublicada = normalizarLandingPagePublicavelConfig(
+    configRecebida.versaoPublicada,
+    rascunho
+  );
+
+  return {
+    ...rascunho,
+    versaoPublicada,
+    alteracoesNaoPublicadas:
+      JSON.stringify(rascunho) !== JSON.stringify(versaoPublicada),
+    historicoVersoes: Array.isArray(configRecebida.historicoVersoes)
+      ? configRecebida.historicoVersoes
+          .slice(0, 10)
+          .map((versao) =>
+            normalizarLandingPagePublicavelConfig(versao, versaoPublicada)
+          )
+      : [],
   };
 }
 
@@ -2506,6 +2618,12 @@ export default function EmpresaForm({
     useState<Record<LandingPageSecaoConteudoId, boolean>>(() => ({
       ...landingPageVisibilidadeSecoesPadrao,
     }));
+  const [landingPageVersaoPublicada, setLandingPageVersaoPublicada] =
+    useState<LandingPagePublicavelConfig>(() =>
+      criarLandingPagePublicavel(criarLandingPageConfigPadrao())
+    );
+  const [landingPageHistoricoVersoes, setLandingPageHistoricoVersoes] =
+    useState<LandingPagePublicavelConfig[]>([]);
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -2647,6 +2765,11 @@ export default function EmpresaForm({
     setLandingPageSeo(landingPageConfig.seo);
     setLandingPageOrdemSecoes(landingPageConfig.ordemSecoes);
     setLandingPageVisibilidadeSecoes(landingPageConfig.visibilidadeSecoes);
+    setLandingPageVersaoPublicada(
+      landingPageConfig.versaoPublicada ||
+        criarLandingPagePublicavel(landingPageConfig)
+    );
+    setLandingPageHistoricoVersoes(landingPageConfig.historicoVersoes);
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
 
@@ -3059,6 +3182,106 @@ export default function EmpresaForm({
     }));
   }
 
+  function montarLandingPageRascunho(): LandingPagePublicavelConfig {
+    return {
+      publicada: landingPagePublicada,
+      hero: landingPageHero,
+      sobre: landingPageSobre,
+      servicos: landingPageServicos.slice(0, 6),
+      galeria: landingPageGaleria.slice(0, 6),
+      depoimentos: landingPageDepoimentos.slice(0, 6),
+      contato: landingPageContato,
+      cta: landingPageCta,
+      seo: landingPageSeo,
+      ordemSecoes: landingPageOrdemSecoes,
+      visibilidadeSecoes: landingPageVisibilidadeSecoes,
+    };
+  }
+
+  function montarLandingPageConfig(
+    versaoPublicada = landingPageVersaoPublicada,
+    historicoVersoes = landingPageHistoricoVersoes
+  ): LandingPageConfig {
+    const rascunho = montarLandingPageRascunho();
+
+    return {
+      ...rascunho,
+      versaoPublicada,
+      alteracoesNaoPublicadas:
+        JSON.stringify(rascunho) !== JSON.stringify(versaoPublicada),
+      historicoVersoes,
+    };
+  }
+
+  function aplicarLandingPagePublicavel(config: LandingPagePublicavelConfig) {
+    setLandingPagePublicada(config.publicada);
+    setLandingPageHero(config.hero);
+    setLandingPageSobre(config.sobre);
+    setLandingPageServicos(config.servicos);
+    setLandingPageGaleria(config.galeria);
+    setLandingPageDepoimentos(config.depoimentos);
+    setLandingPageContato(config.contato);
+    setLandingPageCta(config.cta);
+    setLandingPageSeo(config.seo);
+    setLandingPageOrdemSecoes(config.ordemSecoes);
+    setLandingPageVisibilidadeSecoes(config.visibilidadeSecoes);
+  }
+
+  async function publicarLandingPageAlteracoes() {
+    if (!empresaId) {
+      alert("Empresa ainda nao foi carregada. Tente novamente.");
+      return;
+    }
+
+    const novaVersaoPublicada = criarLandingPagePublicavel(
+      montarLandingPageRascunho()
+    );
+    const novoHistorico = [
+      landingPageVersaoPublicada,
+      ...landingPageHistoricoVersoes,
+    ].slice(0, 10);
+    const landingPageConfig = montarLandingPageConfig(
+      novaVersaoPublicada,
+      novoHistorico
+    );
+    const { error } = await atualizarEmpresa(empresaId, {
+      landing_page_config: landingPageConfig,
+    } as Parameters<typeof atualizarEmpresa>[1]);
+
+    if (error) {
+      alert(error.message || "Erro ao publicar alteracoes.");
+      return;
+    }
+
+    setLandingPageVersaoPublicada(novaVersaoPublicada);
+    setLandingPageHistoricoVersoes(novoHistorico);
+    alert("Alteracoes publicadas com sucesso!");
+  }
+
+  async function descartarLandingPageAlteracoes() {
+    if (!window.confirm("Descartar as alteracoes do rascunho e voltar para a versao publicada?")) {
+      return;
+    }
+
+    aplicarLandingPagePublicavel(landingPageVersaoPublicada);
+
+    if (!empresaId) return;
+
+    const landingPageConfig: LandingPageConfig = {
+      ...landingPageVersaoPublicada,
+      versaoPublicada: landingPageVersaoPublicada,
+      alteracoesNaoPublicadas: false,
+      historicoVersoes: landingPageHistoricoVersoes,
+    };
+    const { error } = await atualizarEmpresa(empresaId, {
+      landing_page_config: landingPageConfig,
+    } as Parameters<typeof atualizarEmpresa>[1]);
+
+    if (error) {
+      alert(error.message || "Erro ao descartar alteracoes.");
+    }
+  }
+
   async function salvar() {
     const slugFinal = gerarSlug(slugAdmin || slug);
 
@@ -3074,19 +3297,7 @@ export default function EmpresaForm({
 
     const whatsappLocal = obterTelefoneLocal(whatsapp);
     const telefoneLocal = obterTelefoneLocal(telefone);
-    const landingPageConfig: LandingPageConfig = {
-      publicada: landingPagePublicada,
-      hero: landingPageHero,
-      sobre: landingPageSobre,
-      servicos: landingPageServicos.slice(0, 6),
-      galeria: landingPageGaleria.slice(0, 6),
-      depoimentos: landingPageDepoimentos.slice(0, 6),
-      contato: landingPageContato,
-      cta: landingPageCta,
-      seo: landingPageSeo,
-      ordemSecoes: landingPageOrdemSecoes,
-      visibilidadeSecoes: landingPageVisibilidadeSecoes,
-    };
+    const landingPageConfig = montarLandingPageConfig();
 
     if (whatsappLocal && whatsappLocal.length < 10) {
       alert("Informe um WhatsApp válido com DDD.");
@@ -3354,19 +3565,12 @@ export default function EmpresaForm({
   }
 
   const contextoLandingPageIa = montarContextoLandingPageIa();
-  const landingPagePreviewConfig: LandingPageConfig = {
-    publicada: true,
-    hero: landingPageHero,
-    sobre: landingPageSobre,
-    servicos: landingPageServicos.slice(0, 6),
-    galeria: landingPageGaleria.slice(0, 6),
-    depoimentos: landingPageDepoimentos.slice(0, 6),
-    contato: landingPageContato,
-    cta: landingPageCta,
-    seo: landingPageSeo,
-    ordemSecoes: landingPageOrdemSecoes,
-    visibilidadeSecoes: landingPageVisibilidadeSecoes,
-  };
+  const landingPageRascunhoAtual = montarLandingPageRascunho();
+  const possuiAlteracoesNaoPublicadas =
+    JSON.stringify(landingPageRascunhoAtual) !==
+    JSON.stringify(landingPageVersaoPublicada);
+  const landingPagePublicadaEfetiva = landingPageVersaoPublicada.publicada;
+  const landingPagePreviewConfig = montarLandingPageConfig();
   const empresaLandingPreview: EmpresaLanding = {
     id: empresaId || "preview",
     nome: nome || "Landing Page",
@@ -3536,7 +3740,7 @@ export default function EmpresaForm({
             slug={slugPublico}
             nomeEmpresa={nome}
             landingPageContratada={recursosContratados.landing_page}
-            landingPagePublicada={landingPagePublicada}
+            landingPagePublicada={landingPagePublicadaEfetiva}
           />
 
         </>
@@ -3704,6 +3908,38 @@ export default function EmpresaForm({
                       </span>
                     </span>
                   </label>
+
+                  {possuiAlteracoesNaoPublicadas && (
+                    <div className="mt-4 rounded-2xl border border-amber-200 bg-white/80 p-3">
+                      <p className="text-sm font-bold text-amber-800">
+                        Existem alteracoes nao publicadas.
+                      </p>
+
+                      <p className="mt-1 text-sm leading-6 text-amber-700">
+                        O preview mostra o rascunho. A Landing Page publica continua usando a ultima versao publicada.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                    <button
+                      type="button"
+                      disabled={!recursosContratados.landing_page}
+                      onClick={publicarLandingPageAlteracoes}
+                      className="rounded-xl bg-green-700 px-4 py-2 text-sm font-bold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                    >
+                      Publicar alteracoes
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={!possuiAlteracoesNaoPublicadas}
+                      onClick={descartarLandingPageAlteracoes}
+                      className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Descartar alteracoes
+                    </button>
+                  </div>
                 </div>
 
                 <button
