@@ -15,9 +15,10 @@ import "./QRCodeEmpresa.css";
 interface QRCodeEmpresaProps {
   slug: string;
   nomeEmpresa?: string;
+  landingPagePublicada?: boolean;
 }
 
-type LinkCompartilhamentoId = "publico" | "painel" | "nfc";
+type LinkCompartilhamentoId = "publico" | "painel" | "nfc" | "landing";
 
 interface RecursoCompartilhamento {
   id: LinkCompartilhamentoId;
@@ -32,6 +33,7 @@ interface RecursoCompartilhamento {
 export default function QRCodeEmpresa({
   slug,
   nomeEmpresa,
+  landingPagePublicada = false,
 }: QRCodeEmpresaProps) {
   const [copiado, setCopiado] = useState<LinkCompartilhamentoId | null>(null);
   const [baixando, setBaixando] = useState(false);
@@ -42,6 +44,10 @@ export default function QRCodeEmpresa({
 
   const painelClienteUrl = useMemo(() => {
     return `https://smart.mikatech.com.br/painel/${slug}`;
+  }, [slug]);
+
+  const landingPageUrl = useMemo(() => {
+    return `https://smart.mikatech.com.br/landing/${slug}`;
   }, [slug]);
 
   const qrCodeUrl = useMemo(() => {
@@ -87,6 +93,17 @@ export default function QRCodeEmpresa({
         abrir: true,
       },
       {
+        id: "landing",
+        titulo: "Landing Page",
+        descricao: landingPagePublicada
+          ? "Link publico da Landing Page publicada."
+          : "Link preparado. Ao acessar, o cliente vera a mensagem de pagina nao publicada.",
+        rotuloUrl: "URL da landing",
+        url: landingPageUrl,
+        icon: <Globe size={20} />,
+        abrir: true,
+      },
+      {
         id: "nfc",
         titulo: "Link para NFC",
         descricao: "Grave este link na tag NFC para abrir a página pública.",
@@ -95,7 +112,7 @@ export default function QRCodeEmpresa({
         icon: <Radio size={20} />,
       },
     ],
-    [painelClienteUrl, publicUrl]
+    [landingPagePublicada, landingPageUrl, painelClienteUrl, publicUrl]
   );
 
   async function copiarLink(tipo: LinkCompartilhamentoId, url: string) {
@@ -192,7 +209,7 @@ export default function QRCodeEmpresa({
                   className="qr-code-empresa__button qr-code-empresa__button--primary"
                 >
                   <ExternalLink size={18} />
-                  Abrir
+                  {recurso.id === "landing" ? "Abrir Landing Page" : "Abrir"}
                 </a>
               )}
 
@@ -202,7 +219,7 @@ export default function QRCodeEmpresa({
                 className="qr-code-empresa__button"
               >
                 <Copy size={18} />
-                Copiar
+                {recurso.id === "landing" ? "Copiar link" : "Copiar"}
               </button>
             </div>
 
@@ -251,7 +268,7 @@ export default function QRCodeEmpresa({
         <section className="qr-code-empresa__card qr-code-empresa__card--disabled">
           <div className="qr-code-empresa__section-title">
             <Lock size={20} />
-            <h4>Landing Page</h4>
+            <h4>Dominio Personalizado</h4>
           </div>
 
           <p>Recurso reservado para um módulo futuro.</p>

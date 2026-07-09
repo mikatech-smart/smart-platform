@@ -51,6 +51,7 @@ type LandingPageCtaConfig = {
 };
 
 type LandingPageConfig = {
+  publicada: boolean;
   hero: LandingPageHeroConfig;
   sobre: LandingPageSobreConfig;
   servicos: LandingPageServicoConfig[];
@@ -79,6 +80,7 @@ type EmpresaLanding = Empresa & {
 };
 
 const landingPageConfigPadrao: LandingPageConfig = {
+  publicada: false,
   hero: {
     titulo: "",
     subtitulo: "",
@@ -126,6 +128,10 @@ const landingPageConfigPadrao: LandingPageConfig = {
 
 function texto(valor: unknown) {
   return typeof valor === "string" ? valor : "";
+}
+
+function booleano(valor: unknown) {
+  return typeof valor === "boolean" ? valor : false;
 }
 
 function temTexto(...valores: string[]) {
@@ -176,6 +182,7 @@ function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
   const config = valor as Partial<Record<keyof LandingPageConfig, unknown>>;
 
   return {
+    publicada: booleano((valor as Record<string, unknown>).publicada),
     hero: normalizarObjeto(config.hero, landingPageConfigPadrao.hero, [
       "titulo",
       "subtitulo",
@@ -376,8 +383,6 @@ export default function PublicLandingPage() {
     depoimentos.length > 0 ||
     contatoVisivel ||
     ctaVisivel;
-  const landingContratada =
-    empresa.recursos_contratados?.landing_page === true;
   const estiloAparencia = criarEstiloAparencia(empresa);
   const whatsappLink = criarWhatsappLink(contato.whatsapp);
   const mapsLink = criarMapsLink(contato.endereco);
@@ -386,7 +391,7 @@ export default function PublicLandingPage() {
     empresa.logo_exibicao !== "hidden" &&
     empresa.logo_exibicao !== "oculto";
 
-  if (!landingContratada || !possuiConteudo) {
+  if (!landingPage.publicada || !possuiConteudo) {
     return (
       <main className="public-landing public-landing--center" style={estiloAparencia}>
         <section className="public-landing-message">
@@ -398,7 +403,7 @@ export default function PublicLandingPage() {
             />
           )}
 
-          <h1>Landing Page ainda nao publicada</h1>
+          <h1>Landing Page não publicada</h1>
           <p>
             {empresa.nome} ainda esta preparando esta pagina. Volte em breve.
           </p>

@@ -277,6 +277,7 @@ type LandingPageCtaConfig = {
 };
 
 type LandingPageConfig = {
+  publicada: boolean;
   hero: LandingPageHeroConfig;
   sobre: LandingPageSobreConfig;
   servicos: LandingPageServicoConfig[];
@@ -463,6 +464,7 @@ const landingPageCtaExemplo: LandingPageCtaConfig = {
 
 function criarLandingPageConfigPadrao(): LandingPageConfig {
   return {
+    publicada: false,
     hero: { ...landingPageHeroPadrao },
     sobre: { ...landingPageSobrePadrao },
     servicos: landingPageServicosPadrao.map((servico) => ({ ...servico })),
@@ -479,6 +481,12 @@ function lerCampoTexto(objeto: Record<string, unknown>, campo: string) {
   const valor = objeto[campo];
 
   return typeof valor === "string" ? valor : "";
+}
+
+function lerCampoBooleano(objeto: Record<string, unknown>, campo: string) {
+  const valor = objeto[campo];
+
+  return typeof valor === "boolean" ? valor : false;
 }
 
 function normalizarObjetoLanding<T extends Record<string, string>>(
@@ -525,8 +533,10 @@ function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
   }
 
   const configRecebida = valor as Partial<Record<keyof LandingPageConfig, unknown>>;
+  const objetoRecebido = valor as Record<string, unknown>;
 
   return {
+    publicada: lerCampoBooleano(objetoRecebido, "publicada"),
     hero: normalizarObjetoLanding(
       configRecebida.hero,
       landingPageHeroPadrao,
@@ -2071,6 +2081,7 @@ export default function EmpresaForm({
     useState<RecursosContratados>(() => ({ ...recursosPadrao }));
   const [landingPagePlaceholderAberto, setLandingPagePlaceholderAberto] =
     useState(false);
+  const [landingPagePublicada, setLandingPagePublicada] = useState(false);
   const [landingPageSecaoAtiva, setLandingPageSecaoAtiva] =
     useState<LandingPageSecaoId>("hero");
   const [landingPageHero, setLandingPageHero] =
@@ -2222,6 +2233,7 @@ export default function EmpresaForm({
       normalizarRecursos(dadosComPlano.recursos_contratados)
     );
     setLandingPagePlaceholderAberto(false);
+    setLandingPagePublicada(landingPageConfig.publicada);
     setLandingPageSecaoAtiva("hero");
     setLandingPageHero(landingPageConfig.hero);
     setLandingPageSobre(landingPageConfig.sobre);
@@ -2582,6 +2594,7 @@ export default function EmpresaForm({
     const whatsappLocal = obterTelefoneLocal(whatsapp);
     const telefoneLocal = obterTelefoneLocal(telefone);
     const landingPageConfig: LandingPageConfig = {
+      publicada: landingPagePublicada,
       hero: landingPageHero,
       sobre: landingPageSobre,
       servicos: landingPageServicos.slice(0, 6),
@@ -2959,6 +2972,7 @@ export default function EmpresaForm({
           <QRCodeEmpresa
             slug={slugPublico}
             nomeEmpresa={nome}
+            landingPagePublicada={landingPagePublicada}
           />
 
         </>
@@ -3080,7 +3094,7 @@ export default function EmpresaForm({
           <div className="space-y-5">
             <div
               className={`rounded-2xl border p-4 ${
-                recursosContratados.landing_page
+                recursosContratados.landing_page && landingPagePublicada
                   ? "border-green-200 bg-green-50"
                   : "border-amber-200 bg-amber-50"
               }`}
@@ -3089,7 +3103,7 @@ export default function EmpresaForm({
                 <div className="min-w-0">
                   <span
                     className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
-                      recursosContratados.landing_page
+                      recursosContratados.landing_page && landingPagePublicada
                         ? "bg-green-700 text-white"
                         : "bg-amber-100 text-amber-700"
                     }`}
@@ -3106,6 +3120,26 @@ export default function EmpresaForm({
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
                     Este modulo foi preparado para funcionar separado da Pagina Publica, com estrutura propria para campanhas, dominios personalizados e leitura de resultados.
                   </p>
+
+                  <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-2xl border border-white/70 bg-white/70 p-3">
+                    <input
+                      type="checkbox"
+                      checked={landingPagePublicada}
+                      disabled={!recursosContratados.landing_page}
+                      onChange={(e) => setLandingPagePublicada(e.target.checked)}
+                      className="h-5 w-5"
+                    />
+
+                    <span>
+                      <span className="block font-bold text-slate-900">
+                        Publicar Landing Page
+                      </span>
+
+                      <span className="block text-sm leading-6 text-slate-600">
+                        Quando desligada, o link publico mostra "Landing Page não publicada".
+                      </span>
+                    </span>
+                  </label>
                 </div>
 
                 <button
