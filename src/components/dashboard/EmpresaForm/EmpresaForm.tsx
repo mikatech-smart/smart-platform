@@ -240,12 +240,20 @@ type LandingPageHeroConfig = {
   imagemDestaque: string;
 };
 
+type LandingPageSobreConfig = {
+  titulo: string;
+  texto: string;
+  imagem: string;
+};
+
 type LandingPageSectionProps = {
   nome: string;
   descricao: string;
   landingPageContratada: boolean;
   hero: LandingPageHeroConfig;
+  sobre: LandingPageSobreConfig;
   onHeroChange: (campo: keyof LandingPageHeroConfig, valor: string) => void;
+  onSobreChange: (campo: keyof LandingPageSobreConfig, valor: string) => void;
 };
 
 type LandingPageSecaoConfig = {
@@ -271,6 +279,19 @@ const landingPageHeroExemplo: LandingPageHeroConfig = {
   botaoTexto: "Falar agora",
   botaoLink: "#contato",
   imagemDestaque: "",
+};
+
+const landingPageSobrePadrao: LandingPageSobreConfig = {
+  titulo: "",
+  texto: "",
+  imagem: "",
+};
+
+const landingPageSobreExemplo: LandingPageSobreConfig = {
+  titulo: "Sobre a empresa",
+  texto:
+    "Apresente sua historia, seus diferenciais e o motivo pelo qual clientes devem escolher sua empresa.",
+  imagem: "",
 };
 
 function LandingPageSectionPlaceholder({
@@ -378,8 +399,72 @@ function LandingHeroSection({
   );
 }
 
-function LandingSobreSection(props: LandingPageSectionProps) {
-  return <LandingPageSectionPlaceholder {...props} />;
+function LandingSobreSection({
+  landingPageContratada,
+  sobre,
+  onSobreChange,
+}: LandingPageSectionProps) {
+  const camposDesabilitados = !landingPageContratada;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+            Sobre
+          </p>
+
+          <h4 className="mt-2 text-lg font-bold text-slate-900">
+            Sobre a Empresa
+          </h4>
+
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Conte a historia e destaque os diferenciais da empresa.
+          </p>
+        </div>
+
+        {!landingPageContratada && (
+          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
+            Não contratado
+          </span>
+        )}
+      </div>
+
+      <fieldset
+        disabled={camposDesabilitados}
+        className="mt-5 grid gap-4 disabled:opacity-60"
+      >
+        <Input
+          label="Título"
+          value={sobre.titulo}
+          onChange={(e) => onSobreChange("titulo", e.target.value)}
+          placeholder={landingPageSobreExemplo.titulo}
+        />
+
+        <div>
+          <label className="block font-medium text-slate-700">
+            Texto descritivo
+          </label>
+
+          <textarea
+            value={sobre.texto}
+            onChange={(e) => onSobreChange("texto", e.target.value)}
+            placeholder={landingPageSobreExemplo.texto}
+            rows={5}
+            className="mt-1 w-full resize-none rounded-xl border border-slate-200 px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+          />
+        </div>
+
+        <Input
+          label="Imagem"
+          value={sobre.imagem}
+          onChange={(e) => onSobreChange("imagem", e.target.value)}
+          placeholder="https://exemplo.com/sobre.jpg"
+          helperText="Informe a URL da imagem. Upload e biblioteca de midia ficam para uma sprint futura."
+        />
+      </fieldset>
+    </div>
+  );
 }
 
 function LandingServicosSection(props: LandingPageSectionProps) {
@@ -471,11 +556,13 @@ function LandingPagePreviewPlaceholder({
   nomeEmpresa,
   secaoAtiva,
   hero,
+  sobre,
 }: {
   secoes: LandingPageSecaoConfig[];
   nomeEmpresa: string;
   secaoAtiva: LandingPageSecaoId;
   hero: LandingPageHeroConfig;
+  sobre: LandingPageSobreConfig;
 }) {
   const heroPreview = {
     titulo: hero.titulo.trim() || landingPageHeroExemplo.titulo,
@@ -483,6 +570,11 @@ function LandingPagePreviewPlaceholder({
     botaoTexto: hero.botaoTexto.trim() || landingPageHeroExemplo.botaoTexto,
     botaoLink: hero.botaoLink.trim() || landingPageHeroExemplo.botaoLink,
     imagemDestaque: hero.imagemDestaque.trim(),
+  };
+  const sobrePreview = {
+    titulo: sobre.titulo.trim() || landingPageSobreExemplo.titulo,
+    texto: sobre.texto.trim() || landingPageSobreExemplo.texto,
+    imagem: sobre.imagem.trim(),
   };
 
   return (
@@ -525,6 +617,34 @@ function LandingPagePreviewPlaceholder({
         <p className="mt-3 text-xs font-semibold text-slate-500">
           {nomeEmpresa || "Landing Page"}
         </p>
+        </div>
+      </div>
+
+      <div className="mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        {sobrePreview.imagem ? (
+          <img
+            src={sobrePreview.imagem}
+            alt=""
+            className="h-28 w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-28 items-center justify-center bg-slate-100 px-4 text-center text-sm font-semibold text-slate-400">
+            Imagem da seção Sobre
+          </div>
+        )}
+
+        <div className="p-4">
+          <p className="text-xs font-bold uppercase tracking-wide text-green-700">
+            Sobre
+          </p>
+
+          <h4 className="mt-2 text-lg font-bold text-slate-900">
+            {sobrePreview.titulo}
+          </h4>
+
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            {sobrePreview.texto}
+          </p>
         </div>
       </div>
 
@@ -938,6 +1058,8 @@ export default function EmpresaForm({
     useState<LandingPageSecaoId>("hero");
   const [landingPageHero, setLandingPageHero] =
     useState<LandingPageHeroConfig>(() => ({ ...landingPageHeroPadrao }));
+  const [landingPageSobre, setLandingPageSobre] =
+    useState<LandingPageSobreConfig>(() => ({ ...landingPageSobrePadrao }));
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -1065,6 +1187,7 @@ export default function EmpresaForm({
     setLandingPagePlaceholderAberto(false);
     setLandingPageSecaoAtiva("hero");
     setLandingPageHero({ ...landingPageHeroPadrao });
+    setLandingPageSobre({ ...landingPageSobrePadrao });
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
 
@@ -1247,6 +1370,16 @@ export default function EmpresaForm({
   ) {
     setLandingPageHero((heroAtual) => ({
       ...heroAtual,
+      [campo]: valor,
+    }));
+  }
+
+  function atualizarLandingPageSobre(
+    campo: keyof LandingPageSobreConfig,
+    valor: string
+  ) {
+    setLandingPageSobre((sobreAtual) => ({
+      ...sobreAtual,
       [campo]: valor,
     }));
   }
@@ -1864,7 +1997,9 @@ export default function EmpresaForm({
                               recursosContratados.landing_page
                             }
                             hero={landingPageHero}
+                            sobre={landingPageSobre}
                             onHeroChange={atualizarLandingPageHero}
+                            onSobreChange={atualizarLandingPageSobre}
                           />
                         );
                       })}
@@ -1892,6 +2027,7 @@ export default function EmpresaForm({
                     nomeEmpresa={nome}
                     secaoAtiva={landingPageSecaoAtiva}
                     hero={landingPageHero}
+                    sobre={landingPageSobre}
                   />
                 </div>
               </div>
