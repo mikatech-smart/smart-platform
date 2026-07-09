@@ -72,11 +72,36 @@
   color: #64748b;
 }
 
+.qr-code-empresa__card--landing {
+  border-color: #bbf7d0;
+  background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%);
+}
+
 .qr-code-empresa__section-title {
   display: flex;
   align-items: center;
   gap: 10px;
   color: #166534;
+}
+
+.qr-code-empresa__status {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.qr-code-empresa__status--published {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.qr-code-empresa__status--draft {
+  background: #fef3c7;
+  color: #92400e;
 }
 
 .qr-code-empresa__url-box {

@@ -15,6 +15,7 @@ import "./QRCodeEmpresa.css";
 interface QRCodeEmpresaProps {
   slug: string;
   nomeEmpresa?: string;
+  landingPageContratada?: boolean;
   landingPagePublicada?: boolean;
 }
 
@@ -33,6 +34,7 @@ interface RecursoCompartilhamento {
 export default function QRCodeEmpresa({
   slug,
   nomeEmpresa,
+  landingPageContratada = false,
   landingPagePublicada = false,
 }: QRCodeEmpresaProps) {
   const [copiado, setCopiado] = useState<LinkCompartilhamentoId | null>(null);
@@ -186,12 +188,34 @@ export default function QRCodeEmpresa({
       </div>
 
       <div className="qr-code-empresa__grid">
-        {recursosCompartilhamento.map((recurso) => (
-          <section className="qr-code-empresa__card" key={recurso.id}>
+        {recursosCompartilhamento.map((recurso) => {
+          if (recurso.id === "landing" && !landingPageContratada) {
+            return null;
+          }
+
+          return (
+          <section
+            className={`qr-code-empresa__card ${
+              recurso.id === "landing" ? "qr-code-empresa__card--landing" : ""
+            }`}
+            key={recurso.id}
+          >
             <div className="qr-code-empresa__section-title">
               {recurso.icon}
               <h4>{recurso.titulo}</h4>
             </div>
+
+            {recurso.id === "landing" && (
+              <span
+                className={`qr-code-empresa__status ${
+                  landingPagePublicada
+                    ? "qr-code-empresa__status--published"
+                    : "qr-code-empresa__status--draft"
+                }`}
+              >
+                {landingPagePublicada ? "Publicada" : "Não publicada"}
+              </span>
+            )}
 
             <p>{recurso.descricao}</p>
 
@@ -209,7 +233,7 @@ export default function QRCodeEmpresa({
                   className="qr-code-empresa__button qr-code-empresa__button--primary"
                 >
                   <ExternalLink size={18} />
-                  {recurso.id === "landing" ? "Abrir Landing Page" : "Abrir"}
+                  Abrir
                 </a>
               )}
 
@@ -229,7 +253,8 @@ export default function QRCodeEmpresa({
               </p>
             )}
           </section>
-        ))}
+          );
+        })}
 
         <section className="qr-code-empresa__card qr-code-empresa__qr-card">
           <div className="qr-code-empresa__section-title">
@@ -265,14 +290,20 @@ export default function QRCodeEmpresa({
           </div>
         </section>
 
+        {!landingPageContratada && (
         <section className="qr-code-empresa__card qr-code-empresa__card--disabled">
           <div className="qr-code-empresa__section-title">
             <Lock size={20} />
-            <h4>Dominio Personalizado</h4>
+            <h4>
+              {landingPageContratada
+                ? "Dominio Personalizado"
+                : "Landing Page não contratada"}
+            </h4>
           </div>
 
           <p>Recurso reservado para um módulo futuro.</p>
         </section>
+        )}
 
         <section className="qr-code-empresa__card qr-code-empresa__card--disabled">
           <div className="qr-code-empresa__section-title">

@@ -2972,6 +2972,7 @@ export default function EmpresaForm({
           <QRCodeEmpresa
             slug={slugPublico}
             nomeEmpresa={nome}
+            landingPageContratada={recursosContratados.landing_page}
             landingPagePublicada={landingPagePublicada}
           />
 
