@@ -230,7 +230,8 @@ type LandingPageSecaoId =
   | "galeria"
   | "depoimentos"
   | "contato"
-  | "cta";
+  | "cta"
+  | "seo";
 
 type LandingPageHeroConfig = {
   titulo: string;
@@ -276,6 +277,13 @@ type LandingPageCtaConfig = {
   botaoLink: string;
 };
 
+type LandingPageSeoConfig = {
+  titulo: string;
+  descricao: string;
+  palavrasChave: string;
+  imagemCompartilhamento: string;
+};
+
 type LandingPageConfig = {
   publicada: boolean;
   hero: LandingPageHeroConfig;
@@ -285,6 +293,7 @@ type LandingPageConfig = {
   depoimentos: LandingPageDepoimentoConfig[];
   contato: LandingPageContatoConfig;
   cta: LandingPageCtaConfig;
+  seo: LandingPageSeoConfig;
 };
 
 type LandingPageSectionProps = {
@@ -298,6 +307,7 @@ type LandingPageSectionProps = {
   depoimentos: LandingPageDepoimentoConfig[];
   contato: LandingPageContatoConfig;
   cta: LandingPageCtaConfig;
+  seo: LandingPageSeoConfig;
   onHeroChange: (campo: keyof LandingPageHeroConfig, valor: string) => void;
   onSobreChange: (campo: keyof LandingPageSobreConfig, valor: string) => void;
   onServicoChange: (
@@ -323,6 +333,7 @@ type LandingPageSectionProps = {
   onDepoimentoRemove: (indice: number) => void;
   onContatoChange: (campo: keyof LandingPageContatoConfig, valor: string) => void;
   onCtaChange: (campo: keyof LandingPageCtaConfig, valor: string) => void;
+  onSeoChange: (campo: keyof LandingPageSeoConfig, valor: string) => void;
 };
 
 type LandingPageSecaoConfig = {
@@ -462,6 +473,13 @@ const landingPageCtaExemplo: LandingPageCtaConfig = {
   botaoLink: "#contato",
 };
 
+const landingPageSeoPadrao: LandingPageSeoConfig = {
+  titulo: "",
+  descricao: "",
+  palavrasChave: "",
+  imagemCompartilhamento: "",
+};
+
 function criarLandingPageConfigPadrao(): LandingPageConfig {
   return {
     publicada: false,
@@ -474,6 +492,7 @@ function criarLandingPageConfigPadrao(): LandingPageConfig {
     })),
     contato: { ...landingPageContatoPadrao },
     cta: { ...landingPageCtaPadrao },
+    seo: { ...landingPageSeoPadrao },
   };
 }
 
@@ -571,6 +590,11 @@ function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
       configRecebida.cta,
       landingPageCtaPadrao,
       ["titulo", "texto", "botaoTexto", "botaoLink"]
+    ),
+    seo: normalizarObjetoLanding(
+      configRecebida.seo,
+      landingPageSeoPadrao,
+      ["titulo", "descricao", "palavrasChave", "imagemCompartilhamento"]
     ),
   };
 }
@@ -1268,6 +1292,92 @@ function LandingCtaSection({
   );
 }
 
+function LandingSeoSection({
+  landingPageContratada,
+  seo,
+  onSeoChange,
+}: LandingPageSectionProps) {
+  const camposDesabilitados = !landingPageContratada;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+            SEO
+          </p>
+
+          <h4 className="mt-2 text-lg font-bold text-slate-900">
+            Configuracoes para buscadores e compartilhamento
+          </h4>
+
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Quando estes campos estiverem vazios, a Landing Page usa automaticamente nome, descricao e logo ou banner da empresa.
+          </p>
+        </div>
+
+        {!landingPageContratada && (
+          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
+            Nao contratado
+          </span>
+        )}
+      </div>
+
+      <fieldset
+        disabled={camposDesabilitados}
+        className="mt-5 grid gap-4 disabled:opacity-60"
+      >
+        <Input
+          label="Titulo SEO"
+          value={seo.titulo}
+          onChange={(e) => onSeoChange("titulo", e.target.value)}
+          placeholder="Nome da empresa ou campanha"
+        />
+
+        <div>
+          <label className="block font-medium text-slate-700">
+            Descricao SEO
+          </label>
+
+          <textarea
+            value={seo.descricao}
+            onChange={(e) => onSeoChange("descricao", e.target.value)}
+            placeholder="Resumo curto exibido em buscadores e redes sociais."
+            rows={4}
+            className="mt-1 w-full resize-none rounded-xl border border-slate-200 px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+          />
+        </div>
+
+        <Input
+          label="Palavras-chave"
+          value={seo.palavrasChave}
+          onChange={(e) => onSeoChange("palavrasChave", e.target.value)}
+          placeholder="servico, cidade, categoria"
+        />
+
+        <Input
+          label="Imagem de compartilhamento (URL)"
+          value={seo.imagemCompartilhamento}
+          onChange={(e) =>
+            onSeoChange("imagemCompartilhamento", e.target.value)
+          }
+          placeholder="https://exemplo.com/imagem.jpg"
+        />
+
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+          <h5 className="font-bold text-slate-900">
+            Dominio personalizado
+          </h5>
+
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            A estrutura fica preparada para gerar as metas com o endereco publico atual e receber dominio proprio em uma etapa futura.
+          </p>
+        </div>
+      </fieldset>
+    </div>
+  );
+}
+
 const landingPageSections: LandingPageSecaoConfig[] = [
   {
     id: "hero",
@@ -1317,6 +1427,13 @@ const landingPageSections: LandingPageSecaoConfig[] = [
     descricao: "Chamada final para conversao, agendamento ou compra.",
     ordem: 70,
     Component: LandingCtaSection,
+  },
+  {
+    id: "seo",
+    nome: "SEO",
+    descricao: "Configuracoes basicas para buscadores e redes sociais.",
+    ordem: 80,
+    Component: LandingSeoSection,
   },
 ];
 
@@ -2104,6 +2221,8 @@ export default function EmpresaForm({
     useState<LandingPageContatoConfig>(() => ({ ...landingPageContatoPadrao }));
   const [landingPageCta, setLandingPageCta] =
     useState<LandingPageCtaConfig>(() => ({ ...landingPageCtaPadrao }));
+  const [landingPageSeo, setLandingPageSeo] =
+    useState<LandingPageSeoConfig>(() => ({ ...landingPageSeoPadrao }));
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -2242,6 +2361,7 @@ export default function EmpresaForm({
     setLandingPageDepoimentos(landingPageConfig.depoimentos);
     setLandingPageContato(landingPageConfig.contato);
     setLandingPageCta(landingPageConfig.cta);
+    setLandingPageSeo(landingPageConfig.seo);
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
 
@@ -2578,6 +2698,16 @@ export default function EmpresaForm({
     }));
   }
 
+  function atualizarLandingPageSeo(
+    campo: keyof LandingPageSeoConfig,
+    valor: string
+  ) {
+    setLandingPageSeo((seoAtual) => ({
+      ...seoAtual,
+      [campo]: valor,
+    }));
+  }
+
   async function salvar() {
     const slugFinal = gerarSlug(slugAdmin || slug);
 
@@ -2602,6 +2732,7 @@ export default function EmpresaForm({
       depoimentos: landingPageDepoimentos.slice(0, 6),
       contato: landingPageContato,
       cta: landingPageCta,
+      seo: landingPageSeo,
     };
 
     if (whatsappLocal && whatsappLocal.length < 10) {
@@ -3230,6 +3361,7 @@ export default function EmpresaForm({
                             depoimentos={landingPageDepoimentos}
                             contato={landingPageContato}
                             cta={landingPageCta}
+                            seo={landingPageSeo}
                             onHeroChange={atualizarLandingPageHero}
                             onSobreChange={atualizarLandingPageSobre}
                             onServicoChange={atualizarLandingPageServico}
@@ -3253,6 +3385,7 @@ export default function EmpresaForm({
                             }
                             onContatoChange={atualizarLandingPageContato}
                             onCtaChange={atualizarLandingPageCta}
+                            onSeoChange={atualizarLandingPageSeo}
                           />
                         );
                       })}

@@ -50,6 +50,13 @@ type LandingPageCtaConfig = {
   botaoLink: string;
 };
 
+type LandingPageSeoConfig = {
+  titulo: string;
+  descricao: string;
+  palavrasChave: string;
+  imagemCompartilhamento: string;
+};
+
 type LandingPageConfig = {
   publicada: boolean;
   hero: LandingPageHeroConfig;
@@ -59,6 +66,7 @@ type LandingPageConfig = {
   depoimentos: LandingPageDepoimentoConfig[];
   contato: LandingPageContatoConfig;
   cta: LandingPageCtaConfig;
+  seo: LandingPageSeoConfig;
 };
 
 type EmpresaLanding = Empresa & {
@@ -123,6 +131,12 @@ const landingPageConfigPadrao: LandingPageConfig = {
     texto: "",
     botaoTexto: "",
     botaoLink: "",
+  },
+  seo: {
+    titulo: "",
+    descricao: "",
+    palavrasChave: "",
+    imagemCompartilhamento: "",
   },
 };
 
@@ -220,6 +234,12 @@ function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
       "botaoTexto",
       "botaoLink",
     ]),
+    seo: normalizarObjeto(config.seo, landingPageConfigPadrao.seo, [
+      "titulo",
+      "descricao",
+      "palavrasChave",
+      "imagemCompartilhamento",
+    ]),
   };
 }
 
@@ -289,6 +309,57 @@ function criarMapsLink(endereco: string) {
   )}`;
 }
 
+function atualizarMetaSeo(
+  atributo: "name" | "property",
+  chave: string,
+  conteudo: string
+) {
+  const valor = conteudo.trim();
+  const seletor = `meta[${atributo}="${chave}"]`;
+  const metaExistente = document.head.querySelector<HTMLMetaElement>(seletor);
+
+  if (!valor) {
+    metaExistente?.remove();
+    return;
+  }
+
+  const meta = metaExistente || document.createElement("meta");
+  meta.setAttribute(atributo, chave);
+  meta.setAttribute("content", valor);
+
+  if (!metaExistente) {
+    document.head.appendChild(meta);
+  }
+}
+
+function criarSeoLandingPage(empresa: EmpresaLanding, landingPage: LandingPageConfig) {
+  const titulo =
+    landingPage.seo.titulo.trim() ||
+    landingPage.hero.titulo.trim() ||
+    empresa.nome ||
+    "Landing Page";
+  const descricao =
+    landingPage.seo.descricao.trim() ||
+    empresa.descricao ||
+    landingPage.hero.subtitulo.trim() ||
+    "";
+  const imagem =
+    landingPage.seo.imagemCompartilhamento.trim() ||
+    empresa.logo ||
+    empresa.banner ||
+    landingPage.hero.imagemDestaque.trim() ||
+    "";
+  const urlPublica = typeof window !== "undefined" ? window.location.href : "";
+
+  return {
+    titulo,
+    descricao,
+    palavrasChave: landingPage.seo.palavrasChave.trim(),
+    imagem,
+    urlPublica,
+  };
+}
+
 export default function PublicLandingPage() {
   const { slug } = useParams();
   const [empresa, setEmpresa] = useState<EmpresaLanding | null>(null);
@@ -318,6 +389,21 @@ export default function PublicLandingPage() {
     () => normalizarLandingPageConfig(empresa?.landing_page_config),
     [empresa?.landing_page_config]
   );
+
+  useEffect(() => {
+    if (!empresa) return;
+
+    const seo = criarSeoLandingPage(empresa, landingPage);
+
+    document.title = seo.titulo;
+    atualizarMetaSeo("name", "description", seo.descricao);
+    atualizarMetaSeo("name", "keywords", seo.palavrasChave);
+    atualizarMetaSeo("property", "og:title", seo.titulo);
+    atualizarMetaSeo("property", "og:description", seo.descricao);
+    atualizarMetaSeo("property", "og:image", seo.imagem);
+    atualizarMetaSeo("property", "og:type", "website");
+    atualizarMetaSeo("property", "og:url", seo.urlPublica);
+  }, [empresa, landingPage]);
 
   if (carregando) {
     return (
