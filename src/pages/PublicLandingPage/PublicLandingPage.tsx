@@ -46,6 +46,13 @@ type LandingPageDepoimentoConfig = {
   texto: string;
 };
 
+type LandingPageAudioConfig = {
+  titulo: string;
+  descricao: string;
+  arquivoUrl: string;
+  visivel: boolean;
+};
+
 type LandingPageContatoConfig = {
   telefone: string;
   whatsapp: string;
@@ -90,6 +97,7 @@ type LandingPageSecaoConteudoId =
   | "servicos"
   | "galeria"
   | "depoimentos"
+  | "audios"
   | "contato"
   | "cta";
 
@@ -100,6 +108,7 @@ export type LandingPageConfig = {
   servicos: LandingPageServicoConfig[];
   galeria: LandingPageGaleriaImagemConfig[];
   depoimentos: LandingPageDepoimentoConfig[];
+  audios: LandingPageAudioConfig[];
   contato: LandingPageContatoConfig;
   formularioContato: LandingPageFormularioContatoConfig;
   cta: LandingPageCtaConfig;
@@ -173,6 +182,14 @@ const landingPageConfigPadrao: LandingPageConfig = {
       texto: "",
     },
   ],
+  audios: [
+    {
+      titulo: "",
+      descricao: "",
+      arquivoUrl: "",
+      visivel: true,
+    },
+  ],
   contato: {
     telefone: "",
     whatsapp: "",
@@ -204,6 +221,7 @@ const landingPageConfigPadrao: LandingPageConfig = {
     "servicos",
     "galeria",
     "depoimentos",
+    "audios",
     "contato",
     "cta",
   ],
@@ -213,6 +231,7 @@ const landingPageConfigPadrao: LandingPageConfig = {
     servicos: true,
     galeria: true,
     depoimentos: true,
+    audios: true,
     contato: true,
     cta: true,
   },
@@ -342,6 +361,32 @@ function normalizarFormularioContato(
   );
 }
 
+function normalizarAudios(valor: unknown): LandingPageAudioConfig[] {
+  const padrao = landingPageConfigPadrao.audios;
+
+  if (!Array.isArray(valor)) {
+    return padrao.map((audio) => ({ ...audio }));
+  }
+
+  const audios = valor.slice(0, 10).map((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      return { ...padrao[0] };
+    }
+
+    const audio = item as Record<string, unknown>;
+
+    return {
+      titulo: texto(audio.titulo),
+      descricao: texto(audio.descricao),
+      arquivoUrl: texto(audio.arquivoUrl),
+      visivel:
+        typeof audio.visivel === "boolean" ? audio.visivel : true,
+    };
+  });
+
+  return audios.length > 0 ? audios : padrao.map((audio) => ({ ...audio }));
+}
+
 function normalizarOrdemSecoes(valor: unknown): LandingPageSecaoConteudoId[] {
   if (!Array.isArray(valor)) {
     return [...landingPageOrdemSecoesPadrao];
@@ -396,6 +441,7 @@ function criarLandingPagePublicavel(config: LandingPagePublicavelConfig) {
     servicos: config.servicos.map((servico) => ({ ...servico })),
     galeria: config.galeria.map((imagem) => ({ ...imagem })),
     depoimentos: config.depoimentos.map((depoimento) => ({ ...depoimento })),
+    audios: config.audios.map((audio) => ({ ...audio })),
     contato: { ...config.contato },
     formularioContato: structuredClone(config.formularioContato),
     cta: { ...config.cta },
@@ -442,6 +488,7 @@ function normalizarLandingPagePublicavelConfig(
       "cargoEmpresa",
       "texto",
     ]),
+    audios: normalizarAudios(config.audios),
     contato: normalizarObjeto(config.contato, fallback.contato, [
       "telefone",
       "whatsapp",
@@ -505,6 +552,7 @@ function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
       landingPageConfigPadrao.depoimentos,
       ["nome", "cargoEmpresa", "texto"]
     ),
+    audios: normalizarAudios(config.audios),
     contato: normalizarObjeto(config.contato, landingPageConfigPadrao.contato, [
       "telefone",
       "whatsapp",
@@ -697,6 +745,9 @@ export function PublicLandingPageContent({
   const depoimentos = landingPage.depoimentos.filter((depoimento) =>
     temTexto(depoimento.nome, depoimento.cargoEmpresa, depoimento.texto)
   );
+  const audios = landingPage.audios.filter(
+    (audio) => audio.visivel && audio.arquivoUrl.trim()
+  );
   const contato = {
     telefone: landingPage.contato.telefone.trim() || empresa.telefone || "",
     whatsapp: landingPage.contato.whatsapp.trim() || empresa.whatsapp || "",
@@ -724,6 +775,7 @@ export function PublicLandingPageContent({
     (landingPage.visibilidadeSecoes.servicos && servicos.length > 0) ||
     (landingPage.visibilidadeSecoes.galeria && galeria.length > 0) ||
     (landingPage.visibilidadeSecoes.depoimentos && depoimentos.length > 0) ||
+    (landingPage.visibilidadeSecoes.audios && audios.length > 0) ||
     (landingPage.visibilidadeSecoes.contato && contatoVisivel) ||
     (landingPage.visibilidadeSecoes.cta && ctaVisivel);
   const estiloAparencia = criarEstiloAparencia(empresa);
@@ -915,6 +967,33 @@ export function PublicLandingPageContent({
                     {depoimento.nome && <strong>{depoimento.nome}</strong>}
                     {depoimento.cargoEmpresa && <span>{depoimento.cargoEmpresa}</span>}
                   </footer>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null;
+      case "audios":
+        return audios.length > 0 ? (
+          <section className="public-landing-section" key="audios">
+            <div className="public-landing-section__heading">
+              <span>Audios</span>
+              <h2>Ouça diretamente por aqui</h2>
+            </div>
+
+            <div className="public-landing-audio-list">
+              {audios.map((audio, indice) => (
+                <article
+                  className="public-landing-audio-card"
+                  key={`${audio.arquivoUrl}-${indice}`}
+                >
+                  <div>
+                    {audio.titulo && <h3>{audio.titulo}</h3>}
+                    {audio.descricao && <p>{audio.descricao}</p>}
+                  </div>
+
+                  <audio src={audio.arquivoUrl} controls preload="metadata">
+                    Seu navegador nao suporta audio HTML5.
+                  </audio>
                 </article>
               ))}
             </div>

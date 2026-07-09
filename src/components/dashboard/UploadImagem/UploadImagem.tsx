@@ -37,6 +37,9 @@ function adicionarVersaoImagem(url: string) {
 export default function UploadImagem({
   titulo,
   imagem,
+  tipoArquivo = "imagem",
+  accept,
+  formatosPermitidos,
   pasta,
   onUpload,
   onSelecionar,
@@ -47,7 +50,8 @@ export default function UploadImagem({
   const [imagemRemovida, setImagemRemovida] = useState(false);
   const [enviando, setEnviando] = useState(false);
 
-  const isBanner = titulo.toLowerCase().includes("banner");
+  const isAudio = tipoArquivo === "audio";
+  const isBanner = !isAudio && titulo.toLowerCase().includes("banner");
   const placeholder = isBanner
     ? {
         tipo: "BANNER",
@@ -55,22 +59,37 @@ export default function UploadImagem({
         formato: "PNG - JPG - WEBP",
         detalhe: "Imagem horizontal.",
       }
+    : isAudio
+    ? {
+        tipo: "AUDIO",
+        tamanho: "MP3 - WAV - OGG - M4A",
+        formato: formatosPermitidos || "Arquivo de audio",
+        detalhe: "Player HTML5 na Landing Page.",
+      }
     : {
         tipo: "LOGO",
         tamanho: "800 x 800 px",
         formato: "PNG com fundo transparente",
         detalhe: "Formato quadrado.",
       };
-  const orientacao = isBanner
+  const orientacao = isAudio
+    ? "Formatos permitidos: MP3, WAV, OGG e M4A."
+    : isBanner
     ? "Use imagem horizontal para melhor resultado."
     : "Recomendado: PNG com fundo transparente.";
-  const previewClassName = isBanner
+  const previewClassName = isAudio
+    ? "upload-imagem__audio-preview"
+    : isBanner
     ? "upload-imagem__preview upload-imagem__preview--banner"
     : "upload-imagem__preview upload-imagem__preview--logo";
-  const previewWrapperClassName = isBanner
+  const previewWrapperClassName = isAudio
+    ? "upload-imagem__preview-box upload-imagem__preview-box--audio"
+    : isBanner
     ? "upload-imagem__preview-box upload-imagem__preview-box--banner"
     : "upload-imagem__preview-box upload-imagem__preview-box--logo";
-  const contentClassName = isBanner
+  const contentClassName = isAudio
+    ? "upload-imagem__content upload-imagem__content--audio"
+    : isBanner
     ? "upload-imagem__content upload-imagem__content--banner"
     : "upload-imagem__content upload-imagem__content--logo";
 
@@ -112,6 +131,21 @@ export default function UploadImagem({
 
     if (!arquivo) return;
 
+    const extensaoArquivo = arquivo.name.split(".").pop()?.toLowerCase() || "";
+
+    if (
+      isAudio &&
+      !["mp3", "wav", "ogg", "m4a"].includes(extensaoArquivo)
+    ) {
+      alert("Formato invalido. Envie um arquivo MP3, WAV, OGG ou M4A.");
+
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
+
+      return;
+    }
+
     const url = URL.createObjectURL(arquivo);
 
     setPreviewLocal(url);
@@ -121,15 +155,10 @@ export default function UploadImagem({
       try {
         setEnviando(true);
 
-        const extensao = arquivo.name
-          .split(".")
-          .pop();
+        const extensao = arquivo.name.split(".").pop();
 
         const caminho = `${pasta}/${Date.now()}.${extensao}`;
-        const urlPublica = await uploadImagem(
-          caminho,
-          arquivo
-        );
+        const urlPublica = await uploadImagem(caminho, arquivo);
         const urlPreview = adicionarVersaoImagem(urlPublica);
 
         setPreviewLocal(urlPreview);
@@ -140,12 +169,12 @@ export default function UploadImagem({
         const mensagemErro = obterMensagemErroSupabase(error);
 
         console.error(
-          "Erro ao enviar imagem para o Supabase Storage:",
+          "Erro ao enviar arquivo para o Supabase Storage:",
           error
         );
 
         alert(
-          `Erro ao enviar imagem para o Supabase Storage: ${mensagemErro}. Verifique se o bucket empresas existe no projeto Supabase correto.`
+          `Erro ao enviar arquivo para o Supabase Storage: ${mensagemErro}. Verifique se o bucket empresas existe no projeto Supabase correto.`
         );
       } finally {
         setEnviando(false);
@@ -174,14 +203,22 @@ export default function UploadImagem({
       <input
         ref={inputRef}
         type="file"
-        accept="image/png,image/jpeg,image/webp"
+        accept={accept || "image/png,image/jpeg,image/webp"}
         className="hidden"
         onChange={selecionarArquivo}
       />
 
       <div className={contentClassName}>
         <div className={previewWrapperClassName}>
-          {preview ? (
+          {preview && isAudio ? (
+            <audio
+              src={preview}
+              controls
+              className={previewClassName}
+            >
+              Seu navegador nao suporta audio HTML5.
+            </audio>
+          ) : preview ? (
             <img
               src={preview}
               alt={titulo}

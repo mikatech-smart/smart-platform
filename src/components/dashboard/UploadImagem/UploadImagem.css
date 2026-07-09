@@ -36,11 +36,20 @@
   aspect-ratio: 1;
 }
 
+.upload-imagem__preview-box--audio {
+  width: 100%;
+  min-height: 96px;
+}
+
 .upload-imagem__preview {
   width: 100%;
   height: 100%;
   display: block;
   object-fit: contain;
+}
+
+.upload-imagem__audio-preview {
+  width: 100%;
 }
 
 .upload-imagem__actions {

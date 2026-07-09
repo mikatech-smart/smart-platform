@@ -238,6 +238,7 @@ type LandingPageSecaoId =
   | "servicos"
   | "galeria"
   | "depoimentos"
+  | "audios"
   | "contato"
   | "cta"
   | "seo";
@@ -270,6 +271,13 @@ type LandingPageDepoimentoConfig = {
   nome: string;
   cargoEmpresa: string;
   texto: string;
+};
+
+type LandingPageAudioConfig = {
+  titulo: string;
+  descricao: string;
+  arquivoUrl: string;
+  visivel: boolean;
 };
 
 type LandingPageContatoConfig = {
@@ -316,6 +324,7 @@ type LandingPageSecaoConteudoId =
   | "servicos"
   | "galeria"
   | "depoimentos"
+  | "audios"
   | "contato"
   | "cta";
 
@@ -326,6 +335,7 @@ type LandingPageConfig = {
   servicos: LandingPageServicoConfig[];
   galeria: LandingPageGaleriaImagemConfig[];
   depoimentos: LandingPageDepoimentoConfig[];
+  audios: LandingPageAudioConfig[];
   contato: LandingPageContatoConfig;
   formularioContato: LandingPageFormularioContatoConfig;
   cta: LandingPageCtaConfig;
@@ -355,6 +365,7 @@ type LandingPageSectionProps = {
   servicos: LandingPageServicoConfig[];
   galeria: LandingPageGaleriaImagemConfig[];
   depoimentos: LandingPageDepoimentoConfig[];
+  audios: LandingPageAudioConfig[];
   contato: LandingPageContatoConfig;
   formularioContato: LandingPageFormularioContatoConfig;
   cta: LandingPageCtaConfig;
@@ -384,6 +395,14 @@ type LandingPageSectionProps = {
   ) => void;
   onDepoimentoAdd: () => void;
   onDepoimentoRemove: (indice: number) => void;
+  onAudioChange: (
+    indice: number,
+    campo: keyof LandingPageAudioConfig,
+    valor: string | boolean
+  ) => void;
+  onAudioAdd: () => void;
+  onAudioRemove: (indice: number) => void;
+  onAudioMove: (indice: number, direcao: "up" | "down") => void;
   onContatoChange: (campo: keyof LandingPageContatoConfig, valor: string) => void;
   onFormularioContatoChange: (
     campo: LandingPageFormularioCampoId,
@@ -547,6 +566,15 @@ const landingPageDepoimentosExemplo: LandingPageDepoimentoConfig[] = [
   },
 ];
 
+const landingPageAudiosPadrao: LandingPageAudioConfig[] = [
+  {
+    titulo: "",
+    descricao: "",
+    arquivoUrl: "",
+    visivel: true,
+  },
+];
+
 const landingPageContatoPadrao: LandingPageContatoConfig = {
   telefone: "",
   whatsapp: "",
@@ -620,6 +648,7 @@ const landingPageOrdemSecoesPadrao: LandingPageSecaoConteudoId[] = [
   "servicos",
   "galeria",
   "depoimentos",
+  "audios",
   "contato",
   "cta",
 ];
@@ -633,6 +662,7 @@ const landingPageSecoesOrdenaveis: Array<{
   { id: "servicos", nome: "Servicos" },
   { id: "galeria", nome: "Galeria" },
   { id: "depoimentos", nome: "Depoimentos" },
+  { id: "audios", nome: "Audios" },
   { id: "contato", nome: "Contato" },
   { id: "cta", nome: "CTA" },
 ];
@@ -646,6 +676,7 @@ const landingPageVisibilidadeSecoesPadrao: Record<
   servicos: true,
   galeria: true,
   depoimentos: true,
+  audios: true,
   contato: true,
   cta: true,
 };
@@ -927,6 +958,7 @@ function criarLandingPageConfigPadrao(): LandingPageConfig {
     depoimentos: landingPageDepoimentosPadrao.map((depoimento) => ({
       ...depoimento,
     })),
+    audios: landingPageAudiosPadrao.map((audio) => ({ ...audio })),
     contato: { ...landingPageContatoPadrao },
     formularioContato: structuredClone(landingPageFormularioContatoPadrao),
     cta: { ...landingPageCtaPadrao },
@@ -978,17 +1010,44 @@ function normalizarObjetoLanding<T extends Record<string, string>>(
 function normalizarListaLanding<T extends Record<string, string>>(
   valor: unknown,
   padrao: T[],
-  campos: Array<keyof T>
+  campos: Array<keyof T>,
+  limite = 6
 ): T[] {
   if (!Array.isArray(valor)) {
     return padrao.map((item) => ({ ...item }));
   }
 
   const itens = valor
-    .slice(0, 6)
+    .slice(0, limite)
     .map((item) => normalizarObjetoLanding(item, padrao[0], campos));
 
   return itens.length > 0 ? itens : padrao.map((item) => ({ ...item }));
+}
+
+function normalizarAudiosLanding(valor: unknown): LandingPageAudioConfig[] {
+  if (!Array.isArray(valor)) {
+    return landingPageAudiosPadrao.map((audio) => ({ ...audio }));
+  }
+
+  const audios = valor.slice(0, 10).map((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      return { ...landingPageAudiosPadrao[0] };
+    }
+
+    const audio = item as Record<string, unknown>;
+
+    return {
+      titulo: lerCampoTexto(audio, "titulo"),
+      descricao: lerCampoTexto(audio, "descricao"),
+      arquivoUrl: lerCampoTexto(audio, "arquivoUrl"),
+      visivel:
+        typeof audio.visivel === "boolean" ? audio.visivel : true,
+    };
+  });
+
+  return audios.length > 0
+    ? audios
+    : landingPageAudiosPadrao.map((audio) => ({ ...audio }));
 }
 
 function normalizarFormularioContatoLanding(
@@ -1087,6 +1146,7 @@ function criarLandingPagePublicavel(config: LandingPagePublicavelConfig) {
     servicos: config.servicos.map((servico) => ({ ...servico })),
     galeria: config.galeria.map((imagem) => ({ ...imagem })),
     depoimentos: config.depoimentos.map((depoimento) => ({ ...depoimento })),
+    audios: config.audios.map((audio) => ({ ...audio })),
     contato: { ...config.contato },
     formularioContato: structuredClone(config.formularioContato),
     cta: { ...config.cta },
@@ -1136,6 +1196,7 @@ function normalizarLandingPagePublicavelConfig(
       fallback.depoimentos,
       ["nome", "cargoEmpresa", "texto"]
     ),
+    audios: normalizarAudiosLanding(config.audios),
     contato: normalizarObjetoLanding(config.contato, fallback.contato, [
       "telefone",
       "whatsapp",
@@ -1204,6 +1265,7 @@ function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
       landingPageDepoimentosPadrao,
       ["nome", "cargoEmpresa", "texto"]
     ),
+    audios: normalizarAudiosLanding(configRecebida.audios),
     contato: normalizarObjetoLanding(
       configRecebida.contato,
       landingPageContatoPadrao,
@@ -1789,6 +1851,159 @@ function LandingDepoimentosSection({
           className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Adicionar depoimento
+        </button>
+      </fieldset>
+    </div>
+  );
+}
+
+function LandingAudiosSection({
+  landingPageContratada,
+  audios,
+  onAudioChange,
+  onAudioAdd,
+  onAudioRemove,
+  onAudioMove,
+  pastaUploadLanding,
+}: LandingPageSectionProps) {
+  const camposDesabilitados = !landingPageContratada;
+  const limiteAudios = 10;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+            Audios
+          </p>
+
+          <h4 className="mt-2 text-lg font-bold text-slate-900">
+            Bloco de audios da Landing Page
+          </h4>
+
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Cadastre ate 10 audios em MP3, WAV, OGG ou M4A para tocar diretamente na pagina.
+          </p>
+        </div>
+
+        {!landingPageContratada && (
+          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
+            Nao contratado
+          </span>
+        )}
+      </div>
+
+      <fieldset
+        disabled={camposDesabilitados}
+        className="mt-5 grid gap-4 disabled:opacity-60"
+      >
+        {audios.map((audio, indice) => {
+          const audioUrl = audio.arquivoUrl.trim();
+
+          return (
+            <div
+              key={`audio-${indice}`}
+              className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+            >
+              <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <h5 className="font-bold text-slate-900">
+                    Audio {indice + 1}
+                  </h5>
+
+                  <label className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={audio.visivel}
+                      onChange={(e) =>
+                        onAudioChange(indice, "visivel", e.target.checked)
+                      }
+                    />
+                    Exibir audio
+                  </label>
+                </div>
+
+                <div className="grid gap-2 sm:flex sm:shrink-0">
+                  <button
+                    type="button"
+                    disabled={camposDesabilitados || indice === 0}
+                    onClick={() => onAudioMove(indice, "up")}
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Subir
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={camposDesabilitados || indice === audios.length - 1}
+                    onClick={() => onAudioMove(indice, "down")}
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Descer
+                  </button>
+
+                  {audios.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => onAudioRemove(indice)}
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600"
+                    >
+                      Remover
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Input
+                    label="Titulo"
+                    value={audio.titulo}
+                    onChange={(e) =>
+                      onAudioChange(indice, "titulo", e.target.value)
+                    }
+                    placeholder="Nome da faixa, aula ou demonstracao"
+                  />
+
+                  <Input
+                    label="Descricao (opcional)"
+                    value={audio.descricao}
+                    onChange={(e) =>
+                      onAudioChange(indice, "descricao", e.target.value)
+                    }
+                    placeholder="Contexto curto sobre o audio"
+                  />
+                </div>
+
+                <UploadImagem
+                  titulo={`Arquivo de audio ${indice + 1}`}
+                  imagem={audio.arquivoUrl}
+                  tipoArquivo="audio"
+                  accept="audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/x-m4a,.mp3,.wav,.ogg,.m4a"
+                  formatosPermitidos="MP3, WAV, OGG ou M4A"
+                  pasta={`${pastaUploadLanding}/audios/${indice + 1}`}
+                  onUpload={async (url) =>
+                    onAudioChange(indice, "arquivoUrl", url)
+                  }
+                />
+
+                {audioUrl && (
+                  <p className="break-all text-xs font-semibold text-slate-500">
+                    URL atual: {audioUrl}
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        <button
+          type="button"
+          onClick={onAudioAdd}
+          disabled={camposDesabilitados || audios.length >= limiteAudios}
+          className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Adicionar audio
         </button>
       </fieldset>
     </div>
@@ -2588,6 +2803,13 @@ const landingPageSections: LandingPageSecaoConfig[] = [
     Component: LandingDepoimentosSection,
   },
   {
+    id: "audios",
+    nome: "Audios",
+    descricao: "Player de audios para materiais, demonstracoes e aulas.",
+    ordem: 55,
+    Component: LandingAudiosSection,
+  },
+  {
     id: "contato",
     nome: "Contato",
     descricao: "Base para canais de contato e atendimento.",
@@ -3062,6 +3284,10 @@ export default function EmpresaForm({
     useState<LandingPageDepoimentoConfig[]>(() =>
       landingPageDepoimentosPadrao.map((depoimento) => ({ ...depoimento }))
     );
+  const [landingPageAudios, setLandingPageAudios] =
+    useState<LandingPageAudioConfig[]>(() =>
+      landingPageAudiosPadrao.map((audio) => ({ ...audio }))
+    );
   const [landingPageContato, setLandingPageContato] =
     useState<LandingPageContatoConfig>(() => ({ ...landingPageContatoPadrao }));
   const [landingPageFormularioContato, setLandingPageFormularioContato] =
@@ -3226,6 +3452,7 @@ export default function EmpresaForm({
     setLandingPageServicos(landingPageConfig.servicos);
     setLandingPageGaleria(landingPageConfig.galeria);
     setLandingPageDepoimentos(landingPageConfig.depoimentos);
+    setLandingPageAudios(landingPageConfig.audios);
     setLandingPageContato(landingPageConfig.contato);
     setLandingPageFormularioContato(landingPageConfig.formularioContato);
     setLandingPageCta(landingPageConfig.cta);
@@ -3554,6 +3781,58 @@ export default function EmpresaForm({
     });
   }
 
+  function atualizarLandingPageAudio(
+    indice: number,
+    campo: keyof LandingPageAudioConfig,
+    valor: string | boolean
+  ) {
+    setLandingPageAudios((audiosAtuais) =>
+      audiosAtuais.map((audio, indiceAtual) =>
+        indiceAtual === indice
+          ? {
+              ...audio,
+              [campo]: valor,
+            }
+          : audio
+      )
+    );
+  }
+
+  function adicionarLandingPageAudio() {
+    setLandingPageAudios((audiosAtuais) => {
+      if (audiosAtuais.length >= 10) return audiosAtuais;
+
+      return [
+        ...audiosAtuais,
+        { ...landingPageAudiosPadrao[0] },
+      ];
+    });
+  }
+
+  function removerLandingPageAudio(indice: number) {
+    setLandingPageAudios((audiosAtuais) => {
+      if (audiosAtuais.length <= 1) return audiosAtuais;
+
+      return audiosAtuais.filter((_, indiceAtual) => indiceAtual !== indice);
+    });
+  }
+
+  function moverLandingPageAudio(indice: number, direcao: "up" | "down") {
+    setLandingPageAudios((audiosAtuais) => {
+      const novoIndice = direcao === "up" ? indice - 1 : indice + 1;
+
+      if (novoIndice < 0 || novoIndice >= audiosAtuais.length) {
+        return audiosAtuais;
+      }
+
+      const audiosOrdenados = [...audiosAtuais];
+      const [audioMovido] = audiosOrdenados.splice(indice, 1);
+      audiosOrdenados.splice(novoIndice, 0, audioMovido);
+
+      return audiosOrdenados;
+    });
+  }
+
   function atualizarLandingPageContato(
     campo: keyof LandingPageContatoConfig,
     valor: string
@@ -3672,6 +3951,7 @@ export default function EmpresaForm({
       servicos: landingPageServicos.slice(0, 6),
       galeria: landingPageGaleria.slice(0, 6),
       depoimentos: landingPageDepoimentos.slice(0, 6),
+      audios: landingPageAudios.slice(0, 10),
       contato: landingPageContato,
       formularioContato: landingPageFormularioContato,
       cta: landingPageCta,
@@ -3703,6 +3983,7 @@ export default function EmpresaForm({
     setLandingPageServicos(config.servicos);
     setLandingPageGaleria(config.galeria);
     setLandingPageDepoimentos(config.depoimentos);
+    setLandingPageAudios(config.audios);
     setLandingPageContato(config.contato);
     setLandingPageFormularioContato(config.formularioContato);
     setLandingPageCta(config.cta);
@@ -4581,6 +4862,7 @@ export default function EmpresaForm({
                               servicos={landingPageServicos}
                               galeria={landingPageGaleria}
                               depoimentos={landingPageDepoimentos}
+                              audios={landingPageAudios}
                               contato={landingPageContato}
                               formularioContato={landingPageFormularioContato}
                               cta={landingPageCta}
@@ -4614,6 +4896,10 @@ export default function EmpresaForm({
                               onDepoimentoRemove={
                                 removerLandingPageDepoimento
                               }
+                              onAudioChange={atualizarLandingPageAudio}
+                              onAudioAdd={adicionarLandingPageAudio}
+                              onAudioRemove={removerLandingPageAudio}
+                              onAudioMove={moverLandingPageAudio}
                               onContatoChange={atualizarLandingPageContato}
                               onFormularioContatoChange={
                                 atualizarLandingPageFormularioContato

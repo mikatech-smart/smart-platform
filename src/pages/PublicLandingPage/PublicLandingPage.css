@@ -275,6 +275,36 @@
   border: 1px solid var(--ml-border);
 }
 
+.public-landing-audio-list {
+  display: grid;
+  gap: 12px;
+}
+
+.public-landing-audio-card {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--ml-border);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--ml-surface) 90%, white);
+  padding: 16px;
+}
+
+.public-landing-audio-card h3 {
+  margin: 0;
+  color: var(--ml-text);
+}
+
+.public-landing-audio-card p {
+  margin: 6px 0 0;
+  color: var(--ml-muted);
+}
+
+.public-landing-audio-card audio {
+  width: 100%;
+  min-width: 0;
+}
+
 .public-landing-contact__list {
   display: grid;
   gap: 12px;
