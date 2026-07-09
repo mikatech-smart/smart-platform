@@ -53,6 +53,15 @@ type LandingPageAudioConfig = {
   visivel: boolean;
 };
 
+type LandingPageProdutoDigitalConfig = {
+  titulo: string;
+  descricao: string;
+  preco: string;
+  imagemUrl: string;
+  linkCompra: string;
+  visivel: boolean;
+};
+
 type LandingPageContatoConfig = {
   telefone: string;
   whatsapp: string;
@@ -98,6 +107,7 @@ type LandingPageSecaoConteudoId =
   | "galeria"
   | "depoimentos"
   | "audios"
+  | "produtosDigitais"
   | "contato"
   | "cta";
 
@@ -109,6 +119,7 @@ export type LandingPageConfig = {
   galeria: LandingPageGaleriaImagemConfig[];
   depoimentos: LandingPageDepoimentoConfig[];
   audios: LandingPageAudioConfig[];
+  produtosDigitais: LandingPageProdutoDigitalConfig[];
   contato: LandingPageContatoConfig;
   formularioContato: LandingPageFormularioContatoConfig;
   cta: LandingPageCtaConfig;
@@ -190,6 +201,16 @@ const landingPageConfigPadrao: LandingPageConfig = {
       visivel: true,
     },
   ],
+  produtosDigitais: [
+    {
+      titulo: "",
+      descricao: "",
+      preco: "",
+      imagemUrl: "",
+      linkCompra: "",
+      visivel: true,
+    },
+  ],
   contato: {
     telefone: "",
     whatsapp: "",
@@ -222,6 +243,7 @@ const landingPageConfigPadrao: LandingPageConfig = {
     "galeria",
     "depoimentos",
     "audios",
+    "produtosDigitais",
     "contato",
     "cta",
   ],
@@ -232,6 +254,7 @@ const landingPageConfigPadrao: LandingPageConfig = {
     galeria: true,
     depoimentos: true,
     audios: true,
+    produtosDigitais: true,
     contato: true,
     cta: true,
   },
@@ -387,6 +410,38 @@ function normalizarAudios(valor: unknown): LandingPageAudioConfig[] {
   return audios.length > 0 ? audios : padrao.map((audio) => ({ ...audio }));
 }
 
+function normalizarProdutosDigitais(
+  valor: unknown
+): LandingPageProdutoDigitalConfig[] {
+  const padrao = landingPageConfigPadrao.produtosDigitais;
+
+  if (!Array.isArray(valor)) {
+    return padrao.map((produto) => ({ ...produto }));
+  }
+
+  const produtos = valor.slice(0, 20).map((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      return { ...padrao[0] };
+    }
+
+    const produto = item as Record<string, unknown>;
+
+    return {
+      titulo: texto(produto.titulo),
+      descricao: texto(produto.descricao),
+      preco: texto(produto.preco),
+      imagemUrl: texto(produto.imagemUrl),
+      linkCompra: texto(produto.linkCompra),
+      visivel:
+        typeof produto.visivel === "boolean" ? produto.visivel : true,
+    };
+  });
+
+  return produtos.length > 0
+    ? produtos
+    : padrao.map((produto) => ({ ...produto }));
+}
+
 function normalizarOrdemSecoes(valor: unknown): LandingPageSecaoConteudoId[] {
   if (!Array.isArray(valor)) {
     return [...landingPageOrdemSecoesPadrao];
@@ -442,6 +497,9 @@ function criarLandingPagePublicavel(config: LandingPagePublicavelConfig) {
     galeria: config.galeria.map((imagem) => ({ ...imagem })),
     depoimentos: config.depoimentos.map((depoimento) => ({ ...depoimento })),
     audios: config.audios.map((audio) => ({ ...audio })),
+    produtosDigitais: config.produtosDigitais.map((produto) => ({
+      ...produto,
+    })),
     contato: { ...config.contato },
     formularioContato: structuredClone(config.formularioContato),
     cta: { ...config.cta },
@@ -489,6 +547,7 @@ function normalizarLandingPagePublicavelConfig(
       "texto",
     ]),
     audios: normalizarAudios(config.audios),
+    produtosDigitais: normalizarProdutosDigitais(config.produtosDigitais),
     contato: normalizarObjeto(config.contato, fallback.contato, [
       "telefone",
       "whatsapp",
@@ -553,6 +612,7 @@ function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
       ["nome", "cargoEmpresa", "texto"]
     ),
     audios: normalizarAudios(config.audios),
+    produtosDigitais: normalizarProdutosDigitais(config.produtosDigitais),
     contato: normalizarObjeto(config.contato, landingPageConfigPadrao.contato, [
       "telefone",
       "whatsapp",
@@ -748,6 +808,17 @@ export function PublicLandingPageContent({
   const audios = landingPage.audios.filter(
     (audio) => audio.visivel && audio.arquivoUrl.trim()
   );
+  const produtosDigitais = landingPage.produtosDigitais.filter(
+    (produto) =>
+      produto.visivel &&
+      temTexto(
+        produto.titulo,
+        produto.descricao,
+        produto.preco,
+        produto.imagemUrl,
+        produto.linkCompra
+      )
+  );
   const contato = {
     telefone: landingPage.contato.telefone.trim() || empresa.telefone || "",
     whatsapp: landingPage.contato.whatsapp.trim() || empresa.whatsapp || "",
@@ -776,6 +847,8 @@ export function PublicLandingPageContent({
     (landingPage.visibilidadeSecoes.galeria && galeria.length > 0) ||
     (landingPage.visibilidadeSecoes.depoimentos && depoimentos.length > 0) ||
     (landingPage.visibilidadeSecoes.audios && audios.length > 0) ||
+    (landingPage.visibilidadeSecoes.produtosDigitais &&
+      produtosDigitais.length > 0) ||
     (landingPage.visibilidadeSecoes.contato && contatoVisivel) ||
     (landingPage.visibilidadeSecoes.cta && ctaVisivel);
   const estiloAparencia = criarEstiloAparencia(empresa);
@@ -994,6 +1067,52 @@ export function PublicLandingPageContent({
                   <audio src={audio.arquivoUrl} controls preload="metadata">
                     Seu navegador nao suporta audio HTML5.
                   </audio>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null;
+      case "produtosDigitais":
+        return produtosDigitais.length > 0 ? (
+          <section className="public-landing-section" key="produtosDigitais">
+            <div className="public-landing-section__heading">
+              <span>Produtos Digitais</span>
+              <h2>Partituras e materiais</h2>
+            </div>
+
+            <div className="public-landing-products">
+              {produtosDigitais.map((produto, indice) => (
+                <article
+                  className="public-landing-product-card"
+                  key={`${produto.titulo}-${indice}`}
+                >
+                  {produto.imagemUrl ? (
+                    <img
+                      src={produto.imagemUrl}
+                      alt={produto.titulo || `Produto ${indice + 1}`}
+                    />
+                  ) : (
+                    <div className="public-landing-product-card__placeholder">
+                      Material digital
+                    </div>
+                  )}
+
+                  <div className="public-landing-product-card__body">
+                    {produto.titulo && <h3>{produto.titulo}</h3>}
+                    {produto.descricao && <p>{produto.descricao}</p>}
+                    {produto.preco && <strong>{produto.preco}</strong>}
+
+                    {produto.linkCompra && (
+                      <a
+                        className="public-landing-button"
+                        href={produto.linkCompra}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Comprar
+                      </a>
+                    )}
+                  </div>
                 </article>
               ))}
             </div>

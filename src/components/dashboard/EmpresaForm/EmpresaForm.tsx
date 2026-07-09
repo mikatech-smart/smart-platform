@@ -239,6 +239,7 @@ type LandingPageSecaoId =
   | "galeria"
   | "depoimentos"
   | "audios"
+  | "produtosDigitais"
   | "contato"
   | "cta"
   | "seo";
@@ -277,6 +278,15 @@ type LandingPageAudioConfig = {
   titulo: string;
   descricao: string;
   arquivoUrl: string;
+  visivel: boolean;
+};
+
+type LandingPageProdutoDigitalConfig = {
+  titulo: string;
+  descricao: string;
+  preco: string;
+  imagemUrl: string;
+  linkCompra: string;
   visivel: boolean;
 };
 
@@ -325,6 +335,7 @@ type LandingPageSecaoConteudoId =
   | "galeria"
   | "depoimentos"
   | "audios"
+  | "produtosDigitais"
   | "contato"
   | "cta";
 
@@ -336,6 +347,7 @@ type LandingPageConfig = {
   galeria: LandingPageGaleriaImagemConfig[];
   depoimentos: LandingPageDepoimentoConfig[];
   audios: LandingPageAudioConfig[];
+  produtosDigitais: LandingPageProdutoDigitalConfig[];
   contato: LandingPageContatoConfig;
   formularioContato: LandingPageFormularioContatoConfig;
   cta: LandingPageCtaConfig;
@@ -366,6 +378,7 @@ type LandingPageSectionProps = {
   galeria: LandingPageGaleriaImagemConfig[];
   depoimentos: LandingPageDepoimentoConfig[];
   audios: LandingPageAudioConfig[];
+  produtosDigitais: LandingPageProdutoDigitalConfig[];
   contato: LandingPageContatoConfig;
   formularioContato: LandingPageFormularioContatoConfig;
   cta: LandingPageCtaConfig;
@@ -403,6 +416,14 @@ type LandingPageSectionProps = {
   onAudioAdd: () => void;
   onAudioRemove: (indice: number) => void;
   onAudioMove: (indice: number, direcao: "up" | "down") => void;
+  onProdutoDigitalChange: (
+    indice: number,
+    campo: keyof LandingPageProdutoDigitalConfig,
+    valor: string | boolean
+  ) => void;
+  onProdutoDigitalAdd: () => void;
+  onProdutoDigitalRemove: (indice: number) => void;
+  onProdutoDigitalMove: (indice: number, direcao: "up" | "down") => void;
   onContatoChange: (campo: keyof LandingPageContatoConfig, valor: string) => void;
   onFormularioContatoChange: (
     campo: LandingPageFormularioCampoId,
@@ -575,6 +596,17 @@ const landingPageAudiosPadrao: LandingPageAudioConfig[] = [
   },
 ];
 
+const landingPageProdutosDigitaisPadrao: LandingPageProdutoDigitalConfig[] = [
+  {
+    titulo: "",
+    descricao: "",
+    preco: "",
+    imagemUrl: "",
+    linkCompra: "",
+    visivel: true,
+  },
+];
+
 const landingPageContatoPadrao: LandingPageContatoConfig = {
   telefone: "",
   whatsapp: "",
@@ -649,6 +681,7 @@ const landingPageOrdemSecoesPadrao: LandingPageSecaoConteudoId[] = [
   "galeria",
   "depoimentos",
   "audios",
+  "produtosDigitais",
   "contato",
   "cta",
 ];
@@ -663,6 +696,7 @@ const landingPageSecoesOrdenaveis: Array<{
   { id: "galeria", nome: "Galeria" },
   { id: "depoimentos", nome: "Depoimentos" },
   { id: "audios", nome: "Audios" },
+  { id: "produtosDigitais", nome: "Produtos Digitais" },
   { id: "contato", nome: "Contato" },
   { id: "cta", nome: "CTA" },
 ];
@@ -677,6 +711,7 @@ const landingPageVisibilidadeSecoesPadrao: Record<
   galeria: true,
   depoimentos: true,
   audios: true,
+  produtosDigitais: true,
   contato: true,
   cta: true,
 };
@@ -959,6 +994,9 @@ function criarLandingPageConfigPadrao(): LandingPageConfig {
       ...depoimento,
     })),
     audios: landingPageAudiosPadrao.map((audio) => ({ ...audio })),
+    produtosDigitais: landingPageProdutosDigitaisPadrao.map((produto) => ({
+      ...produto,
+    })),
     contato: { ...landingPageContatoPadrao },
     formularioContato: structuredClone(landingPageFormularioContatoPadrao),
     cta: { ...landingPageCtaPadrao },
@@ -1048,6 +1086,36 @@ function normalizarAudiosLanding(valor: unknown): LandingPageAudioConfig[] {
   return audios.length > 0
     ? audios
     : landingPageAudiosPadrao.map((audio) => ({ ...audio }));
+}
+
+function normalizarProdutosDigitaisLanding(
+  valor: unknown
+): LandingPageProdutoDigitalConfig[] {
+  if (!Array.isArray(valor)) {
+    return landingPageProdutosDigitaisPadrao.map((produto) => ({ ...produto }));
+  }
+
+  const produtos = valor.slice(0, 20).map((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      return { ...landingPageProdutosDigitaisPadrao[0] };
+    }
+
+    const produto = item as Record<string, unknown>;
+
+    return {
+      titulo: lerCampoTexto(produto, "titulo"),
+      descricao: lerCampoTexto(produto, "descricao"),
+      preco: lerCampoTexto(produto, "preco"),
+      imagemUrl: lerCampoTexto(produto, "imagemUrl"),
+      linkCompra: lerCampoTexto(produto, "linkCompra"),
+      visivel:
+        typeof produto.visivel === "boolean" ? produto.visivel : true,
+    };
+  });
+
+  return produtos.length > 0
+    ? produtos
+    : landingPageProdutosDigitaisPadrao.map((produto) => ({ ...produto }));
 }
 
 function normalizarFormularioContatoLanding(
@@ -1147,6 +1215,9 @@ function criarLandingPagePublicavel(config: LandingPagePublicavelConfig) {
     galeria: config.galeria.map((imagem) => ({ ...imagem })),
     depoimentos: config.depoimentos.map((depoimento) => ({ ...depoimento })),
     audios: config.audios.map((audio) => ({ ...audio })),
+    produtosDigitais: config.produtosDigitais.map((produto) => ({
+      ...produto,
+    })),
     contato: { ...config.contato },
     formularioContato: structuredClone(config.formularioContato),
     cta: { ...config.cta },
@@ -1197,6 +1268,9 @@ function normalizarLandingPagePublicavelConfig(
       ["nome", "cargoEmpresa", "texto"]
     ),
     audios: normalizarAudiosLanding(config.audios),
+    produtosDigitais: normalizarProdutosDigitaisLanding(
+      config.produtosDigitais
+    ),
     contato: normalizarObjetoLanding(config.contato, fallback.contato, [
       "telefone",
       "whatsapp",
@@ -1266,6 +1340,9 @@ function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
       ["nome", "cargoEmpresa", "texto"]
     ),
     audios: normalizarAudiosLanding(configRecebida.audios),
+    produtosDigitais: normalizarProdutosDigitaisLanding(
+      configRecebida.produtosDigitais
+    ),
     contato: normalizarObjetoLanding(
       configRecebida.contato,
       landingPageContatoPadrao,
@@ -2004,6 +2081,199 @@ function LandingAudiosSection({
           className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Adicionar audio
+        </button>
+      </fieldset>
+    </div>
+  );
+}
+
+function LandingProdutosDigitaisSection({
+  landingPageContratada,
+  produtosDigitais,
+  onProdutoDigitalChange,
+  onProdutoDigitalAdd,
+  onProdutoDigitalRemove,
+  onProdutoDigitalMove,
+  pastaUploadLanding,
+}: LandingPageSectionProps) {
+  const camposDesabilitados = !landingPageContratada;
+  const limiteProdutos = 20;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+            Produtos Digitais / Partituras
+          </p>
+
+          <h4 className="mt-2 text-lg font-bold text-slate-900">
+            Produtos digitais da Landing Page
+          </h4>
+
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Cadastre ate 20 produtos com capa, preco e link externo de compra. O checkout sera conectado em uma etapa futura.
+          </p>
+        </div>
+
+        {!landingPageContratada && (
+          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
+            Nao contratado
+          </span>
+        )}
+      </div>
+
+      <fieldset
+        disabled={camposDesabilitados}
+        className="mt-5 grid gap-4 disabled:opacity-60"
+      >
+        {produtosDigitais.map((produto, indice) => {
+          const imagemUrl = produto.imagemUrl.trim();
+
+          return (
+            <div
+              key={`produto-digital-${indice}`}
+              className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+            >
+              <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <h5 className="font-bold text-slate-900">
+                    Produto {indice + 1}
+                  </h5>
+
+                  <label className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={produto.visivel}
+                      onChange={(e) =>
+                        onProdutoDigitalChange(
+                          indice,
+                          "visivel",
+                          e.target.checked
+                        )
+                      }
+                    />
+                    Exibir produto
+                  </label>
+                </div>
+
+                <div className="grid gap-2 sm:flex sm:shrink-0">
+                  <button
+                    type="button"
+                    disabled={camposDesabilitados || indice === 0}
+                    onClick={() => onProdutoDigitalMove(indice, "up")}
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Subir
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={
+                      camposDesabilitados ||
+                      indice === produtosDigitais.length - 1
+                    }
+                    onClick={() => onProdutoDigitalMove(indice, "down")}
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Descer
+                  </button>
+
+                  {produtosDigitais.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => onProdutoDigitalRemove(indice)}
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600"
+                    >
+                      Remover
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Input
+                    label="Titulo"
+                    value={produto.titulo}
+                    onChange={(e) =>
+                      onProdutoDigitalChange(indice, "titulo", e.target.value)
+                    }
+                    placeholder="Partitura, apostila ou produto digital"
+                  />
+
+                  <Input
+                    label="Preco"
+                    value={produto.preco}
+                    onChange={(e) =>
+                      onProdutoDigitalChange(indice, "preco", e.target.value)
+                    }
+                    placeholder="R$ 49,90"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-medium text-slate-700">
+                    Descricao
+                  </label>
+
+                  <textarea
+                    value={produto.descricao}
+                    onChange={(e) =>
+                      onProdutoDigitalChange(
+                        indice,
+                        "descricao",
+                        e.target.value
+                      )
+                    }
+                    placeholder="Descreva o produto, formato e principais beneficios."
+                    rows={4}
+                    className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                  />
+                </div>
+
+                <UploadImagem
+                  titulo={`Capa do produto ${indice + 1}`}
+                  imagem={produto.imagemUrl}
+                  pasta={`${pastaUploadLanding}/produtos-digitais/${indice + 1}`}
+                  onUpload={async (url) =>
+                    onProdutoDigitalChange(indice, "imagemUrl", url)
+                  }
+                />
+
+                {imagemUrl && (
+                  <p className="break-all text-xs font-semibold text-slate-500">
+                    URL atual da capa: {imagemUrl}
+                  </p>
+                )}
+
+                <Input
+                  label="Link de compra"
+                  value={produto.linkCompra}
+                  onChange={(e) =>
+                    onProdutoDigitalChange(
+                      indice,
+                      "linkCompra",
+                      e.target.value
+                    )
+                  }
+                  placeholder="https://..."
+                  helperText="O botao Comprar abrira este link em uma nova aba."
+                />
+              </div>
+            </div>
+          );
+        })}
+
+        <button
+          type="button"
+          onClick={onProdutoDigitalAdd}
+          disabled={
+            camposDesabilitados || produtosDigitais.length >= limiteProdutos
+          }
+          className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Adicionar produto
         </button>
       </fieldset>
     </div>
@@ -2810,6 +3080,13 @@ const landingPageSections: LandingPageSecaoConfig[] = [
     Component: LandingAudiosSection,
   },
   {
+    id: "produtosDigitais",
+    nome: "Produtos Digitais",
+    descricao: "Cards para partituras, PDFs e produtos digitais.",
+    ordem: 56,
+    Component: LandingProdutosDigitaisSection,
+  },
+  {
     id: "contato",
     nome: "Contato",
     descricao: "Base para canais de contato e atendimento.",
@@ -3288,6 +3565,10 @@ export default function EmpresaForm({
     useState<LandingPageAudioConfig[]>(() =>
       landingPageAudiosPadrao.map((audio) => ({ ...audio }))
     );
+  const [landingPageProdutosDigitais, setLandingPageProdutosDigitais] =
+    useState<LandingPageProdutoDigitalConfig[]>(() =>
+      landingPageProdutosDigitaisPadrao.map((produto) => ({ ...produto }))
+    );
   const [landingPageContato, setLandingPageContato] =
     useState<LandingPageContatoConfig>(() => ({ ...landingPageContatoPadrao }));
   const [landingPageFormularioContato, setLandingPageFormularioContato] =
@@ -3453,6 +3734,7 @@ export default function EmpresaForm({
     setLandingPageGaleria(landingPageConfig.galeria);
     setLandingPageDepoimentos(landingPageConfig.depoimentos);
     setLandingPageAudios(landingPageConfig.audios);
+    setLandingPageProdutosDigitais(landingPageConfig.produtosDigitais);
     setLandingPageContato(landingPageConfig.contato);
     setLandingPageFormularioContato(landingPageConfig.formularioContato);
     setLandingPageCta(landingPageConfig.cta);
@@ -3833,6 +4115,61 @@ export default function EmpresaForm({
     });
   }
 
+  function atualizarLandingPageProdutoDigital(
+    indice: number,
+    campo: keyof LandingPageProdutoDigitalConfig,
+    valor: string | boolean
+  ) {
+    setLandingPageProdutosDigitais((produtosAtuais) =>
+      produtosAtuais.map((produto, indiceAtual) =>
+        indiceAtual === indice
+          ? {
+              ...produto,
+              [campo]: valor,
+            }
+          : produto
+      )
+    );
+  }
+
+  function adicionarLandingPageProdutoDigital() {
+    setLandingPageProdutosDigitais((produtosAtuais) => {
+      if (produtosAtuais.length >= 20) return produtosAtuais;
+
+      return [
+        ...produtosAtuais,
+        { ...landingPageProdutosDigitaisPadrao[0] },
+      ];
+    });
+  }
+
+  function removerLandingPageProdutoDigital(indice: number) {
+    setLandingPageProdutosDigitais((produtosAtuais) => {
+      if (produtosAtuais.length <= 1) return produtosAtuais;
+
+      return produtosAtuais.filter((_, indiceAtual) => indiceAtual !== indice);
+    });
+  }
+
+  function moverLandingPageProdutoDigital(
+    indice: number,
+    direcao: "up" | "down"
+  ) {
+    setLandingPageProdutosDigitais((produtosAtuais) => {
+      const novoIndice = direcao === "up" ? indice - 1 : indice + 1;
+
+      if (novoIndice < 0 || novoIndice >= produtosAtuais.length) {
+        return produtosAtuais;
+      }
+
+      const produtosOrdenados = [...produtosAtuais];
+      const [produtoMovido] = produtosOrdenados.splice(indice, 1);
+      produtosOrdenados.splice(novoIndice, 0, produtoMovido);
+
+      return produtosOrdenados;
+    });
+  }
+
   function atualizarLandingPageContato(
     campo: keyof LandingPageContatoConfig,
     valor: string
@@ -3952,6 +4289,7 @@ export default function EmpresaForm({
       galeria: landingPageGaleria.slice(0, 6),
       depoimentos: landingPageDepoimentos.slice(0, 6),
       audios: landingPageAudios.slice(0, 10),
+      produtosDigitais: landingPageProdutosDigitais.slice(0, 20),
       contato: landingPageContato,
       formularioContato: landingPageFormularioContato,
       cta: landingPageCta,
@@ -3984,6 +4322,7 @@ export default function EmpresaForm({
     setLandingPageGaleria(config.galeria);
     setLandingPageDepoimentos(config.depoimentos);
     setLandingPageAudios(config.audios);
+    setLandingPageProdutosDigitais(config.produtosDigitais);
     setLandingPageContato(config.contato);
     setLandingPageFormularioContato(config.formularioContato);
     setLandingPageCta(config.cta);
@@ -4863,6 +5202,7 @@ export default function EmpresaForm({
                               galeria={landingPageGaleria}
                               depoimentos={landingPageDepoimentos}
                               audios={landingPageAudios}
+                              produtosDigitais={landingPageProdutosDigitais}
                               contato={landingPageContato}
                               formularioContato={landingPageFormularioContato}
                               cta={landingPageCta}
@@ -4900,6 +5240,18 @@ export default function EmpresaForm({
                               onAudioAdd={adicionarLandingPageAudio}
                               onAudioRemove={removerLandingPageAudio}
                               onAudioMove={moverLandingPageAudio}
+                              onProdutoDigitalChange={
+                                atualizarLandingPageProdutoDigital
+                              }
+                              onProdutoDigitalAdd={
+                                adicionarLandingPageProdutoDigital
+                              }
+                              onProdutoDigitalRemove={
+                                removerLandingPageProdutoDigital
+                              }
+                              onProdutoDigitalMove={
+                                moverLandingPageProdutoDigital
+                              }
                               onContatoChange={atualizarLandingPageContato}
                               onFormularioContatoChange={
                                 atualizarLandingPageFormularioContato
