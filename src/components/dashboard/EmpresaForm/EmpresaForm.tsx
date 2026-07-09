@@ -231,6 +231,7 @@ function normalizarRecursos(valor: unknown): RecursosContratados {
 type LandingPageSecaoId =
   | "templates"
   | "ordenacao"
+  | "historico"
   | "hero"
   | "sobre"
   | "servicos"
@@ -320,7 +321,10 @@ type LandingPageConfig = {
 type LandingPagePublicavelConfig = Omit<
   LandingPageConfig,
   "versaoPublicada" | "alteracoesNaoPublicadas" | "historicoVersoes"
->;
+> & {
+  publicadaEm?: string;
+  publicadaPor?: string;
+};
 
 type LandingPageSectionProps = {
   nome: string;
@@ -368,6 +372,11 @@ type LandingPageSectionProps = {
     secao: LandingPageSecaoConteudoId,
     visivel: boolean
   ) => void;
+  historicoVersoes: LandingPagePublicavelConfig[];
+  versaoHistoricoVisualizada: LandingPagePublicavelConfig | null;
+  onHistoricoView: (versao: LandingPagePublicavelConfig) => void;
+  onHistoricoRestore: (versao: LandingPagePublicavelConfig) => void;
+  onHistoricoClose: () => void;
 };
 
 type LandingPageSecaoConfig = {
@@ -968,6 +977,8 @@ function criarLandingPagePublicavel(config: LandingPagePublicavelConfig) {
     seo: { ...config.seo },
     ordemSecoes: [...config.ordemSecoes],
     visibilidadeSecoes: { ...config.visibilidadeSecoes },
+    publicadaEm: config.publicadaEm,
+    publicadaPor: config.publicadaPor,
   };
 }
 
@@ -1031,6 +1042,8 @@ function normalizarLandingPagePublicavelConfig(
     visibilidadeSecoes: normalizarVisibilidadeSecoesLanding(
       config.visibilidadeSecoes
     ),
+    publicadaEm: lerCampoTexto(objetoRecebido, "publicadaEm"),
+    publicadaPor: lerCampoTexto(objetoRecebido, "publicadaPor"),
   };
 }
 
@@ -2080,7 +2093,172 @@ function LandingOrdenacaoSection({
   );
 }
 
+function formatarLandingPageVersaoData(versao: LandingPagePublicavelConfig) {
+  if (!versao.publicadaEm) {
+    return {
+      data: "Data nao registrada",
+      hora: "Hora nao registrada",
+    };
+  }
+
+  const data = new Date(versao.publicadaEm);
+
+  if (Number.isNaN(data.getTime())) {
+    return {
+      data: "Data nao registrada",
+      hora: "Hora nao registrada",
+    };
+  }
+
+  return {
+    data: data.toLocaleDateString("pt-BR"),
+    hora: data.toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+  };
+}
+
+function LandingHistoricoSection({
+  historicoVersoes,
+  versaoHistoricoVisualizada,
+  onHistoricoView,
+  onHistoricoRestore,
+  onHistoricoClose,
+}: LandingPageSectionProps) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="min-w-0">
+        <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+          Historico de Versoes
+        </p>
+
+        <h4 className="mt-2 text-lg font-bold text-slate-900">
+          Versoes publicadas da Landing Page
+        </h4>
+
+        <p className="mt-2 text-sm leading-6 text-slate-600">
+          As ultimas 10 versoes publicadas ficam disponiveis para visualizacao e restauracao.
+        </p>
+      </div>
+
+      <div className="mt-5 grid gap-3">
+        {historicoVersoes.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm font-semibold text-slate-500">
+            Nenhuma versao anterior publicada ainda.
+          </div>
+        ) : (
+          historicoVersoes.map((versao, indice) => {
+            const dataVersao = formatarLandingPageVersaoData(versao);
+
+            return (
+              <div
+                key={`${versao.publicadaEm || "sem-data"}-${indice}`}
+                className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+              >
+                <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Versao {indice + 1}
+                    </p>
+
+                    <h5 className="mt-1 font-bold text-slate-900">
+                      {dataVersao.data} - {dataVersao.hora}
+                    </h5>
+
+                    <p className="mt-1 text-sm text-slate-600">
+                      Usuario: {versao.publicadaPor || "Nao informado"}
+                    </p>
+                  </div>
+
+                  <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={() => onHistoricoView(versao)}
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300"
+                    >
+                      Visualizar
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => onHistoricoRestore(versao)}
+                      className="rounded-xl bg-green-700 px-3 py-2 text-sm font-bold text-white transition hover:bg-green-800"
+                    >
+                      Restaurar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {versaoHistoricoVisualizada && (
+        <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <div className="flex min-w-0 flex-col gap-3 border-b border-slate-200 bg-slate-50 p-4 md:flex-row md:items-center md:justify-between">
+            <div className="min-w-0">
+              <h5 className="font-bold text-slate-900">
+                Visualizacao da versao selecionada
+              </h5>
+
+              <p className="mt-1 text-sm text-slate-600">
+                Esta visualizacao nao altera o rascunho atual.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={onHistoricoClose}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700"
+            >
+              Fechar preview
+            </button>
+          </div>
+
+          <LandingPagePreviewReal
+            empresa={{
+              id: "historico-preview",
+              nome: "Landing Page",
+              slug: "historico",
+              categoria: "",
+              tipo: "",
+              descricao: "",
+              telefone: "",
+              whatsapp: "",
+              email: "",
+              instagram: "",
+              facebook: "",
+              site: "",
+              endereco: "",
+              pix: "",
+              logo: "",
+              banner: "",
+              ativo: true,
+              landing_page_config: versaoHistoricoVisualizada,
+            }}
+            landingPage={{
+              ...versaoHistoricoVisualizada,
+              versaoPublicada: versaoHistoricoVisualizada,
+              alteracoesNaoPublicadas: false,
+              historicoVersoes: [],
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 const landingPageSections: LandingPageSecaoConfig[] = [
+  {
+    id: "historico",
+    nome: "Historico",
+    descricao: "Versoes publicadas e restauracao de conteudo.",
+    ordem: 3,
+    Component: LandingHistoricoSection,
+  },
   {
     id: "ordenacao",
     nome: "Ordenacao",
@@ -2624,6 +2802,10 @@ export default function EmpresaForm({
     );
   const [landingPageHistoricoVersoes, setLandingPageHistoricoVersoes] =
     useState<LandingPagePublicavelConfig[]>([]);
+  const [
+    landingPageVersaoHistoricoVisualizada,
+    setLandingPageVersaoHistoricoVisualizada,
+  ] = useState<LandingPagePublicavelConfig | null>(null);
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -2770,6 +2952,7 @@ export default function EmpresaForm({
         criarLandingPagePublicavel(landingPageConfig)
     );
     setLandingPageHistoricoVersoes(landingPageConfig.historicoVersoes);
+    setLandingPageVersaoHistoricoVisualizada(null);
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
 
@@ -3236,6 +3419,7 @@ export default function EmpresaForm({
     const novaVersaoPublicada = criarLandingPagePublicavel(
       montarLandingPageRascunho()
     );
+    novaVersaoPublicada.publicadaEm = new Date().toISOString();
     const novoHistorico = [
       landingPageVersaoPublicada,
       ...landingPageHistoricoVersoes,
@@ -3255,6 +3439,7 @@ export default function EmpresaForm({
 
     setLandingPageVersaoPublicada(novaVersaoPublicada);
     setLandingPageHistoricoVersoes(novoHistorico);
+    setLandingPageVersaoHistoricoVisualizada(null);
     alert("Alteracoes publicadas com sucesso!");
   }
 
@@ -3280,6 +3465,37 @@ export default function EmpresaForm({
     if (error) {
       alert(error.message || "Erro ao descartar alteracoes.");
     }
+  }
+
+  async function restaurarLandingPageVersaoHistorico(
+    versao: LandingPagePublicavelConfig
+  ) {
+    if (!window.confirm("Restaurar esta versao como rascunho atual? A versao publica continuara igual ate publicar novamente.")) {
+      return;
+    }
+
+    aplicarLandingPagePublicavel(versao);
+    setLandingPageVersaoHistoricoVisualizada(null);
+
+    if (!empresaId) return;
+
+    const landingPageConfig: LandingPageConfig = {
+      ...versao,
+      versaoPublicada: landingPageVersaoPublicada,
+      alteracoesNaoPublicadas:
+        JSON.stringify(versao) !== JSON.stringify(landingPageVersaoPublicada),
+      historicoVersoes: landingPageHistoricoVersoes,
+    };
+    const { error } = await atualizarEmpresa(empresaId, {
+      landing_page_config: landingPageConfig,
+    } as Parameters<typeof atualizarEmpresa>[1]);
+
+    if (error) {
+      alert(error.message || "Erro ao restaurar versao.");
+      return;
+    }
+
+    alert("Versao restaurada no rascunho.");
   }
 
   async function salvar() {
@@ -4069,6 +4285,10 @@ export default function EmpresaForm({
                               visibilidadeSecoes={
                                 landingPageVisibilidadeSecoes
                               }
+                              historicoVersoes={landingPageHistoricoVersoes}
+                              versaoHistoricoVisualizada={
+                                landingPageVersaoHistoricoVisualizada
+                              }
                               onHeroChange={atualizarLandingPageHero}
                               onSobreChange={atualizarLandingPageSobre}
                               onServicoChange={atualizarLandingPageServico}
@@ -4097,6 +4317,15 @@ export default function EmpresaForm({
                               onSecaoMove={moverLandingPageSecao}
                               onSecaoVisibilityChange={
                                 atualizarLandingPageSecaoVisibilidade
+                              }
+                              onHistoricoView={
+                                setLandingPageVersaoHistoricoVisualizada
+                              }
+                              onHistoricoRestore={
+                                restaurarLandingPageVersaoHistorico
+                              }
+                              onHistoricoClose={() =>
+                                setLandingPageVersaoHistoricoVisualizada(null)
                               }
                             />
                           </div>
