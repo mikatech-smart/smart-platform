@@ -269,6 +269,13 @@ type LandingPageContatoConfig = {
   endereco: string;
 };
 
+type LandingPageCtaConfig = {
+  titulo: string;
+  texto: string;
+  botaoTexto: string;
+  botaoLink: string;
+};
+
 type LandingPageSectionProps = {
   nome: string;
   descricao: string;
@@ -279,6 +286,7 @@ type LandingPageSectionProps = {
   galeria: LandingPageGaleriaImagemConfig[];
   depoimentos: LandingPageDepoimentoConfig[];
   contato: LandingPageContatoConfig;
+  cta: LandingPageCtaConfig;
   onHeroChange: (campo: keyof LandingPageHeroConfig, valor: string) => void;
   onSobreChange: (campo: keyof LandingPageSobreConfig, valor: string) => void;
   onServicoChange: (
@@ -303,6 +311,7 @@ type LandingPageSectionProps = {
   onDepoimentoAdd: () => void;
   onDepoimentoRemove: (indice: number) => void;
   onContatoChange: (campo: keyof LandingPageContatoConfig, valor: string) => void;
+  onCtaChange: (campo: keyof LandingPageCtaConfig, valor: string) => void;
 };
 
 type LandingPageSecaoConfig = {
@@ -427,6 +436,21 @@ const landingPageContatoPadrao: LandingPageContatoConfig = {
   endereco: "",
 };
 
+const landingPageCtaPadrao: LandingPageCtaConfig = {
+  titulo: "",
+  texto: "",
+  botaoTexto: "",
+  botaoLink: "",
+};
+
+const landingPageCtaExemplo: LandingPageCtaConfig = {
+  titulo: "Pronto para comecar?",
+  texto:
+    "Fale com a nossa equipe e descubra como podemos ajudar sua empresa hoje.",
+  botaoTexto: "Solicitar atendimento",
+  botaoLink: "#contato",
+};
+
 function LandingPageSectionPlaceholder({
   nome,
   descricao,
@@ -447,6 +471,8 @@ function LandingPageSectionPlaceholder({
     </div>
   );
 }
+
+void LandingPageSectionPlaceholder;
 
 function LandingHeroSection({
   landingPageContratada,
@@ -1042,8 +1068,80 @@ function LandingContatoSection({
   );
 }
 
-function LandingCtaSection(props: LandingPageSectionProps) {
-  return <LandingPageSectionPlaceholder {...props} />;
+function LandingCtaSection({
+  landingPageContratada,
+  cta,
+  onCtaChange,
+}: LandingPageSectionProps) {
+  const camposDesabilitados = !landingPageContratada;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+            CTA
+          </p>
+
+          <h4 className="mt-2 text-lg font-bold text-slate-900">
+            Chamada para Acao
+          </h4>
+
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Configure a chamada final para conversao da Landing Page.
+          </p>
+        </div>
+
+        {!landingPageContratada && (
+          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
+            Nao contratado
+          </span>
+        )}
+      </div>
+
+      <fieldset
+        disabled={camposDesabilitados}
+        className="mt-5 grid gap-4 disabled:opacity-60"
+      >
+        <Input
+          label="Titulo"
+          value={cta.titulo}
+          onChange={(e) => onCtaChange("titulo", e.target.value)}
+          placeholder={landingPageCtaExemplo.titulo}
+        />
+
+        <div>
+          <label className="block font-medium text-slate-700">
+            Texto
+          </label>
+
+          <textarea
+            value={cta.texto}
+            onChange={(e) => onCtaChange("texto", e.target.value)}
+            placeholder={landingPageCtaExemplo.texto}
+            rows={4}
+            className="mt-1 w-full resize-none rounded-xl border border-slate-200 px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+          />
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <Input
+            label="Texto do botao"
+            value={cta.botaoTexto}
+            onChange={(e) => onCtaChange("botaoTexto", e.target.value)}
+            placeholder={landingPageCtaExemplo.botaoTexto}
+          />
+
+          <Input
+            label="Link do botao"
+            value={cta.botaoLink}
+            onChange={(e) => onCtaChange("botaoLink", e.target.value)}
+            placeholder="https://wa.me/5500000000000"
+          />
+        </div>
+      </fieldset>
+    </div>
+  );
 }
 
 const landingPageSections: LandingPageSecaoConfig[] = [
@@ -1121,6 +1219,7 @@ function LandingPagePreviewPlaceholder({
   depoimentos,
   contato,
   contatoPadrao,
+  cta,
 }: {
   secoes: LandingPageSecaoConfig[];
   nomeEmpresa: string;
@@ -1132,6 +1231,7 @@ function LandingPagePreviewPlaceholder({
   depoimentos: LandingPageDepoimentoConfig[];
   contato: LandingPageContatoConfig;
   contatoPadrao: LandingPageContatoConfig;
+  cta: LandingPageCtaConfig;
 }) {
   const heroPreview = {
     titulo: hero.titulo.trim() || landingPageHeroExemplo.titulo,
@@ -1220,6 +1320,12 @@ function LandingPagePreviewPlaceholder({
       valor: contatoPreview.endereco,
     },
   ].filter((item) => item.valor);
+  const ctaPreview: LandingPageCtaConfig = {
+    titulo: cta.titulo.trim() || landingPageCtaExemplo.titulo,
+    texto: cta.texto.trim() || landingPageCtaExemplo.texto,
+    botaoTexto: cta.botaoTexto.trim() || landingPageCtaExemplo.botaoTexto,
+    botaoLink: cta.botaoLink.trim() || landingPageCtaExemplo.botaoLink,
+  };
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -1420,6 +1526,29 @@ function LandingPagePreviewPlaceholder({
         <div className="mt-3 flex h-20 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 text-center text-xs font-semibold leading-4 text-slate-500">
           Area preparada para Google Maps
         </div>
+      </div>
+
+      <div className="mt-3 rounded-2xl border border-green-200 bg-green-50 p-4">
+        <p className="text-xs font-bold uppercase tracking-wide text-green-700">
+          CTA
+        </p>
+
+        <h4 className="mt-2 text-lg font-bold text-slate-900">
+          {ctaPreview.titulo}
+        </h4>
+
+        <p className="mt-2 text-sm leading-6 text-slate-600">
+          {ctaPreview.texto}
+        </p>
+
+        <a
+          href={ctaPreview.botaoLink}
+          className="mt-4 inline-flex max-w-full rounded-xl bg-green-700 px-4 py-2 text-sm font-bold text-white"
+        >
+          <span className="truncate">
+            {ctaPreview.botaoTexto}
+          </span>
+        </a>
       </div>
 
       <div className="mt-4 space-y-2">
@@ -1848,6 +1977,8 @@ export default function EmpresaForm({
     );
   const [landingPageContato, setLandingPageContato] =
     useState<LandingPageContatoConfig>(() => ({ ...landingPageContatoPadrao }));
+  const [landingPageCta, setLandingPageCta] =
+    useState<LandingPageCtaConfig>(() => ({ ...landingPageCtaPadrao }));
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -1986,6 +2117,7 @@ export default function EmpresaForm({
       landingPageDepoimentosPadrao.map((depoimento) => ({ ...depoimento }))
     );
     setLandingPageContato({ ...landingPageContatoPadrao });
+    setLandingPageCta({ ...landingPageCtaPadrao });
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
 
@@ -2308,6 +2440,16 @@ export default function EmpresaForm({
   ) {
     setLandingPageContato((contatoAtual) => ({
       ...contatoAtual,
+      [campo]: valor,
+    }));
+  }
+
+  function atualizarLandingPageCta(
+    campo: keyof LandingPageCtaConfig,
+    valor: string
+  ) {
+    setLandingPageCta((ctaAtual) => ({
+      ...ctaAtual,
       [campo]: valor,
     }));
   }
@@ -2930,6 +3072,7 @@ export default function EmpresaForm({
                             galeria={landingPageGaleria}
                             depoimentos={landingPageDepoimentos}
                             contato={landingPageContato}
+                            cta={landingPageCta}
                             onHeroChange={atualizarLandingPageHero}
                             onSobreChange={atualizarLandingPageSobre}
                             onServicoChange={atualizarLandingPageServico}
@@ -2952,6 +3095,7 @@ export default function EmpresaForm({
                               removerLandingPageDepoimento
                             }
                             onContatoChange={atualizarLandingPageContato}
+                            onCtaChange={atualizarLandingPageCta}
                           />
                         );
                       })}
@@ -2990,6 +3134,7 @@ export default function EmpresaForm({
                       email,
                       endereco,
                     }}
+                    cta={landingPageCta}
                   />
                 </div>
               </div>
