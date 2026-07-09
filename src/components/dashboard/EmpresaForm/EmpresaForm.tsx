@@ -287,6 +287,7 @@ type LandingPageProdutoDigitalConfig = {
   preco: string;
   imagemUrl: string;
   linkCompra: string;
+  categoria: string;
   visivel: boolean;
 };
 
@@ -348,6 +349,7 @@ type LandingPageConfig = {
   depoimentos: LandingPageDepoimentoConfig[];
   audios: LandingPageAudioConfig[];
   produtosDigitais: LandingPageProdutoDigitalConfig[];
+  categoriasProdutosDigitais: string[];
   contato: LandingPageContatoConfig;
   formularioContato: LandingPageFormularioContatoConfig;
   cta: LandingPageCtaConfig;
@@ -379,6 +381,7 @@ type LandingPageSectionProps = {
   depoimentos: LandingPageDepoimentoConfig[];
   audios: LandingPageAudioConfig[];
   produtosDigitais: LandingPageProdutoDigitalConfig[];
+  categoriasProdutosDigitais: string[];
   contato: LandingPageContatoConfig;
   formularioContato: LandingPageFormularioContatoConfig;
   cta: LandingPageCtaConfig;
@@ -424,6 +427,8 @@ type LandingPageSectionProps = {
   onProdutoDigitalAdd: () => void;
   onProdutoDigitalRemove: (indice: number) => void;
   onProdutoDigitalMove: (indice: number, direcao: "up" | "down") => void;
+  onProdutoCategoriaAdd: (categoria: string) => void;
+  onProdutoCategoriaRemove: (categoria: string) => void;
   onContatoChange: (campo: keyof LandingPageContatoConfig, valor: string) => void;
   onFormularioContatoChange: (
     campo: LandingPageFormularioCampoId,
@@ -603,9 +608,12 @@ const landingPageProdutosDigitaisPadrao: LandingPageProdutoDigitalConfig[] = [
     preco: "",
     imagemUrl: "",
     linkCompra: "",
+    categoria: "",
     visivel: true,
   },
 ];
+
+const landingPageCategoriasProdutosDigitaisPadrao: string[] = [];
 
 const landingPageContatoPadrao: LandingPageContatoConfig = {
   telefone: "",
@@ -997,6 +1005,7 @@ function criarLandingPageConfigPadrao(): LandingPageConfig {
     produtosDigitais: landingPageProdutosDigitaisPadrao.map((produto) => ({
       ...produto,
     })),
+    categoriasProdutosDigitais: [...landingPageCategoriasProdutosDigitaisPadrao],
     contato: { ...landingPageContatoPadrao },
     formularioContato: structuredClone(landingPageFormularioContatoPadrao),
     cta: { ...landingPageCtaPadrao },
@@ -1108,6 +1117,7 @@ function normalizarProdutosDigitaisLanding(
       preco: lerCampoTexto(produto, "preco"),
       imagemUrl: lerCampoTexto(produto, "imagemUrl"),
       linkCompra: lerCampoTexto(produto, "linkCompra"),
+      categoria: lerCampoTexto(produto, "categoria"),
       visivel:
         typeof produto.visivel === "boolean" ? produto.visivel : true,
     };
@@ -1116,6 +1126,18 @@ function normalizarProdutosDigitaisLanding(
   return produtos.length > 0
     ? produtos
     : landingPageProdutosDigitaisPadrao.map((produto) => ({ ...produto }));
+}
+
+function normalizarCategoriasProdutosDigitaisLanding(valor: unknown): string[] {
+  if (!Array.isArray(valor)) {
+    return [...landingPageCategoriasProdutosDigitaisPadrao];
+  }
+
+  return valor
+    .filter((categoria): categoria is string => typeof categoria === "string")
+    .map((categoria) => categoria.trim())
+    .filter(Boolean)
+    .filter((categoria, indice, lista) => lista.indexOf(categoria) === indice);
 }
 
 function normalizarFormularioContatoLanding(
@@ -1218,6 +1240,7 @@ function criarLandingPagePublicavel(config: LandingPagePublicavelConfig) {
     produtosDigitais: config.produtosDigitais.map((produto) => ({
       ...produto,
     })),
+    categoriasProdutosDigitais: [...config.categoriasProdutosDigitais],
     contato: { ...config.contato },
     formularioContato: structuredClone(config.formularioContato),
     cta: { ...config.cta },
@@ -1270,6 +1293,9 @@ function normalizarLandingPagePublicavelConfig(
     audios: normalizarAudiosLanding(config.audios),
     produtosDigitais: normalizarProdutosDigitaisLanding(
       config.produtosDigitais
+    ),
+    categoriasProdutosDigitais: normalizarCategoriasProdutosDigitaisLanding(
+      config.categoriasProdutosDigitais
     ),
     contato: normalizarObjetoLanding(config.contato, fallback.contato, [
       "telefone",
@@ -1342,6 +1368,9 @@ function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
     audios: normalizarAudiosLanding(configRecebida.audios),
     produtosDigitais: normalizarProdutosDigitaisLanding(
       configRecebida.produtosDigitais
+    ),
+    categoriasProdutosDigitais: normalizarCategoriasProdutosDigitaisLanding(
+      configRecebida.categoriasProdutosDigitais
     ),
     contato: normalizarObjetoLanding(
       configRecebida.contato,
@@ -2090,14 +2119,27 @@ function LandingAudiosSection({
 function LandingProdutosDigitaisSection({
   landingPageContratada,
   produtosDigitais,
+  categoriasProdutosDigitais,
   onProdutoDigitalChange,
   onProdutoDigitalAdd,
   onProdutoDigitalRemove,
   onProdutoDigitalMove,
+  onProdutoCategoriaAdd,
+  onProdutoCategoriaRemove,
   pastaUploadLanding,
 }: LandingPageSectionProps) {
   const camposDesabilitados = !landingPageContratada;
   const limiteProdutos = 20;
+  const [novaCategoria, setNovaCategoria] = useState("");
+
+  function adicionarCategoria() {
+    const categoria = novaCategoria.trim();
+
+    if (!categoria) return;
+
+    onProdutoCategoriaAdd(categoria);
+    setNovaCategoria("");
+  }
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -2127,6 +2169,56 @@ function LandingProdutosDigitaisSection({
         disabled={camposDesabilitados}
         className="mt-5 grid gap-4 disabled:opacity-60"
       >
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <h5 className="font-bold text-slate-900">
+            Categorias
+          </h5>
+
+          <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+            <Input
+              label="Nova categoria"
+              value={novaCategoria}
+              onChange={(e) => setNovaCategoria(e.target.value)}
+              placeholder="Ex.: Partituras, PDFs, Aulas"
+            />
+
+            <button
+              type="button"
+              onClick={adicionarCategoria}
+              disabled={camposDesabilitados || !novaCategoria.trim()}
+              className="self-end rounded-xl bg-green-700 px-4 py-3 text-sm font-bold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              Adicionar categoria
+            </button>
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            {categoriasProdutosDigitais.length === 0 ? (
+              <span className="rounded-xl border border-dashed border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-500">
+                Nenhuma categoria criada.
+              </span>
+            ) : (
+              categoriasProdutosDigitais.map((categoria) => (
+                <span
+                  key={categoria}
+                  className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-sm font-bold text-slate-700 ring-1 ring-slate-200"
+                >
+                  {categoria}
+
+                  <button
+                    type="button"
+                    onClick={() => onProdutoCategoriaRemove(categoria)}
+                    className="text-xs font-black text-slate-400 hover:text-red-600"
+                    aria-label={`Remover categoria ${categoria}`}
+                  >
+                    x
+                  </button>
+                </span>
+              ))
+            )}
+          </div>
+        </div>
+
         {produtosDigitais.map((produto, indice) => {
           const imagemUrl = produto.imagemUrl.trim();
 
@@ -2210,6 +2302,31 @@ function LandingProdutosDigitaisSection({
                     }
                     placeholder="R$ 49,90"
                   />
+
+                  <div>
+                    <label className="block font-medium text-slate-700">
+                      Categoria
+                    </label>
+
+                    <select
+                      value={produto.categoria}
+                      onChange={(e) =>
+                        onProdutoDigitalChange(
+                          indice,
+                          "categoria",
+                          e.target.value
+                        )
+                      }
+                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                    >
+                      <option value="">Sem categoria</option>
+                      {categoriasProdutosDigitais.map((categoria) => (
+                        <option key={categoria} value={categoria}>
+                          {categoria}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 <div>
@@ -3569,6 +3686,12 @@ export default function EmpresaForm({
     useState<LandingPageProdutoDigitalConfig[]>(() =>
       landingPageProdutosDigitaisPadrao.map((produto) => ({ ...produto }))
     );
+  const [
+    landingPageCategoriasProdutosDigitais,
+    setLandingPageCategoriasProdutosDigitais,
+  ] = useState<string[]>(() => [
+    ...landingPageCategoriasProdutosDigitaisPadrao,
+  ]);
   const [landingPageContato, setLandingPageContato] =
     useState<LandingPageContatoConfig>(() => ({ ...landingPageContatoPadrao }));
   const [landingPageFormularioContato, setLandingPageFormularioContato] =
@@ -3735,6 +3858,9 @@ export default function EmpresaForm({
     setLandingPageDepoimentos(landingPageConfig.depoimentos);
     setLandingPageAudios(landingPageConfig.audios);
     setLandingPageProdutosDigitais(landingPageConfig.produtosDigitais);
+    setLandingPageCategoriasProdutosDigitais(
+      landingPageConfig.categoriasProdutosDigitais
+    );
     setLandingPageContato(landingPageConfig.contato);
     setLandingPageFormularioContato(landingPageConfig.formularioContato);
     setLandingPageCta(landingPageConfig.cta);
@@ -4170,6 +4296,49 @@ export default function EmpresaForm({
     });
   }
 
+  function adicionarLandingPageProdutoCategoria(categoria: string) {
+    const categoriaNormalizada = categoria.trim();
+
+    if (!categoriaNormalizada) return;
+
+    setLandingPageCategoriasProdutosDigitais((categoriasAtuais) => {
+      const categoriaJaExiste = categoriasAtuais.some(
+        (categoriaAtual) =>
+          categoriaAtual.toLowerCase() === categoriaNormalizada.toLowerCase()
+      );
+
+      if (categoriaJaExiste) {
+        return categoriasAtuais;
+      }
+
+      return [...categoriasAtuais, categoriaNormalizada];
+    });
+  }
+
+  function removerLandingPageProdutoCategoria(categoria: string) {
+    if (
+      !window.confirm(
+        `Remover a categoria "${categoria}"? Os produtos vinculados ficarao sem categoria.`
+      )
+    ) {
+      return;
+    }
+
+    setLandingPageCategoriasProdutosDigitais((categoriasAtuais) =>
+      categoriasAtuais.filter((categoriaAtual) => categoriaAtual !== categoria)
+    );
+    setLandingPageProdutosDigitais((produtosAtuais) =>
+      produtosAtuais.map((produto) =>
+        produto.categoria === categoria
+          ? {
+              ...produto,
+              categoria: "",
+            }
+          : produto
+      )
+    );
+  }
+
   function atualizarLandingPageContato(
     campo: keyof LandingPageContatoConfig,
     valor: string
@@ -4290,6 +4459,7 @@ export default function EmpresaForm({
       depoimentos: landingPageDepoimentos.slice(0, 6),
       audios: landingPageAudios.slice(0, 10),
       produtosDigitais: landingPageProdutosDigitais.slice(0, 20),
+      categoriasProdutosDigitais: landingPageCategoriasProdutosDigitais,
       contato: landingPageContato,
       formularioContato: landingPageFormularioContato,
       cta: landingPageCta,
@@ -4323,6 +4493,7 @@ export default function EmpresaForm({
     setLandingPageDepoimentos(config.depoimentos);
     setLandingPageAudios(config.audios);
     setLandingPageProdutosDigitais(config.produtosDigitais);
+    setLandingPageCategoriasProdutosDigitais(config.categoriasProdutosDigitais);
     setLandingPageContato(config.contato);
     setLandingPageFormularioContato(config.formularioContato);
     setLandingPageCta(config.cta);
@@ -5203,6 +5374,9 @@ export default function EmpresaForm({
                               depoimentos={landingPageDepoimentos}
                               audios={landingPageAudios}
                               produtosDigitais={landingPageProdutosDigitais}
+                              categoriasProdutosDigitais={
+                                landingPageCategoriasProdutosDigitais
+                              }
                               contato={landingPageContato}
                               formularioContato={landingPageFormularioContato}
                               cta={landingPageCta}
@@ -5251,6 +5425,12 @@ export default function EmpresaForm({
                               }
                               onProdutoDigitalMove={
                                 moverLandingPageProdutoDigital
+                              }
+                              onProdutoCategoriaAdd={
+                                adicionarLandingPageProdutoCategoria
+                              }
+                              onProdutoCategoriaRemove={
+                                removerLandingPageProdutoCategoria
                               }
                               onContatoChange={atualizarLandingPageContato}
                               onFormularioContatoChange={

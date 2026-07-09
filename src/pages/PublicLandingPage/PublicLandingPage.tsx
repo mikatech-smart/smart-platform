@@ -59,6 +59,7 @@ type LandingPageProdutoDigitalConfig = {
   preco: string;
   imagemUrl: string;
   linkCompra: string;
+  categoria: string;
   visivel: boolean;
 };
 
@@ -120,6 +121,7 @@ export type LandingPageConfig = {
   depoimentos: LandingPageDepoimentoConfig[];
   audios: LandingPageAudioConfig[];
   produtosDigitais: LandingPageProdutoDigitalConfig[];
+  categoriasProdutosDigitais: string[];
   contato: LandingPageContatoConfig;
   formularioContato: LandingPageFormularioContatoConfig;
   cta: LandingPageCtaConfig;
@@ -208,9 +210,11 @@ const landingPageConfigPadrao: LandingPageConfig = {
       preco: "",
       imagemUrl: "",
       linkCompra: "",
+      categoria: "",
       visivel: true,
     },
   ],
+  categoriasProdutosDigitais: [],
   contato: {
     telefone: "",
     whatsapp: "",
@@ -432,6 +436,7 @@ function normalizarProdutosDigitais(
       preco: texto(produto.preco),
       imagemUrl: texto(produto.imagemUrl),
       linkCompra: texto(produto.linkCompra),
+      categoria: texto(produto.categoria),
       visivel:
         typeof produto.visivel === "boolean" ? produto.visivel : true,
     };
@@ -440,6 +445,18 @@ function normalizarProdutosDigitais(
   return produtos.length > 0
     ? produtos
     : padrao.map((produto) => ({ ...produto }));
+}
+
+function normalizarCategoriasProdutosDigitais(valor: unknown): string[] {
+  if (!Array.isArray(valor)) {
+    return [];
+  }
+
+  return valor
+    .filter((categoria): categoria is string => typeof categoria === "string")
+    .map((categoria) => categoria.trim())
+    .filter(Boolean)
+    .filter((categoria, indice, lista) => lista.indexOf(categoria) === indice);
 }
 
 function normalizarOrdemSecoes(valor: unknown): LandingPageSecaoConteudoId[] {
@@ -500,6 +517,7 @@ function criarLandingPagePublicavel(config: LandingPagePublicavelConfig) {
     produtosDigitais: config.produtosDigitais.map((produto) => ({
       ...produto,
     })),
+    categoriasProdutosDigitais: [...config.categoriasProdutosDigitais],
     contato: { ...config.contato },
     formularioContato: structuredClone(config.formularioContato),
     cta: { ...config.cta },
@@ -548,6 +566,9 @@ function normalizarLandingPagePublicavelConfig(
     ]),
     audios: normalizarAudios(config.audios),
     produtosDigitais: normalizarProdutosDigitais(config.produtosDigitais),
+    categoriasProdutosDigitais: normalizarCategoriasProdutosDigitais(
+      config.categoriasProdutosDigitais
+    ),
     contato: normalizarObjeto(config.contato, fallback.contato, [
       "telefone",
       "whatsapp",
@@ -613,6 +634,9 @@ function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
     ),
     audios: normalizarAudios(config.audios),
     produtosDigitais: normalizarProdutosDigitais(config.produtosDigitais),
+    categoriasProdutosDigitais: normalizarCategoriasProdutosDigitais(
+      config.categoriasProdutosDigitais
+    ),
     contato: normalizarObjeto(config.contato, landingPageConfigPadrao.contato, [
       "telefone",
       "whatsapp",
@@ -819,6 +843,23 @@ export function PublicLandingPageContent({
         produto.linkCompra
       )
   );
+  const categoriasProdutosDigitais = landingPage.categoriasProdutosDigitais
+    .filter((categoria) =>
+      produtosDigitais.some((produto) => produto.categoria === categoria)
+    );
+  const [categoriaProdutoAtiva, setCategoriaProdutoAtiva] = useState("todos");
+  const categoriaProdutoAtivaValida =
+    categoriaProdutoAtiva === "todos" ||
+    categoriasProdutosDigitais.includes(categoriaProdutoAtiva);
+  const categoriaProdutoSelecionada = categoriaProdutoAtivaValida
+    ? categoriaProdutoAtiva
+    : "todos";
+  const produtosDigitaisFiltrados =
+    categoriaProdutoSelecionada === "todos"
+      ? produtosDigitais
+      : produtosDigitais.filter(
+          (produto) => produto.categoria === categoriaProdutoSelecionada
+        );
   const contato = {
     telefone: landingPage.contato.telefone.trim() || empresa.telefone || "",
     whatsapp: landingPage.contato.whatsapp.trim() || empresa.whatsapp || "",
@@ -1080,8 +1121,39 @@ export function PublicLandingPageContent({
               <h2>Partituras e materiais</h2>
             </div>
 
+            {categoriasProdutosDigitais.length > 0 && (
+              <div className="public-landing-product-filters">
+                <button
+                  type="button"
+                  className={
+                    categoriaProdutoSelecionada === "todos"
+                      ? "public-landing-product-filter public-landing-product-filter--active"
+                      : "public-landing-product-filter"
+                  }
+                  onClick={() => setCategoriaProdutoAtiva("todos")}
+                >
+                  Todos
+                </button>
+
+                {categoriasProdutosDigitais.map((categoria) => (
+                  <button
+                    key={categoria}
+                    type="button"
+                    className={
+                      categoriaProdutoSelecionada === categoria
+                        ? "public-landing-product-filter public-landing-product-filter--active"
+                        : "public-landing-product-filter"
+                    }
+                    onClick={() => setCategoriaProdutoAtiva(categoria)}
+                  >
+                    {categoria}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="public-landing-products">
-              {produtosDigitais.map((produto, indice) => (
+              {produtosDigitaisFiltrados.map((produto, indice) => (
                 <article
                   className="public-landing-product-card"
                   key={`${produto.titulo}-${indice}`}
