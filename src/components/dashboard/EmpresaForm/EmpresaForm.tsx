@@ -246,14 +246,27 @@ type LandingPageSobreConfig = {
   imagem: string;
 };
 
+type LandingPageServicoConfig = {
+  titulo: string;
+  descricao: string;
+};
+
 type LandingPageSectionProps = {
   nome: string;
   descricao: string;
   landingPageContratada: boolean;
   hero: LandingPageHeroConfig;
   sobre: LandingPageSobreConfig;
+  servicos: LandingPageServicoConfig[];
   onHeroChange: (campo: keyof LandingPageHeroConfig, valor: string) => void;
   onSobreChange: (campo: keyof LandingPageSobreConfig, valor: string) => void;
+  onServicoChange: (
+    indice: number,
+    campo: keyof LandingPageServicoConfig,
+    valor: string
+  ) => void;
+  onServicoAdd: () => void;
+  onServicoRemove: (indice: number) => void;
 };
 
 type LandingPageSecaoConfig = {
@@ -293,6 +306,28 @@ const landingPageSobreExemplo: LandingPageSobreConfig = {
     "Apresente sua historia, seus diferenciais e o motivo pelo qual clientes devem escolher sua empresa.",
   imagem: "",
 };
+
+const landingPageServicosPadrao: LandingPageServicoConfig[] = [
+  {
+    titulo: "",
+    descricao: "",
+  },
+];
+
+const landingPageServicosExemplo: LandingPageServicoConfig[] = [
+  {
+    titulo: "Atendimento personalizado",
+    descricao: "Solucoes pensadas para a necessidade de cada cliente.",
+  },
+  {
+    titulo: "Entrega profissional",
+    descricao: "Processo organizado para garantir qualidade do inicio ao fim.",
+  },
+  {
+    titulo: "Suporte rapido",
+    descricao: "Canais simples para tirar duvidas e solicitar atendimento.",
+  },
+];
 
 function LandingPageSectionPlaceholder({
   nome,
@@ -467,8 +502,111 @@ function LandingSobreSection({
   );
 }
 
-function LandingServicosSection(props: LandingPageSectionProps) {
-  return <LandingPageSectionPlaceholder {...props} />;
+function LandingServicosSection({
+  landingPageContratada,
+  servicos,
+  onServicoChange,
+  onServicoAdd,
+  onServicoRemove,
+}: LandingPageSectionProps) {
+  const camposDesabilitados = !landingPageContratada;
+  const limiteServicos = 6;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+            Serviços
+          </p>
+
+          <h4 className="mt-2 text-lg font-bold text-slate-900">
+            Serviços da Landing Page
+          </h4>
+
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Cadastre até 6 serviços para destacar no preview da Landing Page.
+          </p>
+        </div>
+
+        {!landingPageContratada && (
+          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
+            Não contratado
+          </span>
+        )}
+      </div>
+
+      <fieldset
+        disabled={camposDesabilitados}
+        className="mt-5 grid gap-4 disabled:opacity-60"
+      >
+        {servicos.map((servico, indice) => (
+          <div
+            key={`servico-${indice}`}
+            className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+          >
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h5 className="font-bold text-slate-900">
+                Serviço {indice + 1}
+              </h5>
+
+              {servicos.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => onServicoRemove(indice)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 sm:w-auto"
+                >
+                  Remover
+                </button>
+              )}
+            </div>
+
+            <div className="mt-4 grid gap-4">
+              <Input
+                label={`Título do serviço ${indice + 1}`}
+                value={servico.titulo}
+                onChange={(e) =>
+                  onServicoChange(indice, "titulo", e.target.value)
+                }
+                placeholder={
+                  landingPageServicosExemplo[indice]?.titulo ||
+                  "Nome do serviço"
+                }
+              />
+
+              <div>
+                <label className="block font-medium text-slate-700">
+                  Descrição curta
+                </label>
+
+                <textarea
+                  value={servico.descricao}
+                  onChange={(e) =>
+                    onServicoChange(indice, "descricao", e.target.value)
+                  }
+                  placeholder={
+                    landingPageServicosExemplo[indice]?.descricao ||
+                    "Descreva este serviço em poucas palavras."
+                  }
+                  rows={3}
+                  className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+
+        <button
+          type="button"
+          onClick={onServicoAdd}
+          disabled={camposDesabilitados || servicos.length >= limiteServicos}
+          className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Adicionar serviço
+        </button>
+      </fieldset>
+    </div>
+  );
 }
 
 function LandingGaleriaSection(props: LandingPageSectionProps) {
@@ -557,12 +695,14 @@ function LandingPagePreviewPlaceholder({
   secaoAtiva,
   hero,
   sobre,
+  servicos,
 }: {
   secoes: LandingPageSecaoConfig[];
   nomeEmpresa: string;
   secaoAtiva: LandingPageSecaoId;
   hero: LandingPageHeroConfig;
   sobre: LandingPageSobreConfig;
+  servicos: LandingPageServicoConfig[];
 }) {
   const heroPreview = {
     titulo: hero.titulo.trim() || landingPageHeroExemplo.titulo,
@@ -576,6 +716,22 @@ function LandingPagePreviewPlaceholder({
     texto: sobre.texto.trim() || landingPageSobreExemplo.texto,
     imagem: sobre.imagem.trim(),
   };
+  const servicosPreenchidos = servicos.filter(
+    (servico) => servico.titulo.trim() || servico.descricao.trim()
+  );
+  const servicosPreview =
+    servicosPreenchidos.length > 0
+      ? servicosPreenchidos.map((servico, indice) => ({
+          titulo:
+            servico.titulo.trim() ||
+            landingPageServicosExemplo[indice]?.titulo ||
+            `Serviço ${indice + 1}`,
+          descricao:
+            servico.descricao.trim() ||
+            landingPageServicosExemplo[indice]?.descricao ||
+            "Descrição breve do serviço.",
+        }))
+      : landingPageServicosExemplo;
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -645,6 +801,33 @@ function LandingPagePreviewPlaceholder({
           <p className="mt-2 text-sm leading-6 text-slate-600">
             {sobrePreview.texto}
           </p>
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4">
+        <p className="text-xs font-bold uppercase tracking-wide text-green-700">
+          Serviços
+        </p>
+
+        <h4 className="mt-2 text-lg font-bold text-slate-900">
+          O que oferecemos
+        </h4>
+
+        <div className="mt-3 grid gap-2">
+          {servicosPreview.map((servico, indice) => (
+            <div
+              key={`${servico.titulo}-${indice}`}
+              className="rounded-xl border border-slate-200 bg-slate-50 p-3"
+            >
+              <h5 className="text-sm font-bold text-slate-900">
+                {servico.titulo}
+              </h5>
+
+              <p className="mt-1 text-sm leading-5 text-slate-600">
+                {servico.descricao}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -1060,6 +1243,10 @@ export default function EmpresaForm({
     useState<LandingPageHeroConfig>(() => ({ ...landingPageHeroPadrao }));
   const [landingPageSobre, setLandingPageSobre] =
     useState<LandingPageSobreConfig>(() => ({ ...landingPageSobrePadrao }));
+  const [landingPageServicos, setLandingPageServicos] =
+    useState<LandingPageServicoConfig[]>(() =>
+      landingPageServicosPadrao.map((servico) => ({ ...servico }))
+    );
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -1188,6 +1375,9 @@ export default function EmpresaForm({
     setLandingPageSecaoAtiva("hero");
     setLandingPageHero({ ...landingPageHeroPadrao });
     setLandingPageSobre({ ...landingPageSobrePadrao });
+    setLandingPageServicos(
+      landingPageServicosPadrao.map((servico) => ({ ...servico }))
+    );
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
 
@@ -1382,6 +1572,45 @@ export default function EmpresaForm({
       ...sobreAtual,
       [campo]: valor,
     }));
+  }
+
+  function atualizarLandingPageServico(
+    indice: number,
+    campo: keyof LandingPageServicoConfig,
+    valor: string
+  ) {
+    setLandingPageServicos((servicosAtuais) =>
+      servicosAtuais.map((servico, indiceAtual) =>
+        indiceAtual === indice
+          ? {
+              ...servico,
+              [campo]: valor,
+            }
+          : servico
+      )
+    );
+  }
+
+  function adicionarLandingPageServico() {
+    setLandingPageServicos((servicosAtuais) => {
+      if (servicosAtuais.length >= 6) return servicosAtuais;
+
+      return [
+        ...servicosAtuais,
+        {
+          titulo: "",
+          descricao: "",
+        },
+      ];
+    });
+  }
+
+  function removerLandingPageServico(indice: number) {
+    setLandingPageServicos((servicosAtuais) => {
+      if (servicosAtuais.length <= 1) return servicosAtuais;
+
+      return servicosAtuais.filter((_, indiceAtual) => indiceAtual !== indice);
+    });
   }
 
   async function salvar() {
@@ -1998,8 +2227,12 @@ export default function EmpresaForm({
                             }
                             hero={landingPageHero}
                             sobre={landingPageSobre}
+                            servicos={landingPageServicos}
                             onHeroChange={atualizarLandingPageHero}
                             onSobreChange={atualizarLandingPageSobre}
+                            onServicoChange={atualizarLandingPageServico}
+                            onServicoAdd={adicionarLandingPageServico}
+                            onServicoRemove={removerLandingPageServico}
                           />
                         );
                       })}
@@ -2028,6 +2261,7 @@ export default function EmpresaForm({
                     secaoAtiva={landingPageSecaoAtiva}
                     hero={landingPageHero}
                     sobre={landingPageSobre}
+                    servicos={landingPageServicos}
                   />
                 </div>
               </div>
