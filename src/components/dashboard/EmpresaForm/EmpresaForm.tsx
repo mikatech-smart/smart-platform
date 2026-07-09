@@ -276,6 +276,16 @@ type LandingPageCtaConfig = {
   botaoLink: string;
 };
 
+type LandingPageConfig = {
+  hero: LandingPageHeroConfig;
+  sobre: LandingPageSobreConfig;
+  servicos: LandingPageServicoConfig[];
+  galeria: LandingPageGaleriaImagemConfig[];
+  depoimentos: LandingPageDepoimentoConfig[];
+  contato: LandingPageContatoConfig;
+  cta: LandingPageCtaConfig;
+};
+
 type LandingPageSectionProps = {
   nome: string;
   descricao: string;
@@ -450,6 +460,110 @@ const landingPageCtaExemplo: LandingPageCtaConfig = {
   botaoTexto: "Solicitar atendimento",
   botaoLink: "#contato",
 };
+
+function criarLandingPageConfigPadrao(): LandingPageConfig {
+  return {
+    hero: { ...landingPageHeroPadrao },
+    sobre: { ...landingPageSobrePadrao },
+    servicos: landingPageServicosPadrao.map((servico) => ({ ...servico })),
+    galeria: landingPageGaleriaPadrao.map((imagem) => ({ ...imagem })),
+    depoimentos: landingPageDepoimentosPadrao.map((depoimento) => ({
+      ...depoimento,
+    })),
+    contato: { ...landingPageContatoPadrao },
+    cta: { ...landingPageCtaPadrao },
+  };
+}
+
+function lerCampoTexto(objeto: Record<string, unknown>, campo: string) {
+  const valor = objeto[campo];
+
+  return typeof valor === "string" ? valor : "";
+}
+
+function normalizarObjetoLanding<T extends Record<string, string>>(
+  valor: unknown,
+  padrao: T,
+  campos: Array<keyof T>
+): T {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return { ...padrao };
+  }
+
+  const objeto = valor as Record<string, unknown>;
+
+  return campos.reduce<T>(
+    (config, campo) => ({
+      ...config,
+      [campo]: lerCampoTexto(objeto, String(campo)),
+    }),
+    { ...padrao }
+  );
+}
+
+function normalizarListaLanding<T extends Record<string, string>>(
+  valor: unknown,
+  padrao: T[],
+  campos: Array<keyof T>
+): T[] {
+  if (!Array.isArray(valor)) {
+    return padrao.map((item) => ({ ...item }));
+  }
+
+  const itens = valor
+    .slice(0, 6)
+    .map((item) => normalizarObjetoLanding(item, padrao[0], campos));
+
+  return itens.length > 0 ? itens : padrao.map((item) => ({ ...item }));
+}
+
+function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
+  const configPadrao = criarLandingPageConfigPadrao();
+
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return configPadrao;
+  }
+
+  const configRecebida = valor as Partial<Record<keyof LandingPageConfig, unknown>>;
+
+  return {
+    hero: normalizarObjetoLanding(
+      configRecebida.hero,
+      landingPageHeroPadrao,
+      ["titulo", "subtitulo", "botaoTexto", "botaoLink", "imagemDestaque"]
+    ),
+    sobre: normalizarObjetoLanding(
+      configRecebida.sobre,
+      landingPageSobrePadrao,
+      ["titulo", "texto", "imagem"]
+    ),
+    servicos: normalizarListaLanding(
+      configRecebida.servicos,
+      landingPageServicosPadrao,
+      ["titulo", "descricao"]
+    ),
+    galeria: normalizarListaLanding(
+      configRecebida.galeria,
+      landingPageGaleriaPadrao,
+      ["url", "alt"]
+    ),
+    depoimentos: normalizarListaLanding(
+      configRecebida.depoimentos,
+      landingPageDepoimentosPadrao,
+      ["nome", "cargoEmpresa", "texto"]
+    ),
+    contato: normalizarObjetoLanding(
+      configRecebida.contato,
+      landingPageContatoPadrao,
+      ["telefone", "whatsapp", "email", "endereco"]
+    ),
+    cta: normalizarObjetoLanding(
+      configRecebida.cta,
+      landingPageCtaPadrao,
+      ["titulo", "texto", "botaoTexto", "botaoLink"]
+    ),
+  };
+}
 
 function LandingPageSectionPlaceholder({
   nome,
@@ -2095,7 +2209,11 @@ export default function EmpresaForm({
     const dadosComPlano = data as typeof data & {
       plano?: string | null;
       recursos_contratados?: unknown;
+      landing_page_config?: unknown;
     };
+    const landingPageConfig = normalizarLandingPageConfig(
+      dadosComPlano.landing_page_config
+    );
 
     setNome(data.nome || "");
     setTipoGerenciamento(data.tipo || "mikatech");
@@ -2105,19 +2223,13 @@ export default function EmpresaForm({
     );
     setLandingPagePlaceholderAberto(false);
     setLandingPageSecaoAtiva("hero");
-    setLandingPageHero({ ...landingPageHeroPadrao });
-    setLandingPageSobre({ ...landingPageSobrePadrao });
-    setLandingPageServicos(
-      landingPageServicosPadrao.map((servico) => ({ ...servico }))
-    );
-    setLandingPageGaleria(
-      landingPageGaleriaPadrao.map((imagem) => ({ ...imagem }))
-    );
-    setLandingPageDepoimentos(
-      landingPageDepoimentosPadrao.map((depoimento) => ({ ...depoimento }))
-    );
-    setLandingPageContato({ ...landingPageContatoPadrao });
-    setLandingPageCta({ ...landingPageCtaPadrao });
+    setLandingPageHero(landingPageConfig.hero);
+    setLandingPageSobre(landingPageConfig.sobre);
+    setLandingPageServicos(landingPageConfig.servicos);
+    setLandingPageGaleria(landingPageConfig.galeria);
+    setLandingPageDepoimentos(landingPageConfig.depoimentos);
+    setLandingPageContato(landingPageConfig.contato);
+    setLandingPageCta(landingPageConfig.cta);
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
 
@@ -2469,6 +2581,15 @@ export default function EmpresaForm({
 
     const whatsappLocal = obterTelefoneLocal(whatsapp);
     const telefoneLocal = obterTelefoneLocal(telefone);
+    const landingPageConfig: LandingPageConfig = {
+      hero: landingPageHero,
+      sobre: landingPageSobre,
+      servicos: landingPageServicos.slice(0, 6),
+      galeria: landingPageGaleria.slice(0, 6),
+      depoimentos: landingPageDepoimentos.slice(0, 6),
+      contato: landingPageContato,
+      cta: landingPageCta,
+    };
 
     if (whatsappLocal && whatsappLocal.length < 10) {
       alert("Informe um WhatsApp válido com DDD.");
@@ -2521,6 +2642,7 @@ export default function EmpresaForm({
       tiktok: normalizarUsuarioRedeSocial(tiktok),
       youtube: normalizarUsuarioRedeSocial(youtube),
       kwai: normalizarUsuarioRedeSocial(kwai),
+      landing_page_config: landingPageConfig,
     };
 
     if (suportaCorFundoHero) {

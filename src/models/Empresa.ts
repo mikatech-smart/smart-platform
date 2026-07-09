@@ -35,6 +35,8 @@ export interface Empresa {
 
   wifi_senha?: string | null;
 
+  landing_page_config?: unknown;
+
   logo: string;
 
   banner: string;

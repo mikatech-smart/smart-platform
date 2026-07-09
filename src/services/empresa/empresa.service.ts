@@ -13,6 +13,14 @@ const recursosContratadosPadrao = {
   qr_code: true,
 };
 
+function erroColunaLandingPageConfig(error: { message?: string; code?: string }) {
+  return (
+    error.code === "PGRST204" ||
+    error.message?.includes("landing_page_config") ||
+    false
+  );
+}
+
 export async function buscarEmpresaPorSlug(slug: string) {
   const { data, error } = await supabase
     .from("empresas")
@@ -210,6 +218,17 @@ export async function atualizarEmpresa(
   });
 
   if (error) {
+    if (erroColunaLandingPageConfig(error)) {
+      return {
+        data: null,
+        error: {
+          ...error,
+          message:
+            "A coluna landing_page_config ainda não existe na tabela empresas. Crie a coluna JSONB para salvar a Landing Page.",
+        },
+      };
+    }
+
     return {
       data: null,
       error,
