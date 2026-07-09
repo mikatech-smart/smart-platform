@@ -344,6 +344,14 @@ type LandingPageSecaoConfig = {
   Component: (props: LandingPageSectionProps) => ReactElement;
 };
 
+type LandingPageIaContexto = {
+  nomeEmpresa: string;
+  categoria: string;
+  descricao: string;
+  servicos: LandingPageServicoConfig[];
+  contatos: LandingPageContatoConfig;
+};
+
 const landingPageHeroPadrao: LandingPageHeroConfig = {
   titulo: "",
   subtitulo: "",
@@ -2198,6 +2206,8 @@ export default function EmpresaForm({
     useState<RecursosContratados>(() => ({ ...recursosPadrao }));
   const [landingPagePlaceholderAberto, setLandingPagePlaceholderAberto] =
     useState(false);
+  const [landingPageIaModalAberto, setLandingPageIaModalAberto] =
+    useState(false);
   const [landingPagePublicada, setLandingPagePublicada] = useState(false);
   const [landingPageSecaoAtiva, setLandingPageSecaoAtiva] =
     useState<LandingPageSecaoId>("hero");
@@ -2978,6 +2988,30 @@ export default function EmpresaForm({
     return estilo;
   }
 
+  function montarContextoLandingPageIa(): LandingPageIaContexto {
+    const servicosPreenchidos = landingPageServicos.filter((servico) =>
+      servico.titulo.trim() || servico.descricao.trim()
+    );
+
+    return {
+      nomeEmpresa: nome.trim(),
+      categoria: categoria.trim(),
+      descricao: descricao.trim(),
+      servicos:
+        servicosPreenchidos.length > 0
+          ? servicosPreenchidos
+          : landingPageServicosExemplo,
+      contatos: {
+        telefone: landingPageContato.telefone.trim() || telefone.trim(),
+        whatsapp: landingPageContato.whatsapp.trim() || whatsapp.trim(),
+        email: landingPageContato.email.trim() || email.trim(),
+        endereco: landingPageContato.endereco.trim() || endereco.trim(),
+      },
+    };
+  }
+
+  const contextoLandingPageIa = montarContextoLandingPageIa();
+
   return (
     <div className="min-w-0 max-w-full space-y-6 overflow-x-hidden">
       <div className="flex max-w-full flex-wrap gap-2 overflow-x-auto rounded-2xl border bg-white p-2 shadow-sm">
@@ -3307,13 +3341,23 @@ export default function EmpresaForm({
                     </p>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setLandingPagePlaceholderAberto(false)}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 md:w-auto"
-                  >
-                    Fechar
-                  </button>
+                  <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row">
+                    <button
+                      type="button"
+                      onClick={() => setLandingPageIaModalAberto(true)}
+                      className="w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 md:w-auto"
+                    >
+                      Gerar Landing Page com IA
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setLandingPagePlaceholderAberto(false)}
+                      className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 md:w-auto"
+                    >
+                      Fechar
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mt-5 grid gap-4 xl:grid-cols-[220px_minmax(0,1fr)_300px]">
@@ -4032,6 +4076,138 @@ export default function EmpresaForm({
             </button>
           </div>
         </Card>
+      )}
+
+      {landingPageIaModalAberto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="landing-page-ia-titulo"
+        >
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl">
+            <div className="flex min-w-0 flex-col gap-3 border-b border-slate-200 pb-4 md:flex-row md:items-start md:justify-between">
+              <div className="min-w-0">
+                <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+                  IA para Landing Page
+                </p>
+
+                <h3
+                  id="landing-page-ia-titulo"
+                  className="mt-2 text-xl font-bold text-slate-900"
+                >
+                  Geracao automatica em breve
+                </h3>
+
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Esta funcionalidade ainda nao gera conteudo. A estrutura abaixo mostra os dados que serao usados na futura integracao com IA.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setLandingPageIaModalAberto(false)}
+                className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 md:w-auto"
+              >
+                Fechar
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-4">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <h4 className="font-bold text-slate-900">
+                  Dados da empresa
+                </h4>
+
+                <dl className="mt-3 grid gap-3 text-sm md:grid-cols-2">
+                  <div>
+                    <dt className="font-bold text-slate-700">
+                      Nome da empresa
+                    </dt>
+                    <dd className="mt-1 text-slate-600">
+                      {contextoLandingPageIa.nomeEmpresa || "Nao informado"}
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt className="font-bold text-slate-700">
+                      Categoria
+                    </dt>
+                    <dd className="mt-1 text-slate-600">
+                      {contextoLandingPageIa.categoria || "Nao informada"}
+                    </dd>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <dt className="font-bold text-slate-700">
+                      Descricao
+                    </dt>
+                    <dd className="mt-1 leading-6 text-slate-600">
+                      {contextoLandingPageIa.descricao || "Nao informada"}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <h4 className="font-bold text-slate-900">
+                  Servicos
+                </h4>
+
+                <div className="mt-3 grid gap-2">
+                  {contextoLandingPageIa.servicos.map((servico, indice) => (
+                    <div
+                      key={`${servico.titulo}-${indice}`}
+                      className="rounded-xl border border-slate-200 bg-slate-50 p-3"
+                    >
+                      <p className="font-bold text-slate-900">
+                        {servico.titulo.trim() || `Servico ${indice + 1}`}
+                      </p>
+
+                      <p className="mt-1 text-sm leading-6 text-slate-600">
+                        {servico.descricao.trim() || "Descricao nao informada"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <h4 className="font-bold text-slate-900">
+                  Contatos
+                </h4>
+
+                <dl className="mt-3 grid gap-3 text-sm md:grid-cols-2">
+                  {[
+                    ["Telefone", contextoLandingPageIa.contatos.telefone],
+                    ["WhatsApp", contextoLandingPageIa.contatos.whatsapp],
+                    ["E-mail", contextoLandingPageIa.contatos.email],
+                    ["Endereco", contextoLandingPageIa.contatos.endereco],
+                  ].map(([label, valor]) => (
+                    <div key={label}>
+                      <dt className="font-bold text-slate-700">
+                        {label}
+                      </dt>
+                      <dd className="mt-1 text-slate-600">
+                        {valor || "Nao informado"}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+                <h4 className="font-bold text-slate-900">
+                  Arquitetura futura
+                </h4>
+
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Este ponto fica preparado para enviar o contexto acima a um provedor de IA e preencher as secoes da Landing Page em uma proxima sprint.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
