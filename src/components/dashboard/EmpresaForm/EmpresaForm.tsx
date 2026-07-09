@@ -330,6 +330,7 @@ type LandingPageSectionProps = {
   nome: string;
   descricao: string;
   landingPageContratada: boolean;
+  pastaUploadLanding: string;
   hero: LandingPageHeroConfig;
   sobre: LandingPageSobreConfig;
   servicos: LandingPageServicoConfig[];
@@ -1179,6 +1180,7 @@ function LandingHeroSection({
   landingPageContratada,
   hero,
   onHeroChange,
+  pastaUploadLanding,
 }: LandingPageSectionProps) {
   const camposDesabilitados = !landingPageContratada;
 
@@ -1247,12 +1249,11 @@ function LandingHeroSection({
           />
         </div>
 
-        <Input
-          label="Imagem de destaque"
-          value={hero.imagemDestaque}
-          onChange={(e) => onHeroChange("imagemDestaque", e.target.value)}
-          placeholder="https://exemplo.com/imagem.jpg"
-          helperText="Informe a URL da imagem. O upload sera preparado em uma sprint futura."
+        <UploadImagem
+          titulo="Imagem de destaque da Landing Page"
+          imagem={hero.imagemDestaque}
+          pasta={`${pastaUploadLanding}/hero`}
+          onUpload={async (url) => onHeroChange("imagemDestaque", url)}
         />
       </fieldset>
     </div>
@@ -1263,6 +1264,7 @@ function LandingSobreSection({
   landingPageContratada,
   sobre,
   onSobreChange,
+  pastaUploadLanding,
 }: LandingPageSectionProps) {
   const camposDesabilitados = !landingPageContratada;
 
@@ -1315,12 +1317,11 @@ function LandingSobreSection({
           />
         </div>
 
-        <Input
-          label="Imagem"
-          value={sobre.imagem}
-          onChange={(e) => onSobreChange("imagem", e.target.value)}
-          placeholder="https://exemplo.com/sobre.jpg"
-          helperText="Informe a URL da imagem. Upload e biblioteca de midia ficam para uma sprint futura."
+        <UploadImagem
+          titulo="Imagem da secao Sobre"
+          imagem={sobre.imagem}
+          pasta={`${pastaUploadLanding}/sobre`}
+          onUpload={async (url) => onSobreChange("imagem", url)}
         />
       </fieldset>
     </div>
@@ -1440,6 +1441,7 @@ function LandingGaleriaSection({
   onGaleriaImagemChange,
   onGaleriaImagemAdd,
   onGaleriaImagemRemove,
+  pastaUploadLanding,
 }: LandingPageSectionProps) {
   const camposDesabilitados = !landingPageContratada;
   const limiteImagens = 6;
@@ -1457,7 +1459,7 @@ function LandingGaleriaSection({
           </h4>
 
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Cadastre ate 6 imagens por URL para exibir no preview da Landing Page.
+            Cadastre ate 6 imagens por upload para exibir no preview da Landing Page.
           </p>
         </div>
 
@@ -1474,10 +1476,6 @@ function LandingGaleriaSection({
       >
         {galeria.map((imagem, indice) => {
           const imagemUrl = imagem.url.trim();
-          const textoAlternativo =
-            imagem.alt.trim() ||
-            landingPageGaleriaExemplo[indice]?.alt ||
-            `Imagem da galeria ${indice + 1}`;
 
           return (
             <div
@@ -1500,18 +1498,17 @@ function LandingGaleriaSection({
                 )}
               </div>
 
-              <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_180px]">
-                <div className="grid gap-4">
-                  <Input
-                    label={`URL da imagem ${indice + 1}`}
-                    value={imagem.url}
-                    onChange={(e) =>
-                      onGaleriaImagemChange(indice, "url", e.target.value)
-                    }
-                    placeholder="https://exemplo.com/galeria.jpg"
-                    helperText="Informe a URL da imagem. O upload sera conectado a este campo em uma sprint futura."
-                  />
+              <div className="mt-4 grid gap-4">
+                <UploadImagem
+                  titulo={`Imagem da galeria ${indice + 1}`}
+                  imagem={imagem.url}
+                  pasta={`${pastaUploadLanding}/galeria/${indice + 1}`}
+                  onUpload={async (url) =>
+                    onGaleriaImagemChange(indice, "url", url)
+                  }
+                />
 
+                <div className="grid gap-4">
                   <Input
                     label="Texto alternativo / descricao curta"
                     value={imagem.alt}
@@ -1525,19 +1522,11 @@ function LandingGaleriaSection({
                   />
                 </div>
 
-                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                  {imagemUrl ? (
-                    <img
-                      src={imagemUrl}
-                      alt={textoAlternativo}
-                      className="h-36 w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-36 items-center justify-center bg-white px-4 text-center text-sm font-semibold leading-5 text-slate-400">
-                      {textoAlternativo}
-                    </div>
-                  )}
-                </div>
+                {imagemUrl && (
+                  <p className="break-all text-xs font-semibold text-slate-500">
+                    URL atual: {imagemUrl}
+                  </p>
+                )}
               </div>
             </div>
           );
@@ -3787,6 +3776,7 @@ export default function EmpresaForm({
     JSON.stringify(landingPageVersaoPublicada);
   const landingPagePublicadaEfetiva = landingPageVersaoPublicada.publicada;
   const landingPagePreviewConfig = montarLandingPageConfig();
+  const pastaUploadLanding = `landing-page/${slugPublico || empresaId || "rascunho"}`;
   const empresaLandingPreview: EmpresaLanding = {
     id: empresaId || "preview",
     nome: nome || "Landing Page",
@@ -4273,6 +4263,7 @@ export default function EmpresaForm({
                               landingPageContratada={
                                 recursosContratados.landing_page
                               }
+                              pastaUploadLanding={pastaUploadLanding}
                               hero={landingPageHero}
                               sobre={landingPageSobre}
                               servicos={landingPageServicos}
