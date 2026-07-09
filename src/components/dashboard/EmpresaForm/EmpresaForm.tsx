@@ -256,6 +256,12 @@ type LandingPageGaleriaImagemConfig = {
   alt: string;
 };
 
+type LandingPageDepoimentoConfig = {
+  nome: string;
+  cargoEmpresa: string;
+  texto: string;
+};
+
 type LandingPageSectionProps = {
   nome: string;
   descricao: string;
@@ -264,6 +270,7 @@ type LandingPageSectionProps = {
   sobre: LandingPageSobreConfig;
   servicos: LandingPageServicoConfig[];
   galeria: LandingPageGaleriaImagemConfig[];
+  depoimentos: LandingPageDepoimentoConfig[];
   onHeroChange: (campo: keyof LandingPageHeroConfig, valor: string) => void;
   onSobreChange: (campo: keyof LandingPageSobreConfig, valor: string) => void;
   onServicoChange: (
@@ -280,6 +287,13 @@ type LandingPageSectionProps = {
   ) => void;
   onGaleriaImagemAdd: () => void;
   onGaleriaImagemRemove: (indice: number) => void;
+  onDepoimentoChange: (
+    indice: number,
+    campo: keyof LandingPageDepoimentoConfig,
+    valor: string
+  ) => void;
+  onDepoimentoAdd: () => void;
+  onDepoimentoRemove: (indice: number) => void;
 };
 
 type LandingPageSecaoConfig = {
@@ -365,6 +379,35 @@ const landingPageGaleriaExemplo: LandingPageGaleriaImagemConfig[] = [
   {
     url: "",
     alt: "Detalhe visual do trabalho entregue",
+  },
+];
+
+const landingPageDepoimentosPadrao: LandingPageDepoimentoConfig[] = [
+  {
+    nome: "",
+    cargoEmpresa: "",
+    texto: "",
+  },
+];
+
+const landingPageDepoimentosExemplo: LandingPageDepoimentoConfig[] = [
+  {
+    nome: "Ana Martins",
+    cargoEmpresa: "Cliente recorrente",
+    texto:
+      "O atendimento foi rapido, cuidadoso e resolveu exatamente o que eu precisava.",
+  },
+  {
+    nome: "Carlos Silva",
+    cargoEmpresa: "Empresario local",
+    texto:
+      "A experiencia foi simples do primeiro contato ate a entrega final.",
+  },
+  {
+    nome: "Mariana Costa",
+    cargoEmpresa: "",
+    texto:
+      "Recomendo para quem busca qualidade, organizacao e suporte de verdade.",
   },
 ];
 
@@ -770,8 +813,131 @@ function LandingGaleriaSection({
   );
 }
 
-function LandingDepoimentosSection(props: LandingPageSectionProps) {
-  return <LandingPageSectionPlaceholder {...props} />;
+function LandingDepoimentosSection({
+  landingPageContratada,
+  depoimentos,
+  onDepoimentoChange,
+  onDepoimentoAdd,
+  onDepoimentoRemove,
+}: LandingPageSectionProps) {
+  const camposDesabilitados = !landingPageContratada;
+  const limiteDepoimentos = 6;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+            Depoimentos
+          </p>
+
+          <h4 className="mt-2 text-lg font-bold text-slate-900">
+            Depoimentos da Landing Page
+          </h4>
+
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Cadastre ate 6 relatos de clientes para destacar no preview.
+          </p>
+        </div>
+
+        {!landingPageContratada && (
+          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
+            Nao contratado
+          </span>
+        )}
+      </div>
+
+      <fieldset
+        disabled={camposDesabilitados}
+        className="mt-5 grid gap-4 disabled:opacity-60"
+      >
+        {depoimentos.map((depoimento, indice) => (
+          <div
+            key={`depoimento-${indice}`}
+            className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+          >
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h5 className="font-bold text-slate-900">
+                Depoimento {indice + 1}
+              </h5>
+
+              {depoimentos.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => onDepoimentoRemove(indice)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 sm:w-auto"
+                >
+                  Remover
+                </button>
+              )}
+            </div>
+
+            <div className="mt-4 grid gap-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <Input
+                  label={`Nome ${indice + 1}`}
+                  value={depoimento.nome}
+                  onChange={(e) =>
+                    onDepoimentoChange(indice, "nome", e.target.value)
+                  }
+                  placeholder={
+                    landingPageDepoimentosExemplo[indice]?.nome ||
+                    "Nome do cliente"
+                  }
+                />
+
+                <Input
+                  label="Cargo / Empresa (opcional)"
+                  value={depoimento.cargoEmpresa}
+                  onChange={(e) =>
+                    onDepoimentoChange(
+                      indice,
+                      "cargoEmpresa",
+                      e.target.value
+                    )
+                  }
+                  placeholder={
+                    landingPageDepoimentosExemplo[indice]?.cargoEmpresa ||
+                    "Cliente, empresa ou funcao"
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="block font-medium text-slate-700">
+                  Texto do depoimento
+                </label>
+
+                <textarea
+                  value={depoimento.texto}
+                  onChange={(e) =>
+                    onDepoimentoChange(indice, "texto", e.target.value)
+                  }
+                  placeholder={
+                    landingPageDepoimentosExemplo[indice]?.texto ||
+                    "Escreva o relato do cliente em poucas linhas."
+                  }
+                  rows={4}
+                  className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+
+        <button
+          type="button"
+          onClick={onDepoimentoAdd}
+          disabled={
+            camposDesabilitados || depoimentos.length >= limiteDepoimentos
+          }
+          className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Adicionar depoimento
+        </button>
+      </fieldset>
+    </div>
+  );
 }
 
 function LandingContatoSection(props: LandingPageSectionProps) {
@@ -854,6 +1020,7 @@ function LandingPagePreviewPlaceholder({
   sobre,
   servicos,
   galeria,
+  depoimentos,
 }: {
   secoes: LandingPageSecaoConfig[];
   nomeEmpresa: string;
@@ -862,6 +1029,7 @@ function LandingPagePreviewPlaceholder({
   sobre: LandingPageSobreConfig;
   servicos: LandingPageServicoConfig[];
   galeria: LandingPageGaleriaImagemConfig[];
+  depoimentos: LandingPageDepoimentoConfig[];
 }) {
   const heroPreview = {
     titulo: hero.titulo.trim() || landingPageHeroExemplo.titulo,
@@ -904,6 +1072,28 @@ function LandingPagePreviewPlaceholder({
             `Imagem da galeria ${indice + 1}`,
         }))
       : landingPageGaleriaExemplo;
+  const depoimentosPreenchidos = depoimentos
+    .filter(
+      (depoimento) =>
+        depoimento.nome.trim() ||
+        depoimento.cargoEmpresa.trim() ||
+        depoimento.texto.trim()
+    )
+    .slice(0, 6);
+  const depoimentosPreview =
+    depoimentosPreenchidos.length > 0
+      ? depoimentosPreenchidos.map((depoimento, indice) => ({
+          nome:
+            depoimento.nome.trim() ||
+            landingPageDepoimentosExemplo[indice]?.nome ||
+            `Cliente ${indice + 1}`,
+          cargoEmpresa: depoimento.cargoEmpresa.trim(),
+          texto:
+            depoimento.texto.trim() ||
+            landingPageDepoimentosExemplo[indice]?.texto ||
+            "Relato breve do cliente sobre a experiencia com a empresa.",
+        }))
+      : landingPageDepoimentosExemplo;
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -1029,6 +1219,41 @@ function LandingPagePreviewPlaceholder({
                   {imagem.alt}
                 </div>
               )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4">
+        <p className="text-xs font-bold uppercase tracking-wide text-green-700">
+          Depoimentos
+        </p>
+
+        <h4 className="mt-2 text-lg font-bold text-slate-900">
+          O que clientes dizem
+        </h4>
+
+        <div className="mt-3 grid gap-2">
+          {depoimentosPreview.map((depoimento, indice) => (
+            <div
+              key={`${depoimento.nome}-${indice}`}
+              className="rounded-xl border border-slate-200 bg-slate-50 p-3"
+            >
+              <p className="text-sm leading-5 text-slate-600">
+                "{depoimento.texto}"
+              </p>
+
+              <div className="mt-3">
+                <h5 className="text-sm font-bold text-slate-900">
+                  {depoimento.nome}
+                </h5>
+
+                {depoimento.cargoEmpresa && (
+                  <p className="text-xs font-semibold text-slate-500">
+                    {depoimento.cargoEmpresa}
+                  </p>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -1454,6 +1679,10 @@ export default function EmpresaForm({
     useState<LandingPageGaleriaImagemConfig[]>(() =>
       landingPageGaleriaPadrao.map((imagem) => ({ ...imagem }))
     );
+  const [landingPageDepoimentos, setLandingPageDepoimentos] =
+    useState<LandingPageDepoimentoConfig[]>(() =>
+      landingPageDepoimentosPadrao.map((depoimento) => ({ ...depoimento }))
+    );
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -1587,6 +1816,9 @@ export default function EmpresaForm({
     );
     setLandingPageGaleria(
       landingPageGaleriaPadrao.map((imagem) => ({ ...imagem }))
+    );
+    setLandingPageDepoimentos(
+      landingPageDepoimentosPadrao.map((depoimento) => ({ ...depoimento }))
     );
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
@@ -1859,6 +2091,48 @@ export default function EmpresaForm({
       if (galeriaAtual.length <= 1) return galeriaAtual;
 
       return galeriaAtual.filter((_, indiceAtual) => indiceAtual !== indice);
+    });
+  }
+
+  function atualizarLandingPageDepoimento(
+    indice: number,
+    campo: keyof LandingPageDepoimentoConfig,
+    valor: string
+  ) {
+    setLandingPageDepoimentos((depoimentosAtuais) =>
+      depoimentosAtuais.map((depoimento, indiceAtual) =>
+        indiceAtual === indice
+          ? {
+              ...depoimento,
+              [campo]: valor,
+            }
+          : depoimento
+      )
+    );
+  }
+
+  function adicionarLandingPageDepoimento() {
+    setLandingPageDepoimentos((depoimentosAtuais) => {
+      if (depoimentosAtuais.length >= 6) return depoimentosAtuais;
+
+      return [
+        ...depoimentosAtuais,
+        {
+          nome: "",
+          cargoEmpresa: "",
+          texto: "",
+        },
+      ];
+    });
+  }
+
+  function removerLandingPageDepoimento(indice: number) {
+    setLandingPageDepoimentos((depoimentosAtuais) => {
+      if (depoimentosAtuais.length <= 1) return depoimentosAtuais;
+
+      return depoimentosAtuais.filter(
+        (_, indiceAtual) => indiceAtual !== indice
+      );
     });
   }
 
@@ -2478,6 +2752,7 @@ export default function EmpresaForm({
                             sobre={landingPageSobre}
                             servicos={landingPageServicos}
                             galeria={landingPageGaleria}
+                            depoimentos={landingPageDepoimentos}
                             onHeroChange={atualizarLandingPageHero}
                             onSobreChange={atualizarLandingPageSobre}
                             onServicoChange={atualizarLandingPageServico}
@@ -2491,6 +2766,13 @@ export default function EmpresaForm({
                             }
                             onGaleriaImagemRemove={
                               removerLandingPageGaleriaImagem
+                            }
+                            onDepoimentoChange={
+                              atualizarLandingPageDepoimento
+                            }
+                            onDepoimentoAdd={adicionarLandingPageDepoimento}
+                            onDepoimentoRemove={
+                              removerLandingPageDepoimento
                             }
                           />
                         );
@@ -2522,6 +2804,7 @@ export default function EmpresaForm({
                     sobre={landingPageSobre}
                     servicos={landingPageServicos}
                     galeria={landingPageGaleria}
+                    depoimentos={landingPageDepoimentos}
                   />
                 </div>
               </div>
