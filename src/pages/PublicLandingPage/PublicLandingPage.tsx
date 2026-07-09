@@ -57,7 +57,7 @@ type LandingPageSeoConfig = {
   imagemCompartilhamento: string;
 };
 
-type LandingPageConfig = {
+export type LandingPageConfig = {
   publicada: boolean;
   hero: LandingPageHeroConfig;
   sobre: LandingPageSobreConfig;
@@ -69,7 +69,7 @@ type LandingPageConfig = {
   seo: LandingPageSeoConfig;
 };
 
-type EmpresaLanding = Empresa & {
+export type EmpresaLanding = Empresa & {
   logo_exibicao?: "normal" | "small" | "hidden" | "pequeno" | "oculto" | null;
   cor_principal?: string | null;
   cor_secundaria?: string | null;
@@ -360,70 +360,15 @@ function criarSeoLandingPage(empresa: EmpresaLanding, landingPage: LandingPageCo
   };
 }
 
-export default function PublicLandingPage() {
-  const { slug } = useParams();
-  const [empresa, setEmpresa] = useState<EmpresaLanding | null>(null);
-  const [carregando, setCarregando] = useState(true);
-
-  useEffect(() => {
-    async function carregarLandingPage() {
-      if (!slug) {
-        setCarregando(false);
-        return;
-      }
-
-      const { data, error } = await buscarLandingPagePorSlug(slug);
-
-      if (error && error.code !== "PGRST116") {
-        console.error("Erro ao carregar Landing Page publica:", error);
-      }
-
-      setEmpresa(data as EmpresaLanding | null);
-      setCarregando(false);
-    }
-
-    carregarLandingPage();
-  }, [slug]);
-
-  const landingPage = useMemo(
-    () => normalizarLandingPageConfig(empresa?.landing_page_config),
-    [empresa?.landing_page_config]
-  );
-
-  useEffect(() => {
-    if (!empresa) return;
-
-    const seo = criarSeoLandingPage(empresa, landingPage);
-
-    document.title = seo.titulo;
-    atualizarMetaSeo("name", "description", seo.descricao);
-    atualizarMetaSeo("name", "keywords", seo.palavrasChave);
-    atualizarMetaSeo("property", "og:title", seo.titulo);
-    atualizarMetaSeo("property", "og:description", seo.descricao);
-    atualizarMetaSeo("property", "og:image", seo.imagem);
-    atualizarMetaSeo("property", "og:type", "website");
-    atualizarMetaSeo("property", "og:url", seo.urlPublica);
-  }, [empresa, landingPage]);
-
-  if (carregando) {
-    return (
-      <main className="public-landing public-landing--center">
-        <p>Carregando Landing Page...</p>
-      </main>
-    );
-  }
-
-  if (!empresa) {
-    return (
-      <main className="public-landing public-landing--center">
-        <section className="public-landing-message">
-          <h1>Landing Page nao encontrada</h1>
-          <p>Confira o link acessado ou tente novamente mais tarde.</p>
-        </section>
-      </main>
-    );
-  }
-
+export function PublicLandingPageContent({
+  empresa,
+  landingPage,
+  exigirPublicacao = true,
+}: {
+  empresa: EmpresaLanding;
+  landingPage: LandingPageConfig;
+  exigirPublicacao?: boolean;
+}) {
   const heroVisivel = temTexto(
     landingPage.hero.titulo,
     landingPage.hero.subtitulo,
@@ -477,7 +422,7 @@ export default function PublicLandingPage() {
     empresa.logo_exibicao !== "hidden" &&
     empresa.logo_exibicao !== "oculto";
 
-  if (!landingPage.publicada || !possuiConteudo) {
+  if ((exigirPublicacao && !landingPage.publicada) || !possuiConteudo) {
     return (
       <main className="public-landing public-landing--center" style={estiloAparencia}>
         <section className="public-landing-message">
@@ -489,7 +434,7 @@ export default function PublicLandingPage() {
             />
           )}
 
-          <h1>Landing Page não publicada</h1>
+          <h1>Landing Page nÃ£o publicada</h1>
           <p>
             {empresa.nome} ainda esta preparando esta pagina. Volte em breve.
           </p>
@@ -669,5 +614,76 @@ export default function PublicLandingPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function PublicLandingPage() {
+  const { slug } = useParams();
+  const [empresa, setEmpresa] = useState<EmpresaLanding | null>(null);
+  const [carregando, setCarregando] = useState(true);
+
+  useEffect(() => {
+    async function carregarLandingPage() {
+      if (!slug) {
+        setCarregando(false);
+        return;
+      }
+
+      const { data, error } = await buscarLandingPagePorSlug(slug);
+
+      if (error && error.code !== "PGRST116") {
+        console.error("Erro ao carregar Landing Page publica:", error);
+      }
+
+      setEmpresa(data as EmpresaLanding | null);
+      setCarregando(false);
+    }
+
+    carregarLandingPage();
+  }, [slug]);
+
+  const landingPage = useMemo(
+    () => normalizarLandingPageConfig(empresa?.landing_page_config),
+    [empresa?.landing_page_config]
+  );
+
+  useEffect(() => {
+    if (!empresa) return;
+
+    const seo = criarSeoLandingPage(empresa, landingPage);
+
+    document.title = seo.titulo;
+    atualizarMetaSeo("name", "description", seo.descricao);
+    atualizarMetaSeo("name", "keywords", seo.palavrasChave);
+    atualizarMetaSeo("property", "og:title", seo.titulo);
+    atualizarMetaSeo("property", "og:description", seo.descricao);
+    atualizarMetaSeo("property", "og:image", seo.imagem);
+    atualizarMetaSeo("property", "og:type", "website");
+    atualizarMetaSeo("property", "og:url", seo.urlPublica);
+  }, [empresa, landingPage]);
+
+  if (carregando) {
+    return (
+      <main className="public-landing public-landing--center">
+        <p>Carregando Landing Page...</p>
+      </main>
+    );
+  }
+
+  if (!empresa) {
+    return (
+      <main className="public-landing public-landing--center">
+        <section className="public-landing-message">
+          <h1>Landing Page nao encontrada</h1>
+          <p>Confira o link acessado ou tente novamente mais tarde.</p>
+        </section>
+      </main>
+    );
+  }
+  return (
+    <PublicLandingPageContent
+      empresa={empresa}
+      landingPage={landingPage}
+    />
   );
 }

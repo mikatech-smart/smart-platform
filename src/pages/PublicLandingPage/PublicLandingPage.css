@@ -321,6 +321,20 @@
   margin: 14px auto 0;
 }
 
+.public-landing-preview-frame .public-landing {
+  min-height: auto;
+}
+
+.public-landing-preview-frame .public-landing-header,
+.public-landing-preview-frame .public-landing-hero,
+.public-landing-preview-frame .public-landing-content {
+  width: 100%;
+}
+
+.public-landing-preview-frame .public-landing-hero {
+  min-height: auto;
+}
+
 @media (min-width: 720px) {
   .public-landing-header {
     padding: 24px 0;
