@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import PublicProfile from "../pages/connect/PublicProfile/PublicProfile";
 import PublicEmpresaPage from "../pages/PublicEmpresaPage/PublicEmpresaPage";
+import PublicLandingPage from "../pages/PublicLandingPage/PublicLandingPage";
 
 import Dashboard from "../pages/dashboard/Dashboard";
 import Empresas from "../pages/dashboard/Empresas";
@@ -22,6 +23,11 @@ export default function AppRouter() {
         <Route
           path="/connect/:slug"
           element={<PublicProfile />}
+        />
+
+        <Route
+          path="/landing/:slug"
+          element={<PublicLandingPage />}
         />
 
         {/* Dashboard */}
