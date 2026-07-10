@@ -13,6 +13,11 @@ import {
   buscarLandingPagePorSlug,
   salvarLeadLandingPage,
 } from "../../services/empresa/empresa.service";
+import {
+  applySeoMetadata,
+  getPublicUrl,
+  normalizeSeoDescription,
+} from "../../utils/seo";
 
 import "./PublicLandingPage.css";
 
@@ -750,54 +755,32 @@ function criarMapsLink(endereco: string) {
   )}`;
 }
 
-function atualizarMetaSeo(
-  atributo: "name" | "property",
-  chave: string,
-  conteudo: string
-) {
-  const valor = conteudo.trim();
-  const seletor = `meta[${atributo}="${chave}"]`;
-  const metaExistente = document.head.querySelector<HTMLMetaElement>(seletor);
-
-  if (!valor) {
-    metaExistente?.remove();
-    return;
-  }
-
-  const meta = metaExistente || document.createElement("meta");
-  meta.setAttribute(atributo, chave);
-  meta.setAttribute("content", valor);
-
-  if (!metaExistente) {
-    document.head.appendChild(meta);
-  }
-}
-
 function criarSeoLandingPage(empresa: EmpresaLanding, landingPage: LandingPageConfig) {
   const titulo =
     landingPage.seo.titulo.trim() ||
     landingPage.hero.titulo.trim() ||
     empresa.nome ||
     "Landing Page";
-  const descricao =
+  const descricao = normalizeSeoDescription(
     landingPage.seo.descricao.trim() ||
     empresa.descricao ||
     landingPage.hero.subtitulo.trim() ||
-    "";
+    `Conheca ${titulo} na MikaON.`
+  );
   const imagem =
     landingPage.seo.imagemCompartilhamento.trim() ||
-    empresa.logo ||
     empresa.banner ||
     landingPage.hero.imagemDestaque.trim() ||
+    empresa.logo ||
     "";
-  const urlPublica = typeof window !== "undefined" ? window.location.href : "";
+  const urlPublica = getPublicUrl(`/landing/${empresa.slug}`);
 
   return {
-    titulo,
-    descricao,
-    palavrasChave: landingPage.seo.palavrasChave.trim(),
-    imagem,
-    urlPublica,
+    title: titulo,
+    description: descricao,
+    keywords: landingPage.seo.palavrasChave.trim(),
+    image: imagem,
+    url: urlPublica,
   };
 }
 
@@ -1407,15 +1390,7 @@ export default function PublicLandingPage() {
     if (!empresa) return;
 
     const seo = criarSeoLandingPage(empresa, landingPagePublica);
-
-    document.title = seo.titulo;
-    atualizarMetaSeo("name", "description", seo.descricao);
-    atualizarMetaSeo("name", "keywords", seo.palavrasChave);
-    atualizarMetaSeo("property", "og:title", seo.titulo);
-    atualizarMetaSeo("property", "og:description", seo.descricao);
-    atualizarMetaSeo("property", "og:image", seo.imagem);
-    atualizarMetaSeo("property", "og:type", "website");
-    atualizarMetaSeo("property", "og:url", seo.urlPublica);
+    applySeoMetadata(seo);
   }, [empresa, landingPagePublica]);
 
   if (carregando) {

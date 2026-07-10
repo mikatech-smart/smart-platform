@@ -7,6 +7,11 @@ import HeroEmpresa from "../../components/public/HeroEmpresa/HeroEmpresa";
 import InformacoesEmpresa from "../../components/public/InformacoesEmpresa/InformacoesEmpresa";
 import ContatosEmpresa from "../../components/public/ContatosEmpresa/ContatosEmpresa";
 import RodapeEmpresa from "../../components/public/RodapeEmpresa/RodapeEmpresa";
+import {
+  applySeoMetadata,
+  getPublicUrl,
+  normalizeSeoDescription,
+} from "../../utils/seo";
 
 import "./PublicEmpresaPage.css";
 
@@ -154,6 +159,23 @@ function criarEstiloAparencia(empresa: Empresa): CSSProperties {
   return estilo;
 }
 
+function criarSeoPaginaPublica(empresa: Empresa) {
+  const titulo = empresa.nome || "Empresa MikaON";
+  const descricao = normalizeSeoDescription(
+    empresa.descricao ||
+      empresa.categoria ||
+      `Conheca ${titulo} na MikaON.`
+  );
+  const slugPublico = empresa.slug || "";
+
+  return {
+    title: titulo,
+    description: descricao,
+    image: empresa.banner || empresa.logo || "",
+    url: getPublicUrl(`/${slugPublico}`),
+  };
+}
+
 export default function PublicEmpresaPage() {
   const { slug } = useParams();
 
@@ -179,6 +201,12 @@ export default function PublicEmpresaPage() {
 
     carregarEmpresa();
   }, [slug]);
+
+  useEffect(() => {
+    if (!empresa) return;
+
+    applySeoMetadata(criarSeoPaginaPublica(empresa));
+  }, [empresa]);
 
   if (carregando) {
     return (

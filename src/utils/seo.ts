@@ -1,0 +1,110 @@
+import { BrandConfig } from "../config/brand";
+
+type MetaAttribute = "name" | "property";
+
+export type SeoMetadata = {
+  title: string;
+  description: string;
+  url: string;
+  image: string;
+  type?: string;
+  keywords?: string;
+};
+
+const DEFAULT_DESCRIPTION =
+  "Conheca empresas, servicos e canais de contato publicados na MikaON.";
+
+function getPublicBaseUrl() {
+  return BrandConfig.publicAppUrl.replace(/\/$/, "");
+}
+
+export function getPublicUrl(pathname: string) {
+  const path = pathname.startsWith("/") ? pathname : `/${pathname}`;
+
+  return `${getPublicBaseUrl()}${path}`;
+}
+
+export function getInstitutionalShareImage() {
+  const favicon = BrandConfig.favicon || "/favicon.svg";
+
+  if (favicon.startsWith("http://") || favicon.startsWith("https://")) {
+    return favicon;
+  }
+
+  return `${getPublicBaseUrl()}${favicon.startsWith("/") ? favicon : `/${favicon}`}`;
+}
+
+export function normalizeSeoText(value?: string | null, fallback = "") {
+  return value?.trim() || fallback;
+}
+
+export function normalizeSeoDescription(value?: string | null) {
+  const description = normalizeSeoText(value, DEFAULT_DESCRIPTION);
+
+  return description.length > 180
+    ? `${description.slice(0, 177).trim()}...`
+    : description;
+}
+
+export function normalizeSeoImage(value?: string | null) {
+  const image = value?.trim();
+
+  if (!image) return getInstitutionalShareImage();
+  if (image.startsWith("http://") || image.startsWith("https://")) return image;
+
+  return `${getPublicBaseUrl()}${image.startsWith("/") ? image : `/${image}`}`;
+}
+
+function upsertMeta(attribute: MetaAttribute, key: string, content?: string) {
+  const value = content?.trim() || "";
+  const selector = `meta[${attribute}="${key}"]`;
+  const current = document.head.querySelector<HTMLMetaElement>(selector);
+
+  if (!value) {
+    current?.remove();
+    return;
+  }
+
+  const meta = current || document.createElement("meta");
+  meta.setAttribute(attribute, key);
+  meta.setAttribute("content", value);
+
+  if (!current) {
+    document.head.appendChild(meta);
+  }
+}
+
+function upsertCanonical(url: string) {
+  const current = document.head.querySelector<HTMLLinkElement>(
+    'link[rel="canonical"]'
+  );
+  const link = current || document.createElement("link");
+
+  link.setAttribute("rel", "canonical");
+  link.setAttribute("href", url);
+
+  if (!current) {
+    document.head.appendChild(link);
+  }
+}
+
+export function applySeoMetadata(metadata: SeoMetadata) {
+  const title = normalizeSeoText(metadata.title, BrandConfig.platformName);
+  const description = normalizeSeoDescription(metadata.description);
+  const image = normalizeSeoImage(metadata.image);
+  const type = metadata.type || "website";
+
+  document.title = title;
+  upsertCanonical(metadata.url);
+  upsertMeta("name", "description", description);
+  upsertMeta("name", "keywords", metadata.keywords);
+  upsertMeta("property", "og:title", title);
+  upsertMeta("property", "og:description", description);
+  upsertMeta("property", "og:image", image);
+  upsertMeta("property", "og:url", metadata.url);
+  upsertMeta("property", "og:type", type);
+  upsertMeta("name", "twitter:card", "summary_large_image");
+  upsertMeta("name", "twitter:title", title);
+  upsertMeta("name", "twitter:description", description);
+  upsertMeta("name", "twitter:image", image);
+}
