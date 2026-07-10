@@ -2,9 +2,14 @@ const PUBLIC_APP_URL = "https://smart.mikaon.com.br";
 const DEFAULT_TITLE = "MikaON";
 const DEFAULT_DESCRIPTION =
   "MikaON conecta empresas, servicos e canais de contato em paginas publicas inteligentes.";
-const DEFAULT_IMAGE = `${PUBLIC_APP_URL}/favicon.svg`;
-const DEFAULT_FAVICON = `${PUBLIC_APP_URL}/favicon.svg`;
-const DEFAULT_THEME_COLOR = "#166534";
+const ASSET_VERSION = "102";
+const DEFAULT_IMAGE = `${PUBLIC_APP_URL}/android-chrome-512x512.png?v=${ASSET_VERSION}`;
+const DEFAULT_FAVICON = `${PUBLIC_APP_URL}/favicon.svg?v=${ASSET_VERSION}`;
+const DEFAULT_SHORTCUT_ICON = `${PUBLIC_APP_URL}/favicon.ico?v=${ASSET_VERSION}`;
+const DEFAULT_APPLE_TOUCH_ICON = `${PUBLIC_APP_URL}/apple-touch-icon.png?v=${ASSET_VERSION}`;
+const DEFAULT_PWA_ICON_192 = `${PUBLIC_APP_URL}/android-chrome-192x192.png?v=${ASSET_VERSION}`;
+const DEFAULT_PWA_ICON_512 = `${PUBLIC_APP_URL}/android-chrome-512x512.png?v=${ASSET_VERSION}`;
+const DEFAULT_THEME_COLOR = "#064e3b";
 const DEFAULT_BACKGROUND_COLOR = "#ffffff";
 
 function escapeHtml(value = "") {
@@ -129,6 +134,7 @@ function buildMetadata(route, empresa) {
       empresa?.logo ||
       ""
   );
+  const hasCustomLogo = Boolean(empresa?.logo);
   const favicon = absoluteImage(empresa?.logo || DEFAULT_FAVICON);
   const themeColor = normalizeColor(
     empresa?.cor_principal || empresa?.cor_botoes || ""
@@ -152,6 +158,11 @@ function buildMetadata(route, empresa) {
     description,
     image,
     favicon,
+    shortcutIcon: hasCustomLogo ? favicon : DEFAULT_SHORTCUT_ICON,
+    appleTouchIcon: hasCustomLogo ? favicon : DEFAULT_APPLE_TOUCH_ICON,
+    manifestIcons: hasCustomLogo
+      ? [favicon, favicon]
+      : [DEFAULT_PWA_ICON_192, DEFAULT_PWA_ICON_512],
     url,
     manifestUrl,
     themeColor,
@@ -165,7 +176,8 @@ function buildManifest(metadata) {
     metadata.title.length > 12
       ? metadata.title.slice(0, 12).trim()
       : metadata.title;
-  const iconType = getIconType(metadata.favicon);
+  const icon192 = metadata.manifestIcons?.[0] || metadata.favicon;
+  const icon512 = metadata.manifestIcons?.[1] || icon192;
   const startPath =
     metadata.route.kind === "landing"
       ? `/landing/${metadata.route.slug}`
@@ -182,15 +194,15 @@ function buildManifest(metadata) {
     background_color: metadata.backgroundColor,
     icons: [
       {
-        src: metadata.favicon,
+        src: icon192,
         sizes: "192x192",
-        type: iconType,
+        type: getIconType(icon192),
         purpose: "any",
       },
       {
-        src: metadata.favicon,
+        src: icon512,
         sizes: "512x512",
-        type: iconType,
+        type: getIconType(icon512),
         purpose: "any maskable",
       },
     ],
@@ -203,12 +215,15 @@ function injectMetadata(html, metadata) {
   const image = escapeHtml(metadata.image);
   const favicon = escapeHtml(metadata.favicon || DEFAULT_FAVICON);
   const faviconType = escapeHtml(getIconType(metadata.favicon || DEFAULT_FAVICON));
+  const shortcutIcon = escapeHtml(metadata.shortcutIcon || favicon);
+  const shortcutIconType = escapeHtml(getIconType(metadata.shortcutIcon || favicon));
+  const appleTouchIcon = escapeHtml(metadata.appleTouchIcon || favicon);
   const url = escapeHtml(metadata.url);
   const tags = [
     `<title>${title}</title>`,
     `<link rel="icon" type="${faviconType}" href="${favicon}" />`,
-    `<link rel="shortcut icon" type="${faviconType}" href="${favicon}" />`,
-    `<link rel="apple-touch-icon" href="${favicon}" />`,
+    `<link rel="shortcut icon" type="${shortcutIconType}" href="${shortcutIcon}" />`,
+    `<link rel="apple-touch-icon" href="${appleTouchIcon}" />`,
     `<link rel="manifest" href="${escapeHtml(metadata.manifestUrl)}" />`,
     `<meta name="description" content="${description}" />`,
     `<meta name="theme-color" content="${escapeHtml(metadata.themeColor)}" />`,

@@ -37,7 +37,7 @@ export function getManifestUrl(slug: string, kind: "public" | "landing") {
 }
 
 export function getInstitutionalShareImage() {
-  const favicon = BrandConfig.favicon || "/favicon.svg";
+  const favicon = BrandConfig.pwaIcon512 || BrandConfig.favicon || "/favicon.svg";
 
   if (favicon.startsWith("http://") || favicon.startsWith("https://")) {
     return favicon;
@@ -74,7 +74,7 @@ export function normalizeFavicon(value?: string | null) {
 function normalizeThemeColor(value?: string | null) {
   const color = value?.trim();
 
-  return color && /^#[0-9a-f]{3,8}$/i.test(color) ? color : "#166534";
+  return color && /^#[0-9a-f]{3,8}$/i.test(color) ? color : "#064e3b";
 }
 
 function upsertMeta(attribute: MetaAttribute, key: string, content?: string) {
@@ -156,11 +156,18 @@ function upsertIcon(rel: "icon" | "shortcut icon" | "apple-touch-icon", href: st
 }
 
 export function applyFavicon(href?: string | null) {
+  const hasCustomFavicon = Boolean(href?.trim());
   const favicon = normalizeFavicon(href);
+  const shortcutIcon = hasCustomFavicon
+    ? favicon
+    : normalizeSeoImage(BrandConfig.shortcutIcon || BrandConfig.favicon);
+  const appleTouchIcon = hasCustomFavicon
+    ? favicon
+    : normalizeSeoImage(BrandConfig.appleTouchIcon || BrandConfig.favicon);
 
   upsertIcon("icon", favicon);
-  upsertIcon("shortcut icon", favicon);
-  upsertIcon("apple-touch-icon", favicon);
+  upsertIcon("shortcut icon", shortcutIcon);
+  upsertIcon("apple-touch-icon", appleTouchIcon);
 }
 
 function applyWebAppMetadata(manifestUrl?: string, themeColor?: string | null) {
