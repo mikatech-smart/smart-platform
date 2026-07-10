@@ -44,6 +44,17 @@ export type BusinessJsonLdInput = {
 const DEFAULT_DESCRIPTION =
   "Conheca empresas, servicos e canais de contato publicados na MikaON.";
 
+const PERFORMANCE_RESOURCE_ORIGINS = [
+  "https://zujfoqjmuzvdqilaxlhb.supabase.co",
+  "https://www.google.com",
+  "https://wa.me",
+  "https://instagram.com",
+  "https://facebook.com",
+  "https://tiktok.com",
+  "https://youtube.com",
+  "https://kwai.com",
+] as const;
+
 function getPublicBaseUrl() {
   return BrandConfig.publicAppUrl.replace(/\/$/, "");
 }
@@ -260,6 +271,30 @@ function upsertLink(rel: string, href: string) {
   }
 }
 
+function getDnsPrefetchHref(origin: string) {
+  return origin.replace(/^https?:/, "");
+}
+
+function upsertResourceHint(rel: "preconnect" | "dns-prefetch", href: string) {
+  const selector = `link[rel="${rel}"][href="${href}"]`;
+  const current = document.head.querySelector<HTMLLinkElement>(selector);
+
+  if (current) return;
+
+  const link = document.createElement("link");
+
+  link.setAttribute("rel", rel);
+  link.setAttribute("href", href);
+  document.head.appendChild(link);
+}
+
+export function applyPerformanceResourceHints() {
+  PERFORMANCE_RESOURCE_ORIGINS.forEach((origin) => {
+    upsertResourceHint("dns-prefetch", getDnsPrefetchHref(origin));
+    upsertResourceHint("preconnect", origin);
+  });
+}
+
 function getIconType(href: string) {
   const url = href.split("?")[0].toLowerCase();
 
@@ -321,6 +356,7 @@ export function applySeoMetadata(metadata: SeoMetadata) {
   const type = metadata.type || "website";
 
   document.title = title;
+  applyPerformanceResourceHints();
   applyFavicon(metadata.favicon);
   applyWebAppMetadata(metadata.manifestUrl, metadata.themeColor);
   applyGoogleSiteVerification();

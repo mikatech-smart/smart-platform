@@ -12,6 +12,16 @@ const DEFAULT_PWA_ICON_512 = `${PUBLIC_APP_URL}/android-chrome-512x512.png?v=${A
 const DEFAULT_THEME_COLOR = "#064e3b";
 const DEFAULT_BACKGROUND_COLOR = "#ffffff";
 const SITEMAP_MAX_URLS = 50000;
+const PERFORMANCE_RESOURCE_ORIGINS = [
+  "https://zujfoqjmuzvdqilaxlhb.supabase.co",
+  "https://www.google.com",
+  "https://wa.me",
+  "https://instagram.com",
+  "https://facebook.com",
+  "https://tiktok.com",
+  "https://youtube.com",
+  "https://kwai.com",
+];
 
 function escapeHtml(value = "") {
   return String(value)
@@ -85,6 +95,23 @@ function buildKeywords(values = []) {
   );
 
   return uniqueKeywords.slice(0, 24).join(", ");
+}
+
+function getDnsPrefetchHref(origin = "") {
+  return String(origin).replace(/^https?:/, "");
+}
+
+function buildResourceHints() {
+  return PERFORMANCE_RESOURCE_ORIGINS.flatMap((origin) => [
+    `<link rel="dns-prefetch" href="${escapeHtml(getDnsPrefetchHref(origin))}" />`,
+    `<link rel="preconnect" href="${escapeHtml(origin)}" />`,
+  ]).join("\n    ");
+}
+
+function removeResourceHints(html = "") {
+  return html
+    .replace(/<link\s+rel="dns-prefetch"[^>]*>\s*/gi, "")
+    .replace(/<link\s+rel="preconnect"[^>]*>\s*/gi, "");
 }
 
 function absoluteImage(value = "") {
@@ -295,6 +322,7 @@ function injectBaseRobotsMetadata(html, { googleSiteVerification = "", robots = 
   const content = String(googleSiteVerification || "").trim();
   const robotsContent = robots === "noindex,nofollow" ? robots : "index,follow";
   const tags = [
+    buildResourceHints(),
     `<meta name="author" content="${escapeHtml(DEFAULT_TITLE)}" />`,
     `<meta name="keywords" content="${escapeHtml(
       buildKeywords([DEFAULT_TITLE, DEFAULT_DESCRIPTION])
@@ -304,7 +332,7 @@ function injectBaseRobotsMetadata(html, { googleSiteVerification = "", robots = 
       ? `<meta name="google-site-verification" content="${escapeHtml(content)}" />`
       : "",
   ].join("\n    ");
-  const cleanHtml = html
+  const cleanHtml = removeResourceHints(html)
     .replace(/<meta\s+name="google-site-verification"[^>]*>\s*/gi, "")
     .replace(/<meta\s+name="author"[^>]*>\s*/gi, "")
     .replace(/<meta\s+name="keywords"[^>]*>\s*/gi, "")
@@ -481,6 +509,7 @@ function injectMetadata(html, metadata) {
   const url = escapeHtml(metadata.url);
   const tags = [
     `<title>${title}</title>`,
+    buildResourceHints(),
     `<link rel="icon" type="${faviconType}" href="${favicon}" />`,
     `<link rel="shortcut icon" type="${shortcutIconType}" href="${shortcutIcon}" />`,
     `<link rel="apple-touch-icon" href="${appleTouchIcon}" />`,
@@ -514,7 +543,7 @@ function injectMetadata(html, metadata) {
       : "",
   ].join("\n    ");
 
-  return html
+  return removeResourceHints(html)
     .replace(/<title>[\s\S]*?<\/title>/i, "")
     .replace(/<link\s+rel="icon"[^>]*>\s*/gi, "")
     .replace(/<link\s+rel="shortcut icon"[^>]*>\s*/gi, "")
