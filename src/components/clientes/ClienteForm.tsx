@@ -85,7 +85,7 @@ export default function ClienteForm() {
           <div className="grid gap-6 md:grid-cols-2">
             <Input
               label="Nome da Rede"
-              placeholder="MiKATECH"
+              placeholder="Empresa Exemplo"
             />
 
             <Input

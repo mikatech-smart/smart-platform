@@ -1,10 +1,10 @@
 # MANUAL OFICIAL DE DESENVOLVIMENTO
 
-## Mikatech Smart Platform
+## MikaON
 
 ### Versão 1.0
 
-**Este documento passa a ser a referência permanente para todas as futuras implementações da Mikatech Smart Platform.**
+**Este documento passa a ser a referência permanente para todas as futuras implementações da MikaON.**
 
 Sempre que iniciar uma nova Sprint, considere este manual como prioridade máxima.
 
@@ -12,7 +12,7 @@ Sempre que iniciar uma nova Sprint, considere este manual como prioridade máxim
 
 # 1. VISÃO DO PRODUTO
 
-A Mikatech Smart Platform é uma plataforma SaaS modular desenvolvida para pequenos empreendedores.
+A MikaON é uma plataforma SaaS modular desenvolvida para pequenos empreendedores.
 
 Toda implementação deve respeitar estes princípios:
 
@@ -387,7 +387,7 @@ A arquitetura deve facilitar a implementação dos seguintes módulos:
 * Domínio Personalizado
 * Fidelidade
 * Agendamento
-* CRM Mikatech
+* CRM MikaON
 * Marketplace de Aplicativos
 
 Nunca criar soluções que dificultem essas futuras implementações.
@@ -410,7 +410,7 @@ Nunca desenvolver pensando apenas na Sprint atual.
 
 # 18. MEMÓRIA DO PROJETO
 
-Este documento representa a memória permanente da Mikatech Smart Platform.
+Este documento representa a memória permanente da MikaON.
 
 Todas as futuras implementações deverão respeitar:
 
@@ -442,7 +442,7 @@ Somente depois iniciar o desenvolvimento.
 
 # 20. REGRA FINAL
 
-A Mikatech Smart Platform deve evoluir como um produto SaaS profissional.
+A MikaON deve evoluir como um produto SaaS profissional.
 
 Toda implementação deve ser:
 
@@ -476,6 +476,6 @@ docs/AI_DEVELOPMENT_GUIDE.md
 
 3. Copiar integralmente este manual para esse arquivo.
 
-4. Considerar esse documento como a principal referência de desenvolvimento da Mikatech Smart Platform.
+4. Considerar esse documento como a principal referência de desenvolvimento da MikaON.
 
 5. Em todas as futuras Sprints, consultar esse documento antes de iniciar qualquer implementação.
