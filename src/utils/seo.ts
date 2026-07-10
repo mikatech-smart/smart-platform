@@ -16,6 +16,7 @@ export type SeoMetadata = {
   description: string;
   url: string;
   image: string;
+  author?: string;
   favicon?: string;
   jsonLd?: JsonLdObject;
   manifestUrl?: string;
@@ -91,6 +92,28 @@ export function normalizeSeoImage(value?: string | null) {
   if (image.startsWith("http://") || image.startsWith("https://")) return image;
 
   return `${getPublicBaseUrl()}${image.startsWith("/") ? image : `/${image}`}`;
+}
+
+function splitKeywordText(value?: string | null) {
+  return cleanText(value)
+    .split(/[\s,.;:/|]+/)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 2);
+}
+
+export function createSeoKeywords(values: Array<string | null | undefined>) {
+  const keywords = values
+    .flatMap((value) => [cleanText(value), ...splitKeywordText(value)])
+    .filter(Boolean);
+  const uniqueKeywords = Array.from(
+    new Set([
+      BrandConfig.platformName,
+      BrandConfig.publicAppUrl.replace(/^https?:\/\//, ""),
+      ...keywords,
+    ])
+  );
+
+  return uniqueKeywords.slice(0, 24).join(", ");
 }
 
 export function normalizeFavicon(value?: string | null) {
@@ -305,7 +328,12 @@ export function applySeoMetadata(metadata: SeoMetadata) {
   upsertJsonLd(metadata.jsonLd);
   upsertCanonical(metadata.url);
   upsertMeta("name", "description", description);
-  upsertMeta("name", "keywords", metadata.keywords);
+  upsertMeta("name", "author", metadata.author || BrandConfig.platformName);
+  upsertMeta(
+    "name",
+    "keywords",
+    metadata.keywords || createSeoKeywords([metadata.title, metadata.description])
+  );
   upsertMeta("property", "og:title", title);
   upsertMeta("property", "og:description", description);
   upsertMeta("property", "og:image", image);

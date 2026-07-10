@@ -10,6 +10,7 @@ import RodapeEmpresa from "../../components/public/RodapeEmpresa/RodapeEmpresa";
 import {
   applySeoMetadata,
   createBusinessJsonLd,
+  createSeoKeywords,
   getManifestUrl,
   getPublicUrl,
   normalizeSeoDescription,
@@ -175,6 +176,14 @@ function criarSeoPaginaPublica(empresa: Empresa) {
   return {
     title: titulo,
     description: descricao,
+    author: empresa.nome || "MikaON",
+    keywords: createSeoKeywords([
+      empresa.nome,
+      empresa.categoria,
+      empresa.descricao,
+      empresa.endereco,
+      empresa.site,
+    ]),
     image: empresa.banner || empresa.logo || "",
     favicon: empresa.logo || "",
     jsonLd: createBusinessJsonLd({

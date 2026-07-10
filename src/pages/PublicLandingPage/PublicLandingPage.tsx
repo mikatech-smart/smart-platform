@@ -16,6 +16,7 @@ import {
 import {
   applySeoMetadata,
   createBusinessJsonLd,
+  createSeoKeywords,
   getManifestUrl,
   getPublicUrl,
   normalizeSeoDescription,
@@ -780,7 +781,17 @@ function criarSeoLandingPage(empresa: EmpresaLanding, landingPage: LandingPageCo
   return {
     title: titulo,
     description: descricao,
-    keywords: landingPage.seo.palavrasChave.trim(),
+    author: empresa.nome || "MikaON",
+    keywords: createSeoKeywords([
+      landingPage.seo.palavrasChave,
+      empresa.nome,
+      empresa.categoria,
+      empresa.descricao,
+      landingPage.hero.titulo,
+      landingPage.hero.subtitulo,
+      landingPage.sobre.titulo,
+      landingPage.sobre.texto,
+    ]),
     image: imagem,
     favicon: empresa.logo || "",
     jsonLd: createBusinessJsonLd({

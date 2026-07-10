@@ -65,6 +65,28 @@ function truncate(value = "", max = 180) {
   return text.length > max ? `${text.slice(0, max - 3).trim()}...` : text;
 }
 
+function splitKeywordText(value = "") {
+  return stripHtml(value)
+    .split(/[\s,.;:/|]+/)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 2);
+}
+
+function buildKeywords(values = []) {
+  const keywords = values
+    .flatMap((value) => [stripHtml(value || ""), ...splitKeywordText(value || "")])
+    .filter(Boolean);
+  const uniqueKeywords = Array.from(
+    new Set([
+      DEFAULT_TITLE,
+      PUBLIC_APP_URL.replace(/^https?:\/\//, ""),
+      ...keywords,
+    ])
+  );
+
+  return uniqueKeywords.slice(0, 24).join(", ");
+}
+
 function absoluteImage(value = "") {
   const image = String(value).trim();
 
@@ -273,6 +295,10 @@ function injectBaseRobotsMetadata(html, { googleSiteVerification = "", robots = 
   const content = String(googleSiteVerification || "").trim();
   const robotsContent = robots === "noindex,nofollow" ? robots : "index,follow";
   const tags = [
+    `<meta name="author" content="${escapeHtml(DEFAULT_TITLE)}" />`,
+    `<meta name="keywords" content="${escapeHtml(
+      buildKeywords([DEFAULT_TITLE, DEFAULT_DESCRIPTION])
+    )}" />`,
     `<meta name="robots" content="${escapeHtml(robotsContent)}" />`,
     content
       ? `<meta name="google-site-verification" content="${escapeHtml(content)}" />`
@@ -280,6 +306,8 @@ function injectBaseRobotsMetadata(html, { googleSiteVerification = "", robots = 
   ].join("\n    ");
   const cleanHtml = html
     .replace(/<meta\s+name="google-site-verification"[^>]*>\s*/gi, "")
+    .replace(/<meta\s+name="author"[^>]*>\s*/gi, "")
+    .replace(/<meta\s+name="keywords"[^>]*>\s*/gi, "")
     .replace(/<meta\s+name="robots"[^>]*>\s*/gi, "");
 
   return cleanHtml.replace("</head>", `    ${tags}\n  </head>`);
@@ -333,6 +361,18 @@ function buildMetadata(route, empresa) {
       empresa?.categoria ||
       DEFAULT_DESCRIPTION
   );
+  const keywords = buildKeywords([
+    route.kind === "landing" ? landingSeo.palavrasChave : "",
+    empresa?.nome,
+    empresa?.categoria,
+    empresa?.descricao,
+    empresa?.endereco,
+    empresa?.site,
+    landingHero.titulo,
+    landingHero.subtitulo,
+    landing?.sobre?.titulo,
+    landing?.sobre?.texto,
+  ]);
   const image = absoluteImage(
     (route.kind === "landing" &&
       (landingSeo.imagemCompartilhamento ||
@@ -368,6 +408,8 @@ function buildMetadata(route, empresa) {
   const metadata = {
     title,
     description,
+    author: stripHtml(empresa?.nome || DEFAULT_TITLE),
+    keywords,
     image,
     favicon,
     shortcutIcon: hasCustomLogo ? favicon : DEFAULT_SHORTCUT_ICON,
@@ -444,6 +486,10 @@ function injectMetadata(html, metadata) {
     `<link rel="apple-touch-icon" href="${appleTouchIcon}" />`,
     `<link rel="manifest" href="${escapeHtml(metadata.manifestUrl)}" />`,
     `<meta name="description" content="${description}" />`,
+    `<meta name="author" content="${escapeHtml(metadata.author || DEFAULT_TITLE)}" />`,
+    `<meta name="keywords" content="${escapeHtml(
+      metadata.keywords || buildKeywords([metadata.title, metadata.description])
+    )}" />`,
     `<meta name="robots" content="${escapeHtml(metadata.robots || "index,follow")}" />`,
     `<meta name="theme-color" content="${escapeHtml(metadata.themeColor)}" />`,
     `<link rel="canonical" href="${url}" />`,
@@ -476,6 +522,8 @@ function injectMetadata(html, metadata) {
     .replace(/<link\s+rel="manifest"[^>]*>\s*/gi, "")
     .replace(/<meta\s+name="description"[^>]*>\s*/gi, "")
     .replace(/<meta\s+name="google-site-verification"[^>]*>\s*/gi, "")
+    .replace(/<meta\s+name="author"[^>]*>\s*/gi, "")
+    .replace(/<meta\s+name="keywords"[^>]*>\s*/gi, "")
     .replace(/<meta\s+name="robots"[^>]*>\s*/gi, "")
     .replace(/<meta\s+name="theme-color"[^>]*>\s*/gi, "")
     .replace(/<link\s+rel="canonical"[^>]*>\s*/gi, "")
