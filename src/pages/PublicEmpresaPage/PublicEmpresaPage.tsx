@@ -9,6 +9,7 @@ import ContatosEmpresa from "../../components/public/ContatosEmpresa/ContatosEmp
 import RodapeEmpresa from "../../components/public/RodapeEmpresa/RodapeEmpresa";
 import {
   applySeoMetadata,
+  createBusinessJsonLd,
   getManifestUrl,
   getPublicUrl,
   normalizeSeoDescription,
@@ -169,15 +170,36 @@ function criarSeoPaginaPublica(empresa: Empresa) {
       `Conheca ${titulo} na MikaON.`
   );
   const slugPublico = empresa.slug || "";
+  const urlPublica = getPublicUrl(`/${slugPublico}`);
 
   return {
     title: titulo,
     description: descricao,
     image: empresa.banner || empresa.logo || "",
     favicon: empresa.logo || "",
+    jsonLd: createBusinessJsonLd({
+      name: titulo,
+      description: descricao,
+      url: urlPublica,
+      logo: empresa.logo,
+      image: empresa.banner || empresa.logo,
+      category: empresa.categoria,
+      telephone: empresa.telefone,
+      whatsapp: empresa.whatsapp,
+      email: empresa.email,
+      address: empresa.endereco,
+      website: empresa.site,
+      sameAs: [
+        empresa.instagram,
+        empresa.facebook,
+        empresa.tiktok,
+        empresa.youtube,
+        empresa.kwai,
+      ],
+    }),
     manifestUrl: getManifestUrl(slugPublico, "public"),
     themeColor: aparencia.cor_principal || aparencia.cor_botoes || "",
-    url: getPublicUrl(`/${slugPublico}`),
+    url: urlPublica,
   };
 }
 

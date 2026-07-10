@@ -1,6 +1,15 @@
 import { BrandConfig } from "../config/brand";
 
 type MetaAttribute = "name" | "property";
+type JsonLdValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonLdValue[]
+  | { [key: string]: JsonLdValue };
+
+export type JsonLdObject = { [key: string]: JsonLdValue };
 
 export type SeoMetadata = {
   title: string;
@@ -8,10 +17,26 @@ export type SeoMetadata = {
   url: string;
   image: string;
   favicon?: string;
+  jsonLd?: JsonLdObject;
   manifestUrl?: string;
   themeColor?: string;
   type?: string;
   keywords?: string;
+};
+
+export type BusinessJsonLdInput = {
+  name: string;
+  description?: string | null;
+  url: string;
+  logo?: string | null;
+  image?: string | null;
+  category?: string | null;
+  telephone?: string | null;
+  whatsapp?: string | null;
+  email?: string | null;
+  address?: string | null;
+  website?: string | null;
+  sameAs?: Array<string | null | undefined>;
 };
 
 const DEFAULT_DESCRIPTION =
@@ -71,6 +96,62 @@ export function normalizeFavicon(value?: string | null) {
   return normalizeSeoImage(value || BrandConfig.favicon);
 }
 
+function cleanText(value?: string | null) {
+  return value?.trim() || "";
+}
+
+function cleanUrl(value?: string | null) {
+  const url = value?.trim() || "";
+
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+
+  return `https://${url}`;
+}
+
+function compactObject<T extends JsonLdObject>(value: T): T {
+  Object.keys(value).forEach((key) => {
+    const current = value[key];
+
+    if (
+      current === "" ||
+      current === null ||
+      current === undefined ||
+      (Array.isArray(current) && current.length === 0)
+    ) {
+      delete value[key];
+    }
+  });
+
+  return value;
+}
+
+export function createBusinessJsonLd(input: BusinessJsonLdInput): JsonLdObject {
+  const address = cleanText(input.address);
+  const telephone = cleanText(input.telephone) || cleanText(input.whatsapp);
+  const sameAs = [
+    cleanUrl(input.website),
+    ...(input.sameAs || []).map((url) => cleanUrl(url)),
+  ].filter(Boolean);
+  const hasLocalBusinessSignals = Boolean(
+    address || telephone || cleanText(input.category)
+  );
+
+  return compactObject({
+    "@context": "https://schema.org",
+    "@type": hasLocalBusinessSignals ? "LocalBusiness" : "Organization",
+    name: cleanText(input.name) || BrandConfig.platformName,
+    description: cleanText(input.description),
+    url: input.url,
+    logo: input.logo ? normalizeSeoImage(input.logo) : getInstitutionalShareImage(),
+    image: normalizeSeoImage(input.image || input.logo),
+    telephone,
+    email: cleanText(input.email),
+    address,
+    sameAs,
+  });
+}
+
 function normalizeThemeColor(value?: string | null) {
   const color = value?.trim();
 
@@ -111,6 +192,29 @@ function upsertCanonical(url: string) {
 
   if (!current) {
     document.head.appendChild(link);
+  }
+}
+
+function serializeJsonLd(jsonLd: JsonLdObject) {
+  return JSON.stringify(jsonLd).replace(/</g, "\\u003c");
+}
+
+function upsertJsonLd(jsonLd?: JsonLdObject) {
+  const id = "schema-org-jsonld";
+  const current = document.head.querySelector<HTMLScriptElement>(`#${id}`);
+
+  if (!jsonLd || Object.keys(jsonLd).length === 0) {
+    current?.remove();
+    return;
+  }
+
+  const script = current || document.createElement("script");
+  script.id = id;
+  script.type = "application/ld+json";
+  script.textContent = serializeJsonLd(jsonLd);
+
+  if (!current) {
+    document.head.appendChild(script);
   }
 }
 
@@ -192,6 +296,7 @@ export function applySeoMetadata(metadata: SeoMetadata) {
   applyFavicon(metadata.favicon);
   applyWebAppMetadata(metadata.manifestUrl, metadata.themeColor);
   applyGoogleSiteVerification();
+  upsertJsonLd(metadata.jsonLd);
   upsertCanonical(metadata.url);
   upsertMeta("name", "description", description);
   upsertMeta("name", "keywords", metadata.keywords);

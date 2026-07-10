@@ -30,6 +30,10 @@ function escapeXml(value = "") {
     .replace(/>/g, "&gt;");
 }
 
+function escapeJsonScript(value = {}) {
+  return JSON.stringify(value).replace(/</g, "\\u003c");
+}
+
 function stripHtml(value = "") {
   return String(value).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
@@ -64,6 +68,32 @@ function absoluteImage(value = "") {
   if (image.startsWith("http://") || image.startsWith("https://")) return image;
 
   return `${PUBLIC_APP_URL}${image.startsWith("/") ? image : `/${image}`}`;
+}
+
+function absoluteUrl(value = "") {
+  const url = String(value).trim();
+
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+
+  return `https://${url}`;
+}
+
+function compactObject(value = {}) {
+  Object.keys(value).forEach((key) => {
+    const current = value[key];
+
+    if (
+      current === "" ||
+      current === null ||
+      current === undefined ||
+      (Array.isArray(current) && current.length === 0)
+    ) {
+      delete value[key];
+    }
+  });
+
+  return value;
 }
 
 function getIconType(value = "") {
@@ -104,7 +134,7 @@ async function getEmpresa(env, slug) {
 
   const params = new URLSearchParams({
     select:
-      "nome,slug,descricao,categoria,logo,banner,landing_page_config,cor_principal,cor_botoes,cor_fundo_pagina,cor_fundo_hero",
+      "nome,slug,descricao,categoria,telefone,whatsapp,email,instagram,tiktok,youtube,kwai,facebook,site,endereco,logo,banner,landing_page_config,cor_principal,cor_botoes,cor_fundo_pagina,cor_fundo_hero",
     slug: `eq.${slug}`,
     limit: "1",
   });
@@ -246,6 +276,38 @@ function injectGoogleSiteVerification(html, verification) {
   );
 }
 
+function buildJsonLd(metadata, empresa) {
+  const sameAs = [
+    empresa?.site,
+    empresa?.instagram,
+    empresa?.facebook,
+    empresa?.tiktok,
+    empresa?.youtube,
+    empresa?.kwai,
+  ]
+    .map((url) => absoluteUrl(url))
+    .filter(Boolean);
+  const address = stripHtml(empresa?.endereco || "");
+  const telephone = stripHtml(empresa?.telefone || empresa?.whatsapp || "");
+  const hasLocalBusinessSignals = Boolean(
+    address || telephone || stripHtml(empresa?.categoria || "")
+  );
+
+  return compactObject({
+    "@context": "https://schema.org",
+    "@type": hasLocalBusinessSignals ? "LocalBusiness" : "Organization",
+    name: stripHtml(empresa?.nome || metadata.title || DEFAULT_TITLE),
+    description: metadata.description,
+    url: metadata.url,
+    logo: absoluteImage(empresa?.logo || DEFAULT_FAVICON),
+    image: metadata.image,
+    telephone,
+    email: stripHtml(empresa?.email || ""),
+    address,
+    sameAs,
+  });
+}
+
 function buildMetadata(route, empresa) {
   const landing = route.kind === "landing" ? getLandingConfig(empresa) : {};
   const landingSeo = landing.seo || {};
@@ -290,8 +352,7 @@ function buildMetadata(route, empresa) {
     slug: route.slug,
     kind: route.kind,
   }).toString()}`;
-
-  return {
+  const metadata = {
     title,
     description,
     image,
@@ -306,6 +367,11 @@ function buildMetadata(route, empresa) {
     themeColor,
     backgroundColor,
     route,
+  };
+
+  return {
+    ...metadata,
+    jsonLd: buildJsonLd(metadata, empresa),
   };
 }
 
@@ -375,6 +441,11 @@ function injectMetadata(html, metadata) {
     `<meta name="twitter:title" content="${title}" />`,
     `<meta name="twitter:description" content="${description}" />`,
     `<meta name="twitter:image" content="${image}" />`,
+    metadata.jsonLd
+      ? `<script id="schema-org-jsonld" type="application/ld+json">${escapeJsonScript(
+          metadata.jsonLd
+        )}</script>`
+      : "",
     metadata.googleSiteVerification
       ? `<meta name="google-site-verification" content="${escapeHtml(
           metadata.googleSiteVerification
@@ -392,6 +463,10 @@ function injectMetadata(html, metadata) {
     .replace(/<meta\s+name="google-site-verification"[^>]*>\s*/gi, "")
     .replace(/<meta\s+name="theme-color"[^>]*>\s*/gi, "")
     .replace(/<link\s+rel="canonical"[^>]*>\s*/gi, "")
+    .replace(
+      /<script\s+id="schema-org-jsonld"\s+type="application\/ld\+json"[^>]*>[\s\S]*?<\/script>\s*/gi,
+      ""
+    )
     .replace(/<meta\s+property="og:[^"]+"[^>]*>\s*/gi, "")
     .replace(/<meta\s+name="twitter:[^"]+"[^>]*>\s*/gi, "")
     .replace("</head>", `    ${tags}\n  </head>`);
