@@ -9,6 +9,7 @@ import ContatosEmpresa from "../../components/public/ContatosEmpresa/ContatosEmp
 import RodapeEmpresa from "../../components/public/RodapeEmpresa/RodapeEmpresa";
 import {
   applySeoMetadata,
+  getManifestUrl,
   getPublicUrl,
   normalizeSeoDescription,
 } from "../../utils/seo";
@@ -160,6 +161,7 @@ function criarEstiloAparencia(empresa: Empresa): CSSProperties {
 }
 
 function criarSeoPaginaPublica(empresa: Empresa) {
+  const aparencia = empresa as AparenciaEmpresa;
   const titulo = empresa.nome || "Empresa MikaON";
   const descricao = normalizeSeoDescription(
     empresa.descricao ||
@@ -173,6 +175,8 @@ function criarSeoPaginaPublica(empresa: Empresa) {
     description: descricao,
     image: empresa.banner || empresa.logo || "",
     favicon: empresa.logo || "",
+    manifestUrl: getManifestUrl(slugPublico, "public"),
+    themeColor: aparencia.cor_principal || aparencia.cor_botoes || "",
     url: getPublicUrl(`/${slugPublico}`),
   };
 }

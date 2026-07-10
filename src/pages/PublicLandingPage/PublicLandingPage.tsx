@@ -15,6 +15,7 @@ import {
 } from "../../services/empresa/empresa.service";
 import {
   applySeoMetadata,
+  getManifestUrl,
   getPublicUrl,
   normalizeSeoDescription,
 } from "../../utils/seo";
@@ -781,6 +782,8 @@ function criarSeoLandingPage(empresa: EmpresaLanding, landingPage: LandingPageCo
     keywords: landingPage.seo.palavrasChave.trim(),
     image: imagem,
     favicon: empresa.logo || "",
+    manifestUrl: getManifestUrl(empresa.slug, "landing"),
+    themeColor: empresa.cor_principal || empresa.cor_botoes || "",
     url: urlPublica,
   };
 }

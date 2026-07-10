@@ -8,6 +8,8 @@ export type SeoMetadata = {
   url: string;
   image: string;
   favicon?: string;
+  manifestUrl?: string;
+  themeColor?: string;
   type?: string;
   keywords?: string;
 };
@@ -23,6 +25,15 @@ export function getPublicUrl(pathname: string) {
   const path = pathname.startsWith("/") ? pathname : `/${pathname}`;
 
   return `${getPublicBaseUrl()}${path}`;
+}
+
+export function getManifestUrl(slug: string, kind: "public" | "landing") {
+  const params = new URLSearchParams({
+    slug,
+    kind,
+  });
+
+  return getPublicUrl(`/manifest.webmanifest?${params.toString()}`);
 }
 
 export function getInstitutionalShareImage() {
@@ -60,6 +71,12 @@ export function normalizeFavicon(value?: string | null) {
   return normalizeSeoImage(value || BrandConfig.favicon);
 }
 
+function normalizeThemeColor(value?: string | null) {
+  const color = value?.trim();
+
+  return color && /^#[0-9a-f]{3,8}$/i.test(color) ? color : "#166534";
+}
+
 function upsertMeta(attribute: MetaAttribute, key: string, content?: string) {
   const value = content?.trim() || "";
   const selector = `meta[${attribute}="${key}"]`;
@@ -87,6 +104,20 @@ function upsertCanonical(url: string) {
 
   link.setAttribute("rel", "canonical");
   link.setAttribute("href", url);
+
+  if (!current) {
+    document.head.appendChild(link);
+  }
+}
+
+function upsertLink(rel: string, href: string) {
+  const current = document.head.querySelector<HTMLLinkElement>(
+    `link[rel="${rel}"]`
+  );
+  const link = current || document.createElement("link");
+
+  link.setAttribute("rel", rel);
+  link.setAttribute("href", href);
 
   if (!current) {
     document.head.appendChild(link);
@@ -132,6 +163,14 @@ export function applyFavicon(href?: string | null) {
   upsertIcon("apple-touch-icon", favicon);
 }
 
+function applyWebAppMetadata(manifestUrl?: string, themeColor?: string | null) {
+  if (manifestUrl) {
+    upsertLink("manifest", manifestUrl);
+  }
+
+  upsertMeta("name", "theme-color", normalizeThemeColor(themeColor));
+}
+
 export function applySeoMetadata(metadata: SeoMetadata) {
   const title = normalizeSeoText(metadata.title, BrandConfig.platformName);
   const description = normalizeSeoDescription(metadata.description);
@@ -140,6 +179,7 @@ export function applySeoMetadata(metadata: SeoMetadata) {
 
   document.title = title;
   applyFavicon(metadata.favicon);
+  applyWebAppMetadata(metadata.manifestUrl, metadata.themeColor);
   upsertCanonical(metadata.url);
   upsertMeta("name", "description", description);
   upsertMeta("name", "keywords", metadata.keywords);

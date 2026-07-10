@@ -4,6 +4,8 @@ const DEFAULT_DESCRIPTION =
   "MikaON conecta empresas, servicos e canais de contato em paginas publicas inteligentes.";
 const DEFAULT_IMAGE = `${PUBLIC_APP_URL}/favicon.svg`;
 const DEFAULT_FAVICON = `${PUBLIC_APP_URL}/favicon.svg`;
+const DEFAULT_THEME_COLOR = "#166534";
+const DEFAULT_BACKGROUND_COLOR = "#ffffff";
 
 function escapeHtml(value = "") {
   return String(value)
@@ -43,6 +45,12 @@ function getIconType(value = "") {
   return "image/png";
 }
 
+function normalizeColor(value = "", fallback = DEFAULT_THEME_COLOR) {
+  const color = String(value).trim();
+
+  return /^#[0-9a-f]{3,8}$/i.test(color) ? color : fallback;
+}
+
 function getRequestRoute(pathname) {
   const parts = pathname.replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
 
@@ -63,7 +71,8 @@ async function getEmpresa(env, slug) {
   }
 
   const params = new URLSearchParams({
-    select: "nome,slug,descricao,logo,banner,landing_page_config",
+    select:
+      "nome,slug,descricao,categoria,logo,banner,landing_page_config,cor_principal,cor_botoes,cor_fundo_pagina,cor_fundo_hero",
     slug: `eq.${slug}`,
     limit: "1",
   });
@@ -121,12 +130,71 @@ function buildMetadata(route, empresa) {
       ""
   );
   const favicon = absoluteImage(empresa?.logo || DEFAULT_FAVICON);
+  const themeColor = normalizeColor(
+    empresa?.cor_principal || empresa?.cor_botoes || ""
+  );
+  const backgroundColor = normalizeColor(
+    empresa?.cor_fundo_pagina || empresa?.cor_fundo_hero || "",
+    DEFAULT_BACKGROUND_COLOR
+  );
   const url =
     route.kind === "landing"
       ? `${PUBLIC_APP_URL}/landing/${route.slug}`
       : `${PUBLIC_APP_URL}/${route.slug}`;
 
-  return { title, description, image, favicon, url };
+  const manifestUrl = `${PUBLIC_APP_URL}/manifest.webmanifest?${new URLSearchParams({
+    slug: route.slug,
+    kind: route.kind,
+  }).toString()}`;
+
+  return {
+    title,
+    description,
+    image,
+    favicon,
+    url,
+    manifestUrl,
+    themeColor,
+    backgroundColor,
+    route,
+  };
+}
+
+function buildManifest(metadata) {
+  const shortName =
+    metadata.title.length > 12
+      ? metadata.title.slice(0, 12).trim()
+      : metadata.title;
+  const iconType = getIconType(metadata.favicon);
+  const startPath =
+    metadata.route.kind === "landing"
+      ? `/landing/${metadata.route.slug}`
+      : `/${metadata.route.slug}`;
+
+  return {
+    name: metadata.title,
+    short_name: shortName || DEFAULT_TITLE,
+    description: metadata.description,
+    start_url: startPath,
+    scope: startPath,
+    display: "standalone",
+    theme_color: metadata.themeColor,
+    background_color: metadata.backgroundColor,
+    icons: [
+      {
+        src: metadata.favicon,
+        sizes: "192x192",
+        type: iconType,
+        purpose: "any",
+      },
+      {
+        src: metadata.favicon,
+        sizes: "512x512",
+        type: iconType,
+        purpose: "any maskable",
+      },
+    ],
+  };
 }
 
 function injectMetadata(html, metadata) {
@@ -141,7 +209,9 @@ function injectMetadata(html, metadata) {
     `<link rel="icon" type="${faviconType}" href="${favicon}" />`,
     `<link rel="shortcut icon" type="${faviconType}" href="${favicon}" />`,
     `<link rel="apple-touch-icon" href="${favicon}" />`,
+    `<link rel="manifest" href="${escapeHtml(metadata.manifestUrl)}" />`,
     `<meta name="description" content="${description}" />`,
+    `<meta name="theme-color" content="${escapeHtml(metadata.themeColor)}" />`,
     `<link rel="canonical" href="${url}" />`,
     `<meta property="og:title" content="${title}" />`,
     `<meta property="og:description" content="${description}" />`,
@@ -159,7 +229,9 @@ function injectMetadata(html, metadata) {
     .replace(/<link\s+rel="icon"[^>]*>\s*/gi, "")
     .replace(/<link\s+rel="shortcut icon"[^>]*>\s*/gi, "")
     .replace(/<link\s+rel="apple-touch-icon"[^>]*>\s*/gi, "")
+    .replace(/<link\s+rel="manifest"[^>]*>\s*/gi, "")
     .replace(/<meta\s+name="description"[^>]*>\s*/gi, "")
+    .replace(/<meta\s+name="theme-color"[^>]*>\s*/gi, "")
     .replace(/<link\s+rel="canonical"[^>]*>\s*/gi, "")
     .replace(/<meta\s+property="og:[^"]+"[^>]*>\s*/gi, "")
     .replace(/<meta\s+name="twitter:[^"]+"[^>]*>\s*/gi, "")
@@ -168,6 +240,22 @@ function injectMetadata(html, metadata) {
 
 export async function onRequestGet(context) {
   const url = new URL(context.request.url);
+  if (url.pathname === "/manifest.webmanifest") {
+    const slug = url.searchParams.get("slug") || "";
+    const kind =
+      url.searchParams.get("kind") === "landing" ? "landing" : "public";
+    const empresa = slug ? await getEmpresa(context.env, slug) : null;
+    const route = { kind, slug };
+    const metadata = buildMetadata(route, empresa);
+
+    return new Response(JSON.stringify(buildManifest(metadata)), {
+      headers: {
+        "content-type": "application/manifest+json; charset=utf-8",
+        "cache-control": "public, max-age=300",
+      },
+    });
+  }
+
   const route = getRequestRoute(url.pathname);
   const response = await context.next();
   const contentType = response.headers.get("content-type") || "";
