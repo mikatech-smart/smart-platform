@@ -11,6 +11,7 @@ const DEFAULT_PWA_ICON_192 = `${PUBLIC_APP_URL}/android-chrome-192x192.png?v=${A
 const DEFAULT_PWA_ICON_512 = `${PUBLIC_APP_URL}/android-chrome-512x512.png?v=${ASSET_VERSION}`;
 const DEFAULT_THEME_COLOR = "#064e3b";
 const DEFAULT_BACKGROUND_COLOR = "#ffffff";
+const SITEMAP_MAX_URLS = 50000;
 
 function escapeHtml(value = "") {
   return String(value)
@@ -20,8 +21,34 @@ function escapeHtml(value = "") {
     .replace(/>/g, "&gt;");
 }
 
+function escapeXml(value = "") {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 function stripHtml(value = "") {
   return String(value).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function normalizeSlug(value = "") {
+  return String(value).trim().replace(/^\/+|\/+$/g, "");
+}
+
+function isPrivateSlug(slug = "") {
+  return [
+    "admin",
+    "api",
+    "dashboard",
+    "login",
+    "manifest.webmanifest",
+    "painel",
+    "robots.txt",
+    "sitemap.xml",
+  ].includes(slug.toLowerCase());
 }
 
 function truncate(value = "", max = 180) {
@@ -98,6 +125,32 @@ async function getEmpresa(env, slug) {
   return rows[0] || null;
 }
 
+async function getEmpresasParaSitemap(env) {
+  if (!env.VITE_SUPABASE_URL || !env.VITE_SUPABASE_PUBLISHABLE_KEY) {
+    return [];
+  }
+
+  const params = new URLSearchParams({
+    select: "slug,ativo,landing_page_config",
+    ativo: "eq.true",
+    order: "slug.asc",
+    limit: "10000",
+  });
+  const response = await fetch(
+    `${env.VITE_SUPABASE_URL}/rest/v1/empresas?${params.toString()}`,
+    {
+      headers: {
+        apikey: env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+    }
+  );
+
+  if (!response.ok) return [];
+
+  return response.json();
+}
+
 function getLandingConfig(empresa) {
   const config = empresa?.landing_page_config;
 
@@ -106,6 +159,68 @@ function getLandingConfig(empresa) {
   return config.versaoPublicada && typeof config.versaoPublicada === "object"
     ? { ...config, ...config.versaoPublicada }
     : config;
+}
+
+function isLandingPagePublicada(empresa) {
+  const config = empresa?.landing_page_config;
+  const publicada = config?.versaoPublicada || config;
+
+  return Boolean(publicada?.publicada);
+}
+
+function buildRobotsTxt() {
+  return [
+    "User-agent: *",
+    "Allow: /",
+    "Disallow: /admin",
+    "Disallow: /api",
+    "Disallow: /dashboard",
+    "Disallow: /login",
+    "Disallow: /painel",
+    "Disallow: /connect",
+    "Disallow: /manifest.webmanifest",
+    "",
+    `Sitemap: ${PUBLIC_APP_URL}/sitemap.xml`,
+    "",
+  ].join("\n");
+}
+
+function buildSitemapXml(empresas = []) {
+  const urls = [];
+
+  for (const empresa of empresas) {
+    const slug = normalizeSlug(empresa?.slug);
+
+    if (!slug || isPrivateSlug(slug)) continue;
+
+    urls.push(`${PUBLIC_APP_URL}/${encodeURIComponent(slug)}`);
+
+    if (isLandingPagePublicada(empresa)) {
+      urls.push(`${PUBLIC_APP_URL}/landing/${encodeURIComponent(slug)}`);
+    }
+
+    if (urls.length >= SITEMAP_MAX_URLS) break;
+  }
+
+  const items = urls
+    .slice(0, SITEMAP_MAX_URLS)
+    .map(
+      (loc) => [
+        "  <url>",
+        `    <loc>${escapeXml(loc)}</loc>`,
+        "    <changefreq>weekly</changefreq>",
+        "  </url>",
+      ].join("\n")
+    )
+    .join("\n");
+
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    items,
+    "</urlset>",
+    "",
+  ].join("\n");
 }
 
 function buildMetadata(route, empresa) {
@@ -255,6 +370,27 @@ function injectMetadata(html, metadata) {
 
 export async function onRequestGet(context) {
   const url = new URL(context.request.url);
+
+  if (url.pathname === "/robots.txt") {
+    return new Response(buildRobotsTxt(), {
+      headers: {
+        "content-type": "text/plain; charset=utf-8",
+        "cache-control": "public, max-age=300",
+      },
+    });
+  }
+
+  if (url.pathname === "/sitemap.xml") {
+    const empresas = await getEmpresasParaSitemap(context.env);
+
+    return new Response(buildSitemapXml(empresas), {
+      headers: {
+        "content-type": "application/xml; charset=utf-8",
+        "cache-control": "public, max-age=300",
+      },
+    });
+  }
+
   if (url.pathname === "/manifest.webmanifest") {
     const slug = url.searchParams.get("slug") || "";
     const kind =
