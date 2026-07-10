@@ -223,6 +223,29 @@ function buildSitemapXml(empresas = []) {
   ].join("\n");
 }
 
+function getGoogleSiteVerification(env = {}) {
+  return (
+    env.GOOGLE_SITE_VERIFICATION ||
+    env.VITE_GOOGLE_SITE_VERIFICATION ||
+    ""
+  ).trim();
+}
+
+function injectGoogleSiteVerification(html, verification) {
+  const content = String(verification || "").trim();
+  const cleanHtml = html.replace(
+    /<meta\s+name="google-site-verification"[^>]*>\s*/gi,
+    ""
+  );
+
+  if (!content) return cleanHtml;
+
+  return cleanHtml.replace(
+    "</head>",
+    `    <meta name="google-site-verification" content="${escapeHtml(content)}" />\n  </head>`
+  );
+}
+
 function buildMetadata(route, empresa) {
   const landing = route.kind === "landing" ? getLandingConfig(empresa) : {};
   const landingSeo = landing.seo || {};
@@ -352,6 +375,11 @@ function injectMetadata(html, metadata) {
     `<meta name="twitter:title" content="${title}" />`,
     `<meta name="twitter:description" content="${description}" />`,
     `<meta name="twitter:image" content="${image}" />`,
+    metadata.googleSiteVerification
+      ? `<meta name="google-site-verification" content="${escapeHtml(
+          metadata.googleSiteVerification
+        )}" />`
+      : "",
   ].join("\n    ");
 
   return html
@@ -361,6 +389,7 @@ function injectMetadata(html, metadata) {
     .replace(/<link\s+rel="apple-touch-icon"[^>]*>\s*/gi, "")
     .replace(/<link\s+rel="manifest"[^>]*>\s*/gi, "")
     .replace(/<meta\s+name="description"[^>]*>\s*/gi, "")
+    .replace(/<meta\s+name="google-site-verification"[^>]*>\s*/gi, "")
     .replace(/<meta\s+name="theme-color"[^>]*>\s*/gi, "")
     .replace(/<link\s+rel="canonical"[^>]*>\s*/gi, "")
     .replace(/<meta\s+property="og:[^"]+"[^>]*>\s*/gi, "")
@@ -410,13 +439,33 @@ export async function onRequestGet(context) {
   const route = getRequestRoute(url.pathname);
   const response = await context.next();
   const contentType = response.headers.get("content-type") || "";
+  const googleSiteVerification = getGoogleSiteVerification(context.env);
 
   if (!route || !contentType.includes("text/html")) {
-    return response;
+    if (!contentType.includes("text/html") || !googleSiteVerification) {
+      return response;
+    }
+
+    const html = injectGoogleSiteVerification(
+      await response.text(),
+      googleSiteVerification
+    );
+    const headers = new Headers(response.headers);
+
+    headers.set("content-type", "text/html; charset=utf-8");
+
+    return new Response(html, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
   }
 
   const empresa = await getEmpresa(context.env, route.slug);
-  const metadata = buildMetadata(route, empresa);
+  const metadata = {
+    ...buildMetadata(route, empresa),
+    googleSiteVerification,
+  };
   const html = injectMetadata(await response.text(), metadata);
   const headers = new Headers(response.headers);
 

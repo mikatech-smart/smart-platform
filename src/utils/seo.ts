@@ -96,6 +96,10 @@ function upsertMeta(attribute: MetaAttribute, key: string, content?: string) {
   }
 }
 
+export function applyGoogleSiteVerification(content = BrandConfig.googleSiteVerification) {
+  upsertMeta("name", "google-site-verification", content);
+}
+
 function upsertCanonical(url: string) {
   const current = document.head.querySelector<HTMLLinkElement>(
     'link[rel="canonical"]'
@@ -187,6 +191,7 @@ export function applySeoMetadata(metadata: SeoMetadata) {
   document.title = title;
   applyFavicon(metadata.favicon);
   applyWebAppMetadata(metadata.manifestUrl, metadata.themeColor);
+  applyGoogleSiteVerification();
   upsertCanonical(metadata.url);
   upsertMeta("name", "description", description);
   upsertMeta("name", "keywords", metadata.keywords);

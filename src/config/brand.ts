@@ -13,6 +13,7 @@ export const BrandConfig = {
   maskIcon: "/mask-icon.svg?v=102",
   pwaIcon192: "/android-chrome-192x192.png?v=102",
   pwaIcon512: "/android-chrome-512x512.png?v=102",
+  googleSiteVerification: import.meta.env.VITE_GOOGLE_SITE_VERIFICATION || "",
 } as const;
 
 export type BrandConfigType = typeof BrandConfig;
