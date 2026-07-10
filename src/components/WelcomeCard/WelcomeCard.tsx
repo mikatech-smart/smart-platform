@@ -1,5 +1,7 @@
 import { Sparkles } from "lucide-react";
 
+import { BrandConfig } from "../../config/brand";
+
 export default function WelcomeCard() {
   return (
     <div
@@ -16,30 +18,30 @@ export default function WelcomeCard() {
       <div className="flex items-center gap-3 mb-4">
         <Sparkles size={34} />
         <h2 className="text-3xl font-bold">
-          Bem-vindo à Mikatech Business OS
+          Bem-vindo ao {BrandConfig.platformName}
         </h2>
       </div>
 
       <p className="text-lg opacity-95">
-        Sua plataforma para automatizar processos,
-        conquistar clientes e acelerar o crescimento do seu negócio.
+        Sua plataforma para automatizar processos, conquistar clientes e
+        acelerar o crescimento do seu negocio.
       </p>
 
       <div className="mt-6 flex gap-4 flex-wrap">
         <div className="bg-white/20 rounded-xl px-5 py-3">
-          👥 Clientes
+          Clientes
         </div>
 
         <div className="bg-white/20 rounded-xl px-5 py-3">
-          📱 NFC Smart
+          NFC Smart
         </div>
 
         <div className="bg-white/20 rounded-xl px-5 py-3">
-          ⭐ Reviews
+          Reviews
         </div>
 
         <div className="bg-white/20 rounded-xl px-5 py-3">
-          🤖 IA Comercial
+          IA Comercial
         </div>
       </div>
     </div>

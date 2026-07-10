@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { supabase } from "./lib/supabase";
+import { BrandConfig } from "./config/brand";
 
 export default function App() {
   useEffect(() => {
@@ -27,7 +28,7 @@ export default function App() {
         fontFamily: "Arial",
       }}
     >
-      Mika Connect
+      {BrandConfig.platformName}
     </div>
   );
 }

@@ -1,12 +1,13 @@
 import { NavLink } from "react-router-dom";
 
+import { BrandConfig } from "../../config/brand";
 import "./Sidebar.css";
 
 export default function Sidebar() {
   return (
     <aside className="sidebar">
 
-      <h2>Mikatech</h2>
+      <h2>{BrandConfig.platformName}</h2>
 
       <nav>
 

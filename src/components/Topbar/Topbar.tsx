@@ -1,4 +1,5 @@
 import { Bell, Search, UserCircle2 } from "lucide-react";
+import { BrandConfig } from "../../config/brand";
 
 export default function Topbar() {
   return (
@@ -6,7 +7,7 @@ export default function Topbar() {
 
       <div>
         <h1 className="text-2xl font-bold text-gray-800">
-          Mikatech Smart Platform
+          {BrandConfig.platformName}
         </h1>
 
         <p className="text-sm text-gray-500">

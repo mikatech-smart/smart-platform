@@ -3,6 +3,7 @@ import {
   Settings,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import { BrandConfig } from "../../../config/brand";
 import "./Sidebar.css";
 
 const menu = [
@@ -52,7 +53,7 @@ export default function Sidebar({
             </p>
 
             <p className="mt-1 text-xs text-gray-400">
-              Powered by Mika Connect
+              {BrandConfig.poweredByText}
             </p>
           </div>
         </div>

@@ -10,6 +10,7 @@ import {
   UserRound,
 } from "lucide-react";
 
+import { BrandConfig } from "../../../config/brand";
 import "./QRCodeEmpresa.css";
 
 interface QRCodeEmpresaProps {
@@ -41,15 +42,15 @@ export default function QRCodeEmpresa({
   const [baixando, setBaixando] = useState(false);
 
   const publicUrl = useMemo(() => {
-    return `https://smart.mikatech.com.br/${slug}`;
+    return `${BrandConfig.platformUrl}/${slug}`;
   }, [slug]);
 
   const painelClienteUrl = useMemo(() => {
-    return `https://smart.mikatech.com.br/painel/${slug}`;
+    return `${BrandConfig.platformUrl}/painel/${slug}`;
   }, [slug]);
 
   const landingPageUrl = useMemo(() => {
-    return `https://smart.mikatech.com.br/landing/${slug}`;
+    return `${BrandConfig.platformUrl}/landing/${slug}`;
   }, [slug]);
 
   const qrCodeUrl = useMemo(() => {
