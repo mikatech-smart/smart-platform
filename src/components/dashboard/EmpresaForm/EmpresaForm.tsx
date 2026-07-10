@@ -23,6 +23,7 @@ import {
   PublicLandingPageContent,
   type EmpresaLanding,
 } from "../../../pages/PublicLandingPage/PublicLandingPage";
+import { BrandConfig } from "../../../config/brand";
 
 import "../../../pages/PublicEmpresaPage/PublicEmpresaPage.css";
 import "../../../pages/PublicLandingPage/PublicLandingPage.css";
@@ -3291,7 +3292,7 @@ type TemaOficial = {
 const ThemeRegistry: Record<TemaOficial["id"], TemaOficial> = {
   TemaPadraoMikatech: {
     id: "TemaPadraoMikatech",
-    nome: "Padrão Mikatech",
+    nome: `Padrao ${BrandConfig.developerCompany}`,
     descricao: "Visual institucional claro com destaque verde.",
     categorias: ["institucional", "padrao", "mikatech"],
     miniatura: { tipo: "faixas" },
@@ -5004,7 +5005,7 @@ export default function EmpresaForm({
                 />
 
                 <p className="mt-2 text-sm text-slate-500">
-                  Campo reservado para o administrador Mikatech.
+                  Campo reservado para o administrador {BrandConfig.developerCompany}.
                 </p>
               </div>
 
@@ -5019,7 +5020,7 @@ export default function EmpresaForm({
                   onChange={(e) => setTipoGerenciamento(e.target.value)}
                 >
                   <option value="mikatech">
-                    Administrada pela Mikatech
+                    Administrada pela {BrandConfig.developerCompany}
                   </option>
 
                   <option value="cliente">
@@ -5634,7 +5635,7 @@ export default function EmpresaForm({
                 type="button"
                 onClick={() => {
                   const confirmado = window.confirm(
-                    "Deseja restaurar o tema padrão definido pela Mikatech?"
+                    `Deseja restaurar o tema padrao definido pela ${BrandConfig.developerCompany}?`
                   );
 
                   if (confirmado) {
@@ -5643,7 +5644,7 @@ export default function EmpresaForm({
                 }}
                 className="rounded-xl border border-slate-200 px-4 py-3 font-bold text-slate-700"
               >
-                Restaurar padrão Mikatech
+                Restaurar padrao {BrandConfig.developerCompany}
               </button>
 
               <Button

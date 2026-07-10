@@ -1,12 +1,12 @@
 export const BrandConfig = {
   platformName: "MikaON",
-  developerCompany: "MiKATECH",
+  developerCompany: "Mikatech",
   primaryDomain: "mikaon.com.br",
   platformUrl: "https://mikaon.com.br",
   defaultEmail: "contato@mikaon.com.br",
-  poweredByText: "Powered by MiKATECH",
+  poweredByText: "Powered by Mikatech",
   logo: "",
-  favicon: "",
+  favicon: "/favicon.svg",
 } as const;
 
 export type BrandConfigType = typeof BrandConfig;

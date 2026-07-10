@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
 
 import Sidebar from "../../components/dashboard/Sidebar";
+import { BrandConfig } from "../../config/brand";
 import { buscarEmpresaPorSlug } from "../../services/empresa/empresa.service";
 
 export default function Dashboard() {
@@ -41,7 +42,7 @@ export default function Dashboard() {
         <header className="bg-white shadow-sm">
           <div className="px-10 py-8">
             <h1 className="text-4xl font-bold">
-              Dashboard Mikatech
+              Dashboard {BrandConfig.platformName}
             </h1>
 
             <p className="text-gray-500 mt-2">

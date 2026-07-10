@@ -4,6 +4,8 @@ import { BrandConfig } from "./config/brand";
 
 export default function App() {
   useEffect(() => {
+    document.title = BrandConfig.platformName;
+
     async function testarConexao() {
       console.log("✅ Supabase conectado!");
 

@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from "react";
 
 import EmpresaForm from "../../components/dashboard/EmpresaForm";
+import { BrandConfig } from "../../config/brand";
 import {
   criarEmpresa as criarEmpresaService,
   excluirEmpresa as excluirEmpresaService,
@@ -34,7 +35,7 @@ function tipoEhCliente(tipo?: string | null) {
 function obterTipoGerenciamento(tipo?: string | null) {
   return tipoEhCliente(tipo)
     ? "Cliente administra"
-    : "Administrada pela Mikatech";
+    : `Administrada pela ${BrandConfig.developerCompany}`;
 }
 
 export default function Empresas() {
@@ -51,9 +52,10 @@ export default function Empresas() {
   const [novoTipo, setNovoTipo] = useState("");
   const [salvandoNovaEmpresa, setSalvandoNovaEmpresa] = useState(false);
 
-  const baseUrlPublica = (
-    import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin
-  ).replace(/\/$/, "");
+  const baseUrlPublica = (BrandConfig.platformUrl || window.location.origin).replace(
+    /\/$/,
+    ""
+  );
   const termoBusca = busca.trim().toLowerCase();
   const empresasFiltradas = termoBusca
     ? empresas.filter((empresa) => {
@@ -236,7 +238,7 @@ export default function Empresas() {
                 </option>
 
                 <option value="mikatech">
-                  Administrada pela Mikatech
+                  Administrada pela {BrandConfig.developerCompany}
                 </option>
 
                 <option value="cliente">

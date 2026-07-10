@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import EmpresaForm from "../../components/dashboard/EmpresaForm";
+import { BrandConfig } from "../../config/brand";
 import { buscarEmpresaPorSlug } from "../../services/empresa/empresa.service";
 import type { Empresa } from "../../models/Empresa";
 
@@ -84,7 +85,7 @@ export default function PainelCliente() {
           </h1>
 
           <p className="mt-2 text-slate-600">
-            Esta empresa é administrada pela Mikatech.
+            Esta empresa é administrada pela {BrandConfig.developerCompany}.
           </p>
         </div>
       </main>

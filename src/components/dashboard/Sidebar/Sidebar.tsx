@@ -29,7 +29,7 @@ export default function Sidebar({
   nomeEmpresa,
   logoEmpresa,
 }: SidebarProps) {
-  const nomeWorkspace = nomeEmpresa || "Mikatech Admin";
+  const nomeWorkspace = nomeEmpresa || `${BrandConfig.platformName} Admin`;
 
   return (
     <aside className="dashboard-sidebar w-72 bg-white border-r min-h-screen shadow-sm">
