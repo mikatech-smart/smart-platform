@@ -19,6 +19,7 @@ export type SeoMetadata = {
   favicon?: string;
   jsonLd?: JsonLdObject;
   manifestUrl?: string;
+  robots?: "index,follow" | "noindex,nofollow";
   themeColor?: string;
   type?: string;
   keywords?: string;
@@ -181,6 +182,10 @@ export function applyGoogleSiteVerification(content = BrandConfig.googleSiteVeri
   upsertMeta("name", "google-site-verification", content);
 }
 
+export function applyRobotsMetadata(content: SeoMetadata["robots"] = "index,follow") {
+  upsertMeta("name", "robots", content);
+}
+
 function upsertCanonical(url: string) {
   const current = document.head.querySelector<HTMLLinkElement>(
     'link[rel="canonical"]'
@@ -296,6 +301,7 @@ export function applySeoMetadata(metadata: SeoMetadata) {
   applyFavicon(metadata.favicon);
   applyWebAppMetadata(metadata.manifestUrl, metadata.themeColor);
   applyGoogleSiteVerification();
+  applyRobotsMetadata(metadata.robots || "index,follow");
   upsertJsonLd(metadata.jsonLd);
   upsertCanonical(metadata.url);
   upsertMeta("name", "description", description);

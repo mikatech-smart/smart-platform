@@ -55,6 +55,10 @@ function isPrivateSlug(slug = "") {
   ].includes(slug.toLowerCase());
 }
 
+function isPrivatePath(pathname = "") {
+  return /^\/(admin|api|dashboard|login|painel)(\/|$)/i.test(pathname);
+}
+
 function truncate(value = "", max = 180) {
   const text = stripHtml(value);
 
@@ -115,6 +119,10 @@ function normalizeColor(value = "", fallback = DEFAULT_THEME_COLOR) {
 
 function getRequestRoute(pathname) {
   const parts = pathname.replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
+
+  if (parts[0] && isPrivateSlug(parts[0])) {
+    return null;
+  }
 
   if (parts.length === 1) {
     return { kind: "public", slug: parts[0] };
@@ -261,19 +269,20 @@ function getGoogleSiteVerification(env = {}) {
   ).trim();
 }
 
-function injectGoogleSiteVerification(html, verification) {
-  const content = String(verification || "").trim();
-  const cleanHtml = html.replace(
-    /<meta\s+name="google-site-verification"[^>]*>\s*/gi,
-    ""
-  );
+function injectBaseRobotsMetadata(html, { googleSiteVerification = "", robots = "index,follow" } = {}) {
+  const content = String(googleSiteVerification || "").trim();
+  const robotsContent = robots === "noindex,nofollow" ? robots : "index,follow";
+  const tags = [
+    `<meta name="robots" content="${escapeHtml(robotsContent)}" />`,
+    content
+      ? `<meta name="google-site-verification" content="${escapeHtml(content)}" />`
+      : "",
+  ].join("\n    ");
+  const cleanHtml = html
+    .replace(/<meta\s+name="google-site-verification"[^>]*>\s*/gi, "")
+    .replace(/<meta\s+name="robots"[^>]*>\s*/gi, "");
 
-  if (!content) return cleanHtml;
-
-  return cleanHtml.replace(
-    "</head>",
-    `    <meta name="google-site-verification" content="${escapeHtml(content)}" />\n  </head>`
-  );
+  return cleanHtml.replace("</head>", `    ${tags}\n  </head>`);
 }
 
 function buildJsonLd(metadata, empresa) {
@@ -343,6 +352,10 @@ function buildMetadata(route, empresa) {
     empresa?.cor_fundo_pagina || empresa?.cor_fundo_hero || "",
     DEFAULT_BACKGROUND_COLOR
   );
+  const robots =
+    route.kind === "landing" && !isLandingPagePublicada(empresa)
+      ? "noindex,nofollow"
+      : "index,follow";
   const url =
     route.kind === "landing"
       ? `${PUBLIC_APP_URL}/landing/${route.slug}`
@@ -364,6 +377,7 @@ function buildMetadata(route, empresa) {
       : [DEFAULT_PWA_ICON_192, DEFAULT_PWA_ICON_512],
     url,
     manifestUrl,
+    robots,
     themeColor,
     backgroundColor,
     route,
@@ -430,6 +444,7 @@ function injectMetadata(html, metadata) {
     `<link rel="apple-touch-icon" href="${appleTouchIcon}" />`,
     `<link rel="manifest" href="${escapeHtml(metadata.manifestUrl)}" />`,
     `<meta name="description" content="${description}" />`,
+    `<meta name="robots" content="${escapeHtml(metadata.robots || "index,follow")}" />`,
     `<meta name="theme-color" content="${escapeHtml(metadata.themeColor)}" />`,
     `<link rel="canonical" href="${url}" />`,
     `<meta property="og:title" content="${title}" />`,
@@ -461,6 +476,7 @@ function injectMetadata(html, metadata) {
     .replace(/<link\s+rel="manifest"[^>]*>\s*/gi, "")
     .replace(/<meta\s+name="description"[^>]*>\s*/gi, "")
     .replace(/<meta\s+name="google-site-verification"[^>]*>\s*/gi, "")
+    .replace(/<meta\s+name="robots"[^>]*>\s*/gi, "")
     .replace(/<meta\s+name="theme-color"[^>]*>\s*/gi, "")
     .replace(/<link\s+rel="canonical"[^>]*>\s*/gi, "")
     .replace(
@@ -517,14 +533,14 @@ export async function onRequestGet(context) {
   const googleSiteVerification = getGoogleSiteVerification(context.env);
 
   if (!route || !contentType.includes("text/html")) {
-    if (!contentType.includes("text/html") || !googleSiteVerification) {
+    if (!contentType.includes("text/html")) {
       return response;
     }
 
-    const html = injectGoogleSiteVerification(
-      await response.text(),
-      googleSiteVerification
-    );
+    const html = injectBaseRobotsMetadata(await response.text(), {
+      googleSiteVerification,
+      robots: isPrivatePath(url.pathname) ? "noindex,nofollow" : "index,follow",
+    });
     const headers = new Headers(response.headers);
 
     headers.set("content-type", "text/html; charset=utf-8");

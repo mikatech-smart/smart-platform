@@ -198,6 +198,7 @@ function criarSeoPaginaPublica(empresa: Empresa) {
       ],
     }),
     manifestUrl: getManifestUrl(slugPublico, "public"),
+    robots: "index,follow" as const,
     themeColor: aparencia.cor_principal || aparencia.cor_botoes || "",
     url: urlPublica,
   };

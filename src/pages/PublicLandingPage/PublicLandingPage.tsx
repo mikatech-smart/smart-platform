@@ -804,6 +804,7 @@ function criarSeoLandingPage(empresa: EmpresaLanding, landingPage: LandingPageCo
       ],
     }),
     manifestUrl: getManifestUrl(empresa.slug, "landing"),
+    robots: landingPage.publicada ? "index,follow" as const : "noindex,nofollow" as const,
     themeColor: empresa.cor_principal || empresa.cor_botoes || "",
     url: urlPublica,
   };
