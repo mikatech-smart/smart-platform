@@ -40,18 +40,19 @@ export default function QRCodeEmpresa({
 }: QRCodeEmpresaProps) {
   const [copiado, setCopiado] = useState<LinkCompartilhamentoId | null>(null);
   const [baixando, setBaixando] = useState(false);
+  const baseUrlPublica = BrandConfig.publicAppUrl.replace(/\/$/, "");
 
   const publicUrl = useMemo(() => {
-    return `${BrandConfig.platformUrl}/${slug}`;
-  }, [slug]);
+    return `${baseUrlPublica}/${slug}`;
+  }, [baseUrlPublica, slug]);
 
   const painelClienteUrl = useMemo(() => {
-    return `${BrandConfig.platformUrl}/painel/${slug}`;
-  }, [slug]);
+    return `${baseUrlPublica}/painel/${slug}`;
+  }, [baseUrlPublica, slug]);
 
   const landingPageUrl = useMemo(() => {
-    return `${BrandConfig.platformUrl}/landing/${slug}`;
-  }, [slug]);
+    return `${baseUrlPublica}/landing/${slug}`;
+  }, [baseUrlPublica, slug]);
 
   const qrCodeUrl = useMemo(() => {
     const parametros = new URLSearchParams({

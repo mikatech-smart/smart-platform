@@ -52,7 +52,7 @@ export default function Empresas() {
   const [novoTipo, setNovoTipo] = useState("");
   const [salvandoNovaEmpresa, setSalvandoNovaEmpresa] = useState(false);
 
-  const baseUrlPublica = (BrandConfig.platformUrl || window.location.origin).replace(
+  const baseUrlPublica = (BrandConfig.publicAppUrl || window.location.origin).replace(
     /\/$/,
     ""
   );
