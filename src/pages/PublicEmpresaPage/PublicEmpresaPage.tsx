@@ -172,6 +172,7 @@ function criarSeoPaginaPublica(empresa: Empresa) {
     title: titulo,
     description: descricao,
     image: empresa.banner || empresa.logo || "",
+    favicon: empresa.logo || "",
     url: getPublicUrl(`/${slugPublico}`),
   };
 }

@@ -7,6 +7,7 @@ export type SeoMetadata = {
   description: string;
   url: string;
   image: string;
+  favicon?: string;
   type?: string;
   keywords?: string;
 };
@@ -55,6 +56,10 @@ export function normalizeSeoImage(value?: string | null) {
   return `${getPublicBaseUrl()}${image.startsWith("/") ? image : `/${image}`}`;
 }
 
+export function normalizeFavicon(value?: string | null) {
+  return normalizeSeoImage(value || BrandConfig.favicon);
+}
+
 function upsertMeta(attribute: MetaAttribute, key: string, content?: string) {
   const value = content?.trim() || "";
   const selector = `meta[${attribute}="${key}"]`;
@@ -88,6 +93,45 @@ function upsertCanonical(url: string) {
   }
 }
 
+function getIconType(href: string) {
+  const url = href.split("?")[0].toLowerCase();
+
+  if (url.endsWith(".svg")) return "image/svg+xml";
+  if (url.endsWith(".jpg") || url.endsWith(".jpeg")) return "image/jpeg";
+  if (url.endsWith(".webp")) return "image/webp";
+  if (url.endsWith(".ico")) return "image/x-icon";
+
+  return "image/png";
+}
+
+function upsertIcon(rel: "icon" | "shortcut icon" | "apple-touch-icon", href: string) {
+  const current = document.head.querySelector<HTMLLinkElement>(
+    `link[rel="${rel}"]`
+  );
+  const link = current || document.createElement("link");
+
+  link.setAttribute("rel", rel);
+  link.setAttribute("href", href);
+
+  if (rel !== "apple-touch-icon") {
+    link.setAttribute("type", getIconType(href));
+  } else {
+    link.removeAttribute("type");
+  }
+
+  if (!current) {
+    document.head.appendChild(link);
+  }
+}
+
+export function applyFavicon(href?: string | null) {
+  const favicon = normalizeFavicon(href);
+
+  upsertIcon("icon", favicon);
+  upsertIcon("shortcut icon", favicon);
+  upsertIcon("apple-touch-icon", favicon);
+}
+
 export function applySeoMetadata(metadata: SeoMetadata) {
   const title = normalizeSeoText(metadata.title, BrandConfig.platformName);
   const description = normalizeSeoDescription(metadata.description);
@@ -95,6 +139,7 @@ export function applySeoMetadata(metadata: SeoMetadata) {
   const type = metadata.type || "website";
 
   document.title = title;
+  applyFavicon(metadata.favicon);
   upsertCanonical(metadata.url);
   upsertMeta("name", "description", description);
   upsertMeta("name", "keywords", metadata.keywords);

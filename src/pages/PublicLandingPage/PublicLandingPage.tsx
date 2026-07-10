@@ -780,6 +780,7 @@ function criarSeoLandingPage(empresa: EmpresaLanding, landingPage: LandingPageCo
     description: descricao,
     keywords: landingPage.seo.palavrasChave.trim(),
     image: imagem,
+    favicon: empresa.logo || "",
     url: urlPublica,
   };
 }

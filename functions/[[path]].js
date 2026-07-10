@@ -3,6 +3,7 @@ const DEFAULT_TITLE = "MikaON";
 const DEFAULT_DESCRIPTION =
   "MikaON conecta empresas, servicos e canais de contato em paginas publicas inteligentes.";
 const DEFAULT_IMAGE = `${PUBLIC_APP_URL}/favicon.svg`;
+const DEFAULT_FAVICON = `${PUBLIC_APP_URL}/favicon.svg`;
 
 function escapeHtml(value = "") {
   return String(value)
@@ -29,6 +30,17 @@ function absoluteImage(value = "") {
   if (image.startsWith("http://") || image.startsWith("https://")) return image;
 
   return `${PUBLIC_APP_URL}${image.startsWith("/") ? image : `/${image}`}`;
+}
+
+function getIconType(value = "") {
+  const url = String(value).split("?")[0].toLowerCase();
+
+  if (url.endsWith(".svg")) return "image/svg+xml";
+  if (url.endsWith(".jpg") || url.endsWith(".jpeg")) return "image/jpeg";
+  if (url.endsWith(".webp")) return "image/webp";
+  if (url.endsWith(".ico")) return "image/x-icon";
+
+  return "image/png";
 }
 
 function getRequestRoute(pathname) {
@@ -108,21 +120,27 @@ function buildMetadata(route, empresa) {
       empresa?.logo ||
       ""
   );
+  const favicon = absoluteImage(empresa?.logo || DEFAULT_FAVICON);
   const url =
     route.kind === "landing"
       ? `${PUBLIC_APP_URL}/landing/${route.slug}`
       : `${PUBLIC_APP_URL}/${route.slug}`;
 
-  return { title, description, image, url };
+  return { title, description, image, favicon, url };
 }
 
 function injectMetadata(html, metadata) {
   const title = escapeHtml(metadata.title);
   const description = escapeHtml(metadata.description);
   const image = escapeHtml(metadata.image);
+  const favicon = escapeHtml(metadata.favicon || DEFAULT_FAVICON);
+  const faviconType = escapeHtml(getIconType(metadata.favicon || DEFAULT_FAVICON));
   const url = escapeHtml(metadata.url);
   const tags = [
     `<title>${title}</title>`,
+    `<link rel="icon" type="${faviconType}" href="${favicon}" />`,
+    `<link rel="shortcut icon" type="${faviconType}" href="${favicon}" />`,
+    `<link rel="apple-touch-icon" href="${favicon}" />`,
     `<meta name="description" content="${description}" />`,
     `<link rel="canonical" href="${url}" />`,
     `<meta property="og:title" content="${title}" />`,
@@ -138,6 +156,9 @@ function injectMetadata(html, metadata) {
 
   return html
     .replace(/<title>[\s\S]*?<\/title>/i, "")
+    .replace(/<link\s+rel="icon"[^>]*>\s*/gi, "")
+    .replace(/<link\s+rel="shortcut icon"[^>]*>\s*/gi, "")
+    .replace(/<link\s+rel="apple-touch-icon"[^>]*>\s*/gi, "")
     .replace(/<meta\s+name="description"[^>]*>\s*/gi, "")
     .replace(/<link\s+rel="canonical"[^>]*>\s*/gi, "")
     .replace(/<meta\s+property="og:[^"]+"[^>]*>\s*/gi, "")
