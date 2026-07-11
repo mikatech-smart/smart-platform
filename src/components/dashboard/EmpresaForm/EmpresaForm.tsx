@@ -5136,6 +5136,11 @@ export default function EmpresaForm({
   const [crmTarefasRascunho, setCrmTarefasRascunho] = useState<
     Record<string, CrmTarefaRascunho>
   >({});
+  const [salvandoEmpresa, setSalvandoEmpresa] = useState(false);
+  const [feedbackSalvamento, setFeedbackSalvamento] = useState<{
+    tipo: "sucesso" | "erro" | "info";
+    texto: string;
+  } | null>(null);
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -7159,6 +7164,8 @@ export default function EmpresaForm({
   }
 
   async function salvar() {
+    if (salvandoEmpresa) return;
+
     const slugFinal = gerarSlug(slugAdmin || slug);
 
     if (!empresaId) {
@@ -7259,6 +7266,12 @@ export default function EmpresaForm({
       payloadEnviado: dadosEmpresa,
     });
 
+    setSalvandoEmpresa(true);
+    setFeedbackSalvamento({
+      tipo: "info",
+      texto: "Salvando alteracoes...",
+    });
+
     const { error } = await atualizarEmpresa(
       empresaId,
       dadosEmpresa as Parameters<typeof atualizarEmpresa>[1]
@@ -7270,6 +7283,11 @@ export default function EmpresaForm({
         idUsado: empresaId,
         slugUsado: slugFinal,
         payloadEnviado: dadosEmpresa,
+      });
+      setSalvandoEmpresa(false);
+      setFeedbackSalvamento({
+        tipo: "erro",
+        texto: error.message || "Erro ao salvar. Revise os dados e tente novamente.",
       });
       alert(error.message || "Erro ao salvar.");
       return;
@@ -7296,6 +7314,11 @@ export default function EmpresaForm({
       logo,
     });
 
+    setSalvandoEmpresa(false);
+    setFeedbackSalvamento({
+      tipo: "sucesso",
+      texto: "Dados salvos com sucesso. Recarregue a empresa para conferir os dados persistidos.",
+    });
     alert("Dados salvos com sucesso!");
     onSalvar?.();
   }
@@ -10643,6 +10666,7 @@ export default function EmpresaForm({
                 variant="primary"
                 size="lg"
                 onClick={salvar}
+                disabled={salvandoEmpresa}
                 className={
                   possuiAlteracoesAparencia
                     ? "shadow-lg ring-4 ring-green-100"
@@ -11043,11 +11067,27 @@ export default function EmpresaForm({
       </Card>
       )}
 
+      {feedbackSalvamento && (
+        <div
+          className={`rounded-xl px-4 py-3 text-sm font-semibold ${
+            feedbackSalvamento.tipo === "sucesso"
+              ? "bg-green-50 text-green-700"
+              : feedbackSalvamento.tipo === "erro"
+                ? "bg-red-50 text-red-700"
+                : "bg-blue-50 text-blue-700"
+          }`}
+          role="status"
+        >
+          {feedbackSalvamento.texto}
+        </div>
+      )}
+
       <div className="flex justify-end">
         <Button
           variant="primary"
           size="lg"
           onClick={salvar}
+          disabled={salvandoEmpresa}
         >
           Salvar alterações
         </Button>

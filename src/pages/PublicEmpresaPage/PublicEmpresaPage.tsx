@@ -37,6 +37,11 @@ type AparenciaEmpresa = Empresa & {
     wifi_marketing?: boolean;
     fidelidade?: boolean;
   } | null;
+  cardapio_config?: unknown;
+  catalogo_config?: unknown;
+  agendamento_config?: unknown;
+  wifi_marketing_config?: unknown;
+  fidelidade_config?: unknown;
 };
 
 const diasSemana = [
@@ -97,6 +102,97 @@ function agruparHorarioAtendimento(horarioAtendimento?: string | null) {
   }
 
   return grupos;
+}
+
+function textoConfig(valor: unknown) {
+  return typeof valor === "string" ? valor.trim() : "";
+}
+
+function objetoConfig(valor: unknown) {
+  return valor && typeof valor === "object" && !Array.isArray(valor)
+    ? (valor as Record<string, unknown>)
+    : null;
+}
+
+function listaConfig(valor: unknown) {
+  return Array.isArray(valor) ? valor : [];
+}
+
+function possuiCardapioValido(valor: unknown) {
+  const config = objetoConfig(valor);
+  if (!config) return false;
+
+  return listaConfig(config.produtos).some((item) => {
+    const produto = objetoConfig(item);
+    if (!produto) return false;
+
+    return [
+      produto.nome,
+      produto.descricao,
+      produto.observacoes,
+      produto.preco,
+      produto.imagemUrl,
+    ].some((campo) => textoConfig(campo));
+  });
+}
+
+function possuiCatalogoValido(valor: unknown) {
+  const config = objetoConfig(valor);
+  if (!config) return false;
+
+  return listaConfig(config.produtos).some((item) => {
+    const produto = objetoConfig(item);
+    if (!produto || produto.ativo === false) return false;
+
+    return [
+      produto.nome,
+      produto.descricao,
+      produto.preco,
+      produto.imagemUrl,
+      produto.linkCompra,
+    ].some((campo) => textoConfig(campo));
+  });
+}
+
+function possuiAgendamentoValido(valor: unknown) {
+  const config = objetoConfig(valor);
+  if (!config) return false;
+
+  return listaConfig(config.servicos).some((item) => {
+    const servico = objetoConfig(item);
+    if (!servico || servico.ativo === false) return false;
+
+    return [servico.nome, servico.descricao].some((campo) =>
+      textoConfig(campo)
+    );
+  });
+}
+
+function possuiWifiMarketingValido(valor: unknown) {
+  const config = objetoConfig(valor);
+  if (!config || config.ativo !== true) return false;
+
+  return [
+    config.titulo,
+    config.mensagem,
+    config.imagemUrl,
+    config.botaoTexto,
+    config.botaoLink,
+  ].some((campo) => textoConfig(campo));
+}
+
+function possuiFidelidadeValida(valor: unknown) {
+  const config = objetoConfig(valor);
+  if (!config || config.ativo !== true) return false;
+
+  return [
+    config.titulo,
+    config.descricao,
+    config.recompensa,
+    config.quantidade,
+    config.quantidadePontos,
+    config.quantidadeCarimbos,
+  ].some((campo) => textoConfig(campo));
 }
 
 function criarGoogleMapsUrl(endereco?: string | null) {
@@ -277,15 +373,22 @@ export default function PublicEmpresaPage() {
   const googleMapsUrl = criarGoogleMapsUrl(empresa.endereco);
   const estiloAparencia = criarEstiloAparencia(empresa);
   const cardapioDigitalContratado =
-    (empresa as AparenciaEmpresa).recursos_contratados?.cardapio_digital === true;
+    (empresa as AparenciaEmpresa).recursos_contratados?.cardapio_digital === true &&
+    possuiCardapioValido((empresa as AparenciaEmpresa).cardapio_config);
   const catalogoContratado =
-    (empresa as AparenciaEmpresa).recursos_contratados?.catalogo === true;
+    (empresa as AparenciaEmpresa).recursos_contratados?.catalogo === true &&
+    possuiCatalogoValido((empresa as AparenciaEmpresa).catalogo_config);
   const agendamentoContratado =
-    (empresa as AparenciaEmpresa).recursos_contratados?.agendamento === true;
+    (empresa as AparenciaEmpresa).recursos_contratados?.agendamento === true &&
+    possuiAgendamentoValido((empresa as AparenciaEmpresa).agendamento_config);
   const wifiMarketingContratado =
-    (empresa as AparenciaEmpresa).recursos_contratados?.wifi_marketing === true;
+    (empresa as AparenciaEmpresa).recursos_contratados?.wifi_marketing === true &&
+    possuiWifiMarketingValido(
+      (empresa as AparenciaEmpresa).wifi_marketing_config
+    );
   const fidelidadeContratada =
-    (empresa as AparenciaEmpresa).recursos_contratados?.fidelidade === true;
+    (empresa as AparenciaEmpresa).recursos_contratados?.fidelidade === true &&
+    possuiFidelidadeValida((empresa as AparenciaEmpresa).fidelidade_config);
 
   return (
     <main className="public-empresa-page" style={estiloAparencia}>

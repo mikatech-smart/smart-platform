@@ -92,6 +92,49 @@ function erroColunaIaConfig(error: { message?: string; code?: string }) {
   );
 }
 
+const colunasConfigOpcionais = [
+  {
+    campo: "ia_config",
+    erro: erroColunaIaConfig,
+    nome: "Assistente de IA",
+  },
+  {
+    campo: "crm_config",
+    erro: erroColunaCrmConfig,
+    nome: "CRM",
+  },
+  {
+    campo: "fidelidade_config",
+    erro: erroColunaFidelidadeConfig,
+    nome: "Programa de Fidelidade",
+  },
+  {
+    campo: "wifi_marketing_config",
+    erro: erroColunaWifiMarketingConfig,
+    nome: "Wi-Fi Marketing",
+  },
+  {
+    campo: "agendamento_config",
+    erro: erroColunaAgendamentoConfig,
+    nome: "Agendamento",
+  },
+  {
+    campo: "catalogo_config",
+    erro: erroColunaCatalogoConfig,
+    nome: "Catalogo",
+  },
+  {
+    campo: "cardapio_config",
+    erro: erroColunaCardapioConfig,
+    nome: "Cardapio Digital",
+  },
+  {
+    campo: "landing_page_config",
+    erro: erroColunaLandingPageConfig,
+    nome: "Landing Page",
+  },
+] as const;
+
 function erroEstruturaLeads(error: { message?: string; code?: string }) {
   const mensagem = error.message?.toLowerCase() || "";
 
@@ -911,6 +954,43 @@ export async function atualizarEmpresa(
   });
 
   if (error) {
+    const payloadSemConfigsAusentes = { ...(dados as Record<string, unknown>) };
+    const configsRemovidas: string[] = [];
+    let erroAtual: typeof error | null = error;
+
+    while (erroAtual) {
+      const configAusente = colunasConfigOpcionais.find(
+        (config) =>
+          config.campo in payloadSemConfigsAusentes && config.erro(erroAtual!)
+      );
+
+      if (!configAusente) break;
+
+      delete payloadSemConfigsAusentes[configAusente.campo];
+      configsRemovidas.push(configAusente.nome);
+
+      const { data: dataSemConfig, error: errorSemConfig } = await supabase
+        .from("empresas")
+        .update(payloadSemConfigsAusentes)
+        .eq("id", id)
+        .select();
+
+      if (!errorSemConfig && dataSemConfig?.length) {
+        console.warn(
+          `Colunas opcionais ausentes no Supabase (${configsRemovidas.join(
+            ", "
+          )}); demais dados foram salvos.`
+        );
+
+        return {
+          data: dataSemConfig[0],
+          error: null,
+        };
+      }
+
+      erroAtual = errorSemConfig;
+    }
+
     if (erroColunaIaConfig(error)) {
       if ("ia_config" in dados) {
         const dadosSemIa = { ...(dados as Record<string, unknown>) };
