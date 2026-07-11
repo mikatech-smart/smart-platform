@@ -871,6 +871,27 @@ type ErpPdvCarrinhoItem = {
   quantidade: number;
 };
 
+type ErpPdvCupomLayout = "58mm" | "80mm" | "a4";
+
+type ErpPdvCupomItem = {
+  descricao: string;
+  quantidade: number;
+  precoUnitario: number;
+  subtotal: number;
+};
+
+type ErpPdvCupomNaoFiscal = {
+  vendaNumero: number;
+  empresa: string;
+  cnpj: string;
+  endereco: string;
+  dataHora: string;
+  operador: string;
+  pagamento: string;
+  itens: ErpPdvCupomItem[];
+  total: number;
+};
+
 const erpPdvFormasPagamento: Array<{
   id: ErpPdvFormaPagamento;
   label: string;
@@ -5603,6 +5624,10 @@ export default function EmpresaForm({
   const [erpPdvOperadorVenda, setErpPdvOperadorVenda] = useState("");
   const [erpPdvFormaPagamentoVenda, setErpPdvFormaPagamentoVenda] =
     useState<ErpPdvFormaPagamento>("dinheiro");
+  const [erpPdvCupomNaoFiscal, setErpPdvCupomNaoFiscal] =
+    useState<ErpPdvCupomNaoFiscal | null>(null);
+  const [erpPdvCupomLayout, setErpPdvCupomLayout] =
+    useState<ErpPdvCupomLayout>("80mm");
   const [erpPdvBusca, setErpPdvBusca] = useState("");
   const [erpPdvOrdenacao, setErpPdvOrdenacao] =
     useState<ErpPdvOrdenacaoProdutos>("nome");
@@ -6824,6 +6849,175 @@ export default function EmpresaForm({
     });
   }
 
+  function obterLabelFormaPagamentoErpPdv(forma: ErpPdvFormaPagamento | string) {
+    return (
+      erpPdvFormasPagamento.find((formaPagamento) => formaPagamento.id === forma)
+        ?.label || forma
+    );
+  }
+
+  function gerarTextoCupomErpPdv(cupom: ErpPdvCupomNaoFiscal) {
+    const linhas = [
+      `${cupom.empresa}`,
+      "CUPOM NAO FISCAL",
+      `Venda: #${cupom.vendaNumero}`,
+      `Data: ${new Date(cupom.dataHora).toLocaleString("pt-BR")}`,
+      `Operador: ${cupom.operador}`,
+      `Pagamento: ${cupom.pagamento}`,
+      "",
+      "Itens:",
+      ...cupom.itens.map(
+        (item) =>
+          `${formatarNumeroErpPdv(item.quantidade)} x ${item.descricao} - R$ ${item.subtotal.toLocaleString(
+            "pt-BR",
+            {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            }
+          )}`
+      ),
+      "",
+      `Total: R$ ${cupom.total.toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
+      "",
+      "Documento sem valor fiscal.",
+    ];
+
+    return linhas.join("\n");
+  }
+
+  function escaparHtmlCupomErpPdv(valor: string) {
+    return valor
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function gerarHtmlCupomErpPdv(
+    cupom: ErpPdvCupomNaoFiscal,
+    layout: ErpPdvCupomLayout
+  ) {
+    const largura =
+      layout === "58mm" ? "58mm" : layout === "80mm" ? "80mm" : "190mm";
+    const fonte = layout === "a4" ? "12px" : "10px";
+
+    return `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Cupom nao fiscal #${cupom.vendaNumero}</title>
+    <style>
+      @page { size: ${layout === "a4" ? "A4" : largura} auto; margin: ${layout === "a4" ? "16mm" : "4mm"}; }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: #f8fafc; color: #0f172a; font-family: Arial, sans-serif; }
+      .cupom { width: ${largura}; margin: 0 auto; background: #fff; padding: 12px; }
+      .centro { text-align: center; }
+      .titulo { font-size: ${layout === "a4" ? "20px" : "13px"}; font-weight: 800; }
+      .linha { border-top: 1px dashed #64748b; margin: 8px 0; }
+      .texto { font-size: ${fonte}; line-height: 1.45; }
+      table { width: 100%; border-collapse: collapse; font-size: ${fonte}; }
+      th, td { padding: 4px 0; text-align: left; vertical-align: top; }
+      th:last-child, td:last-child { text-align: right; }
+      .total { display: flex; justify-content: space-between; font-size: ${layout === "a4" ? "18px" : "13px"}; font-weight: 800; }
+      @media print { body { background: #fff; } .cupom { margin: 0; } }
+    </style>
+  </head>
+  <body>
+    <main class="cupom texto">
+      <section class="centro">
+        <div class="titulo">${escaparHtmlCupomErpPdv(cupom.empresa)}</div>
+        <div>CNPJ: ${escaparHtmlCupomErpPdv(cupom.cnpj)}</div>
+        <div>${escaparHtmlCupomErpPdv(cupom.endereco)}</div>
+        <div class="linha"></div>
+        <strong>CUPOM NAO FISCAL</strong>
+      </section>
+      <div class="linha"></div>
+      <div>Venda: #${cupom.vendaNumero}</div>
+      <div>Data/Hora: ${new Date(cupom.dataHora).toLocaleString("pt-BR")}</div>
+      <div>Operador: ${escaparHtmlCupomErpPdv(cupom.operador)}</div>
+      <div>Pagamento: ${escaparHtmlCupomErpPdv(cupom.pagamento)}</div>
+      <div class="linha"></div>
+      <table>
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Qtd</th>
+            <th>Valor</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${cupom.itens
+            .map(
+              (item) => `<tr>
+                <td>${escaparHtmlCupomErpPdv(item.descricao)}<br />Unit.: R$ ${item.precoUnitario.toLocaleString(
+                  "pt-BR",
+                  {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  }
+                )}</td>
+                <td>${formatarNumeroErpPdv(item.quantidade)}</td>
+                <td>R$ ${item.subtotal.toLocaleString("pt-BR", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}</td>
+              </tr>`
+            )
+            .join("")}
+        </tbody>
+      </table>
+      <div class="linha"></div>
+      <div class="total">
+        <span>Total</span>
+        <span>R$ ${cupom.total.toLocaleString("pt-BR", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}</span>
+      </div>
+      <div class="linha"></div>
+      <section class="centro">
+        <div>Documento sem valor fiscal.</div>
+        <div>Nao substitui NFC-e ou NF-e.</div>
+      </section>
+    </main>
+  </body>
+</html>`;
+  }
+
+  function imprimirCupomErpPdv(layout: ErpPdvCupomLayout) {
+    if (!erpPdvCupomNaoFiscal) return;
+
+    const janela = window.open("", "_blank", "width=420,height=720");
+    if (!janela) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "Nao foi possivel abrir a janela de impressao.",
+      });
+      return;
+    }
+
+    janela.document.open();
+    janela.document.write(
+      gerarHtmlCupomErpPdv(erpPdvCupomNaoFiscal, layout)
+    );
+    janela.document.close();
+    janela.focus();
+    janela.print();
+  }
+
+  function compartilharCupomWhatsAppErpPdv() {
+    if (!erpPdvCupomNaoFiscal) return;
+
+    const texto = encodeURIComponent(
+      gerarTextoCupomErpPdv(erpPdvCupomNaoFiscal)
+    );
+    window.open(`https://wa.me/?text=${texto}`, "_blank", "noopener,noreferrer");
+  }
+
   async function finalizarVendaErpPdv() {
     if (!empresaId) return;
 
@@ -6845,6 +7039,12 @@ export default function EmpresaForm({
 
     try {
       setErpPdvSalvando(true);
+      const itensCupom = erpPdvCarrinhoDetalhado.map((item) => ({
+        descricao: item.produto.nome,
+        quantidade: item.quantidade,
+        precoUnitario: item.produto.preco_venda,
+        subtotal: item.subtotal,
+      }));
 
       const { data, error } = await finalizarErpPdvVenda({
         empresaId,
@@ -6879,11 +7079,22 @@ export default function EmpresaForm({
         ...data.movimentacoes,
         ...movimentacoesAtuais,
       ]);
+      setErpPdvCupomNaoFiscal({
+        vendaNumero: data.numero,
+        empresa: nome.trim() || "Empresa",
+        cnpj: "Nao informado",
+        endereco: montarEnderecoCompleto() || endereco.trim() || "Nao informado",
+        dataHora: data.finalizada_em,
+        operador: data.operador,
+        pagamento: obterLabelFormaPagamentoErpPdv(data.forma_pagamento),
+        itens: itensCupom,
+        total: data.total,
+      });
       setErpPdvCarrinho([]);
       setErpPdvPdvBusca("");
       setErpPdvFeedback({
         tipo: "sucesso",
-        texto: `Venda #${data.numero} finalizada. Estoque baixado automaticamente.`,
+        texto: `Venda #${data.numero} finalizada. Cupom nao fiscal gerado.`,
       });
     } catch (error) {
       setErpPdvFeedback({
@@ -9373,6 +9584,154 @@ export default function EmpresaForm({
                 </div>
               </div>
             </div>
+
+            {erpPdvCupomNaoFiscal && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+                      Cupom nao fiscal
+                    </p>
+
+                    <h4 className="mt-2 text-lg font-bold text-slate-900">
+                      Comprovante da venda #{erpPdvCupomNaoFiscal.vendaNumero}
+                    </h4>
+
+                    <p className="mt-1 text-sm text-slate-500">
+                      Documento sem valor fiscal. Use a impressao do navegador
+                      para imprimir ou salvar em PDF.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {(["58mm", "80mm", "a4"] as ErpPdvCupomLayout[]).map(
+                      (layout) => (
+                        <button
+                          type="button"
+                          key={layout}
+                          onClick={() => setErpPdvCupomLayout(layout)}
+                          className={`rounded-xl border px-3 py-2 text-sm font-bold transition ${
+                            erpPdvCupomLayout === layout
+                              ? "border-green-600 bg-green-50 text-green-700"
+                              : "border-slate-200 text-slate-700 hover:border-green-300 hover:bg-green-50"
+                          }`}
+                        >
+                          {layout === "a4" ? "A4" : layout}
+                        </button>
+                      )
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-4 xl:grid-cols-[1fr_auto]">
+                  <div className="overflow-x-auto rounded-2xl bg-slate-100 p-4">
+                    <div
+                      className={`mx-auto bg-white p-4 font-mono text-xs text-slate-900 shadow-sm ${
+                        erpPdvCupomLayout === "58mm"
+                          ? "w-[220px]"
+                          : erpPdvCupomLayout === "80mm"
+                          ? "w-[300px]"
+                          : "w-full max-w-3xl"
+                      }`}
+                    >
+                      <div className="text-center">
+                        <p className="font-black">{erpPdvCupomNaoFiscal.empresa}</p>
+                        <p>CNPJ: {erpPdvCupomNaoFiscal.cnpj}</p>
+                        <p>{erpPdvCupomNaoFiscal.endereco}</p>
+                        <div className="my-2 border-t border-dashed border-slate-400" />
+                        <p className="font-black">CUPOM NAO FISCAL</p>
+                      </div>
+
+                      <div className="my-2 border-t border-dashed border-slate-400" />
+
+                      <div className="space-y-1">
+                        <p>Venda: #{erpPdvCupomNaoFiscal.vendaNumero}</p>
+                        <p>
+                          Data/Hora:{" "}
+                          {new Date(
+                            erpPdvCupomNaoFiscal.dataHora
+                          ).toLocaleString("pt-BR")}
+                        </p>
+                        <p>Operador: {erpPdvCupomNaoFiscal.operador}</p>
+                        <p>Pagamento: {erpPdvCupomNaoFiscal.pagamento}</p>
+                      </div>
+
+                      <div className="my-2 border-t border-dashed border-slate-400" />
+
+                      <div className="space-y-2">
+                        {erpPdvCupomNaoFiscal.itens.map((item, indice) => (
+                          <div key={`${item.descricao}-${indice}`}>
+                            <p className="font-bold">{item.descricao}</p>
+                            <div className="flex justify-between gap-2">
+                              <span>
+                                {formatarNumeroErpPdv(item.quantidade)} x R${" "}
+                                {item.precoUnitario.toLocaleString("pt-BR", {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </span>
+                              <span>
+                                R${" "}
+                                {item.subtotal.toLocaleString("pt-BR", {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="my-2 border-t border-dashed border-slate-400" />
+
+                      <div className="flex justify-between text-base font-black">
+                        <span>Total</span>
+                        <span>
+                          R${" "}
+                          {erpPdvCupomNaoFiscal.total.toLocaleString("pt-BR", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
+
+                      <div className="my-2 border-t border-dashed border-slate-400" />
+
+                      <div className="text-center">
+                        <p>Documento sem valor fiscal.</p>
+                        <p>Nao substitui NFC-e ou NF-e.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2 sm:grid-cols-3 xl:w-56 xl:grid-cols-1">
+                    <button
+                      type="button"
+                      onClick={() => imprimirCupomErpPdv(erpPdvCupomLayout)}
+                      className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+                    >
+                      Imprimir
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => imprimirCupomErpPdv(erpPdvCupomLayout)}
+                      className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 transition hover:border-green-300 hover:bg-green-50"
+                    >
+                      Salvar PDF
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={compartilharCupomWhatsAppErpPdv}
+                      className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-black text-green-700 transition hover:bg-green-100"
+                    >
+                      WhatsApp
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <fieldset
               disabled={!recursosContratados.erp_pdv || erpPdvSalvando}
