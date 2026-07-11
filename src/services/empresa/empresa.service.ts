@@ -11,6 +11,7 @@ const recursosContratadosPadrao = {
   agendamento: false,
   wifi_marketing: false,
   fidelidade: false,
+  crm: false,
   wifi: false,
   google_reviews: false,
   nfc: true,
@@ -69,6 +70,15 @@ function erroColunaFidelidadeConfig(error: { message?: string; code?: string }) 
   return (
     mensagem.includes("fidelidade_config") ||
     (error.code === "PGRST204" && mensagem.includes("fidelidade"))
+  );
+}
+
+function erroColunaCrmConfig(error: { message?: string; code?: string }) {
+  const mensagem = error.message?.toLowerCase() || "";
+
+  return (
+    mensagem.includes("crm_config") ||
+    (error.code === "PGRST204" && mensagem.includes("crm"))
   );
 }
 
@@ -335,6 +345,39 @@ export async function atualizarEmpresa(
   });
 
   if (error) {
+    if (erroColunaCrmConfig(error)) {
+      if ("crm_config" in dados) {
+        const dadosSemCrm = { ...(dados as Record<string, unknown>) };
+        delete dadosSemCrm.crm_config;
+        const { data: dataSemCrm, error: errorSemCrm } =
+          await supabase
+            .from("empresas")
+            .update(dadosSemCrm)
+            .eq("id", id)
+            .select();
+
+        if (!errorSemCrm && dataSemCrm?.length) {
+          console.warn(
+            "crm_config ainda nao existe no Supabase; demais dados foram salvos sem o CRM."
+          );
+
+          return {
+            data: dataSemCrm[0],
+            error: null,
+          };
+        }
+      }
+
+      return {
+        data: null,
+        error: {
+          ...error,
+          message:
+            "A coluna crm_config ainda nao existe na tabela empresas. Crie a coluna JSONB para salvar o CRM.",
+        },
+      };
+    }
+
     if (erroColunaFidelidadeConfig(error)) {
       if ("fidelidade_config" in dados) {
         const { fidelidade_config: _fidelidadeConfig, ...dadosSemFidelidade } =

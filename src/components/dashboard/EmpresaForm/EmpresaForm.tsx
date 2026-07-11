@@ -61,6 +61,7 @@ type AbaEmpresa =
   | "agendamento"
   | "wifiMarketing"
   | "fidelidade"
+  | "crm"
   | "contato"
   | "endereco"
   | "redes"
@@ -98,6 +99,7 @@ const abasEmpresa: Array<{
   { id: "agendamento", label: "Agendamento" },
   { id: "wifiMarketing", label: "Wi-Fi Marketing" },
   { id: "fidelidade", label: "Fidelidade" },
+  { id: "crm", label: "CRM" },
   { id: "contato", label: "Contato" },
   { id: "endereco", label: "Endereço" },
   { id: "redes", label: "Redes Sociais" },
@@ -115,6 +117,7 @@ type RecursoEmpresaId =
   | "agendamento"
   | "wifi_marketing"
   | "fidelidade"
+  | "crm"
   | "wifi"
   | "google_reviews"
   | "nfc"
@@ -154,6 +157,7 @@ const recursosPadrao: RecursosContratados = {
   agendamento: false,
   wifi_marketing: false,
   fidelidade: false,
+  crm: false,
   wifi: false,
   google_reviews: false,
   nfc: true,
@@ -218,6 +222,12 @@ const recursosEmpresa: Array<{
     id: "fidelidade",
     nome: "Programa de Fidelidade",
     descricao: "Estrutura para campanhas de pontos, carimbos e recompensas.",
+    statusInativo: "Em breve",
+  },
+  {
+    id: "crm",
+    nome: "CRM",
+    descricao: "Cadastro e organizacao de clientes, tags, status e observacoes.",
     statusInativo: "Em breve",
   },
   {
@@ -604,6 +614,22 @@ type FidelidadeConfig = {
   ativo: boolean;
 };
 
+type CrmClienteStatus = "prospect" | "ativo" | "inativo";
+
+type CrmClienteConfig = {
+  id: string;
+  nome: string;
+  telefone: string;
+  email: string;
+  observacoes: string;
+  tags: string[];
+  status: CrmClienteStatus;
+};
+
+type CrmConfig = {
+  clientes: CrmClienteConfig[];
+};
+
 const cardapioCategoriaPadrao: CardapioCategoriaConfig = {
   id: "categoria-1",
   nome: "",
@@ -678,6 +704,20 @@ const fidelidadeConfigPadrao: FidelidadeConfig = {
   quantidade: "",
   tipoAcumulo: "carimbos",
   ativo: false,
+};
+
+const crmClientePadrao: CrmClienteConfig = {
+  id: "cliente-1",
+  nome: "",
+  telefone: "",
+  email: "",
+  observacoes: "",
+  tags: [],
+  status: "prospect",
+};
+
+const crmConfigPadrao: CrmConfig = {
+  clientes: [{ ...crmClientePadrao }],
 };
 
 const landingPageHeroPadrao: LandingPageHeroConfig = {
@@ -1448,6 +1488,70 @@ function normalizarFidelidadeConfig(valor: unknown): FidelidadeConfig {
       lerCampoTexto(config, "quantidadeCarimbos"),
     tipoAcumulo: tipoAcumulo === "pontos" ? "pontos" : "carimbos",
     ativo: typeof config.ativo === "boolean" ? config.ativo : false,
+  };
+}
+
+function normalizarTagsCrm(valor: unknown): string[] {
+  if (Array.isArray(valor)) {
+    return valor
+      .map((tag) => (typeof tag === "string" ? tag.trim() : ""))
+      .filter(Boolean)
+      .slice(0, 20);
+  }
+
+  if (typeof valor === "string") {
+    return valor
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+      .slice(0, 20);
+  }
+
+  return [];
+}
+
+function normalizarCrmStatus(valor: unknown): CrmClienteStatus {
+  return valor === "ativo" || valor === "inativo" ? valor : "prospect";
+}
+
+function normalizarCrmConfig(valor: unknown): CrmConfig {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return {
+      clientes: crmConfigPadrao.clientes.map((cliente) => ({ ...cliente })),
+    };
+  }
+
+  const config = valor as Record<string, unknown>;
+  const clientes = Array.isArray(config.clientes)
+    ? config.clientes.slice(0, 500).map((item, indice) => {
+        if (!item || typeof item !== "object" || Array.isArray(item)) {
+          return {
+            ...crmClientePadrao,
+            id: criarCardapioId("cliente", indice),
+          };
+        }
+
+        const cliente = item as Record<string, unknown>;
+
+        return {
+          id:
+            lerCampoTexto(cliente, "id") ||
+            criarCardapioId("cliente", indice),
+          nome: lerCampoTexto(cliente, "nome"),
+          telefone: lerCampoTexto(cliente, "telefone"),
+          email: lerCampoTexto(cliente, "email"),
+          observacoes: lerCampoTexto(cliente, "observacoes"),
+          tags: normalizarTagsCrm(cliente.tags),
+          status: normalizarCrmStatus(cliente.status),
+        };
+      })
+    : crmConfigPadrao.clientes.map((cliente) => ({ ...cliente }));
+
+  return {
+    clientes:
+      clientes.length > 0
+        ? clientes
+        : crmConfigPadrao.clientes.map((cliente) => ({ ...cliente })),
   };
 }
 
@@ -4172,6 +4276,10 @@ export default function EmpresaForm({
     useState<WifiMarketingConfig>(() => ({ ...wifiMarketingConfigPadrao }));
   const [fidelidadeConfig, setFidelidadeConfig] =
     useState<FidelidadeConfig>(() => ({ ...fidelidadeConfigPadrao }));
+  const [crmClientes, setCrmClientes] =
+    useState<CrmClienteConfig[]>(() =>
+      crmConfigPadrao.clientes.map((cliente) => ({ ...cliente }))
+    );
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -4294,6 +4402,7 @@ export default function EmpresaForm({
       agendamento_config?: unknown;
       wifi_marketing_config?: unknown;
       fidelidade_config?: unknown;
+      crm_config?: unknown;
     };
     const landingPageConfig = normalizarLandingPageConfig(
       dadosComPlano.landing_page_config
@@ -4313,6 +4422,7 @@ export default function EmpresaForm({
     const fidelidadeConfigCarregado = normalizarFidelidadeConfig(
       dadosComPlano.fidelidade_config
     );
+    const crmConfigCarregado = normalizarCrmConfig(dadosComPlano.crm_config);
 
     setNome(data.nome || "");
     setTipoGerenciamento(data.tipo || "mikatech");
@@ -4352,6 +4462,7 @@ export default function EmpresaForm({
     setAgendamentoServicos(agendamentoConfig.servicos);
     setWifiMarketingConfig(wifiMarketingConfigCarregado);
     setFidelidadeConfig(fidelidadeConfigCarregado);
+    setCrmClientes(crmConfigCarregado.clientes);
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
 
@@ -5334,6 +5445,51 @@ export default function EmpresaForm({
     }));
   }
 
+  function montarCrmConfig(): CrmConfig {
+    return {
+      clientes: crmClientes,
+    };
+  }
+
+  function atualizarCrmCliente(
+    indice: number,
+    campo: keyof CrmClienteConfig,
+    valor: string | string[]
+  ) {
+    setCrmClientes((clientesAtuais) =>
+      clientesAtuais.map((clienteAtual, indiceAtual) =>
+        indiceAtual === indice
+          ? {
+              ...clienteAtual,
+              [campo]: valor,
+            }
+          : clienteAtual
+      )
+    );
+  }
+
+  function adicionarCrmCliente() {
+    setCrmClientes((clientesAtuais) => {
+      if (clientesAtuais.length >= 500) return clientesAtuais;
+
+      return [
+        ...clientesAtuais,
+        {
+          ...crmClientePadrao,
+          id: `cliente-${Date.now()}`,
+        },
+      ];
+    });
+  }
+
+  function removerCrmCliente(indice: number) {
+    setCrmClientes((clientesAtuais) => {
+      if (clientesAtuais.length <= 1) return clientesAtuais;
+
+      return clientesAtuais.filter((_, indiceAtual) => indiceAtual !== indice);
+    });
+  }
+
   async function publicarLandingPageAlteracoes() {
     if (!empresaId) {
       alert("Empresa ainda nao foi carregada. Tente novamente.");
@@ -5443,6 +5599,7 @@ export default function EmpresaForm({
     const agendamentoConfig = montarAgendamentoConfig();
     const wifiMarketingPayload = montarWifiMarketingConfig();
     const fidelidadePayload = montarFidelidadeConfig();
+    const crmConfig = montarCrmConfig();
 
     if (whatsappLocal && whatsappLocal.length < 10) {
       alert("Informe um WhatsApp válido com DDD.");
@@ -5501,6 +5658,7 @@ export default function EmpresaForm({
       agendamento_config: agendamentoConfig,
       wifi_marketing_config: wifiMarketingPayload,
       fidelidade_config: fidelidadePayload,
+      crm_config: crmConfig,
     };
 
     if (suportaCorFundoHero) {
@@ -7220,6 +7378,189 @@ export default function EmpresaForm({
                       Inativo
                     </span>
                   )}
+                </div>
+              </div>
+            </fieldset>
+          </div>
+        </Card>
+      )}
+
+      {abaAtiva === "crm" && (
+        <Card
+          title="CRM"
+          subtitle="Estrutura inicial para cadastro e organizacao de clientes."
+        >
+          <div className="space-y-5">
+            <div
+              className={`rounded-2xl border p-4 ${
+                recursosContratados.crm
+                  ? "border-green-200 bg-green-50"
+                  : "border-amber-200 bg-amber-50"
+              }`}
+            >
+              <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div className="min-w-0">
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+                      recursosContratados.crm
+                        ? "bg-green-700 text-white"
+                        : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {recursosContratados.crm ? "Ativo" : "Nao contratado"}
+                  </span>
+
+                  <h3 className="mt-3 text-xl font-bold text-slate-900">
+                    Cadastro de clientes
+                  </h3>
+
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                    Organize contatos, status, tags e observacoes para futuras
+                    acoes comerciais, relacionamento e automacoes.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <fieldset
+              disabled={!recursosContratados.crm}
+              className="grid gap-5 disabled:opacity-60"
+            >
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+                      Clientes
+                    </p>
+
+                    <h4 className="mt-2 text-lg font-bold text-slate-900">
+                      Base inicial do CRM
+                    </h4>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={adicionarCrmCliente}
+                  >
+                    Adicionar cliente
+                  </Button>
+                </div>
+
+                <div className="mt-4 grid gap-4">
+                  {crmClientes.map((clienteCrm, indice) => (
+                    <div
+                      key={clienteCrm.id}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                    >
+                      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-slate-900">
+                            Cliente {indice + 1}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            Dados preparados para futura evolucao do CRM.
+                          </p>
+                        </div>
+
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => removerCrmCliente(indice)}
+                          disabled={crmClientes.length <= 1}
+                        >
+                          Remover
+                        </Button>
+                      </div>
+
+                      <div className="mt-4 grid gap-4 md:grid-cols-2">
+                        <Input
+                          label="Nome"
+                          value={clienteCrm.nome}
+                          onChange={(e) =>
+                            atualizarCrmCliente(indice, "nome", e.target.value)
+                          }
+                          placeholder="Nome do cliente"
+                        />
+
+                        <Input
+                          label="Telefone"
+                          value={clienteCrm.telefone}
+                          onChange={(e) =>
+                            atualizarCrmCliente(
+                              indice,
+                              "telefone",
+                              e.target.value
+                            )
+                          }
+                          placeholder="(00) 00000-0000"
+                        />
+
+                        <Input
+                          label="E-mail"
+                          value={clienteCrm.email}
+                          onChange={(e) =>
+                            atualizarCrmCliente(indice, "email", e.target.value)
+                          }
+                          placeholder="cliente@email.com"
+                        />
+
+                        <label className="block font-medium text-slate-700">
+                          Status
+                          <select
+                            value={clienteCrm.status}
+                            onChange={(e) =>
+                              atualizarCrmCliente(
+                                indice,
+                                "status",
+                                e.target.value
+                              )
+                            }
+                            className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-4 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                          >
+                            <option value="prospect">Prospect</option>
+                            <option value="ativo">Ativo</option>
+                            <option value="inativo">Inativo</option>
+                          </select>
+                        </label>
+
+                        <div className="md:col-span-2">
+                          <Input
+                            label="Tags"
+                            value={clienteCrm.tags.join(", ")}
+                            onChange={(e) =>
+                              atualizarCrmCliente(
+                                indice,
+                                "tags",
+                                normalizarTagsCrm(e.target.value)
+                              )
+                            }
+                            placeholder="Ex.: vip, recorrente, orcamento"
+                          />
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <label className="block font-medium text-slate-700">
+                            Observacoes
+                          </label>
+
+                          <textarea
+                            value={clienteCrm.observacoes}
+                            onChange={(e) =>
+                              atualizarCrmCliente(
+                                indice,
+                                "observacoes",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Preferencias, historico de contato ou proximos passos."
+                            rows={3}
+                            className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </fieldset>

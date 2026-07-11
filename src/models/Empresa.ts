@@ -41,6 +41,7 @@ export interface Empresa {
   agendamento_config?: unknown;
   wifi_marketing_config?: unknown;
   fidelidade_config?: unknown;
+  crm_config?: unknown;
 
   logo: string;
 
