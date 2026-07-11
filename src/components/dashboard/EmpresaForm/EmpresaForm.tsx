@@ -1,6 +1,7 @@
 import {
   useEffect,
   useState,
+  type ChangeEvent,
   type CSSProperties,
   type ReactElement,
 } from "react";
@@ -65,6 +66,8 @@ import {
 } from "../../../pages/PublicLandingPage/PublicLandingPage";
 import {
   obterResumoStorageEmpresas,
+  normalizarCaminhoStorage,
+  uploadImagem,
   type StorageResumo,
 } from "../../../services/storage/storage.service";
 import { BrandConfig } from "../../../config/brand";
@@ -930,15 +933,65 @@ type ErpPdvEntradaItemForm = {
   desconto: string;
   frete: string;
   outrasDespesas: string;
+  codigoFornecedor?: string;
+  gtin?: string;
+  ncm?: string;
+  cfop?: string;
+  unidade?: string;
+  tributos?: Record<string, unknown>;
 };
 
 type ErpPdvEntradaForm = {
   fornecedorId: string;
   numeroNota: string;
+  chaveAcesso: string;
   dataCompra: string;
   observacoes: string;
   item: ErpPdvEntradaItemForm;
   itens: ErpPdvEntradaItemForm[];
+};
+
+type ErpPdvXmlFornecedor = {
+  razaoSocial: string;
+  nomeFantasia: string;
+  cnpj: string;
+  inscricaoEstadual: string;
+  endereco: string;
+};
+
+type ErpPdvXmlItem = {
+  id: string;
+  codigoFornecedor: string;
+  descricao: string;
+  gtin: string;
+  ncm: string;
+  cfop: string;
+  unidade: string;
+  quantidade: number;
+  custoUnitario: number;
+  desconto: number;
+  frete: number;
+  outrasDespesas: number;
+  tributos: Record<string, unknown>;
+  produtoId: string;
+};
+
+type ErpPdvXmlImportacao = {
+  arquivoNome: string;
+  arquivo: File;
+  conteudo: string;
+  fornecedor: ErpPdvXmlFornecedor;
+  fornecedorId: string;
+  chaveAcesso: string;
+  numeroNota: string;
+  dataCompra: string;
+  totalProdutos: number;
+  totalDescontos: number;
+  totalFrete: number;
+  totalOutrasDespesas: number;
+  itens: ErpPdvXmlItem[];
+  xmlUrl: string;
+  xmlStoragePath: string;
 };
 
 type ErpPdvCupomLayout = "58mm" | "80mm" | "a4";
@@ -1114,6 +1167,7 @@ const erpPdvEntradaItemFormPadrao: ErpPdvEntradaItemForm = {
 const erpPdvEntradaFormPadrao: ErpPdvEntradaForm = {
   fornecedorId: "",
   numeroNota: "",
+  chaveAcesso: "",
   dataCompra: new Date().toISOString().slice(0, 10),
   observacoes: "",
   item: { ...erpPdvEntradaItemFormPadrao },
@@ -2907,6 +2961,10 @@ function formatarBytesStorage(bytes: number) {
   })} ${unidades[indiceUnidade]}`;
 }
 
+function limparDigitosErpPdv(valor: string) {
+  return valor.replace(/\D/g, "");
+}
+
 function parseNumeroErpPdv(valor: string) {
   const normalizado = valor
     .replace(/[^\d,.-]/g, "")
@@ -2915,6 +2973,165 @@ function parseNumeroErpPdv(valor: string) {
   const numero = Number(normalizado);
 
   return Number.isFinite(numero) ? numero : 0;
+}
+
+function parseNumeroXmlErpPdv(valor: string | null | undefined) {
+  const numero = Number(String(valor || "0").replace(",", "."));
+
+  return Number.isFinite(numero) ? numero : 0;
+}
+
+function obterTextoXmlErpPdv(no: Element | Document, seletor: string) {
+  return no.querySelector(seletor)?.textContent?.trim() || "";
+}
+
+function gerarIdXmlItemErpPdv(indice: number, codigoFornecedor: string) {
+  return `${indice + 1}-${codigoFornecedor || Date.now()}`;
+}
+
+function montarEnderecoFornecedorXmlErpPdv(emitente: Element | null) {
+  if (!emitente) return "";
+
+  const endereco = emitente.querySelector("enderEmit");
+  if (!endereco) return "";
+
+  return [
+    obterTextoXmlErpPdv(endereco, "xLgr"),
+    obterTextoXmlErpPdv(endereco, "nro"),
+    obterTextoXmlErpPdv(endereco, "xBairro"),
+    obterTextoXmlErpPdv(endereco, "xMun"),
+    obterTextoXmlErpPdv(endereco, "UF"),
+    obterTextoXmlErpPdv(endereco, "CEP"),
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
+function lerXmlNfeErpPdv(
+  arquivo: File,
+  conteudo: string,
+  produtos: ErpPdvProduto[],
+  fornecedores: ErpPdvFornecedor[]
+): ErpPdvXmlImportacao {
+  const documento = new DOMParser().parseFromString(conteudo, "text/xml");
+  const erroParser = documento.querySelector("parsererror");
+
+  if (erroParser) {
+    throw new Error("XML invalido. Confira se o arquivo enviado e uma NF-e.");
+  }
+
+  const infNfe = documento.querySelector("infNFe");
+  const ide = documento.querySelector("ide");
+  const emitente = documento.querySelector("emit");
+  const total = documento.querySelector("ICMSTot");
+  const chaveAcesso =
+    obterTextoXmlErpPdv(documento, "protNFe infProt chNFe") ||
+    obterTextoXmlErpPdv(documento, "infProt chNFe") ||
+    (infNfe?.getAttribute("Id") || "").replace(/^NFe/i, "");
+  const fornecedorCnpj = limparDigitosErpPdv(
+    obterTextoXmlErpPdv(emitente || documento, "CNPJ") ||
+      obterTextoXmlErpPdv(emitente || documento, "CPF")
+  );
+  const fornecedorId =
+    fornecedores.find(
+      (fornecedor) =>
+        limparDigitosErpPdv(fornecedor.cpf_cnpj) === fornecedorCnpj
+    )?.id || "";
+
+  const produtosPorChave = new Map<string, string>();
+  produtos.forEach((produto) => {
+    [
+      limparDigitosErpPdv(produto.codigo_barras),
+      produto.sku.trim().toLowerCase(),
+    ]
+      .filter(Boolean)
+      .forEach((chave) => produtosPorChave.set(chave, produto.id));
+  });
+
+  const itens = Array.from(documento.querySelectorAll("det")).map(
+    (detalhe, indice) => {
+      const produtoXml = detalhe.querySelector("prod");
+      const imposto = detalhe.querySelector("imposto");
+      const codigoFornecedor = obterTextoXmlErpPdv(produtoXml || detalhe, "cProd");
+      const gtinBruto =
+        obterTextoXmlErpPdv(produtoXml || detalhe, "cEANTrib") ||
+        obterTextoXmlErpPdv(produtoXml || detalhe, "cEAN");
+      const gtin =
+        gtinBruto && !/^sem gtin$/i.test(gtinBruto) ? limparDigitosErpPdv(gtinBruto) : "";
+      const sku = codigoFornecedor.trim().toLowerCase();
+      const produtoId = gtin
+        ? produtosPorChave.get(gtin) || produtosPorChave.get(sku) || ""
+        : produtosPorChave.get(sku) || "";
+      const tributos = {
+        icms: parseNumeroXmlErpPdv(obterTextoXmlErpPdv(imposto || detalhe, "vICMS")),
+        ipi: parseNumeroXmlErpPdv(obterTextoXmlErpPdv(imposto || detalhe, "vIPI")),
+        pis: parseNumeroXmlErpPdv(obterTextoXmlErpPdv(imposto || detalhe, "vPIS")),
+        cofins: parseNumeroXmlErpPdv(
+          obterTextoXmlErpPdv(imposto || detalhe, "vCOFINS")
+        ),
+      };
+
+      return {
+        id: gerarIdXmlItemErpPdv(indice, codigoFornecedor),
+        codigoFornecedor,
+        descricao: obterTextoXmlErpPdv(produtoXml || detalhe, "xProd"),
+        gtin,
+        ncm: obterTextoXmlErpPdv(produtoXml || detalhe, "NCM"),
+        cfop: obterTextoXmlErpPdv(produtoXml || detalhe, "CFOP"),
+        unidade: obterTextoXmlErpPdv(produtoXml || detalhe, "uCom") || "un",
+        quantidade: parseNumeroXmlErpPdv(
+          obterTextoXmlErpPdv(produtoXml || detalhe, "qCom")
+        ),
+        custoUnitario: parseNumeroXmlErpPdv(
+          obterTextoXmlErpPdv(produtoXml || detalhe, "vUnCom")
+        ),
+        desconto: parseNumeroXmlErpPdv(
+          obterTextoXmlErpPdv(produtoXml || detalhe, "vDesc")
+        ),
+        frete: parseNumeroXmlErpPdv(
+          obterTextoXmlErpPdv(produtoXml || detalhe, "vFrete")
+        ),
+        outrasDespesas: parseNumeroXmlErpPdv(
+          obterTextoXmlErpPdv(produtoXml || detalhe, "vOutro")
+        ),
+        tributos,
+        produtoId,
+      };
+    }
+  );
+
+  if (!chaveAcesso || itens.length === 0) {
+    throw new Error("Nao foi possivel identificar a chave ou os produtos da NF-e.");
+  }
+
+  return {
+    arquivoNome: arquivo.name,
+    arquivo,
+    conteudo,
+    fornecedor: {
+      razaoSocial: obterTextoXmlErpPdv(emitente || documento, "xNome"),
+      nomeFantasia: obterTextoXmlErpPdv(emitente || documento, "xFant"),
+      cnpj: fornecedorCnpj,
+      inscricaoEstadual: obterTextoXmlErpPdv(emitente || documento, "IE"),
+      endereco: montarEnderecoFornecedorXmlErpPdv(emitente),
+    },
+    fornecedorId,
+    chaveAcesso,
+    numeroNota: obterTextoXmlErpPdv(ide || documento, "nNF"),
+    dataCompra:
+      (obterTextoXmlErpPdv(ide || documento, "dhEmi") ||
+        obterTextoXmlErpPdv(ide || documento, "dEmi") ||
+        new Date().toISOString()).slice(0, 10),
+    totalProdutos: parseNumeroXmlErpPdv(obterTextoXmlErpPdv(total || documento, "vProd")),
+    totalDescontos: parseNumeroXmlErpPdv(obterTextoXmlErpPdv(total || documento, "vDesc")),
+    totalFrete: parseNumeroXmlErpPdv(obterTextoXmlErpPdv(total || documento, "vFrete")),
+    totalOutrasDespesas: parseNumeroXmlErpPdv(
+      obterTextoXmlErpPdv(total || documento, "vOutro")
+    ),
+    itens,
+    xmlUrl: "",
+    xmlStoragePath: "",
+  };
 }
 
 function formatarNumeroErpPdv(valor: number) {
@@ -5944,6 +6161,9 @@ export default function EmpresaForm({
       item: { ...erpPdvEntradaItemFormPadrao },
       itens: [],
     }));
+  const [erpPdvXmlImportacao, setErpPdvXmlImportacao] =
+    useState<ErpPdvXmlImportacao | null>(null);
+  const [erpPdvXmlProcessando, setErpPdvXmlProcessando] = useState(false);
   const [erpPdvClienteBusca, setErpPdvClienteBusca] = useState("");
   const [erpPdvClienteSelecionadoId, setErpPdvClienteSelecionadoId] =
     useState("");
@@ -6241,6 +6461,35 @@ export default function EmpresaForm({
     erpPdvEntradaTotais.descontos +
     erpPdvEntradaTotais.frete +
     erpPdvEntradaTotais.outrasDespesas;
+  const erpPdvXmlTotais = erpPdvXmlImportacao
+    ? erpPdvXmlImportacao.itens.reduce(
+        (totais, item) => ({
+          produtos: totais.produtos + item.quantidade * item.custoUnitario,
+          descontos: totais.descontos + item.desconto,
+          frete: totais.frete + item.frete,
+          outrasDespesas: totais.outrasDespesas + item.outrasDespesas,
+          vinculados: totais.vinculados + (item.produtoId ? 1 : 0),
+        }),
+        {
+          produtos: 0,
+          descontos: 0,
+          frete: 0,
+          outrasDespesas: 0,
+          vinculados: 0,
+        }
+      )
+    : {
+        produtos: 0,
+        descontos: 0,
+        frete: 0,
+        outrasDespesas: 0,
+        vinculados: 0,
+      };
+  const erpPdvXmlTotal =
+    erpPdvXmlTotais.produtos -
+    erpPdvXmlTotais.descontos +
+    erpPdvXmlTotais.frete +
+    erpPdvXmlTotais.outrasDespesas;
   const erpPdvMovimentacoesFiltradas = erpPdvMovimentacoes.filter(
     (movimentacao) => {
       if (
@@ -7885,6 +8134,229 @@ export default function EmpresaForm({
     }));
   }
 
+  async function importarXmlNfeErpPdv(
+    e: ChangeEvent<HTMLInputElement>
+  ) {
+    const arquivo = e.target.files?.[0];
+
+    if (!arquivo) return;
+
+    const extensao = arquivo.name.split(".").pop()?.toLowerCase() || "";
+
+    if (extensao !== "xml" && arquivo.type !== "text/xml") {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "Envie um arquivo XML valido da NF-e.",
+      });
+      e.target.value = "";
+      return;
+    }
+
+    try {
+      setErpPdvXmlProcessando(true);
+      const conteudo = await arquivo.text();
+      const importacao = lerXmlNfeErpPdv(
+        arquivo,
+        conteudo,
+        erpPdvProdutos,
+        erpPdvFornecedores
+      );
+
+      setErpPdvXmlImportacao(importacao);
+      setErpPdvFeedback({
+        tipo: "sucesso",
+        texto: "XML lido. Confira fornecedor, itens e vinculos antes de confirmar.",
+      });
+    } catch (error) {
+      setErpPdvXmlImportacao(null);
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel ler o XML da NF-e.",
+      });
+    } finally {
+      setErpPdvXmlProcessando(false);
+      e.target.value = "";
+    }
+  }
+
+  function vincularProdutoXmlErpPdv(itemId: string, produtoId: string) {
+    setErpPdvXmlImportacao((importacaoAtual) =>
+      importacaoAtual
+        ? {
+            ...importacaoAtual,
+            itens: importacaoAtual.itens.map((item) =>
+              item.id === itemId ? { ...item, produtoId } : item
+            ),
+          }
+        : importacaoAtual
+    );
+  }
+
+  function sugerirProdutoXmlErpPdv(item: ErpPdvXmlItem) {
+    setErpPdvProdutoForm({
+      ...erpPdvProdutoFormPadrao,
+      nome: item.descricao,
+      codigoBarras: item.gtin,
+      sku: item.codigoFornecedor,
+      custo: formatarNumeroErpPdv(item.custoUnitario),
+      precoVenda: formatarNumeroErpPdv(item.custoUnitario),
+      unidade: item.unidade || "un",
+      ncm: item.ncm,
+      ativo: true,
+    });
+    setErpPdvFeedback({
+      tipo: "sucesso",
+      texto: "Produto sugerido no cadastro. Salve o produto e selecione-o na conferencia do XML.",
+    });
+  }
+
+  async function obterFornecedorXmlErpPdv(importacao: ErpPdvXmlImportacao) {
+    const cnpjXml = limparDigitosErpPdv(importacao.fornecedor.cnpj);
+    const fornecedorExistente =
+      erpPdvFornecedores.find(
+        (fornecedor) => limparDigitosErpPdv(fornecedor.cpf_cnpj) === cnpjXml
+      ) ||
+      erpPdvFornecedores.find(
+        (fornecedor) => fornecedor.id === importacao.fornecedorId
+      );
+
+    if (fornecedorExistente) return fornecedorExistente;
+
+    const { data, error } = await salvarErpPdvFornecedor({
+      empresaId: empresaId || "",
+      razaoSocial: importacao.fornecedor.razaoSocial || "Fornecedor da NF-e",
+      nomeFantasia: importacao.fornecedor.nomeFantasia,
+      cpfCnpj: importacao.fornecedor.cnpj,
+      inscricaoEstadual: importacao.fornecedor.inscricaoEstadual,
+      contato: "",
+      telefone: "",
+      whatsapp: "",
+      email: "",
+      endereco: importacao.fornecedor.endereco,
+      observacoes: "Criado automaticamente pela importacao XML da NF-e.",
+      ativo: true,
+    });
+
+    if (error) throw error;
+    if (!data) throw new Error("Fornecedor do XML nao retornado pelo Supabase.");
+
+    setErpPdvFornecedores((fornecedoresAtuais) => [
+      data,
+      ...fornecedoresAtuais.filter((fornecedor) => fornecedor.id !== data.id),
+    ]);
+
+    return data;
+  }
+
+  async function confirmarXmlNfeErpPdv() {
+    if (!empresaId || !erpPdvXmlImportacao) return;
+
+    const itensSemVinculo = erpPdvXmlImportacao.itens.filter(
+      (item) => !item.produtoId
+    );
+
+    if (itensSemVinculo.length > 0) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "Vincule todos os itens do XML a produtos antes de confirmar.",
+      });
+      return;
+    }
+
+    try {
+      setErpPdvSalvando(true);
+      const fornecedor = await obterFornecedorXmlErpPdv(erpPdvXmlImportacao);
+      const caminhoXml =
+        erpPdvXmlImportacao.xmlStoragePath ||
+        `erp-pdv/${slug || empresaId}/xml-nfe/${
+          erpPdvXmlImportacao.chaveAcesso || Date.now()
+        }.xml`;
+      const xmlUrl =
+        erpPdvXmlImportacao.xmlUrl ||
+        (await uploadImagem(caminhoXml, erpPdvXmlImportacao.arquivo));
+      const xmlStoragePath = normalizarCaminhoStorage(xmlUrl) || caminhoXml;
+      const { data, error } = await registrarErpPdvEntradaMercadorias({
+        empresaId,
+        fornecedorId: fornecedor.id,
+        numeroNota: erpPdvXmlImportacao.numeroNota,
+        chaveAcesso: erpPdvXmlImportacao.chaveAcesso,
+        dataCompra: erpPdvXmlImportacao.dataCompra,
+        observacoes: `Importacao XML NF-e ${erpPdvXmlImportacao.chaveAcesso}`,
+        origem: "xml_nfe",
+        xmlUrl,
+        xmlStoragePath,
+        xmlResumo: {
+          arquivo: erpPdvXmlImportacao.arquivoNome,
+          fornecedorCnpj: erpPdvXmlImportacao.fornecedor.cnpj,
+          totalProdutosXml: erpPdvXmlImportacao.totalProdutos,
+          totalDescontosXml: erpPdvXmlImportacao.totalDescontos,
+          totalFreteXml: erpPdvXmlImportacao.totalFrete,
+          totalOutrasDespesasXml: erpPdvXmlImportacao.totalOutrasDespesas,
+        },
+        itens: erpPdvXmlImportacao.itens.map((item) => ({
+          produtoId: item.produtoId,
+          quantidade: item.quantidade,
+          custoUnitario: item.custoUnitario,
+          desconto: item.desconto,
+          frete: item.frete,
+          outrasDespesas: item.outrasDespesas,
+          codigoFornecedor: item.codigoFornecedor,
+          gtin: item.gtin,
+          ncm: item.ncm,
+          cfop: item.cfop,
+          unidade: item.unidade,
+          tributos: item.tributos,
+        })),
+      });
+
+      if (error) throw error;
+      if (!data) throw new Error("Entrada do XML nao retornada pelo Supabase.");
+
+      setErpPdvEntradas((entradasAtuais) => [
+        data.entrada,
+        ...entradasAtuais,
+      ]);
+      setErpPdvMovimentacoes((movimentacoesAtuais) => [
+        ...data.movimentacoes,
+        ...movimentacoesAtuais,
+      ]);
+      setErpPdvProdutos((produtosAtuais) =>
+        produtosAtuais.map((produto) => {
+          const itemEntrada = data.entrada.itens.find(
+            (item) => item.produto_id === produto.id
+          );
+
+          return itemEntrada
+            ? {
+                ...produto,
+                custo: itemEntrada.custo_unitario,
+                estoque_atual: itemEntrada.estoque_posterior,
+              }
+            : produto;
+        })
+      );
+      setErpPdvXmlImportacao(null);
+      setErpPdvFeedback({
+        tipo: "sucesso",
+        texto: "XML importado, entrada criada e estoque atualizado.",
+      });
+      await carregarRelatorioErpPdv();
+    } catch (error) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel confirmar a importacao do XML.",
+      });
+    } finally {
+      setErpPdvSalvando(false);
+    }
+  }
+
   async function registrarEntradaMercadoriasErpPdv() {
     if (!empresaId) return;
 
@@ -7910,6 +8382,7 @@ export default function EmpresaForm({
         empresaId,
         fornecedorId: erpPdvEntradaForm.fornecedorId,
         numeroNota: erpPdvEntradaForm.numeroNota,
+        chaveAcesso: erpPdvEntradaForm.chaveAcesso,
         dataCompra: erpPdvEntradaForm.dataCompra,
         observacoes: erpPdvEntradaForm.observacoes,
         itens: erpPdvEntradaForm.itens.map((item) => ({
@@ -7919,6 +8392,12 @@ export default function EmpresaForm({
           desconto: parseNumeroErpPdv(item.desconto),
           frete: parseNumeroErpPdv(item.frete),
           outrasDespesas: parseNumeroErpPdv(item.outrasDespesas),
+          codigoFornecedor: item.codigoFornecedor,
+          gtin: item.gtin,
+          ncm: item.ncm,
+          cfop: item.cfop,
+          unidade: item.unidade,
+          tributos: item.tributos,
         })),
       });
 
@@ -12758,6 +13237,262 @@ export default function EmpresaForm({
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 p-4">
+                  <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-wide text-emerald-700">
+                          XML da NF-e
+                        </p>
+                        <h5 className="mt-1 font-black text-slate-900">
+                          Importar compra pelo XML
+                        </h5>
+                        <p className="mt-1 text-sm text-slate-600">
+                          Envie o XML, confira os itens e confirme para criar a
+                          entrada e atualizar o estoque.
+                        </p>
+                      </div>
+                      <label className="inline-flex cursor-pointer items-center justify-center rounded-xl bg-emerald-700 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-800">
+                        {erpPdvXmlProcessando ? "Lendo XML..." : "Selecionar XML"}
+                        <input
+                          type="file"
+                          accept=".xml,text/xml,application/xml"
+                          onChange={importarXmlNfeErpPdv}
+                          className="hidden"
+                          disabled={
+                            erpPdvXmlProcessando ||
+                            erpPdvSalvando ||
+                            !recursosContratados.erp_pdv
+                          }
+                        />
+                      </label>
+                    </div>
+
+                    {erpPdvXmlImportacao ? (
+                      <div className="mt-4 grid gap-4">
+                        <div className="grid gap-3 md:grid-cols-4">
+                          <div className="rounded-xl bg-white p-3">
+                            <p className="text-xs font-bold uppercase text-slate-500">
+                              NF-e
+                            </p>
+                            <p className="font-black text-slate-900">
+                              {erpPdvXmlImportacao.numeroNota || "Sem numero"}
+                            </p>
+                          </div>
+                          <div className="rounded-xl bg-white p-3 md:col-span-2">
+                            <p className="text-xs font-bold uppercase text-slate-500">
+                              Chave de acesso
+                            </p>
+                            <p className="break-all text-sm font-black text-slate-900">
+                              {erpPdvXmlImportacao.chaveAcesso}
+                            </p>
+                          </div>
+                          <div className="rounded-xl bg-white p-3">
+                            <p className="text-xs font-bold uppercase text-slate-500">
+                              Data
+                            </p>
+                            <p className="font-black text-slate-900">
+                              {new Date(
+                                `${erpPdvXmlImportacao.dataCompra}T00:00:00`
+                              ).toLocaleDateString("pt-BR")}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl bg-white p-3">
+                          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                            <div>
+                              <p className="text-xs font-bold uppercase text-slate-500">
+                                Fornecedor
+                              </p>
+                              <p className="font-black text-slate-900">
+                                {erpPdvXmlImportacao.fornecedor.nomeFantasia ||
+                                  erpPdvXmlImportacao.fornecedor.razaoSocial ||
+                                  "Fornecedor do XML"}
+                              </p>
+                              <p className="text-sm text-slate-500">
+                                CNPJ:{" "}
+                                {erpPdvXmlImportacao.fornecedor.cnpj ||
+                                  "nao informado"}
+                              </p>
+                            </div>
+                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+                              {erpPdvXmlImportacao.fornecedorId
+                                ? "Fornecedor localizado"
+                                : "Fornecedor sera criado"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="overflow-x-auto rounded-2xl border border-emerald-100">
+                          <table className="min-w-full divide-y divide-emerald-100 text-sm">
+                            <thead className="bg-white">
+                              <tr>
+                                {[
+                                  "Produto XML",
+                                  "GTIN",
+                                  "NCM/CFOP",
+                                  "Qtd.",
+                                  "Custo",
+                                  "Vinculo",
+                                  "",
+                                ].map((cabecalho) => (
+                                  <th
+                                    key={cabecalho}
+                                    className="px-3 py-3 text-left text-xs font-black uppercase tracking-wide text-slate-500"
+                                  >
+                                    {cabecalho}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-emerald-100 bg-white">
+                              {erpPdvXmlImportacao.itens.map((item) => (
+                                <tr key={item.id}>
+                                  <td className="min-w-[220px] px-3 py-3">
+                                    <p className="font-black text-slate-900">
+                                      {item.descricao}
+                                    </p>
+                                    <p className="text-xs text-slate-500">
+                                      Cod. fornecedor:{" "}
+                                      {item.codigoFornecedor || "-"}
+                                    </p>
+                                  </td>
+                                  <td className="px-3 py-3">
+                                    {item.gtin || "-"}
+                                  </td>
+                                  <td className="px-3 py-3">
+                                    {item.ncm || "-"} / {item.cfop || "-"}
+                                  </td>
+                                  <td className="px-3 py-3">
+                                    {formatarNumeroErpPdv(item.quantidade) ||
+                                      "0"}{" "}
+                                    {item.unidade}
+                                  </td>
+                                  <td className="px-3 py-3">
+                                    R$ {formatarMoedaErpPdv(item.custoUnitario)}
+                                  </td>
+                                  <td className="min-w-[220px] px-3 py-3">
+                                    <select
+                                      value={item.produtoId}
+                                      onChange={(e) =>
+                                        vincularProdutoXmlErpPdv(
+                                          item.id,
+                                          e.target.value
+                                        )
+                                      }
+                                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                                    >
+                                      <option value="">Vincular produto</option>
+                                      {erpPdvProdutos.map((produto) => (
+                                        <option
+                                          key={produto.id}
+                                          value={produto.id}
+                                        >
+                                          {produto.nome}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </td>
+                                  <td className="px-3 py-3 text-right">
+                                    {!item.produtoId && (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          sugerirProdutoXmlErpPdv(item)
+                                        }
+                                        className="rounded-xl border border-emerald-300 px-3 py-2 text-xs font-black text-emerald-700 transition hover:bg-emerald-50"
+                                      >
+                                        Sugerir cadastro
+                                      </button>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div className="grid gap-3 md:grid-cols-5">
+                          <div className="rounded-xl bg-white p-3">
+                            <p className="text-xs font-bold uppercase text-slate-500">
+                              Produtos
+                            </p>
+                            <p className="font-black text-slate-900">
+                              R$ {formatarMoedaErpPdv(erpPdvXmlTotais.produtos)}
+                            </p>
+                          </div>
+                          <div className="rounded-xl bg-white p-3">
+                            <p className="text-xs font-bold uppercase text-slate-500">
+                              Descontos
+                            </p>
+                            <p className="font-black text-slate-900">
+                              R${" "}
+                              {formatarMoedaErpPdv(erpPdvXmlTotais.descontos)}
+                            </p>
+                          </div>
+                          <div className="rounded-xl bg-white p-3">
+                            <p className="text-xs font-bold uppercase text-slate-500">
+                              Frete/despesas
+                            </p>
+                            <p className="font-black text-slate-900">
+                              R${" "}
+                              {formatarMoedaErpPdv(
+                                erpPdvXmlTotais.frete +
+                                  erpPdvXmlTotais.outrasDespesas
+                              )}
+                            </p>
+                          </div>
+                          <div className="rounded-xl bg-white p-3">
+                            <p className="text-xs font-bold uppercase text-slate-500">
+                              Vinculados
+                            </p>
+                            <p className="font-black text-slate-900">
+                              {erpPdvXmlTotais.vinculados}/
+                              {erpPdvXmlImportacao.itens.length}
+                            </p>
+                          </div>
+                          <div className="rounded-xl bg-emerald-100 p-3">
+                            <p className="text-xs font-bold uppercase text-emerald-700">
+                              Total
+                            </p>
+                            <p className="font-black text-emerald-800">
+                              R$ {formatarMoedaErpPdv(erpPdvXmlTotal)}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                          <button
+                            type="button"
+                            onClick={confirmarXmlNfeErpPdv}
+                            disabled={
+                              erpPdvSalvando ||
+                              erpPdvXmlTotais.vinculados !==
+                                erpPdvXmlImportacao.itens.length
+                            }
+                            className="rounded-xl bg-emerald-700 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {erpPdvSalvando
+                              ? "Confirmando..."
+                              : "Confirmar XML e atualizar estoque"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setErpPdvXmlImportacao(null)}
+                            className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-white"
+                          >
+                            Cancelar importacao
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-sm text-emerald-800">
+                        Ainda nao ha XML em conferencia. A leitura da chave do
+                        DANFE fica preparada para uma proxima Sprint.
+                      </p>
+                    )}
+                  </div>
+
                   <h5 className="font-black text-slate-900">
                     Entrada manual
                   </h5>
@@ -12808,10 +13543,15 @@ export default function EmpresaForm({
                       }
                     />
                     <Input
-                      label="Chave DANFE"
-                      value=""
-                      disabled
-                      placeholder="Preparado para futura leitura"
+                      label="Chave de acesso"
+                      value={erpPdvEntradaForm.chaveAcesso}
+                      onChange={(e) =>
+                        atualizarEntradaFormErpPdv(
+                          "chaveAcesso",
+                          e.target.value
+                        )
+                      }
+                      placeholder="Opcional na entrada manual"
                     />
                   </div>
 
@@ -13107,6 +13847,12 @@ export default function EmpresaForm({
                                 `${entrada.data_compra}T00:00:00`
                               ).toLocaleDateString("pt-BR")}{" "}
                               | {entrada.itens.length} item(ns)
+                              {entrada.origem === "xml_nfe"
+                                ? " | XML NF-e"
+                                : ""}
+                              {entrada.chave_acesso
+                                ? ` | Chave: ${entrada.chave_acesso}`
+                                : ""}
                             </p>
                           </div>
                           <span className="font-black text-green-700">

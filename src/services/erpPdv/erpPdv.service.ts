@@ -141,14 +141,25 @@ export type ErpPdvEntradaItemPayload = {
   desconto: number;
   frete: number;
   outrasDespesas: number;
+  codigoFornecedor?: string;
+  gtin?: string;
+  ncm?: string;
+  cfop?: string;
+  unidade?: string;
+  tributos?: Record<string, unknown>;
 };
 
 export type ErpPdvEntradaMercadoriaPayload = {
   empresaId: string;
   fornecedorId: string;
   numeroNota: string;
+  chaveAcesso?: string;
   dataCompra: string;
   observacoes: string;
+  origem?: "manual" | "xml_nfe";
+  xmlUrl?: string;
+  xmlStoragePath?: string;
+  xmlResumo?: Record<string, unknown>;
   itens: ErpPdvEntradaItemPayload[];
 };
 
@@ -161,6 +172,12 @@ export type ErpPdvEntradaItem = {
   desconto: number;
   frete: number;
   outras_despesas: number;
+  codigo_fornecedor: string;
+  gtin: string;
+  ncm: string;
+  cfop: string;
+  unidade: string;
+  tributos: Record<string, unknown>;
   custo_total: number;
   estoque_anterior: number;
   estoque_posterior: number;
@@ -171,8 +188,13 @@ export type ErpPdvEntradaMercadoria = {
   fornecedor_id: string | null;
   fornecedor_nome: string;
   numero_nota: string;
+  chave_acesso: string;
   data_compra: string;
   observacoes: string;
+  origem: string;
+  xml_url: string;
+  xml_storage_path: string;
+  xml_resumo: Record<string, unknown>;
   total_produtos: number;
   total_descontos: number;
   total_frete: number;
@@ -413,8 +435,13 @@ type ErpPdvEntradaRow = {
   fornecedor_id?: string | null;
   fornecedor_nome?: string;
   numero_nota?: string;
+  chave_acesso?: string;
   data_compra: string;
   observacoes?: string;
+  origem?: string;
+  xml_url?: string;
+  xml_storage_path?: string;
+  xml_resumo?: Record<string, unknown>;
   total_produtos: number | string;
   total_descontos: number | string;
   total_frete: number | string;
@@ -433,6 +460,12 @@ type ErpPdvEntradaItemRow = {
   desconto: number | string;
   frete: number | string;
   outras_despesas: number | string;
+  codigo_fornecedor?: string;
+  gtin?: string;
+  ncm?: string;
+  cfop?: string;
+  unidade?: string;
+  tributos?: Record<string, unknown>;
   custo_total: number | string;
   estoque_anterior: number | string;
   estoque_posterior: number | string;
@@ -633,6 +666,15 @@ function normalizarEntradaItem(row: ErpPdvEntradaItemRow): ErpPdvEntradaItem {
     desconto: toNumber(row.desconto),
     frete: toNumber(row.frete),
     outras_despesas: toNumber(row.outras_despesas),
+    codigo_fornecedor: row.codigo_fornecedor || "",
+    gtin: row.gtin || "",
+    ncm: row.ncm || "",
+    cfop: row.cfop || "",
+    unidade: row.unidade || "",
+    tributos:
+      row.tributos && typeof row.tributos === "object" && !Array.isArray(row.tributos)
+        ? row.tributos
+        : {},
     custo_total: toNumber(row.custo_total),
     estoque_anterior: toNumber(row.estoque_anterior),
     estoque_posterior: toNumber(row.estoque_posterior),
@@ -648,8 +690,16 @@ function normalizarEntrada(
     fornecedor_id: row.fornecedor_id || null,
     fornecedor_nome: row.fornecedor_nome || "",
     numero_nota: row.numero_nota || "",
+    chave_acesso: row.chave_acesso || "",
     data_compra: row.data_compra,
     observacoes: row.observacoes || "",
+    origem: row.origem || "manual",
+    xml_url: row.xml_url || "",
+    xml_storage_path: row.xml_storage_path || "",
+    xml_resumo:
+      row.xml_resumo && typeof row.xml_resumo === "object" && !Array.isArray(row.xml_resumo)
+        ? row.xml_resumo
+        : {},
     total_produtos: toNumber(row.total_produtos),
     total_descontos: toNumber(row.total_descontos),
     total_frete: toNumber(row.total_frete),
@@ -1052,7 +1102,7 @@ export async function listarErpPdvEntradas(empresaId: string) {
   const { data: entradasData, error: entradasError } = await supabase
     .from("erp_pdv_entradas")
     .select(
-      "id, fornecedor_id, fornecedor_nome, numero_nota, data_compra, observacoes, total_produtos, total_descontos, total_frete, total_outras_despesas, total_entrada, created_at"
+      "id, fornecedor_id, fornecedor_nome, numero_nota, chave_acesso, data_compra, observacoes, origem, xml_url, xml_storage_path, xml_resumo, total_produtos, total_descontos, total_frete, total_outras_despesas, total_entrada, created_at"
     )
     .eq("empresa_id", empresaId)
     .order("data_compra", { ascending: false })
@@ -1074,7 +1124,7 @@ export async function listarErpPdvEntradas(empresaId: string) {
     const { data: itensData, error: itensError } = await supabase
       .from("erp_pdv_entrada_itens")
       .select(
-        "id, entrada_id, produto_id, descricao, quantidade, custo_unitario, desconto, frete, outras_despesas, custo_total, estoque_anterior, estoque_posterior"
+        "id, entrada_id, produto_id, descricao, quantidade, custo_unitario, desconto, frete, outras_despesas, codigo_fornecedor, gtin, ncm, cfop, unidade, tributos, custo_total, estoque_anterior, estoque_posterior"
       )
       .eq("empresa_id", empresaId)
       .in("entrada_id", entradaIds);
@@ -1116,6 +1166,12 @@ export async function registrarErpPdvEntradaMercadorias(
       desconto: toNumber(item.desconto),
       frete: toNumber(item.frete),
       outrasDespesas: toNumber(item.outrasDespesas),
+      codigoFornecedor: (item.codigoFornecedor || "").trim(),
+      gtin: (item.gtin || "").trim(),
+      ncm: (item.ncm || "").trim(),
+      cfop: (item.cfop || "").trim(),
+      unidade: (item.unidade || "").trim(),
+      tributos: item.tributos || {},
     }))
     .filter((item) => item.produtoId && item.quantidade > 0);
 
@@ -1222,8 +1278,13 @@ export async function registrarErpPdvEntradaMercadorias(
       fornecedor_id: fornecedor.id,
       fornecedor_nome: fornecedor.nome_fantasia || fornecedor.razao_social,
       numero_nota: payload.numeroNota.trim(),
+      chave_acesso: (payload.chaveAcesso || "").trim(),
       data_compra: payload.dataCompra,
       observacoes: payload.observacoes.trim(),
+      origem: payload.origem || "manual",
+      xml_url: (payload.xmlUrl || "").trim(),
+      xml_storage_path: (payload.xmlStoragePath || "").trim(),
+      xml_resumo: payload.xmlResumo || {},
       total_produtos: totalProdutos,
       total_descontos: totalDescontos,
       total_frete: totalFrete,
@@ -1232,7 +1293,7 @@ export async function registrarErpPdvEntradaMercadorias(
       updated_at: agora,
     })
     .select(
-      "id, fornecedor_id, fornecedor_nome, numero_nota, data_compra, observacoes, total_produtos, total_descontos, total_frete, total_outras_despesas, total_entrada, created_at"
+      "id, fornecedor_id, fornecedor_nome, numero_nota, chave_acesso, data_compra, observacoes, origem, xml_url, xml_storage_path, xml_resumo, total_produtos, total_descontos, total_frete, total_outras_despesas, total_entrada, created_at"
     )
     .single();
 
@@ -1283,12 +1344,18 @@ export async function registrarErpPdvEntradaMercadorias(
         desconto: item.desconto,
         frete: item.frete,
         outras_despesas: item.outrasDespesas,
+        codigo_fornecedor: item.codigoFornecedor,
+        gtin: item.gtin,
+        ncm: item.ncm,
+        cfop: item.cfop,
+        unidade: item.unidade,
+        tributos: item.tributos,
         custo_total: custoTotal,
         estoque_anterior: estoqueAnterior,
         estoque_posterior: estoquePosterior,
       })
       .select(
-        "id, entrada_id, produto_id, descricao, quantidade, custo_unitario, desconto, frete, outras_despesas, custo_total, estoque_anterior, estoque_posterior"
+        "id, entrada_id, produto_id, descricao, quantidade, custo_unitario, desconto, frete, outras_despesas, codigo_fornecedor, gtin, ncm, cfop, unidade, tributos, custo_total, estoque_anterior, estoque_posterior"
       )
       .single();
 
@@ -1351,7 +1418,7 @@ export async function registrarErpPdvEntradaMercadorias(
         estoque_posterior: estoquePosterior,
         origem: "compra",
         motivo: payload.numeroNota.trim()
-          ? `Compra NF ${payload.numeroNota.trim()}`
+          ? `${payload.origem === "xml_nfe" ? "XML NF-e" : "Compra NF"} ${payload.numeroNota.trim()}`
           : "Entrada manual de mercadorias",
         observacao: payload.observacoes.trim(),
         usuario_responsavel: fornecedor.nome_fantasia || fornecedor.razao_social,
