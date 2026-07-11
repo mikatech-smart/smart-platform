@@ -38,6 +38,7 @@ export interface Empresa {
   landing_page_config?: unknown;
   cardapio_config?: unknown;
   catalogo_config?: unknown;
+  agendamento_config?: unknown;
 
   logo: string;
 

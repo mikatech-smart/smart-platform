@@ -8,6 +8,7 @@ const recursosContratadosPadrao = {
   dominio_personalizado: false,
   cardapio_digital: false,
   catalogo: false,
+  agendamento: false,
   wifi: false,
   google_reviews: false,
   nfc: true,
@@ -38,6 +39,15 @@ function erroColunaCatalogoConfig(error: { message?: string; code?: string }) {
   return (
     mensagem.includes("catalogo_config") ||
     (error.code === "PGRST204" && mensagem.includes("catalogo"))
+  );
+}
+
+function erroColunaAgendamentoConfig(error: { message?: string; code?: string }) {
+  const mensagem = error.message?.toLowerCase() || "";
+
+  return (
+    mensagem.includes("agendamento_config") ||
+    (error.code === "PGRST204" && mensagem.includes("agendamento"))
   );
 }
 
@@ -304,6 +314,41 @@ export async function atualizarEmpresa(
   });
 
   if (error) {
+    if (erroColunaAgendamentoConfig(error)) {
+      if ("agendamento_config" in dados) {
+        const {
+          agendamento_config: _agendamentoConfig,
+          ...dadosSemAgendamento
+        } = dados as Record<string, unknown>;
+        const { data: dataSemAgendamento, error: errorSemAgendamento } =
+          await supabase
+            .from("empresas")
+            .update(dadosSemAgendamento)
+            .eq("id", id)
+            .select();
+
+        if (!errorSemAgendamento && dataSemAgendamento?.length) {
+          console.warn(
+            "agendamento_config ainda nao existe no Supabase; demais dados foram salvos sem o Agendamento."
+          );
+
+          return {
+            data: dataSemAgendamento[0],
+            error: null,
+          };
+        }
+      }
+
+      return {
+        data: null,
+        error: {
+          ...error,
+          message:
+            "A coluna agendamento_config ainda nao existe na tabela empresas. Crie a coluna JSONB para salvar o Agendamento.",
+        },
+      };
+    }
+
     if (erroColunaCatalogoConfig(error)) {
       if ("catalogo_config" in dados) {
         const { catalogo_config: _catalogoConfig, ...dadosSemCatalogo } =

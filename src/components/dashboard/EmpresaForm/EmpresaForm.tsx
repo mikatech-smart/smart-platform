@@ -58,6 +58,7 @@ type AbaEmpresa =
   | "landing"
   | "cardapio"
   | "catalogo"
+  | "agendamento"
   | "contato"
   | "endereco"
   | "redes"
@@ -92,6 +93,7 @@ const abasEmpresa: Array<{
   { id: "landing", label: "Landing Page" },
   { id: "cardapio", label: "Cardapio Digital" },
   { id: "catalogo", label: "Catalogo" },
+  { id: "agendamento", label: "Agendamento" },
   { id: "contato", label: "Contato" },
   { id: "endereco", label: "Endereço" },
   { id: "redes", label: "Redes Sociais" },
@@ -106,6 +108,7 @@ type RecursoEmpresaId =
   | "dominio_personalizado"
   | "cardapio_digital"
   | "catalogo"
+  | "agendamento"
   | "wifi"
   | "google_reviews"
   | "nfc"
@@ -142,6 +145,7 @@ const recursosPadrao: RecursosContratados = {
   dominio_personalizado: false,
   cardapio_digital: false,
   catalogo: false,
+  agendamento: false,
   wifi: false,
   google_reviews: false,
   nfc: true,
@@ -188,6 +192,12 @@ const recursosEmpresa: Array<{
     id: "catalogo",
     nome: "Catalogo",
     descricao: "Estrutura para vitrine de produtos e servicos sem checkout.",
+    statusInativo: "Em breve",
+  },
+  {
+    id: "agendamento",
+    nome: "Agendamento",
+    descricao: "Estrutura para servicos, duracao e reserva de horarios.",
     statusInativo: "Em breve",
   },
   {
@@ -543,6 +553,19 @@ type CatalogoConfig = {
   produtos: CatalogoProdutoConfig[];
 };
 
+type AgendamentoServicoConfig = {
+  id: string;
+  nome: string;
+  descricao: string;
+  duracaoMinutos: string;
+  valor: string;
+  ativo: boolean;
+};
+
+type AgendamentoConfig = {
+  servicos: AgendamentoServicoConfig[];
+};
+
 const cardapioCategoriaPadrao: CardapioCategoriaConfig = {
   id: "categoria-1",
   nome: "",
@@ -586,6 +609,19 @@ const catalogoProdutoPadrao: CatalogoProdutoConfig = {
 const catalogoConfigPadrao: CatalogoConfig = {
   categorias: [{ ...catalogoCategoriaPadrao }],
   produtos: [{ ...catalogoProdutoPadrao }],
+};
+
+const agendamentoServicoPadrao: AgendamentoServicoConfig = {
+  id: "servico-1",
+  nome: "",
+  descricao: "",
+  duracaoMinutos: "",
+  valor: "",
+  ativo: true,
+};
+
+const agendamentoConfigPadrao: AgendamentoConfig = {
+  servicos: [{ ...agendamentoServicoPadrao }],
 };
 
 const landingPageHeroPadrao: LandingPageHeroConfig = {
@@ -1278,6 +1314,46 @@ function normalizarCatalogoConfig(valor: unknown): CatalogoConfig {
       produtos.length > 0
         ? produtos
         : catalogoConfigPadrao.produtos.map((produto) => ({ ...produto })),
+  };
+}
+
+function normalizarAgendamentoConfig(valor: unknown): AgendamentoConfig {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return structuredClone(agendamentoConfigPadrao);
+  }
+
+  const config = valor as Record<string, unknown>;
+  const servicos = Array.isArray(config.servicos)
+    ? config.servicos.slice(0, 100).map((item, indice) => {
+        if (!item || typeof item !== "object" || Array.isArray(item)) {
+          return {
+            ...agendamentoServicoPadrao,
+            id: criarCardapioId("servico", indice),
+          };
+        }
+
+        const servico = item as Record<string, unknown>;
+
+        return {
+          id:
+            lerCampoTexto(servico, "id") ||
+            criarCardapioId("servico", indice),
+          nome: lerCampoTexto(servico, "nome"),
+          descricao: lerCampoTexto(servico, "descricao"),
+          duracaoMinutos:
+            lerCampoTexto(servico, "duracaoMinutos") ||
+            lerCampoTexto(servico, "duracao"),
+          valor: lerCampoTexto(servico, "valor"),
+          ativo: typeof servico.ativo === "boolean" ? servico.ativo : true,
+        };
+      })
+    : agendamentoConfigPadrao.servicos.map((servico) => ({ ...servico }));
+
+  return {
+    servicos:
+      servicos.length > 0
+        ? servicos
+        : agendamentoConfigPadrao.servicos.map((servico) => ({ ...servico })),
   };
 }
 
@@ -3994,6 +4070,10 @@ export default function EmpresaForm({
     useState<CatalogoProdutoConfig[]>(() =>
       catalogoConfigPadrao.produtos.map((produto) => ({ ...produto }))
     );
+  const [agendamentoServicos, setAgendamentoServicos] =
+    useState<AgendamentoServicoConfig[]>(() =>
+      agendamentoConfigPadrao.servicos.map((servico) => ({ ...servico }))
+    );
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -4113,6 +4193,7 @@ export default function EmpresaForm({
       landing_page_config?: unknown;
       cardapio_config?: unknown;
       catalogo_config?: unknown;
+      agendamento_config?: unknown;
     };
     const landingPageConfig = normalizarLandingPageConfig(
       dadosComPlano.landing_page_config
@@ -4122,6 +4203,9 @@ export default function EmpresaForm({
     );
     const catalogoConfig = normalizarCatalogoConfig(
       dadosComPlano.catalogo_config
+    );
+    const agendamentoConfig = normalizarAgendamentoConfig(
+      dadosComPlano.agendamento_config
     );
 
     setNome(data.nome || "");
@@ -4159,6 +4243,7 @@ export default function EmpresaForm({
     setCardapioProdutos(cardapioConfig.produtos);
     setCatalogoCategorias(catalogoConfig.categorias);
     setCatalogoProdutos(catalogoConfig.produtos);
+    setAgendamentoServicos(agendamentoConfig.servicos);
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
 
@@ -5048,6 +5133,67 @@ export default function EmpresaForm({
     });
   }
 
+  function montarAgendamentoConfig(): AgendamentoConfig {
+    return {
+      servicos: agendamentoServicos.slice(0, 100),
+    };
+  }
+
+  function atualizarAgendamentoServico(
+    indice: number,
+    campo: keyof AgendamentoServicoConfig,
+    valor: string | boolean
+  ) {
+    setAgendamentoServicos((servicosAtuais) =>
+      servicosAtuais.map((servicoAtual, indiceAtual) =>
+        indiceAtual === indice
+          ? {
+              ...servicoAtual,
+              [campo]: valor,
+            }
+          : servicoAtual
+      )
+    );
+  }
+
+  function adicionarAgendamentoServico() {
+    setAgendamentoServicos((servicosAtuais) => {
+      if (servicosAtuais.length >= 100) return servicosAtuais;
+
+      return [
+        ...servicosAtuais,
+        {
+          ...agendamentoServicoPadrao,
+          id: `servico-${Date.now()}`,
+        },
+      ];
+    });
+  }
+
+  function removerAgendamentoServico(indice: number) {
+    setAgendamentoServicos((servicosAtuais) => {
+      if (servicosAtuais.length <= 1) return servicosAtuais;
+
+      return servicosAtuais.filter((_, indiceAtual) => indiceAtual !== indice);
+    });
+  }
+
+  function moverAgendamentoServico(indice: number, direcao: "up" | "down") {
+    setAgendamentoServicos((servicosAtuais) => {
+      const novoIndice = direcao === "up" ? indice - 1 : indice + 1;
+
+      if (novoIndice < 0 || novoIndice >= servicosAtuais.length) {
+        return servicosAtuais;
+      }
+
+      const servicosOrdenados = [...servicosAtuais];
+      const [servicoMovido] = servicosOrdenados.splice(indice, 1);
+      servicosOrdenados.splice(novoIndice, 0, servicoMovido);
+
+      return servicosOrdenados;
+    });
+  }
+
   async function publicarLandingPageAlteracoes() {
     if (!empresaId) {
       alert("Empresa ainda nao foi carregada. Tente novamente.");
@@ -5154,6 +5300,7 @@ export default function EmpresaForm({
     const landingPageConfig = montarLandingPageConfig();
     const cardapioConfig = montarCardapioConfig();
     const catalogoConfig = montarCatalogoConfig();
+    const agendamentoConfig = montarAgendamentoConfig();
 
     if (whatsappLocal && whatsappLocal.length < 10) {
       alert("Informe um WhatsApp válido com DDD.");
@@ -5209,6 +5356,7 @@ export default function EmpresaForm({
       landing_page_config: landingPageConfig,
       cardapio_config: cardapioConfig,
       catalogo_config: catalogoConfig,
+      agendamento_config: agendamentoConfig,
     };
 
     if (suportaCorFundoHero) {
@@ -6416,6 +6564,217 @@ export default function EmpresaForm({
                         </div>
 
                         {!produtoCatalogo.ativo && (
+                          <span className="w-fit rounded-full bg-slate-200 px-3 py-1 text-xs font-bold text-slate-700">
+                            Inativo
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </fieldset>
+          </div>
+        </Card>
+      )}
+
+      {abaAtiva === "agendamento" && (
+        <Card
+          title="Agendamento"
+          subtitle="Estrutura inicial para organizar servicos, duracao e valores opcionais."
+        >
+          <div className="space-y-5">
+            <div
+              className={`rounded-2xl border p-4 ${
+                recursosContratados.agendamento
+                  ? "border-green-200 bg-green-50"
+                  : "border-amber-200 bg-amber-50"
+              }`}
+            >
+              <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div className="min-w-0">
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+                      recursosContratados.agendamento
+                        ? "bg-green-700 text-white"
+                        : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {recursosContratados.agendamento
+                      ? "Ativo"
+                      : "Nao contratado"}
+                  </span>
+
+                  <h3 className="mt-3 text-xl font-bold text-slate-900">
+                    Estrutura de Agendamento
+                  </h3>
+
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                    Cadastre os servicos que poderao ser usados em uma agenda
+                    futura, incluindo duracao, valor opcional, ordem de
+                    exibicao e status ativo/inativo.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <fieldset
+              disabled={!recursosContratados.agendamento}
+              className="grid gap-5 disabled:opacity-60"
+            >
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+                      Servicos
+                    </p>
+
+                    <h4 className="mt-2 text-lg font-bold text-slate-900">
+                      Cadastro inicial do agendamento
+                    </h4>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={adicionarAgendamentoServico}
+                    disabled={
+                      !recursosContratados.agendamento ||
+                      agendamentoServicos.length >= 100
+                    }
+                    className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Adicionar servico
+                  </button>
+                </div>
+
+                <div className="mt-4 grid gap-4">
+                  {agendamentoServicos.map((servicoAgendamento, indice) => (
+                    <div
+                      key={servicoAgendamento.id}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                    >
+                      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <h5 className="font-bold text-slate-900">
+                            Servico {indice + 1}
+                          </h5>
+
+                          <label className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                            <input
+                              type="checkbox"
+                              checked={servicoAgendamento.ativo}
+                              onChange={(e) =>
+                                atualizarAgendamentoServico(
+                                  indice,
+                                  "ativo",
+                                  e.target.checked
+                                )
+                              }
+                            />
+                            Servico ativo
+                          </label>
+                        </div>
+
+                        <div className="grid gap-2 sm:flex sm:shrink-0">
+                          <button
+                            type="button"
+                            disabled={indice === 0}
+                            onClick={() =>
+                              moverAgendamentoServico(indice, "up")
+                            }
+                            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            Subir
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={indice === agendamentoServicos.length - 1}
+                            onClick={() =>
+                              moverAgendamentoServico(indice, "down")
+                            }
+                            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            Descer
+                          </button>
+
+                          {agendamentoServicos.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                removerAgendamentoServico(indice)
+                              }
+                              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600"
+                            >
+                              Remover
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid gap-4">
+                        <div className="grid gap-4 md:grid-cols-3">
+                          <Input
+                            label="Nome do servico"
+                            value={servicoAgendamento.nome}
+                            onChange={(e) =>
+                              atualizarAgendamentoServico(
+                                indice,
+                                "nome",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Ex.: Consulta inicial"
+                          />
+
+                          <Input
+                            label="Duracao (minutos)"
+                            value={servicoAgendamento.duracaoMinutos}
+                            onChange={(e) =>
+                              atualizarAgendamentoServico(
+                                indice,
+                                "duracaoMinutos",
+                                e.target.value
+                              )
+                            }
+                            placeholder="60"
+                          />
+
+                          <Input
+                            label="Valor (opcional)"
+                            value={servicoAgendamento.valor}
+                            onChange={(e) =>
+                              atualizarAgendamentoServico(
+                                indice,
+                                "valor",
+                                e.target.value
+                              )
+                            }
+                            placeholder="R$ 120,00"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block font-medium text-slate-700">
+                            Descricao
+                          </label>
+
+                          <textarea
+                            value={servicoAgendamento.descricao}
+                            onChange={(e) =>
+                              atualizarAgendamentoServico(
+                                indice,
+                                "descricao",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Resumo do atendimento, preparacao ou orientacoes."
+                            rows={3}
+                            className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                          />
+                        </div>
+
+                        {!servicoAgendamento.ativo && (
                           <span className="w-fit rounded-full bg-slate-200 px-3 py-1 text-xs font-bold text-slate-700">
                             Inativo
                           </span>
