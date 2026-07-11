@@ -8,6 +8,7 @@ import PublicCatalogoPage from "../pages/PublicCatalogoPage/PublicCatalogoPage";
 import PublicAgendamentoPage from "../pages/PublicAgendamentoPage/PublicAgendamentoPage";
 import PublicWifiMarketingPage from "../pages/PublicWifiMarketingPage/PublicWifiMarketingPage";
 import PublicFidelidadePage from "../pages/PublicFidelidadePage/PublicFidelidadePage";
+import PublicPdvPage from "../pages/PublicPdvPage/PublicPdvPage";
 
 import Dashboard from "../pages/dashboard/Dashboard";
 import Empresas from "../pages/dashboard/Empresas";
@@ -58,6 +59,11 @@ export default function AppRouter() {
         <Route
           path="/fidelidade/:slug"
           element={<PublicFidelidadePage />}
+        />
+
+        <Route
+          path="/pdv/:slug"
+          element={<PublicPdvPage />}
         />
 
         {/* Dashboard */}

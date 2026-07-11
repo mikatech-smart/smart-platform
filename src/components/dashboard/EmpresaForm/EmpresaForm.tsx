@@ -31,6 +31,7 @@ import {
   listarErpPdvFornecedores,
   listarErpPdvValesTroca,
   listarErpPdvProdutos,
+  listarErpPdvUsuarios,
   finalizarErpPdvVenda,
   obterErpPdvResumoTrocas,
   registrarErpPdvEntradaMercadorias,
@@ -40,6 +41,7 @@ import {
   salvarErpPdvCliente,
   salvarErpPdvFornecedor,
   salvarErpPdvProduto,
+  salvarErpPdvUsuario,
   type ErpPdvCaixa,
   type ErpPdvCaixaMovimentacaoTipo,
   type ErpPdvCaixaResumo,
@@ -59,6 +61,10 @@ import {
   type ErpPdvRelatorioResumo,
   type ErpPdvTabelaPreco,
   type ErpPdvTrocasResumo,
+  type ErpPdvPerfilUsuario,
+  type ErpPdvPermissao,
+  type ErpPdvUsuario,
+  type ErpPdvUsuarioPayload,
   type ErpPdvValeTroca,
   type ErpPdvVendaBusca,
 } from "../../../services/erpPdv/erpPdv.service";
@@ -1074,6 +1080,144 @@ type ErpPdvDevolucaoForm = {
   operador: string;
   validadeDias: string;
   quantidades: Record<string, string>;
+};
+
+type ErpPdvUsuarioForm = {
+  id: string;
+  nome: string;
+  email: string;
+  telefone: string;
+  perfil: ErpPdvPerfilUsuario;
+  moduloInicial: string;
+  permissoes: Record<ErpPdvPermissao, boolean>;
+  ativo: boolean;
+};
+
+const erpPdvPermissoes: Array<{
+  id: ErpPdvPermissao;
+  label: string;
+  descricao: string;
+}> = [
+  {
+    id: "tabela_varejo",
+    label: "Vender no varejo",
+    descricao: "Permite usar a tabela de preco varejo no PDV.",
+  },
+  {
+    id: "tabela_atacado",
+    label: "Vender no atacado",
+    descricao: "Permite usar a tabela de preco atacado no PDV.",
+  },
+  {
+    id: "tabela_revenda",
+    label: "Vender na revenda",
+    descricao: "Permite usar a tabela de preco revenda no PDV.",
+  },
+  {
+    id: "produto_salvar",
+    label: "Cadastrar/editar produto",
+    descricao: "Permite salvar produtos e dados cadastrais do item.",
+  },
+  {
+    id: "preco_alterar",
+    label: "Alterar preco",
+    descricao: "Libera custo, margem e tabelas de preco no cadastro.",
+  },
+  {
+    id: "desconto_aplicar",
+    label: "Aplicar desconto",
+    descricao: "Preparado para descontos operacionais futuros.",
+  },
+  {
+    id: "caixa_abrir_fechar",
+    label: "Abrir/fechar caixa",
+    descricao: "Controla abertura e fechamento do caixa.",
+  },
+  {
+    id: "caixa_movimentar",
+    label: "Sangria/suprimento",
+    descricao: "Permite movimentacoes manuais do caixa.",
+  },
+  {
+    id: "venda_cancelar",
+    label: "Cancelar venda",
+    descricao: "Permite cancelar carrinho antes da finalizacao.",
+  },
+  {
+    id: "devolucao_realizar",
+    label: "Realizar devolucao",
+    descricao: "Libera registro de devolucao parcial ou total.",
+  },
+  {
+    id: "vale_troca_emitir",
+    label: "Emitir vale-troca",
+    descricao: "Libera emissao de vale a partir da devolucao.",
+  },
+  {
+    id: "custo_lucro_consultar",
+    label: "Consultar custo/lucro",
+    descricao: "Mostra custo, margem, lucro e indicadores sensiveis.",
+  },
+  {
+    id: "relatorios_acessar",
+    label: "Acessar relatorios",
+    descricao: "Libera dashboard, filtros e exportacoes gerenciais.",
+  },
+];
+
+const erpPdvPerfisUsuario: Array<{
+  id: ErpPdvPerfilUsuario;
+  label: string;
+}> = [
+  { id: "administrador", label: "Administrador" },
+  { id: "gerente", label: "Gerente" },
+  { id: "caixa", label: "Caixa" },
+  { id: "vendedor", label: "Vendedor" },
+  { id: "estoque", label: "Estoque" },
+];
+
+function criarPermissoesErpPdv(
+  ativas: ErpPdvPermissao[] = erpPdvPermissoes.map((permissao) => permissao.id)
+) {
+  return erpPdvPermissoes.reduce<Record<ErpPdvPermissao, boolean>>(
+    (permissoes, permissao) => ({
+      ...permissoes,
+      [permissao.id]: ativas.includes(permissao.id),
+    }),
+    {} as Record<ErpPdvPermissao, boolean>
+  );
+}
+
+function criarPermissoesPerfilErpPdv(perfil: ErpPdvPerfilUsuario) {
+  if (perfil === "administrador" || perfil === "gerente") {
+    return criarPermissoesErpPdv();
+  }
+
+  if (perfil === "caixa") {
+    return criarPermissoesErpPdv([
+      "tabela_varejo",
+      "caixa_abrir_fechar",
+      "caixa_movimentar",
+      "venda_cancelar",
+    ]);
+  }
+
+  if (perfil === "vendedor") {
+    return criarPermissoesErpPdv(["tabela_varejo", "venda_cancelar"]);
+  }
+
+  return criarPermissoesErpPdv(["produto_salvar", "custo_lucro_consultar"]);
+}
+
+const erpPdvUsuarioFormPadrao: ErpPdvUsuarioForm = {
+  id: "",
+  nome: "",
+  email: "",
+  telefone: "",
+  perfil: "caixa",
+  moduloInicial: "pdv",
+  permissoes: criarPermissoesPerfilErpPdv("caixa"),
+  ativo: true,
 };
 
 const erpPdvFormasPagamento: Array<{
@@ -6203,6 +6347,11 @@ export default function EmpresaForm({
   const [erpPdvEntradas, setErpPdvEntradas] = useState<
     ErpPdvEntradaMercadoria[]
   >([]);
+  const [erpPdvUsuarios, setErpPdvUsuarios] = useState<ErpPdvUsuario[]>([]);
+  const [erpPdvUsuarioSelecionadoId, setErpPdvUsuarioSelecionadoId] =
+    useState("");
+  const [erpPdvUsuarioForm, setErpPdvUsuarioForm] =
+    useState<ErpPdvUsuarioForm>(() => ({ ...erpPdvUsuarioFormPadrao }));
   const [erpPdvFornecedorForm, setErpPdvFornecedorForm] =
     useState<ErpPdvFornecedorForm>(() => ({ ...erpPdvFornecedorFormPadrao }));
   const [erpPdvEntradaForm, setErpPdvEntradaForm] =
@@ -6364,6 +6513,9 @@ export default function EmpresaForm({
     ? categoria
     : "Outra";
   const slugPublico = slugAdmin || slug;
+  const erpPdvUrlPublica = `${BrandConfig.publicAppUrl.replace(/\/$/, "")}/pdv/${
+    slugPublico || "empresa"
+  }`;
   const aparenciaAtual: AparenciaConfig = {
     logoExibicao,
     corPrincipal,
@@ -6409,6 +6561,29 @@ export default function EmpresaForm({
   const erpPdvClientesPorId = new Map(
     erpPdvClientes.map((clienteErp) => [clienteErp.id, clienteErp])
   );
+  const erpPdvUsuariosPorId = new Map(
+    erpPdvUsuarios.map((usuarioErp) => [usuarioErp.id, usuarioErp])
+  );
+  const erpPdvUsuarioSelecionado =
+    erpPdvUsuariosPorId.get(erpPdvUsuarioSelecionadoId) || null;
+  const erpPdvModoDesenvolvimentoPermissoes = !erpPdvUsuarioSelecionado;
+  const erpPdvOperadorAtualNome =
+    erpPdvUsuarioSelecionado?.nome ||
+    erpPdvOperadorVenda ||
+    erpPdvCaixaOperador ||
+    "";
+  const podeErpPdv = (permissao: ErpPdvPermissao) =>
+    erpPdvModoDesenvolvimentoPermissoes ||
+    Boolean(erpPdvUsuarioSelecionado?.permissoes[permissao]);
+  const erpPdvPodeSalvarProduto = podeErpPdv("produto_salvar");
+  const erpPdvPodeAlterarPreco = podeErpPdv("preco_alterar");
+  const erpPdvPodeMovimentarCaixa = podeErpPdv("caixa_movimentar");
+  const erpPdvPodeAbrirFecharCaixa = podeErpPdv("caixa_abrir_fechar");
+  const erpPdvPodeCancelarVenda = podeErpPdv("venda_cancelar");
+  const erpPdvPodeRealizarDevolucao = podeErpPdv("devolucao_realizar");
+  const erpPdvPodeEmitirValeTroca = podeErpPdv("vale_troca_emitir");
+  const erpPdvPodeConsultarCustoLucro = podeErpPdv("custo_lucro_consultar");
+  const erpPdvPodeAcessarRelatorios = podeErpPdv("relatorios_acessar");
   const erpPdvClienteSelecionado =
     erpPdvClientesPorId.get(erpPdvClienteSelecionadoId) || null;
   const erpPdvClienteTermoBusca = erpPdvClienteBusca.trim().toLowerCase();
@@ -6839,6 +7014,7 @@ export default function EmpresaForm({
         clientesResultado,
         fornecedoresResultado,
         entradasResultado,
+        usuariosResultado,
         valesResultado,
         trocasResultado,
         caixaResultado,
@@ -6849,6 +7025,7 @@ export default function EmpresaForm({
         listarErpPdvClientes(empresaIdAtual),
         listarErpPdvFornecedores(empresaIdAtual),
         listarErpPdvEntradas(empresaIdAtual),
+        listarErpPdvUsuarios(empresaIdAtual),
         listarErpPdvValesTroca(empresaIdAtual),
         obterErpPdvResumoTrocas(empresaIdAtual),
         buscarErpPdvCaixaAberto(empresaIdAtual),
@@ -6860,6 +7037,7 @@ export default function EmpresaForm({
       if (clientesResultado.error) throw clientesResultado.error;
       if (fornecedoresResultado.error) throw fornecedoresResultado.error;
       if (entradasResultado.error) throw entradasResultado.error;
+      if (usuariosResultado.error) throw usuariosResultado.error;
       if (valesResultado.error) throw valesResultado.error;
       if (trocasResultado.error) throw trocasResultado.error;
       if (caixaResultado.error) throw caixaResultado.error;
@@ -6870,6 +7048,7 @@ export default function EmpresaForm({
       setErpPdvClientes(clientesResultado.data);
       setErpPdvFornecedores(fornecedoresResultado.data);
       setErpPdvEntradas(entradasResultado.data);
+      setErpPdvUsuarios(usuariosResultado.data);
       setErpPdvValesTroca(valesResultado.data);
       setErpPdvTrocasResumo(trocasResultado.data);
       setErpPdvCaixaAberto(caixaResultado.data);
@@ -7694,6 +7873,8 @@ export default function EmpresaForm({
   }
 
   function cancelarVendaErpPdv() {
+    if (!exigirPermissaoErpPdv("venda_cancelar", "cancelar venda")) return;
+
     setErpPdvCarrinho([]);
     setErpPdvPdvBusca("");
     setErpPdvFeedback({
@@ -7719,13 +7900,15 @@ export default function EmpresaForm({
 
   async function abrirCaixaErpPdv() {
     if (!empresaId) return;
+    if (!exigirPermissaoErpPdv("caixa_abrir_fechar", "abrir caixa")) return;
 
     try {
       setErpPdvSalvando(true);
 
       const { data, error } = await abrirErpPdvCaixa({
         empresaId,
-        operador: erpPdvCaixaOperador,
+        operador: erpPdvOperadorAtualNome || erpPdvCaixaOperador,
+        operadorUsuarioId: erpPdvUsuarioSelecionado?.id,
         saldoInicial: parseNumeroErpPdv(erpPdvCaixaSaldoInicial),
       });
 
@@ -7755,6 +7938,7 @@ export default function EmpresaForm({
 
   async function registrarMovimentoCaixaErpPdv() {
     if (!empresaId || !erpPdvCaixaAberto) return;
+    if (!exigirPermissaoErpPdv("caixa_movimentar", "registrar sangria/suprimento")) return;
 
     try {
       setErpPdvSalvando(true);
@@ -7764,7 +7948,8 @@ export default function EmpresaForm({
         caixaId: erpPdvCaixaAberto.id,
         tipo: erpPdvCaixaMovimentoForm.tipo,
         valor: parseNumeroErpPdv(erpPdvCaixaMovimentoForm.valor),
-        operador: erpPdvOperadorVenda || erpPdvCaixaAberto.operador,
+        operador: erpPdvOperadorAtualNome || erpPdvCaixaAberto.operador,
+        operadorUsuarioId: erpPdvUsuarioSelecionado?.id,
         observacao: erpPdvCaixaMovimentoForm.observacao,
       });
 
@@ -7794,6 +7979,7 @@ export default function EmpresaForm({
 
   async function fecharCaixaErpPdv() {
     if (!empresaId || !erpPdvCaixaAberto) return;
+    if (!exigirPermissaoErpPdv("caixa_abrir_fechar", "fechar caixa")) return;
 
     try {
       setErpPdvSalvando(true);
@@ -7840,6 +8026,152 @@ export default function EmpresaForm({
       erpPdvFormasPagamento.find((formaPagamento) => formaPagamento.id === forma)
         ?.label || forma
     );
+  }
+
+  function obterLabelPerfilErpPdv(perfil: ErpPdvPerfilUsuario) {
+    return (
+      erpPdvPerfisUsuario.find((perfilUsuario) => perfilUsuario.id === perfil)
+        ?.label || perfil
+    );
+  }
+
+  function atualizarUsuarioFormErpPdv(
+    campo: keyof Omit<ErpPdvUsuarioForm, "permissoes">,
+    valor: string | boolean
+  ) {
+    setErpPdvUsuarioForm((formAtual) => {
+      if (campo === "perfil") {
+        const perfil = valor as ErpPdvPerfilUsuario;
+        return {
+          ...formAtual,
+          perfil,
+          permissoes: criarPermissoesPerfilErpPdv(perfil),
+        };
+      }
+
+      return {
+        ...formAtual,
+        [campo]: valor,
+      };
+    });
+  }
+
+  function atualizarPermissaoUsuarioErpPdv(
+    permissao: ErpPdvPermissao,
+    ativo: boolean
+  ) {
+    setErpPdvUsuarioForm((formAtual) => ({
+      ...formAtual,
+      permissoes: {
+        ...formAtual.permissoes,
+        [permissao]: ativo,
+      },
+    }));
+  }
+
+  function editarUsuarioErpPdv(usuario: ErpPdvUsuario) {
+    setErpPdvUsuarioForm({
+      id: usuario.id,
+      nome: usuario.nome,
+      email: usuario.email,
+      telefone: usuario.telefone,
+      perfil: usuario.perfil,
+      moduloInicial: usuario.modulo_inicial || "pdv",
+      permissoes: {
+        ...criarPermissoesPerfilErpPdv(usuario.perfil),
+        ...usuario.permissoes,
+      },
+      ativo: usuario.ativo,
+    });
+    setErpPdvFeedback({
+      tipo: "info",
+      texto: `Editando usuario ${usuario.nome}.`,
+    });
+  }
+
+  function selecionarOperadorErpPdv(usuarioId: string) {
+    setErpPdvUsuarioSelecionadoId(usuarioId);
+    const usuario = erpPdvUsuarios.find((item) => item.id === usuarioId);
+    if (!usuario) return;
+
+    setErpPdvOperadorVenda(usuario.nome);
+    setErpPdvCaixaOperador(usuario.nome);
+    setErpPdvMovimentacaoForm((formAtual) => ({
+      ...formAtual,
+      usuarioResponsavel: usuario.nome,
+    }));
+    setErpPdvDevolucaoForm((formAtual) => ({
+      ...formAtual,
+      operador: usuario.nome,
+    }));
+  }
+
+  async function salvarUsuarioErpPdv() {
+    if (!empresaId) return;
+
+    try {
+      setErpPdvSalvando(true);
+      const payload: ErpPdvUsuarioPayload = {
+        id: erpPdvUsuarioForm.id || undefined,
+        empresaId,
+        nome: erpPdvUsuarioForm.nome,
+        email: erpPdvUsuarioForm.email,
+        telefone: erpPdvUsuarioForm.telefone,
+        perfil: erpPdvUsuarioForm.perfil,
+        moduloInicial: erpPdvUsuarioForm.moduloInicial,
+        permissoes: erpPdvUsuarioForm.permissoes,
+        ativo: erpPdvUsuarioForm.ativo,
+      };
+      const { data, error } = await salvarErpPdvUsuario(payload);
+
+      if (error) throw error;
+      if (!data) throw new Error("Usuario do ERP/PDV nao retornado.");
+
+      setErpPdvUsuarios((usuariosAtuais) => {
+        const demais = usuariosAtuais.filter((usuario) => usuario.id !== data.id);
+        return [data, ...demais].sort((a, b) => a.nome.localeCompare(b.nome));
+      });
+      setErpPdvUsuarioForm({ ...erpPdvUsuarioFormPadrao });
+      setErpPdvFeedback({
+        tipo: "sucesso",
+        texto: "Usuario e permissoes salvos no ERP/PDV.",
+      });
+    } catch (error) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel salvar o usuario do ERP/PDV.",
+      });
+    } finally {
+      setErpPdvSalvando(false);
+    }
+  }
+
+  async function copiarLinkPdvErpPdv() {
+    try {
+      await navigator.clipboard.writeText(erpPdvUrlPublica);
+      setErpPdvFeedback({
+        tipo: "sucesso",
+        texto: "Link do PDV copiado.",
+      });
+    } catch {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "Nao foi possivel copiar o link do PDV.",
+      });
+    }
+  }
+
+  function exigirPermissaoErpPdv(permissao: ErpPdvPermissao, acao: string) {
+    if (podeErpPdv(permissao)) return true;
+
+    setErpPdvFeedback({
+      tipo: "erro",
+      texto: `Operador sem permissao para ${acao}.`,
+    });
+    return false;
   }
 
   async function carregarRelatorioErpPdv(empresaIdAtual = empresaId) {
@@ -7931,6 +8263,7 @@ export default function EmpresaForm({
 
   function exportarRelatorioPdfErpPdv() {
     if (!erpPdvRelatorio) return;
+    if (!exigirPermissaoErpPdv("relatorios_acessar", "exportar relatorio")) return;
 
     const janela = window.open("", "_blank", "width=1024,height=720");
     if (!janela) {
@@ -7950,6 +8283,7 @@ export default function EmpresaForm({
 
   function exportarRelatorioExcelErpPdv() {
     if (!erpPdvRelatorio) return;
+    if (!exigirPermissaoErpPdv("relatorios_acessar", "exportar relatorio")) return;
 
     const linhas = [
       [
@@ -8028,6 +8362,7 @@ export default function EmpresaForm({
 
   async function buscarVendasTrocaErpPdv() {
     if (!empresaId) return;
+    if (!exigirPermissaoErpPdv("devolucao_realizar", "buscar vendas para troca")) return;
 
     try {
       setErpPdvSalvando(true);
@@ -8074,6 +8409,8 @@ export default function EmpresaForm({
 
   async function registrarDevolucaoErpPdv() {
     if (!empresaId || !erpPdvVendaTrocaSelecionada) return;
+    if (!exigirPermissaoErpPdv("devolucao_realizar", "realizar devolucao")) return;
+    if (!exigirPermissaoErpPdv("vale_troca_emitir", "emitir vale-troca")) return;
 
     const itens = erpPdvVendaTrocaSelecionada.itens
       .map((item) => ({
@@ -8089,7 +8426,8 @@ export default function EmpresaForm({
       const { data, error } = await registrarErpPdvDevolucao({
         empresaId,
         vendaId: erpPdvVendaTrocaSelecionada.id,
-        operador: erpPdvDevolucaoForm.operador,
+        operador: erpPdvOperadorAtualNome || erpPdvDevolucaoForm.operador,
+        operadorUsuarioId: erpPdvUsuarioSelecionado?.id,
         motivo: erpPdvDevolucaoForm.motivo,
         validadeDias: parseNumeroErpPdv(erpPdvDevolucaoForm.validadeDias),
         itens,
@@ -8606,6 +8944,7 @@ export default function EmpresaForm({
 
   async function confirmarXmlNfeErpPdv() {
     if (!empresaId || !erpPdvXmlImportacao) return;
+    if (!exigirPermissaoErpPdv("produto_salvar", "dar entrada de mercadorias")) return;
 
     const itensSemVinculo = erpPdvXmlImportacao.itens.filter(
       (item) => !item.produtoId
@@ -8712,6 +9051,7 @@ export default function EmpresaForm({
 
   async function registrarEntradaMercadoriasErpPdv() {
     if (!empresaId) return;
+    if (!exigirPermissaoErpPdv("produto_salvar", "dar entrada de mercadorias")) return;
 
     if (!erpPdvEntradaForm.fornecedorId) {
       setErpPdvFeedback({
@@ -9053,7 +9393,7 @@ export default function EmpresaForm({
       return;
     }
 
-    if (!erpPdvOperadorVenda.trim()) {
+    if (!erpPdvOperadorAtualNome.trim()) {
       setErpPdvFeedback({
         tipo: "erro",
         texto: "Informe o operador responsavel pela venda.",
@@ -9092,7 +9432,8 @@ export default function EmpresaForm({
         caixaId: erpPdvCaixaAberto.id,
         clienteId: erpPdvClienteSelecionado?.id,
         clienteNome: erpPdvClienteSelecionado?.nome,
-        operador: erpPdvOperadorVenda,
+        operador: erpPdvOperadorAtualNome,
+        operadorUsuarioId: erpPdvUsuarioSelecionado?.id,
         formaPagamento: erpPdvFormaPagamentoVenda,
         valeTrocaId:
           erpPdvFormaPagamentoVenda === "vale_troca"
@@ -9262,6 +9603,7 @@ export default function EmpresaForm({
 
   async function salvarProdutoErpPdv() {
     if (!empresaId) return;
+    if (!exigirPermissaoErpPdv("produto_salvar", "cadastrar ou editar produto")) return;
 
     if (!erpPdvProdutoForm.nome.trim()) {
       setErpPdvFeedback({
@@ -9275,6 +9617,24 @@ export default function EmpresaForm({
       setErpPdvFeedback({
         tipo: "erro",
         texto: "O preco de venda esta abaixo do custo. Ajuste antes de salvar.",
+      });
+      return;
+    }
+
+    if (
+      !erpPdvPodeAlterarPreco &&
+      [
+        erpPdvProdutoForm.custo,
+        erpPdvProdutoForm.precoVenda,
+        erpPdvProdutoForm.precoAtacado,
+        erpPdvProdutoForm.precoRevenda,
+        erpPdvProdutoForm.precoPersonalizado,
+        erpPdvProdutoForm.percentualPreco,
+      ].some((valor) => parseNumeroErpPdv(valor) > 0)
+    ) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "Operador sem permissao para alterar preco ou custo.",
       });
       return;
     }
@@ -9345,6 +9705,7 @@ export default function EmpresaForm({
 
   async function registrarMovimentacaoErpPdv() {
     if (!empresaId) return;
+    if (!exigirPermissaoErpPdv("produto_salvar", "movimentar estoque")) return;
 
     const quantidade = parseNumeroErpPdv(erpPdvMovimentacaoForm.quantidade);
 
@@ -9379,7 +9740,9 @@ export default function EmpresaForm({
       quantidade,
       motivo: erpPdvMovimentacaoForm.motivo,
       observacao: erpPdvMovimentacaoForm.observacao,
-      usuarioResponsavel: erpPdvMovimentacaoForm.usuarioResponsavel,
+      usuarioResponsavel:
+        erpPdvMovimentacaoForm.usuarioResponsavel || erpPdvOperadorAtualNome,
+      usuarioId: erpPdvUsuarioSelecionado?.id,
     };
 
     try {
@@ -11381,14 +11744,32 @@ export default function EmpresaForm({
                   )}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => carregarErpPdvDados()}
-                  disabled={erpPdvCarregando || !empresaId}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {erpPdvCarregando ? "Atualizando..." : "Atualizar dados"}
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <a
+                    href={erpPdvUrlPublica}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-xl bg-green-700 px-4 py-2 text-sm font-bold text-white transition hover:bg-green-800"
+                  >
+                    Abrir PDV
+                  </a>
+                  <button
+                    type="button"
+                    onClick={copiarLinkPdvErpPdv}
+                    disabled={!slugPublico}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Copiar link do PDV
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => carregarErpPdvDados()}
+                    disabled={erpPdvCarregando || !empresaId}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {erpPdvCarregando ? "Atualizando..." : "Atualizar dados"}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -11410,6 +11791,218 @@ export default function EmpresaForm({
               <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                   <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+                    Usuarios e permissoes
+                  </p>
+                  <h4 className="mt-2 text-lg font-bold text-slate-900">
+                    Controle de acesso do ERP/PDV
+                  </h4>
+                  <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500">
+                    Cadastre operadores por empresa e configure o que cada perfil
+                    pode executar. Sem operador selecionado, o modo
+                    desenvolvimento permanece liberado.
+                  </p>
+                </div>
+                <div className="min-w-[240px]">
+                  <label className="block text-sm font-bold text-slate-700">
+                    Operador ativo
+                  </label>
+                  <select
+                    value={erpPdvUsuarioSelecionadoId}
+                    onChange={(e) => selecionarOperadorErpPdv(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                  >
+                    <option value="">Modo desenvolvimento</option>
+                    {erpPdvUsuarios
+                      .filter((usuario) => usuario.ativo)
+                      .map((usuario) => (
+                        <option key={usuario.id} value={usuario.id}>
+                          {usuario.nome} - {obterLabelPerfilErpPdv(usuario.perfil)}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-4 xl:grid-cols-[1fr_1.2fr]">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <Input
+                      label="Nome"
+                      value={erpPdvUsuarioForm.nome}
+                      onChange={(e) =>
+                        atualizarUsuarioFormErpPdv("nome", e.target.value)
+                      }
+                      placeholder="Nome do operador"
+                    />
+                    <Input
+                      label="E-mail"
+                      value={erpPdvUsuarioForm.email}
+                      onChange={(e) =>
+                        atualizarUsuarioFormErpPdv("email", e.target.value)
+                      }
+                      placeholder="email@empresa.com"
+                    />
+                    <Input
+                      label="Telefone"
+                      value={erpPdvUsuarioForm.telefone}
+                      onChange={(e) =>
+                        atualizarUsuarioFormErpPdv("telefone", e.target.value)
+                      }
+                      placeholder="Contato"
+                    />
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700">
+                        Perfil
+                      </label>
+                      <select
+                        value={erpPdvUsuarioForm.perfil}
+                        onChange={(e) =>
+                          atualizarUsuarioFormErpPdv(
+                            "perfil",
+                            e.target.value as ErpPdvPerfilUsuario
+                          )
+                        }
+                        className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                      >
+                        {erpPdvPerfisUsuario.map((perfil) => (
+                          <option key={perfil.id} value={perfil.id}>
+                            {perfil.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700">
+                        Modulo inicial
+                      </label>
+                      <select
+                        value={erpPdvUsuarioForm.moduloInicial}
+                        onChange={(e) =>
+                          atualizarUsuarioFormErpPdv(
+                            "moduloInicial",
+                            e.target.value
+                          )
+                        }
+                        className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                      >
+                        <option value="pdv">PDV</option>
+                        <option value="caixa">Caixa</option>
+                        <option value="trocas">Trocas</option>
+                        <option value="estoque">Estoque</option>
+                        <option value="relatorios">Relatorios</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <label className="mt-3 flex items-center gap-2 text-sm font-bold text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={erpPdvUsuarioForm.ativo}
+                      onChange={(e) =>
+                        atualizarUsuarioFormErpPdv("ativo", e.target.checked)
+                      }
+                      className="h-4 w-4 rounded border-slate-300 text-green-700 focus:ring-green-500"
+                    />
+                    Usuario ativo
+                  </label>
+
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={salvarUsuarioErpPdv}
+                      disabled={
+                        !recursosContratados.erp_pdv ||
+                        erpPdvSalvando ||
+                        !erpPdvUsuarioForm.nome.trim()
+                      }
+                      className="rounded-xl bg-green-700 px-4 py-3 text-sm font-black text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {erpPdvSalvando ? "Salvando..." : "Salvar usuario"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setErpPdvUsuarioForm({ ...erpPdvUsuarioFormPadrao })
+                      }
+                      className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50"
+                    >
+                      Novo usuario
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <div className="rounded-2xl border border-slate-200 p-4">
+                    <h5 className="font-black text-slate-900">
+                      Permissoes configuraveis
+                    </h5>
+                    <div className="mt-3 grid gap-2">
+                      {erpPdvPermissoes.map((permissao) => (
+                        <label
+                          key={permissao.id}
+                          className="flex items-start gap-3 rounded-xl bg-slate-50 p-3 text-sm"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={erpPdvUsuarioForm.permissoes[permissao.id]}
+                            onChange={(e) =>
+                              atualizarPermissaoUsuarioErpPdv(
+                                permissao.id,
+                                e.target.checked
+                              )
+                            }
+                            className="mt-1 h-4 w-4 rounded border-slate-300 text-green-700 focus:ring-green-500"
+                          />
+                          <span>
+                            <span className="block font-black text-slate-900">
+                              {permissao.label}
+                            </span>
+                            <span className="text-xs font-semibold text-slate-500">
+                              {permissao.descricao}
+                            </span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 p-4">
+                    <h5 className="font-black text-slate-900">
+                      Usuarios cadastrados
+                    </h5>
+                    <div className="mt-3 grid max-h-[520px] gap-2 overflow-auto">
+                      {erpPdvUsuarios.length > 0 ? (
+                        erpPdvUsuarios.map((usuario) => (
+                          <button
+                            type="button"
+                            key={usuario.id}
+                            onClick={() => editarUsuarioErpPdv(usuario)}
+                            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-left transition hover:border-green-300 hover:bg-green-50"
+                          >
+                            <span className="block font-black text-slate-900">
+                              {usuario.nome}
+                            </span>
+                            <span className="mt-1 block text-xs font-bold text-slate-500">
+                              {obterLabelPerfilErpPdv(usuario.perfil)} |{" "}
+                              {usuario.ativo ? "Ativo" : "Inativo"}
+                            </span>
+                          </button>
+                        ))
+                      ) : (
+                        <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+                          Nenhum usuario ERP/PDV cadastrado ainda.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="hidden rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <p className="text-sm font-bold uppercase tracking-wide text-green-700">
                     Trocas e devolucoes
                   </p>
                   <h4 className="mt-2 text-lg font-bold text-slate-900">
@@ -11423,7 +12016,7 @@ export default function EmpresaForm({
                 <button
                   type="button"
                   onClick={buscarVendasTrocaErpPdv}
-                  disabled={erpPdvSalvando}
+                  disabled={erpPdvSalvando || !erpPdvPodeRealizarDevolucao}
                   className="rounded-xl bg-green-700 px-4 py-3 text-sm font-black text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {erpPdvSalvando ? "Buscando..." : "Buscar vendas"}
@@ -11586,7 +12179,11 @@ export default function EmpresaForm({
                                       )
                                     }
                                     placeholder="0"
-                                    disabled={item.quantidade_disponivel <= 0}
+                                    disabled={
+                                      item.quantidade_disponivel <= 0 ||
+                                      !erpPdvPodeRealizarDevolucao ||
+                                      !erpPdvPodeEmitirValeTroca
+                                    }
                                     className="w-24 rounded-xl border border-slate-200 px-3 py-2 font-bold outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100 disabled:opacity-50"
                                   />
                                 </td>
@@ -11625,6 +12222,8 @@ export default function EmpresaForm({
                             onClick={registrarDevolucaoErpPdv}
                             disabled={
                               erpPdvSalvando ||
+                              !erpPdvPodeRealizarDevolucao ||
+                              !erpPdvPodeEmitirValeTroca ||
                               !erpPdvDevolucaoForm.operador.trim() ||
                               !erpPdvDevolucaoForm.motivo.trim()
                             }
@@ -11941,7 +12540,7 @@ export default function EmpresaForm({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="hidden rounded-2xl border border-slate-200 bg-white p-4">
               <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                   <p className="text-sm font-bold uppercase tracking-wide text-green-700">
@@ -11994,6 +12593,7 @@ export default function EmpresaForm({
                       disabled={
                         !recursosContratados.erp_pdv ||
                         erpPdvSalvando ||
+                        !erpPdvPodeAbrirFecharCaixa ||
                         !erpPdvCaixaOperador.trim()
                       }
                       className="rounded-xl bg-green-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
@@ -12131,6 +12731,7 @@ export default function EmpresaForm({
                         onClick={registrarMovimentoCaixaErpPdv}
                         disabled={
                           erpPdvSalvando ||
+                          !erpPdvPodeMovimentarCaixa ||
                           !erpPdvCaixaMovimentoForm.valor.trim()
                         }
                         className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
@@ -12253,7 +12854,7 @@ export default function EmpresaForm({
                       <button
                         type="button"
                         onClick={fecharCaixaErpPdv}
-                        disabled={erpPdvSalvando}
+                        disabled={erpPdvSalvando || !erpPdvPodeAbrirFecharCaixa}
                         className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {erpPdvSalvando ? "Fechando..." : "Fechar caixa"}
@@ -12264,7 +12865,7 @@ export default function EmpresaForm({
               )}
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-950 p-4 text-white">
+            <div className="hidden rounded-2xl border border-slate-200 bg-slate-950 p-4 text-white">
               <div className="flex min-w-0 flex-col gap-4 xl:flex-row">
                 <div className="min-w-0 flex-1">
                   <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -12309,6 +12910,7 @@ export default function EmpresaForm({
                             e.target.value as ErpPdvTabelaPreco
                           )
                         }
+                        disabled={!erpPdvPodeAlterarPreco}
                         className="mt-1 w-full rounded-xl border border-white/20 bg-white px-3 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-green-400 focus:ring-4 focus:ring-green-900/40"
                       >
                         {erpPdvTabelasPreco.map((tabela) => (
@@ -12804,10 +13406,11 @@ export default function EmpresaForm({
                         </label>
 
                         <input
-                          value={erpPdvOperadorVenda}
+                          value={erpPdvOperadorAtualNome}
                           onChange={(e) =>
                             setErpPdvOperadorVenda(e.target.value)
                           }
+                          disabled={Boolean(erpPdvUsuarioSelecionado)}
                           placeholder="Nome"
                           className="mt-2 w-full rounded-xl border border-white/20 bg-white px-3 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-green-400 focus:ring-4 focus:ring-green-900/40"
                         />
@@ -12853,7 +13456,10 @@ export default function EmpresaForm({
                       <button
                         type="button"
                         onClick={cancelarVendaErpPdv}
-                        disabled={erpPdvCarrinho.length === 0}
+                        disabled={
+                          erpPdvCarrinho.length === 0 ||
+                          !erpPdvPodeCancelarVenda
+                        }
                         className="rounded-xl border border-white/20 px-4 py-4 text-sm font-black text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Cancelar venda
@@ -12866,7 +13472,7 @@ export default function EmpresaForm({
                           erpPdvCarrinho.length === 0 ||
                           erpPdvSalvando ||
                           !erpPdvCaixaAberto ||
-                          !erpPdvOperadorVenda.trim() ||
+                          !erpPdvOperadorAtualNome.trim() ||
                           (erpPdvFormaPagamentoVenda === "vale_troca" &&
                             !erpPdvValeTrocaSelecionado)
                         }
@@ -12885,7 +13491,7 @@ export default function EmpresaForm({
             </div>
 
             {erpPdvCupomNaoFiscal && (
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="hidden rounded-2xl border border-slate-200 bg-white p-4">
                 <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <p className="text-sm font-bold uppercase tracking-wide text-green-700">
@@ -13090,7 +13696,7 @@ export default function EmpresaForm({
                   <button
                     type="button"
                     onClick={() => carregarRelatorioErpPdv()}
-                    disabled={erpPdvSalvando}
+                    disabled={erpPdvSalvando || !erpPdvPodeAcessarRelatorios}
                     className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Atualizar
@@ -13098,7 +13704,7 @@ export default function EmpresaForm({
                   <button
                     type="button"
                     onClick={exportarRelatorioPdfErpPdv}
-                    disabled={!erpPdvRelatorio}
+                    disabled={!erpPdvRelatorio || !erpPdvPodeAcessarRelatorios}
                     className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Exportar PDF
@@ -13106,7 +13712,7 @@ export default function EmpresaForm({
                   <button
                     type="button"
                     onClick={exportarRelatorioExcelErpPdv}
-                    disabled={!erpPdvRelatorio}
+                    disabled={!erpPdvRelatorio || !erpPdvPodeAcessarRelatorios}
                     className="rounded-xl bg-green-700 px-4 py-2 text-sm font-bold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Exportar Excel
@@ -13544,6 +14150,7 @@ export default function EmpresaForm({
                     onChange={(e) =>
                       atualizarErpPdvProdutoForm("custo", e.target.value)
                     }
+                    disabled={!erpPdvPodeAlterarPreco}
                     placeholder="0,00"
                   />
 
@@ -13554,6 +14161,7 @@ export default function EmpresaForm({
                       atualizarErpPdvProdutoForm("precoVenda", e.target.value)
                     }
                     disabled={
+                      !erpPdvPodeAlterarPreco ||
                       erpPdvProdutoForm.formacaoPrecoTipo ===
                       "percentual_custo"
                     }
@@ -13572,6 +14180,7 @@ export default function EmpresaForm({
                           e.target.value as ErpPdvFormacaoPrecoTipo
                         )
                       }
+                      disabled={!erpPdvPodeAlterarPreco}
                       className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
                     >
                       <option value="manual">Valor manual</option>
@@ -13590,6 +14199,7 @@ export default function EmpresaForm({
                         e.target.value
                       )
                     }
+                    disabled={!erpPdvPodeAlterarPreco}
                     placeholder="Ex.: 60"
                   />
 
@@ -13602,6 +14212,7 @@ export default function EmpresaForm({
                         e.target.value
                       )
                     }
+                    disabled={!erpPdvPodeAlterarPreco}
                     placeholder="0,00"
                   />
 
@@ -13614,6 +14225,7 @@ export default function EmpresaForm({
                         e.target.value
                       )
                     }
+                    disabled={!erpPdvPodeAlterarPreco}
                     placeholder="0,00"
                   />
 
@@ -13626,6 +14238,7 @@ export default function EmpresaForm({
                         e.target.value
                       )
                     }
+                    disabled={!erpPdvPodeAlterarPreco}
                     placeholder="0,00"
                   />
 
@@ -13684,6 +14297,7 @@ export default function EmpresaForm({
                   />
                 </div>
 
+                {erpPdvPodeConsultarCustoLucro ? (
                 <div className="mt-4 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-4">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
@@ -13746,6 +14360,11 @@ export default function EmpresaForm({
                     </p>
                   </div>
                 </div>
+                ) : (
+                  <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-500">
+                    Custo, lucro, margem e markup ocultos para o perfil atual.
+                  </div>
+                )}
 
                 <div className="mt-4 grid gap-4">
                   <UploadImagem
@@ -13798,6 +14417,7 @@ export default function EmpresaForm({
                     disabled={
                       !recursosContratados.erp_pdv ||
                       erpPdvSalvando ||
+                      !erpPdvPodeSalvarProduto ||
                       !erpPdvProdutoForm.nome.trim()
                     }
                     className="rounded-xl bg-green-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
@@ -13901,31 +14521,37 @@ export default function EmpresaForm({
                         </div>
 
                         <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-3">
-                          <span>
-                            Custo: R$ {formatarMoedaErpPdv(produto.custo)}
-                          </span>
+                          {erpPdvPodeConsultarCustoLucro && (
+                            <span>
+                              Custo: R$ {formatarMoedaErpPdv(produto.custo)}
+                            </span>
+                          )}
                           <span>
                             Venda: R$ {formatarMoedaErpPdv(produto.preco_venda)}
                           </span>
-                          <span>
-                            Lucro: R$ {formatarMoedaErpPdv(indicadores.lucro)}
-                          </span>
-                          <span>
-                            Margem:{" "}
-                            {indicadores.margemPercentual.toLocaleString("pt-BR", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}
-                            %
-                          </span>
-                          <span>
-                            Markup:{" "}
-                            {indicadores.markupPercentual.toLocaleString("pt-BR", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}
-                            %
-                          </span>
+                          {erpPdvPodeConsultarCustoLucro && (
+                            <>
+                              <span>
+                                Lucro: R$ {formatarMoedaErpPdv(indicadores.lucro)}
+                              </span>
+                              <span>
+                                Margem:{" "}
+                                {indicadores.margemPercentual.toLocaleString("pt-BR", {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                                %
+                              </span>
+                              <span>
+                                Markup:{" "}
+                                {indicadores.markupPercentual.toLocaleString("pt-BR", {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                                %
+                              </span>
+                            </>
+                          )}
                           <span>Estoque: {produto.estoque_atual}</span>
                           <span>Minimo: {produto.estoque_minimo}</span>
                         </div>

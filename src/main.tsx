@@ -15,7 +15,7 @@ document.title = BrandConfig.platformName;
 applyPerformanceResourceHints();
 applyGoogleSiteVerification();
 applyRobotsMetadata(
-  /^\/(admin|dashboard|login|painel)(\/|$)/.test(window.location.pathname)
+  /^\/(admin|dashboard|login|painel|pdv)(\/|$)/.test(window.location.pathname)
     ? "noindex,nofollow"
     : "index,follow"
 );

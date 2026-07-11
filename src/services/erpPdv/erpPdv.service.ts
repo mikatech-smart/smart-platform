@@ -47,6 +47,54 @@ export type ErpPdvHistoricoPrecoItem = {
   origem: string;
 };
 
+export type ErpPdvPerfilUsuario =
+  | "administrador"
+  | "gerente"
+  | "caixa"
+  | "vendedor"
+  | "estoque";
+
+export type ErpPdvPermissao =
+  | "tabela_varejo"
+  | "tabela_atacado"
+  | "tabela_revenda"
+  | "produto_salvar"
+  | "preco_alterar"
+  | "desconto_aplicar"
+  | "caixa_abrir_fechar"
+  | "caixa_movimentar"
+  | "venda_cancelar"
+  | "devolucao_realizar"
+  | "vale_troca_emitir"
+  | "custo_lucro_consultar"
+  | "relatorios_acessar";
+
+export type ErpPdvUsuario = {
+  id: string;
+  empresa_id: string;
+  nome: string;
+  email: string;
+  telefone: string;
+  perfil: ErpPdvPerfilUsuario;
+  modulo_inicial: string;
+  permissoes: Record<ErpPdvPermissao, boolean>;
+  ativo: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ErpPdvUsuarioPayload = {
+  id?: string;
+  empresaId: string;
+  nome: string;
+  email: string;
+  telefone: string;
+  perfil: ErpPdvPerfilUsuario;
+  moduloInicial: string;
+  permissoes: Record<ErpPdvPermissao, boolean>;
+  ativo: boolean;
+};
+
 export type ErpPdvProdutoPayload = {
   id?: string;
   empresaId: string;
@@ -229,6 +277,7 @@ export type ErpPdvMovimentacaoPayload = {
   motivo: string;
   observacao: string;
   usuarioResponsavel: string;
+  usuarioId?: string;
 };
 
 export type ErpPdvFormaPagamento =
@@ -252,6 +301,7 @@ export type ErpPdvFinalizarVendaPayload = {
   clienteId?: string;
   clienteNome?: string;
   operador: string;
+  operadorUsuarioId?: string;
   formaPagamento: ErpPdvFormaPagamento;
   valeTrocaId?: string;
   itens: ErpPdvVendaItemPayload[];
@@ -312,6 +362,7 @@ export type ErpPdvRegistrarDevolucaoPayload = {
   empresaId: string;
   vendaId: string;
   operador: string;
+  operadorUsuarioId?: string;
   motivo: string;
   validadeDias: number;
   itens: ErpPdvDevolucaoItemPayload[];
@@ -366,6 +417,7 @@ export type ErpPdvCaixa = {
   empresa_id: string;
   status: ErpPdvCaixaStatus;
   operador: string;
+  operador_usuario_id: string | null;
   aberto_em: string;
   fechado_em: string | null;
   saldo_inicial: number;
@@ -384,6 +436,7 @@ export type ErpPdvCaixaMovimentacao = {
   tipo: ErpPdvCaixaMovimentacaoTipo;
   valor: number;
   operador: string;
+  operador_usuario_id: string | null;
   observacao: string;
   created_at: string;
 };
@@ -483,6 +536,20 @@ type ErpPdvProdutoRow = {
   ativo: boolean;
 };
 
+type ErpPdvUsuarioRow = {
+  id: string;
+  empresa_id: string;
+  nome?: string;
+  email?: string;
+  telefone?: string;
+  perfil?: ErpPdvPerfilUsuario;
+  modulo_inicial?: string;
+  permissoes?: Record<string, boolean> | null;
+  ativo?: boolean;
+  created_at?: string;
+  updated_at?: string;
+};
+
 type ErpPdvEstoqueRow = {
   produto_id: string;
   quantidade_atual: number | string;
@@ -575,6 +642,7 @@ type ErpPdvMovimentacaoRow = {
   motivo?: string;
   observacao?: string;
   usuario_responsavel?: string;
+  erp_pdv_usuario_id?: string | null;
   created_at: string;
 };
 
@@ -586,6 +654,7 @@ type ErpPdvVendaRow = {
   cliente_id?: string | null;
   cliente_nome?: string;
   operador?: string;
+  operador_usuario_id?: string | null;
   vale_troca_id?: string | null;
   vale_troca_valor_utilizado?: number | string;
   pagamento_complementar?: number | string;
@@ -630,6 +699,7 @@ type ErpPdvDevolucaoRow = {
   tipo: "total" | "parcial";
   motivo: string;
   operador?: string;
+  operador_usuario_id?: string | null;
   cliente_nome?: string;
   valor_devolvido: number | string;
   created_at: string;
@@ -640,6 +710,7 @@ type ErpPdvCaixaRow = {
   empresa_id: string;
   status: ErpPdvCaixaStatus;
   operador?: string;
+  operador_usuario_id?: string | null;
   aberto_em?: string | null;
   fechado_em?: string | null;
   saldo_inicial: number | string;
@@ -656,6 +727,7 @@ type ErpPdvCaixaMovimentacaoRow = {
   tipo: ErpPdvCaixaMovimentacaoTipo;
   valor: number | string;
   operador?: string;
+  operador_usuario_id?: string | null;
   observacao?: string;
   created_at: string;
 };
@@ -669,6 +741,43 @@ function toNumber(valor: number | string | null | undefined) {
 
 function normalizarFormacaoPrecoTipo(valor: string | undefined) {
   return valor === "percentual_custo" ? valor : "manual";
+}
+
+const erpPdvPermissoesLista: ErpPdvPermissao[] = [
+  "tabela_varejo",
+  "tabela_atacado",
+  "tabela_revenda",
+  "produto_salvar",
+  "preco_alterar",
+  "desconto_aplicar",
+  "caixa_abrir_fechar",
+  "caixa_movimentar",
+  "venda_cancelar",
+  "devolucao_realizar",
+  "vale_troca_emitir",
+  "custo_lucro_consultar",
+  "relatorios_acessar",
+];
+
+function normalizarPermissoesUsuario(
+  valor: Record<string, boolean> | null | undefined
+) {
+  return erpPdvPermissoesLista.reduce<Record<ErpPdvPermissao, boolean>>(
+    (permissoes, permissao) => ({
+      ...permissoes,
+      [permissao]: Boolean(valor?.[permissao]),
+    }),
+    {} as Record<ErpPdvPermissao, boolean>
+  );
+}
+
+function normalizarPerfilUsuario(valor: string | undefined): ErpPdvPerfilUsuario {
+  return valor === "gerente" ||
+    valor === "caixa" ||
+    valor === "vendedor" ||
+    valor === "estoque"
+    ? valor
+    : "administrador";
 }
 
 function normalizarHistoricoPrecos(valor: unknown): ErpPdvHistoricoPrecoItem[] {
@@ -728,6 +837,22 @@ function normalizarHistoricoOperacional(
       return historicoNormalizado;
     })
     .filter((item): item is ErpPdvHistoricoOperacionalItem => Boolean(item));
+}
+
+function normalizarUsuario(row: ErpPdvUsuarioRow): ErpPdvUsuario {
+  return {
+    id: row.id,
+    empresa_id: row.empresa_id,
+    nome: row.nome || "",
+    email: row.email || "",
+    telefone: row.telefone || "",
+    perfil: normalizarPerfilUsuario(row.perfil),
+    modulo_inicial: row.modulo_inicial || "pdv",
+    permissoes: normalizarPermissoesUsuario(row.permissoes),
+    ativo: row.ativo !== false,
+    created_at: row.created_at || "",
+    updated_at: row.updated_at || "",
+  };
 }
 
 function normalizarProduto(
@@ -877,6 +1002,7 @@ function normalizarCaixa(row: ErpPdvCaixaRow): ErpPdvCaixa {
     empresa_id: row.empresa_id,
     status: row.status,
     operador: row.operador || "",
+    operador_usuario_id: row.operador_usuario_id || null,
     aberto_em: row.aberto_em || "",
     fechado_em: row.fechado_em || null,
     saldo_inicial: toNumber(row.saldo_inicial),
@@ -897,6 +1023,7 @@ function normalizarCaixaMovimentacao(
     tipo: row.tipo,
     valor: toNumber(row.valor),
     operador: row.operador || "",
+    operador_usuario_id: row.operador_usuario_id || null,
     observacao: row.observacao || "",
     created_at: row.created_at,
   };
@@ -934,6 +1061,63 @@ function normalizarDevolucao(row: ErpPdvDevolucaoRow): ErpPdvDevolucao {
     cliente_nome: row.cliente_nome || "Consumidor nao identificado",
     valor_devolvido: toNumber(row.valor_devolvido),
     created_at: row.created_at,
+  };
+}
+
+export async function listarErpPdvUsuarios(empresaId: string) {
+  const { data, error } = await supabase
+    .from("erp_pdv_usuarios")
+    .select(
+      "id, empresa_id, nome, email, telefone, perfil, modulo_inicial, permissoes, ativo, created_at, updated_at"
+    )
+    .eq("empresa_id", empresaId)
+    .order("ativo", { ascending: false })
+    .order("nome", { ascending: true });
+
+  return {
+    data: ((data || []) as ErpPdvUsuarioRow[]).map(normalizarUsuario),
+    error,
+  };
+}
+
+export async function salvarErpPdvUsuario(payload: ErpPdvUsuarioPayload) {
+  if (!payload.nome.trim()) {
+    return {
+      data: null,
+      error: new Error("Informe o nome do usuario do ERP/PDV."),
+    };
+  }
+
+  const agora = new Date().toISOString();
+  const usuarioPayload = {
+    empresa_id: payload.empresaId,
+    nome: payload.nome.trim(),
+    email: payload.email.trim(),
+    telefone: payload.telefone.trim(),
+    perfil: payload.perfil,
+    modulo_inicial: payload.moduloInicial.trim() || "pdv",
+    permissoes: normalizarPermissoesUsuario(payload.permissoes),
+    ativo: payload.ativo,
+    updated_at: agora,
+  };
+
+  const query = payload.id
+    ? supabase
+        .from("erp_pdv_usuarios")
+        .update(usuarioPayload)
+        .eq("empresa_id", payload.empresaId)
+        .eq("id", payload.id)
+    : supabase.from("erp_pdv_usuarios").insert(usuarioPayload);
+
+  const { data, error } = await query
+    .select(
+      "id, empresa_id, nome, email, telefone, perfil, modulo_inicial, permissoes, ativo, created_at, updated_at"
+    )
+    .single();
+
+  return {
+    data: data ? normalizarUsuario(data as ErpPdvUsuarioRow) : null,
+    error,
   };
 }
 
@@ -1279,6 +1463,7 @@ export async function listarErpPdvMovimentacoes(empresaId: string) {
         motivo,
         observacao,
         usuario_responsavel,
+        erp_pdv_usuario_id,
         created_at
       `
     )
@@ -1650,7 +1835,7 @@ export async function buscarErpPdvCaixaAberto(empresaId: string) {
   const { data, error } = await supabase
     .from("erp_pdv_caixas")
     .select(
-      "id, empresa_id, status, operador, aberto_em, fechado_em, saldo_inicial, saldo_final, valor_informado, diferenca, observacao"
+      "id, empresa_id, status, operador, operador_usuario_id, aberto_em, fechado_em, saldo_inicial, saldo_final, valor_informado, diferenca, observacao"
     )
     .eq("empresa_id", empresaId)
     .eq("status", "aberto")
@@ -1667,6 +1852,7 @@ export async function buscarErpPdvCaixaAberto(empresaId: string) {
 export async function abrirErpPdvCaixa(payload: {
   empresaId: string;
   operador: string;
+  operadorUsuarioId?: string;
   saldoInicial: number;
 }) {
   if (!payload.operador.trim()) {
@@ -1699,6 +1885,7 @@ export async function abrirErpPdvCaixa(payload: {
       empresa_id: payload.empresaId,
       status: "aberto",
       operador: payload.operador.trim(),
+      operador_usuario_id: payload.operadorUsuarioId || null,
       aberto_em: agora,
       saldo_inicial: saldoInicial,
       saldo_final: saldoInicial,
@@ -1707,7 +1894,7 @@ export async function abrirErpPdvCaixa(payload: {
       updated_at: agora,
     })
     .select(
-      "id, empresa_id, status, operador, aberto_em, fechado_em, saldo_inicial, saldo_final, valor_informado, diferenca, observacao"
+      "id, empresa_id, status, operador, operador_usuario_id, aberto_em, fechado_em, saldo_inicial, saldo_final, valor_informado, diferenca, observacao"
     )
     .single();
 
@@ -1723,6 +1910,7 @@ export async function registrarErpPdvCaixaMovimentacao(payload: {
   tipo: ErpPdvCaixaMovimentacaoTipo;
   valor: number;
   operador: string;
+  operadorUsuarioId?: string;
   observacao: string;
 }) {
   const valor = toNumber(payload.valor);
@@ -1749,9 +1937,10 @@ export async function registrarErpPdvCaixaMovimentacao(payload: {
       tipo: payload.tipo,
       valor,
       operador: payload.operador.trim(),
+      operador_usuario_id: payload.operadorUsuarioId || null,
       observacao: payload.observacao.trim(),
     })
-    .select("id, empresa_id, caixa_id, tipo, valor, operador, observacao, created_at")
+    .select("id, empresa_id, caixa_id, tipo, valor, operador, operador_usuario_id, observacao, created_at")
     .single();
 
   return {
@@ -2097,7 +2286,7 @@ export async function fecharErpPdvCaixa(payload: {
   const { data: caixaData, error: caixaError } = await supabase
     .from("erp_pdv_caixas")
     .select(
-      "id, empresa_id, status, operador, aberto_em, fechado_em, saldo_inicial, saldo_final, valor_informado, diferenca, observacao"
+      "id, empresa_id, status, operador, operador_usuario_id, aberto_em, fechado_em, saldo_inicial, saldo_final, valor_informado, diferenca, observacao"
     )
     .eq("empresa_id", payload.empresaId)
     .eq("id", payload.caixaId)
@@ -2139,7 +2328,7 @@ export async function fecharErpPdvCaixa(payload: {
     .eq("empresa_id", payload.empresaId)
     .eq("id", payload.caixaId)
     .select(
-      "id, empresa_id, status, operador, aberto_em, fechado_em, saldo_inicial, saldo_final, valor_informado, diferenca, observacao"
+      "id, empresa_id, status, operador, operador_usuario_id, aberto_em, fechado_em, saldo_inicial, saldo_final, valor_informado, diferenca, observacao"
     )
     .single();
 
@@ -2245,6 +2434,7 @@ export async function registrarErpPdvMovimentacao(
       motivo: payload.motivo.trim(),
       observacao: payload.observacao.trim(),
       usuario_responsavel: payload.usuarioResponsavel.trim(),
+      erp_pdv_usuario_id: payload.usuarioId || null,
     })
     .select(
       `
@@ -2259,6 +2449,7 @@ export async function registrarErpPdvMovimentacao(
         motivo,
         observacao,
         usuario_responsavel,
+        erp_pdv_usuario_id,
         created_at
       `
     )
@@ -2440,7 +2631,7 @@ export async function obterErpPdvResumoTrocas(empresaId: string) {
   const { data: devolucoesData, error: devolucoesError } = await supabase
     .from("erp_pdv_devolucoes")
     .select(
-      "id, numero, venda_id, vale_troca_id, tipo, motivo, operador, cliente_nome, valor_devolvido, created_at"
+      "id, numero, venda_id, vale_troca_id, tipo, motivo, operador, operador_usuario_id, cliente_nome, valor_devolvido, created_at"
     )
     .eq("empresa_id", empresaId)
     .order("created_at", { ascending: false })
@@ -2627,11 +2818,12 @@ export async function registrarErpPdvDevolucao(
       tipo,
       motivo: payload.motivo.trim(),
       operador: payload.operador.trim(),
+      operador_usuario_id: payload.operadorUsuarioId || null,
       cliente_nome: venda.cliente_nome || "Consumidor nao identificado",
       valor_devolvido: valorDevolvido,
     })
     .select(
-      "id, numero, venda_id, vale_troca_id, tipo, motivo, operador, cliente_nome, valor_devolvido, created_at"
+      "id, numero, venda_id, vale_troca_id, tipo, motivo, operador, operador_usuario_id, cliente_nome, valor_devolvido, created_at"
     )
     .single();
 
@@ -2723,9 +2915,10 @@ export async function registrarErpPdvDevolucao(
         motivo: `Devolucao venda #${venda.numero}`,
         observacao: payload.motivo.trim(),
         usuario_responsavel: payload.operador.trim(),
+        erp_pdv_usuario_id: payload.operadorUsuarioId || null,
       })
       .select(
-        "id, empresa_id, produto_id, tipo, quantidade, estoque_anterior, estoque_posterior, origem, motivo, observacao, usuario_responsavel, created_at"
+        "id, empresa_id, produto_id, tipo, quantidade, estoque_anterior, estoque_posterior, origem, motivo, observacao, usuario_responsavel, erp_pdv_usuario_id, created_at"
       )
       .single();
 
@@ -2923,6 +3116,7 @@ export async function finalizarErpPdvVenda(
       cliente_id: payload.clienteId || null,
       cliente_nome: payload.clienteNome?.trim() || "Consumidor nao identificado",
       operador,
+      operador_usuario_id: payload.operadorUsuarioId || null,
       observacao: valeTroca
         ? `Vale-troca #${valeTroca.numero} utilizado. Complemento: ${pagamentoComplementar.toFixed(2)}`
         : "",
@@ -2940,7 +3134,7 @@ export async function finalizarErpPdvVenda(
       updated_at: agora,
     })
     .select(
-      "id, numero, total, forma_pagamento, cliente_id, cliente_nome, operador, vale_troca_id, vale_troca_valor_utilizado, pagamento_complementar, finalizada_em"
+      "id, numero, total, forma_pagamento, cliente_id, cliente_nome, operador, operador_usuario_id, vale_troca_id, vale_troca_valor_utilizado, pagamento_complementar, finalizada_em"
     )
     .single();
 
@@ -3064,6 +3258,7 @@ export async function finalizarErpPdvVenda(
         motivo: `Venda PDV #${venda.numero}`,
         observacao: item.descricao.trim(),
         usuario_responsavel: operador,
+        erp_pdv_usuario_id: payload.operadorUsuarioId || null,
       })
       .select(
         `
@@ -3078,6 +3273,7 @@ export async function finalizarErpPdvVenda(
           motivo,
           observacao,
           usuario_responsavel,
+          erp_pdv_usuario_id,
           created_at
         `
       )
