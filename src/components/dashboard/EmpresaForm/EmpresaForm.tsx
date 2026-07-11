@@ -15,8 +15,10 @@ import {
   listarErpPdvMovimentacoes,
   listarErpPdvCategorias,
   listarErpPdvProdutos,
+  finalizarErpPdvVenda,
   registrarErpPdvMovimentacao,
   salvarErpPdvProduto,
+  type ErpPdvFormaPagamento,
   type ErpPdvCategoria,
   type ErpPdvMovimentacao,
   type ErpPdvMovimentacaoPayload,
@@ -868,6 +870,17 @@ type ErpPdvCarrinhoItem = {
   produtoId: string;
   quantidade: number;
 };
+
+const erpPdvFormasPagamento: Array<{
+  id: ErpPdvFormaPagamento;
+  label: string;
+}> = [
+  { id: "dinheiro", label: "Dinheiro" },
+  { id: "pix", label: "PIX" },
+  { id: "debito", label: "Cartao de Debito" },
+  { id: "credito", label: "Cartao de Credito" },
+  { id: "outros", label: "Outros" },
+];
 
 const erpPdvProdutoFormPadrao: ErpPdvProdutoForm = {
   id: "",
@@ -5587,6 +5600,9 @@ export default function EmpresaForm({
   const [erpPdvCarrinho, setErpPdvCarrinho] = useState<ErpPdvCarrinhoItem[]>(
     []
   );
+  const [erpPdvOperadorVenda, setErpPdvOperadorVenda] = useState("");
+  const [erpPdvFormaPagamentoVenda, setErpPdvFormaPagamentoVenda] =
+    useState<ErpPdvFormaPagamento>("dinheiro");
   const [erpPdvBusca, setErpPdvBusca] = useState("");
   const [erpPdvOrdenacao, setErpPdvOrdenacao] =
     useState<ErpPdvOrdenacaoProdutos>("nome");
@@ -6806,6 +6822,80 @@ export default function EmpresaForm({
       tipo: "info",
       texto: "Venda cancelada antes da finalizacao. Nenhum registro foi gravado.",
     });
+  }
+
+  async function finalizarVendaErpPdv() {
+    if (!empresaId) return;
+
+    if (!erpPdvCarrinhoDetalhado.length) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "Adicione produtos ao carrinho antes de finalizar.",
+      });
+      return;
+    }
+
+    if (!erpPdvOperadorVenda.trim()) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "Informe o operador responsavel pela venda.",
+      });
+      return;
+    }
+
+    try {
+      setErpPdvSalvando(true);
+
+      const { data, error } = await finalizarErpPdvVenda({
+        empresaId,
+        operador: erpPdvOperadorVenda,
+        formaPagamento: erpPdvFormaPagamentoVenda,
+        itens: erpPdvCarrinhoDetalhado.map((item) => ({
+          produtoId: item.produto.id,
+          descricao: item.produto.nome,
+          quantidade: item.quantidade,
+          precoUnitario: item.produto.preco_venda,
+        })),
+      });
+
+      if (error) throw error;
+      if (!data) throw new Error("Venda nao retornada pelo Supabase.");
+
+      setErpPdvProdutos((produtosAtuais) =>
+        produtosAtuais.map((produto) => {
+          const movimentacaoProduto = data.movimentacoes.find(
+            (movimentacao) => movimentacao.produto_id === produto.id
+          );
+
+          return movimentacaoProduto
+            ? {
+                ...produto,
+                estoque_atual: movimentacaoProduto.estoque_posterior,
+              }
+            : produto;
+        })
+      );
+      setErpPdvMovimentacoes((movimentacoesAtuais) => [
+        ...data.movimentacoes,
+        ...movimentacoesAtuais,
+      ]);
+      setErpPdvCarrinho([]);
+      setErpPdvPdvBusca("");
+      setErpPdvFeedback({
+        tipo: "sucesso",
+        texto: `Venda #${data.numero} finalizada. Estoque baixado automaticamente.`,
+      });
+    } catch (error) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel finalizar a venda.",
+      });
+    } finally {
+      setErpPdvSalvando(false);
+    }
   }
 
   async function adicionarErpPdvCategoria() {
@@ -8998,7 +9088,7 @@ export default function EmpresaForm({
                     </div>
 
                     <span className="rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-green-100">
-                      Carrinho local - venda ainda nao gravada
+                      Finalizacao real sem fiscal e sem TEF
                     </span>
                   </div>
 
@@ -9204,7 +9294,46 @@ export default function EmpresaForm({
                   </div>
 
                   <div className="mt-4 rounded-2xl bg-slate-950 p-4 text-white">
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wide text-slate-300">
+                          Pagamento
+                        </label>
+
+                        <select
+                          value={erpPdvFormaPagamentoVenda}
+                          onChange={(e) =>
+                            setErpPdvFormaPagamentoVenda(
+                              e.target.value as ErpPdvFormaPagamento
+                            )
+                          }
+                          className="mt-2 w-full rounded-xl border border-white/20 bg-white px-3 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-green-400 focus:ring-4 focus:ring-green-900/40"
+                        >
+                          {erpPdvFormasPagamento.map((forma) => (
+                            <option key={forma.id} value={forma.id}>
+                              {forma.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wide text-slate-300">
+                          Operador
+                        </label>
+
+                        <input
+                          value={erpPdvOperadorVenda}
+                          onChange={(e) =>
+                            setErpPdvOperadorVenda(e.target.value)
+                          }
+                          placeholder="Nome"
+                          className="mt-2 w-full rounded-xl border border-white/20 bg-white px-3 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-green-400 focus:ring-4 focus:ring-green-900/40"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between gap-3">
                       <span className="text-sm font-bold text-slate-300">
                         Total geral
                       </span>
@@ -9229,10 +9358,15 @@ export default function EmpresaForm({
 
                       <button
                         type="button"
-                        disabled
-                        className="rounded-xl bg-slate-700 px-4 py-4 text-sm font-black text-slate-300 opacity-70"
+                        onClick={finalizarVendaErpPdv}
+                        disabled={
+                          erpPdvCarrinho.length === 0 ||
+                          erpPdvSalvando ||
+                          !erpPdvOperadorVenda.trim()
+                        }
+                        className="rounded-xl bg-green-500 px-4 py-4 text-sm font-black text-slate-950 transition hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        Finalizar em breve
+                        {erpPdvSalvando ? "Finalizando..." : "Finalizar venda"}
                       </button>
                     </div>
                   </div>

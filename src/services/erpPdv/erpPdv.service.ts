@@ -76,6 +76,37 @@ export type ErpPdvMovimentacaoPayload = {
   usuarioResponsavel: string;
 };
 
+export type ErpPdvFormaPagamento =
+  | "dinheiro"
+  | "pix"
+  | "debito"
+  | "credito"
+  | "outros";
+
+export type ErpPdvVendaItemPayload = {
+  produtoId: string;
+  descricao: string;
+  quantidade: number;
+  precoUnitario: number;
+};
+
+export type ErpPdvFinalizarVendaPayload = {
+  empresaId: string;
+  operador: string;
+  formaPagamento: ErpPdvFormaPagamento;
+  itens: ErpPdvVendaItemPayload[];
+};
+
+export type ErpPdvVendaFinalizada = {
+  id: string;
+  numero: number;
+  total: number;
+  forma_pagamento: string;
+  operador: string;
+  finalizada_em: string;
+  movimentacoes: ErpPdvMovimentacao[];
+};
+
 type ErpPdvProdutoRow = {
   id: string;
   empresa_id: string;
@@ -113,6 +144,15 @@ type ErpPdvMovimentacaoRow = {
   observacao?: string;
   usuario_responsavel?: string;
   created_at: string;
+};
+
+type ErpPdvVendaRow = {
+  id: string;
+  numero: number | string;
+  total: number | string;
+  forma_pagamento: string;
+  operador?: string;
+  finalizada_em: string;
 };
 
 function toNumber(valor: number | string | null | undefined) {
@@ -473,6 +513,217 @@ export async function registrarErpPdvMovimentacao(
 
   return {
     data: normalizarMovimentacao(movimentacaoData as ErpPdvMovimentacaoRow),
+    error: null,
+  };
+}
+
+export async function finalizarErpPdvVenda(
+  payload: ErpPdvFinalizarVendaPayload
+) {
+  const itens = payload.itens
+    .map((item) => ({
+      ...item,
+      quantidade: toNumber(item.quantidade),
+      precoUnitario: toNumber(item.precoUnitario),
+    }))
+    .filter((item) => item.produtoId && item.quantidade > 0);
+
+  if (!itens.length) {
+    return {
+      data: null,
+      error: new Error("Adicione pelo menos um item ao carrinho."),
+    };
+  }
+
+  if (!payload.operador.trim()) {
+    return {
+      data: null,
+      error: new Error("Informe o operador responsavel pela venda."),
+    };
+  }
+
+  if (!payload.formaPagamento) {
+    return {
+      data: null,
+      error: new Error("Selecione a forma de pagamento."),
+    };
+  }
+
+  const produtoIds = itens.map((item) => item.produtoId);
+  const { data: estoqueData, error: estoqueError } = await supabase
+    .from("erp_pdv_estoques")
+    .select("produto_id, quantidade_atual, estoque_minimo")
+    .eq("empresa_id", payload.empresaId)
+    .in("produto_id", produtoIds);
+
+  if (estoqueError) {
+    return {
+      data: null,
+      error: estoqueError,
+    };
+  }
+
+  const estoquesPorProduto = new Map(
+    ((estoqueData || []) as ErpPdvEstoqueRow[]).map((estoque) => [
+      estoque.produto_id,
+      estoque,
+    ])
+  );
+
+  for (const item of itens) {
+    const estoqueAtual = toNumber(
+      estoquesPorProduto.get(item.produtoId)?.quantidade_atual
+    );
+
+    if (item.quantidade > estoqueAtual) {
+      return {
+        data: null,
+        error: new Error(
+          `Estoque insuficiente para ${item.descricao || "produto"}.`
+        ),
+      };
+    }
+  }
+
+  const subtotal = itens.reduce(
+    (total, item) => total + item.quantidade * item.precoUnitario,
+    0
+  );
+  const agora = new Date().toISOString();
+  const operador = payload.operador.trim();
+
+  const { data: vendaData, error: vendaError } = await supabase
+    .from("erp_pdv_vendas")
+    .insert({
+      empresa_id: payload.empresaId,
+      status: "finalizada",
+      subtotal,
+      desconto: 0,
+      total: subtotal,
+      forma_pagamento: payload.formaPagamento,
+      operador,
+      observacao: "",
+      finalizada_em: agora,
+      updated_at: agora,
+    })
+    .select("id, numero, total, forma_pagamento, operador, finalizada_em")
+    .single();
+
+  if (vendaError || !vendaData) {
+    return {
+      data: null,
+      error: vendaError,
+    };
+  }
+
+  const venda = vendaData as ErpPdvVendaRow;
+  const itensPayload = itens.map((item) => ({
+    empresa_id: payload.empresaId,
+    venda_id: venda.id,
+    produto_id: item.produtoId,
+    descricao: item.descricao.trim(),
+    quantidade: item.quantidade,
+    preco_unitario: item.precoUnitario,
+    desconto: 0,
+    total: item.quantidade * item.precoUnitario,
+  }));
+
+  const { error: itensError } = await supabase
+    .from("erp_pdv_venda_itens")
+    .insert(itensPayload);
+
+  if (itensError) {
+    return {
+      data: null,
+      error: itensError,
+    };
+  }
+
+  const movimentacoes: ErpPdvMovimentacao[] = [];
+
+  for (const item of itens) {
+    const estoqueAtual = estoquesPorProduto.get(item.produtoId);
+    const estoqueAnterior = toNumber(estoqueAtual?.quantidade_atual);
+    const estoqueMinimo = toNumber(estoqueAtual?.estoque_minimo);
+    const estoquePosterior = estoqueAnterior - item.quantidade;
+
+    const { error: estoqueUpdateError } = await supabase
+      .from("erp_pdv_estoques")
+      .upsert(
+        {
+          empresa_id: payload.empresaId,
+          produto_id: item.produtoId,
+          quantidade_atual: estoquePosterior,
+          estoque_minimo: estoqueMinimo,
+          updated_at: agora,
+          ultima_movimentacao_em: agora,
+        },
+        {
+          onConflict: "produto_id",
+        }
+      );
+
+    if (estoqueUpdateError) {
+      return {
+        data: null,
+        error: estoqueUpdateError,
+      };
+    }
+
+    const { data: movimentacaoData, error: movimentacaoError } = await supabase
+      .from("erp_pdv_movimentacoes")
+      .insert({
+        empresa_id: payload.empresaId,
+        produto_id: item.produtoId,
+        tipo: "venda",
+        quantidade: item.quantidade,
+        estoque_anterior: estoqueAnterior,
+        estoque_posterior: estoquePosterior,
+        origem: "venda",
+        motivo: `Venda PDV #${venda.numero}`,
+        observacao: item.descricao.trim(),
+        usuario_responsavel: operador,
+      })
+      .select(
+        `
+          id,
+          empresa_id,
+          produto_id,
+          tipo,
+          quantidade,
+          estoque_anterior,
+          estoque_posterior,
+          origem,
+          motivo,
+          observacao,
+          usuario_responsavel,
+          created_at
+        `
+      )
+      .single();
+
+    if (movimentacaoError || !movimentacaoData) {
+      return {
+        data: null,
+        error: movimentacaoError,
+      };
+    }
+
+    movimentacoes.push(
+      normalizarMovimentacao(movimentacaoData as ErpPdvMovimentacaoRow)
+    );
+  }
+
+  return {
+    data: {
+      id: venda.id,
+      numero: toNumber(venda.numero),
+      total: toNumber(venda.total),
+      forma_pagamento: venda.forma_pagamento,
+      operador: venda.operador || operador,
+      finalizada_em: venda.finalizada_em,
+      movimentacoes,
+    } as ErpPdvVendaFinalizada,
     error: null,
   };
 }
