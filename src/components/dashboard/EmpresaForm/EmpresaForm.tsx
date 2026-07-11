@@ -833,13 +833,20 @@ type ErpPdvProdutoForm = {
   categoriaId: string;
   codigoBarras: string;
   sku: string;
+  marca: string;
   custo: string;
   precoVenda: string;
   unidade: string;
   estoqueAtual: string;
   estoqueMinimo: string;
+  localizacao: string;
+  ncm: string;
+  observacoes: string;
+  imagemUrl: string;
   ativo: boolean;
 };
+
+type ErpPdvOrdenacaoProdutos = "nome" | "estoque" | "preco";
 
 const erpPdvProdutoFormPadrao: ErpPdvProdutoForm = {
   id: "",
@@ -847,11 +854,16 @@ const erpPdvProdutoFormPadrao: ErpPdvProdutoForm = {
   categoriaId: "",
   codigoBarras: "",
   sku: "",
+  marca: "",
   custo: "",
   precoVenda: "",
   unidade: "un",
   estoqueAtual: "",
   estoqueMinimo: "",
+  localizacao: "",
+  ncm: "",
+  observacoes: "",
+  imagemUrl: "",
   ativo: true,
 };
 
@@ -2590,11 +2602,16 @@ function criarErpPdvProdutoForm(produto: ErpPdvProduto): ErpPdvProdutoForm {
     categoriaId: produto.categoria_id || "",
     codigoBarras: produto.codigo_barras,
     sku: produto.sku,
+    marca: produto.marca,
     custo: formatarNumeroErpPdv(produto.custo),
     precoVenda: formatarNumeroErpPdv(produto.preco_venda),
     unidade: produto.unidade || "un",
     estoqueAtual: formatarNumeroErpPdv(produto.estoque_atual),
     estoqueMinimo: formatarNumeroErpPdv(produto.estoque_minimo),
+    localizacao: produto.localizacao,
+    ncm: produto.ncm,
+    observacoes: produto.observacoes,
+    imagemUrl: produto.imagem_url,
     ativo: produto.ativo,
   };
 }
@@ -5534,6 +5551,8 @@ export default function EmpresaForm({
   );
   const [erpPdvProdutos, setErpPdvProdutos] = useState<ErpPdvProduto[]>([]);
   const [erpPdvBusca, setErpPdvBusca] = useState("");
+  const [erpPdvOrdenacao, setErpPdvOrdenacao] =
+    useState<ErpPdvOrdenacaoProdutos>("nome");
   const [erpPdvCategoriaNome, setErpPdvCategoriaNome] = useState("");
   const [erpPdvProdutoForm, setErpPdvProdutoForm] =
     useState<ErpPdvProdutoForm>(() => ({ ...erpPdvProdutoFormPadrao }));
@@ -5622,17 +5641,29 @@ export default function EmpresaForm({
   };
   const possuiAlteracoesAparencia =
     JSON.stringify(aparenciaAtual) !== JSON.stringify(aparenciaSalva);
-  const erpPdvProdutosFiltrados = erpPdvProdutos.filter((produto) => {
-    const termo = erpPdvBusca.trim().toLowerCase();
+  const erpPdvProdutosFiltrados = erpPdvProdutos
+    .filter((produto) => {
+      const termo = erpPdvBusca.trim().toLowerCase();
 
-    if (!termo) return true;
+      if (!termo) return true;
 
-    return [
-      produto.nome,
-      produto.sku,
-      produto.codigo_barras,
-    ].some((valor) => valor.toLowerCase().includes(termo));
-  });
+      return [
+        produto.nome,
+        produto.sku,
+        produto.codigo_barras,
+      ].some((valor) => valor.toLowerCase().includes(termo));
+    })
+    .sort((produtoA, produtoB) => {
+      if (erpPdvOrdenacao === "estoque") {
+        return produtoA.estoque_atual - produtoB.estoque_atual;
+      }
+
+      if (erpPdvOrdenacao === "preco") {
+        return produtoA.preco_venda - produtoB.preco_venda;
+      }
+
+      return produtoA.nome.localeCompare(produtoB.nome);
+    });
   const erpPdvPilotoMikatech = slugPublico === "mikatech";
 
   useEffect(() => {
@@ -6580,9 +6611,14 @@ export default function EmpresaForm({
       nome: erpPdvProdutoForm.nome,
       codigoBarras: erpPdvProdutoForm.codigoBarras,
       sku: erpPdvProdutoForm.sku,
+      marca: erpPdvProdutoForm.marca,
       custo: parseNumeroErpPdv(erpPdvProdutoForm.custo),
       precoVenda: parseNumeroErpPdv(erpPdvProdutoForm.precoVenda),
       unidade: erpPdvProdutoForm.unidade,
+      localizacao: erpPdvProdutoForm.localizacao,
+      ncm: erpPdvProdutoForm.ncm,
+      observacoes: erpPdvProdutoForm.observacoes,
+      imagemUrl: erpPdvProdutoForm.imagemUrl,
       estoqueAtual: parseNumeroErpPdv(erpPdvProdutoForm.estoqueAtual),
       estoqueMinimo: parseNumeroErpPdv(erpPdvProdutoForm.estoqueMinimo),
       ativo: erpPdvProdutoForm.ativo,
@@ -8728,6 +8764,15 @@ export default function EmpresaForm({
                   />
 
                   <Input
+                    label="Marca"
+                    value={erpPdvProdutoForm.marca}
+                    onChange={(e) =>
+                      atualizarErpPdvProdutoForm("marca", e.target.value)
+                    }
+                    placeholder="Ex.: Mikatech, 3M, Epson"
+                  />
+
+                  <Input
                     label="Custo"
                     value={erpPdvProdutoForm.custo}
                     onChange={(e) =>
@@ -8777,6 +8822,60 @@ export default function EmpresaForm({
                     }
                     placeholder="0"
                   />
+
+                  <Input
+                    label="Localizacao"
+                    value={erpPdvProdutoForm.localizacao}
+                    onChange={(e) =>
+                      atualizarErpPdvProdutoForm(
+                        "localizacao",
+                        e.target.value
+                      )
+                    }
+                    placeholder="Ex.: Rua A / Prateleira 2"
+                  />
+
+                  <Input
+                    label="NCM"
+                    value={erpPdvProdutoForm.ncm}
+                    onChange={(e) =>
+                      atualizarErpPdvProdutoForm("ncm", e.target.value)
+                    }
+                    placeholder="Preparado para fiscal futuro"
+                  />
+                </div>
+
+                <div className="mt-4 grid gap-4">
+                  <UploadImagem
+                    titulo="Foto principal do produto"
+                    imagem={erpPdvProdutoForm.imagemUrl}
+                    accept="image/*"
+                    formatosPermitidos="PNG, JPG, JPEG ou WEBP ate 5 MB"
+                    tamanhoMaximoMb={5}
+                    pasta={`erp-pdv/${slugPublico || empresaId || "rascunho"}/produtos/${erpPdvProdutoForm.id || erpPdvProdutoForm.sku || "novo"}`}
+                    onUpload={async (url) =>
+                      atualizarErpPdvProdutoForm("imagemUrl", url)
+                    }
+                  />
+
+                  <div>
+                    <label className="block font-medium text-slate-700">
+                      Observacoes
+                    </label>
+
+                    <textarea
+                      value={erpPdvProdutoForm.observacoes}
+                      onChange={(e) =>
+                        atualizarErpPdvProdutoForm(
+                          "observacoes",
+                          e.target.value
+                        )
+                      }
+                      placeholder="Detalhes internos do produto, fornecedor, variacoes ou cuidados."
+                      rows={4}
+                      className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                    />
+                  </div>
                 </div>
 
                 <label className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
@@ -8818,12 +8917,32 @@ export default function EmpresaForm({
                   />
                 </div>
 
+                <div className="min-w-0 md:w-56">
+                  <label className="block font-medium text-slate-700">
+                    Ordenar por
+                  </label>
+
+                  <select
+                    value={erpPdvOrdenacao}
+                    onChange={(e) =>
+                      setErpPdvOrdenacao(
+                        e.target.value as ErpPdvOrdenacaoProdutos
+                      )
+                    }
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                  >
+                    <option value="nome">Nome</option>
+                    <option value="estoque">Estoque</option>
+                    <option value="preco">Preco</option>
+                  </select>
+                </div>
+
                 <span className="text-sm font-semibold text-slate-500">
                   {erpPdvProdutosFiltrados.length} produto(s)
                 </span>
               </div>
 
-              <div className="mt-4 grid gap-3">
+              <div className="mt-4 grid gap-3 lg:grid-cols-2">
                 {erpPdvProdutosFiltrados.length > 0 ? (
                   erpPdvProdutosFiltrados.map((produto) => {
                     const categoriaProduto = erpPdvCategorias.find(
@@ -8837,6 +8956,20 @@ export default function EmpresaForm({
                         onClick={() => editarErpPdvProduto(produto)}
                         className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-green-300 hover:bg-green-50"
                       >
+                        <div className="mb-4 h-32 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                          {produto.imagem_url ? (
+                            <img
+                              src={produto.imagem_url}
+                              alt={produto.nome}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-sm font-bold text-slate-400">
+                              Sem foto
+                            </div>
+                          )}
+                        </div>
+
                         <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
                           <div className="min-w-0">
                             <h5 className="font-bold text-slate-900">

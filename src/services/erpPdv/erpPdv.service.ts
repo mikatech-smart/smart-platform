@@ -16,9 +16,14 @@ export type ErpPdvProduto = {
   nome: string;
   codigo_barras: string;
   sku: string;
+  marca: string;
   custo: number;
   preco_venda: number;
   unidade: string;
+  localizacao: string;
+  ncm: string;
+  observacoes: string;
+  imagem_url: string;
   ativo: boolean;
   estoque_atual: number;
   estoque_minimo: number;
@@ -31,9 +36,14 @@ export type ErpPdvProdutoPayload = {
   nome: string;
   codigoBarras: string;
   sku: string;
+  marca: string;
   custo: number;
   precoVenda: number;
   unidade: string;
+  localizacao: string;
+  ncm: string;
+  observacoes: string;
+  imagemUrl: string;
   estoqueAtual: number;
   estoqueMinimo: number;
   ativo: boolean;
@@ -46,9 +56,14 @@ type ErpPdvProdutoRow = {
   nome: string;
   codigo_barras: string;
   sku: string;
+  marca?: string;
   custo: number | string;
   preco_venda: number | string;
   unidade: string;
+  localizacao?: string;
+  ncm?: string;
+  observacoes?: string;
+  imagem_url?: string;
   ativo: boolean;
 };
 
@@ -76,9 +91,14 @@ function normalizarProduto(
     nome: row.nome || "",
     codigo_barras: row.codigo_barras || "",
     sku: row.sku || "",
+    marca: row.marca || "",
     custo: toNumber(row.custo),
     preco_venda: toNumber(row.preco_venda),
     unidade: row.unidade || "un",
+    localizacao: row.localizacao || "",
+    ncm: row.ncm || "",
+    observacoes: row.observacoes || "",
+    imagem_url: row.imagem_url || "",
     ativo: row.ativo,
     estoque_atual: toNumber(estoque?.quantidade_atual),
     estoque_minimo: toNumber(estoque?.estoque_minimo),
@@ -132,9 +152,14 @@ export async function listarErpPdvProdutos(empresaId: string) {
         nome,
         codigo_barras,
         sku,
+        marca,
         custo,
         preco_venda,
         unidade,
+        localizacao,
+        ncm,
+        observacoes,
+        imagem_url,
         ativo
       `
     )
@@ -182,9 +207,14 @@ export async function salvarErpPdvProduto(payload: ErpPdvProdutoPayload) {
     nome: payload.nome.trim(),
     codigo_barras: payload.codigoBarras.trim(),
     sku: payload.sku.trim(),
+    marca: payload.marca.trim(),
     custo: payload.custo,
     preco_venda: payload.precoVenda,
     unidade: payload.unidade.trim() || "un",
+    localizacao: payload.localizacao.trim(),
+    ncm: payload.ncm.trim(),
+    observacoes: payload.observacoes.trim(),
+    imagem_url: payload.imagemUrl.trim(),
     ativo: payload.ativo,
   };
 
