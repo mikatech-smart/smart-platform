@@ -1,0 +1,226 @@
+.public-agendamento {
+  --schedule-primary: #064e3b;
+  --schedule-secondary: #0f766e;
+  --schedule-button: var(--schedule-primary);
+  --schedule-button-text: #ffffff;
+  --schedule-background: #f7f5ef;
+  --schedule-surface: #ffffff;
+  --schedule-text: #17211d;
+  --schedule-muted: #647067;
+  --schedule-border: rgba(15, 23, 42, 0.1);
+  min-height: 100vh;
+  padding: clamp(18px, 4vw, 42px);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), transparent 280px),
+    var(--schedule-background);
+  color: var(--schedule-text);
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.public-agendamento--center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.public-agendamento-message {
+  width: min(100%, 460px);
+  padding: 28px;
+  border: 1px solid var(--schedule-border);
+  border-radius: 24px;
+  background: var(--schedule-surface);
+  box-shadow: 0 22px 60px rgba(15, 23, 42, 0.12);
+}
+
+.public-agendamento-message img {
+  width: 76px;
+  height: 76px;
+  margin-bottom: 16px;
+  border-radius: 20px;
+  object-fit: cover;
+}
+
+.public-agendamento-message h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  letter-spacing: 0;
+}
+
+.public-agendamento-message p {
+  margin: 10px 0 0;
+  color: var(--schedule-muted);
+  line-height: 1.6;
+}
+
+.public-agendamento-message a {
+  min-height: 44px;
+  margin-top: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: var(--schedule-button);
+  color: var(--schedule-button-text);
+  padding: 0 18px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.public-agendamento-hero,
+.public-agendamento-content {
+  width: min(100%, 920px);
+  margin-inline: auto;
+}
+
+.public-agendamento-hero {
+  display: grid;
+  gap: 28px;
+  padding: clamp(20px, 5vw, 44px);
+  border: 1px solid var(--schedule-border);
+  border-radius: 28px;
+  background: var(--schedule-surface);
+  box-shadow: 0 22px 60px rgba(15, 23, 42, 0.12);
+}
+
+.public-agendamento-brand {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--schedule-primary);
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.public-agendamento-brand img {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  object-fit: cover;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+}
+
+.public-agendamento-hero p {
+  margin: 0 0 10px;
+  color: var(--schedule-primary);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.public-agendamento-hero h1 {
+  margin: 0;
+  font-size: clamp(2.2rem, 7vw, 4.4rem);
+  line-height: 0.98;
+  letter-spacing: 0;
+}
+
+.public-agendamento-hero span {
+  max-width: 680px;
+  margin-top: 14px;
+  display: block;
+  color: var(--schedule-muted);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.public-agendamento-content {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.public-agendamento-service {
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+  padding: clamp(16px, 4vw, 24px);
+  border: 1px solid var(--schedule-border);
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--schedule-surface) 96%, transparent);
+  box-shadow: 0 16px 42px rgba(15, 23, 42, 0.08);
+}
+
+.public-agendamento-service__index {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--schedule-primary) 12%, transparent);
+  color: var(--schedule-primary);
+  font-weight: 900;
+}
+
+.public-agendamento-service h2 {
+  margin: 0;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  letter-spacing: 0;
+}
+
+.public-agendamento-service p {
+  margin: 10px 0 0;
+  color: var(--schedule-muted);
+  line-height: 1.6;
+}
+
+.public-agendamento-service dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0 0;
+}
+
+.public-agendamento-service dl div {
+  min-height: 56px;
+  display: grid;
+  gap: 2px;
+  align-content: center;
+  border-radius: 16px;
+  background: var(--schedule-surface);
+  border: 1px solid var(--schedule-border);
+  padding: 8px 12px;
+}
+
+.public-agendamento-service dt {
+  color: var(--schedule-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.public-agendamento-service dd {
+  margin: 0;
+  color: var(--schedule-primary);
+  font-weight: 900;
+}
+
+.public-agendamento-service__button {
+  width: fit-content;
+  min-height: 44px;
+  margin-top: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--schedule-button);
+  color: var(--schedule-button-text);
+  padding: 0 18px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.public-agendamento-service__button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--schedule-primary) 24%, transparent);
+  outline-offset: 2px;
+}
+
+@media (min-width: 720px) {
+  .public-agendamento-service {
+    grid-template-columns: 64px minmax(0, 1fr);
+    align-items: start;
+  }
+}

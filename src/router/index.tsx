@@ -5,6 +5,7 @@ import PublicEmpresaPage from "../pages/PublicEmpresaPage/PublicEmpresaPage";
 import PublicLandingPage from "../pages/PublicLandingPage/PublicLandingPage";
 import PublicCardapioPage from "../pages/PublicCardapioPage/PublicCardapioPage";
 import PublicCatalogoPage from "../pages/PublicCatalogoPage/PublicCatalogoPage";
+import PublicAgendamentoPage from "../pages/PublicAgendamentoPage/PublicAgendamentoPage";
 
 import Dashboard from "../pages/dashboard/Dashboard";
 import Empresas from "../pages/dashboard/Empresas";
@@ -40,6 +41,11 @@ export default function AppRouter() {
         <Route
           path="/catalogo/:slug"
           element={<PublicCatalogoPage />}
+        />
+
+        <Route
+          path="/agendamento/:slug"
+          element={<PublicAgendamentoPage />}
         />
 
         {/* Dashboard */}

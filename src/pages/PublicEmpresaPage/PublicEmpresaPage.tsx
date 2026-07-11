@@ -33,6 +33,7 @@ type AparenciaEmpresa = Empresa & {
   recursos_contratados?: {
     cardapio_digital?: boolean;
     catalogo?: boolean;
+    agendamento?: boolean;
   } | null;
 };
 
@@ -277,6 +278,8 @@ export default function PublicEmpresaPage() {
     (empresa as AparenciaEmpresa).recursos_contratados?.cardapio_digital === true;
   const catalogoContratado =
     (empresa as AparenciaEmpresa).recursos_contratados?.catalogo === true;
+  const agendamentoContratado =
+    (empresa as AparenciaEmpresa).recursos_contratados?.agendamento === true;
 
   return (
     <main className="public-empresa-page" style={estiloAparencia}>
@@ -344,6 +347,19 @@ export default function PublicEmpresaPage() {
                 href={`/catalogo/${empresa.slug}`}
               >
                 Ver catalogo
+              </a>
+            </section>
+          )}
+
+          {agendamentoContratado && (
+            <section className="public-empresa-section public-empresa-info-card">
+              <span>Agendamento</span>
+              <p>Confira os servicos disponiveis, duracao e valores informados.</p>
+              <a
+                className="public-empresa-map-link"
+                href={`/agendamento/${empresa.slug}`}
+              >
+                Agendar
               </a>
             </section>
           )}

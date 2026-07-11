@@ -231,6 +231,10 @@ function getRequestRoute(pathname) {
     return { kind: "catalogo", slug: parts[1] };
   }
 
+  if (parts.length === 2 && parts[0] === "agendamento") {
+    return { kind: "agendamento", slug: parts[1] };
+  }
+
   return null;
 }
 
@@ -267,7 +271,7 @@ async function getEmpresasParaSitemap(env) {
   }
 
   const params = new URLSearchParams({
-    select: "slug,ativo,landing_page_config,recursos_contratados,cardapio_config,catalogo_config",
+    select: "slug,ativo,landing_page_config,recursos_contratados,cardapio_config,catalogo_config,agendamento_config",
     ativo: "eq.true",
     order: "slug.asc",
     limit: "10000",
@@ -348,6 +352,30 @@ function isCatalogoPublicado(empresa) {
   });
 }
 
+function isAgendamentoPublicado(empresa) {
+  if (empresa?.recursos_contratados?.agendamento !== true) {
+    return false;
+  }
+
+  const servicos = empresa?.agendamento_config?.servicos;
+
+  if (!Array.isArray(servicos)) return false;
+
+  return servicos.some((servico) => {
+    const ativo = typeof servico?.ativo === "boolean" ? servico.ativo : true;
+
+    return (
+      ativo &&
+      [
+        servico?.nome,
+        servico?.descricao,
+        servico?.duracaoMinutos,
+        servico?.valor,
+      ].some((valor) => String(valor || "").trim())
+    );
+  });
+}
+
 function buildRobotsTxt() {
   return [
     "User-agent: *",
@@ -385,6 +413,10 @@ function buildSitemapXml(empresas = []) {
 
     if (isCatalogoPublicado(empresa)) {
       urls.push(`${PUBLIC_APP_URL}/catalogo/${encodeURIComponent(slug)}`);
+    }
+
+    if (isAgendamentoPublicado(empresa)) {
+      urls.push(`${PUBLIC_APP_URL}/agendamento/${encodeURIComponent(slug)}`);
     }
 
     if (urls.length >= SITEMAP_MAX_URLS) break;
@@ -485,6 +517,8 @@ function buildMetadata(route, empresa) {
       `Cardapio de ${empresa?.nome || DEFAULT_TITLE}`) ||
     (route.kind === "catalogo" &&
       `Catalogo de ${empresa?.nome || DEFAULT_TITLE}`) ||
+    (route.kind === "agendamento" &&
+      `Agendamento de ${empresa?.nome || DEFAULT_TITLE}`) ||
     empresa?.nome ||
     DEFAULT_TITLE;
   const description = truncate(
@@ -494,6 +528,8 @@ function buildMetadata(route, empresa) {
         (empresa?.descricao || empresa?.categoria || "Cardapio Digital")) ||
       (route.kind === "catalogo" &&
         (empresa?.descricao || empresa?.categoria || "Catalogo")) ||
+      (route.kind === "agendamento" &&
+        (empresa?.descricao || empresa?.categoria || "Agendamento")) ||
       empresa?.descricao ||
       empresa?.categoria ||
       DEFAULT_DESCRIPTION
@@ -536,6 +572,8 @@ function buildMetadata(route, empresa) {
         ? "noindex,nofollow"
       : route.kind === "catalogo" && !isCatalogoPublicado(empresa)
         ? "noindex,nofollow"
+      : route.kind === "agendamento" && !isAgendamentoPublicado(empresa)
+        ? "noindex,nofollow"
       : "index,follow";
   const url =
     route.kind === "landing"
@@ -544,6 +582,8 @@ function buildMetadata(route, empresa) {
         ? normalizeCanonicalUrl(`/cardapio/${route.slug}`)
       : route.kind === "catalogo"
         ? normalizeCanonicalUrl(`/catalogo/${route.slug}`)
+      : route.kind === "agendamento"
+        ? normalizeCanonicalUrl(`/agendamento/${route.slug}`)
       : normalizeCanonicalUrl(`/${route.slug}`);
 
   const manifestUrl = `${PUBLIC_APP_URL}/manifest.webmanifest?${new URLSearchParams({
@@ -590,6 +630,8 @@ function buildManifest(metadata) {
         ? `/cardapio/${metadata.route.slug}`
       : metadata.route.kind === "catalogo"
         ? `/catalogo/${metadata.route.slug}`
+      : metadata.route.kind === "agendamento"
+        ? `/agendamento/${metadata.route.slug}`
       : `/${metadata.route.slug}`;
 
   return {
@@ -717,7 +759,10 @@ export async function onRequestGet(context) {
     const slug = url.searchParams.get("slug") || "";
     const kindParam = url.searchParams.get("kind");
     const kind =
-      kindParam === "landing" || kindParam === "cardapio" || kindParam === "catalogo"
+      kindParam === "landing" ||
+      kindParam === "cardapio" ||
+      kindParam === "catalogo" ||
+      kindParam === "agendamento"
         ? kindParam
         : "public";
     const empresa = slug ? await getEmpresa(context.env, slug) : null;

@@ -82,7 +82,7 @@ export function normalizeCanonicalUrl(value?: string | null) {
 
 export function getManifestUrl(
   slug: string,
-  kind: "public" | "landing" | "cardapio" | "catalogo"
+  kind: "public" | "landing" | "cardapio" | "catalogo" | "agendamento"
 ) {
   const params = new URLSearchParams({
     slug,
