@@ -642,6 +642,28 @@ type CrmInteracaoConfig = {
   dataHora: string;
 };
 
+type CrmTarefaPrioridade = "baixa" | "media" | "alta";
+
+type CrmTarefaStatus = "pendente" | "concluida";
+
+type CrmTarefaConfig = {
+  id: string;
+  titulo: string;
+  descricao: string;
+  vencimento: string;
+  prioridade: CrmTarefaPrioridade;
+  status: CrmTarefaStatus;
+  criadoEm?: string;
+  concluidoEm?: string;
+};
+
+type CrmTarefaRascunho = {
+  titulo: string;
+  descricao: string;
+  vencimento: string;
+  prioridade: CrmTarefaPrioridade;
+};
+
 type CrmClienteConfig = {
   id: string;
   nome: string;
@@ -656,6 +678,7 @@ type CrmClienteConfig = {
   atualizadoEm?: string;
   movimentadoEm?: string;
   interacoes: CrmInteracaoConfig[];
+  tarefas: CrmTarefaConfig[];
 };
 
 type CrmClienteCampoEditavel =
@@ -794,6 +817,28 @@ const crmInteracaoOrigens: Array<{
   { id: "sistema", nome: "Sistema" },
 ];
 
+const crmTarefaPrioridades: Array<{
+  id: CrmTarefaPrioridade;
+  nome: string;
+  classes: string;
+}> = [
+  {
+    id: "baixa",
+    nome: "Baixa",
+    classes: "bg-slate-100 text-slate-700",
+  },
+  {
+    id: "media",
+    nome: "Media",
+    classes: "bg-amber-100 text-amber-700",
+  },
+  {
+    id: "alta",
+    nome: "Alta",
+    classes: "bg-red-100 text-red-700",
+  },
+];
+
 const crmClientePadrao: CrmClienteConfig = {
   id: "cliente-1",
   nome: "",
@@ -808,6 +853,7 @@ const crmClientePadrao: CrmClienteConfig = {
   atualizadoEm: "",
   movimentadoEm: "",
   interacoes: [],
+  tarefas: [],
 };
 
 const crmConfigPadrao: CrmConfig = {
@@ -1654,6 +1700,58 @@ function normalizarCrmInteracoes(valor: unknown): CrmInteracaoConfig[] {
     });
 }
 
+function normalizarCrmTarefaPrioridade(valor: unknown): CrmTarefaPrioridade {
+  return valor === "media" || valor === "alta" ? valor : "baixa";
+}
+
+function normalizarCrmTarefaStatus(valor: unknown): CrmTarefaStatus {
+  return valor === "concluida" ? "concluida" : "pendente";
+}
+
+function ordenarCrmTarefas(tarefas: CrmTarefaConfig[]) {
+  return [...tarefas].sort((a, b) => {
+    if (a.status !== b.status) return a.status === "pendente" ? -1 : 1;
+
+    const dataA = new Date(a.vencimento).getTime();
+    const dataB = new Date(b.vencimento).getTime();
+
+    return (Number.isNaN(dataA) ? 0 : dataA) - (Number.isNaN(dataB) ? 0 : dataB);
+  });
+}
+
+function normalizarCrmTarefas(valor: unknown): CrmTarefaConfig[] {
+  if (!Array.isArray(valor)) return [];
+
+  return ordenarCrmTarefas(
+    valor
+      .slice(0, 100)
+      .map((item, indice) => {
+        const tarefa =
+          item && typeof item === "object" && !Array.isArray(item)
+            ? (item as Record<string, unknown>)
+            : {};
+
+        return {
+          id:
+            lerCampoTexto(tarefa, "id") ||
+            criarCardapioId("tarefa", indice),
+          titulo:
+            lerCampoTexto(tarefa, "titulo") ||
+            lerCampoTexto(tarefa, "nome"),
+          descricao: lerCampoTexto(tarefa, "descricao"),
+          vencimento:
+            lerCampoTexto(tarefa, "vencimento") ||
+            lerCampoTexto(tarefa, "dataVencimento"),
+          prioridade: normalizarCrmTarefaPrioridade(tarefa.prioridade),
+          status: normalizarCrmTarefaStatus(tarefa.status),
+          criadoEm: lerCampoTexto(tarefa, "criadoEm"),
+          concluidoEm: lerCampoTexto(tarefa, "concluidoEm"),
+        };
+      })
+      .filter((tarefa) => tarefa.titulo)
+  );
+}
+
 function obterCrmPipelineEtapaNome(etapaId: CrmPipelineEtapa) {
   return (
     crmPipelineEtapas.find((etapa) => etapa.id === etapaId)?.nome ||
@@ -1668,6 +1766,13 @@ function obterCrmInteracaoOrigemNome(origemId: CrmInteracaoOrigem) {
   );
 }
 
+function obterCrmTarefaPrioridade(prioridadeId: CrmTarefaPrioridade) {
+  return (
+    crmTarefaPrioridades.find((prioridade) => prioridade.id === prioridadeId) ||
+    crmTarefaPrioridades[0]
+  );
+}
+
 function formatarDataMovimentacaoCrm(valor?: string) {
   if (!valor) return "Sem movimentacao registrada";
 
@@ -1679,6 +1784,16 @@ function formatarDataMovimentacaoCrm(valor?: string) {
     dateStyle: "short",
     timeStyle: "short",
   });
+}
+
+function formatarDataVencimentoCrm(valor?: string) {
+  if (!valor) return "Sem vencimento";
+
+  const data = new Date(`${valor}T00:00:00`);
+
+  if (Number.isNaN(data.getTime())) return "Data nao informada";
+
+  return data.toLocaleDateString("pt-BR");
 }
 
 function normalizarCrmConfig(valor: unknown): CrmConfig {
@@ -1718,6 +1833,7 @@ function normalizarCrmConfig(valor: unknown): CrmConfig {
           atualizadoEm: lerCampoTexto(cliente, "atualizadoEm"),
           movimentadoEm: lerCampoTexto(cliente, "movimentadoEm"),
           interacoes: normalizarCrmInteracoes(cliente.interacoes),
+          tarefas: normalizarCrmTarefas(cliente.tarefas),
         };
       })
     : crmConfigPadrao.clientes.map((cliente) => ({ ...cliente }));
@@ -4460,6 +4576,9 @@ export default function EmpresaForm({
   >({});
   const [crmInteracoesOrigemRascunho, setCrmInteracoesOrigemRascunho] =
     useState<Record<string, CrmInteracaoOrigem>>({});
+  const [crmTarefasRascunho, setCrmTarefasRascunho] = useState<
+    Record<string, CrmTarefaRascunho>
+  >({});
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -5715,6 +5834,153 @@ export default function EmpresaForm({
       ...origensAtuais,
       [clienteId]: "manual",
     }));
+  }
+
+  function obterCrmTarefaRascunho(clienteId: string): CrmTarefaRascunho {
+    return (
+      crmTarefasRascunho[clienteId] || {
+        titulo: "",
+        descricao: "",
+        vencimento: "",
+        prioridade: "media",
+      }
+    );
+  }
+
+  function atualizarCrmTarefaRascunho(
+    clienteId: string,
+    campo: keyof CrmTarefaRascunho,
+    valor: string
+  ) {
+    setCrmTarefasRascunho((rascunhosAtuais) => {
+      const rascunhoAtual = rascunhosAtuais[clienteId] || {
+        titulo: "",
+        descricao: "",
+        vencimento: "",
+        prioridade: "media" as CrmTarefaPrioridade,
+      };
+
+      return {
+        ...rascunhosAtuais,
+        [clienteId]: {
+          ...rascunhoAtual,
+          [campo]:
+            campo === "prioridade"
+              ? normalizarCrmTarefaPrioridade(valor)
+              : valor,
+        },
+      };
+    });
+  }
+
+  function adicionarCrmTarefa(clienteId: string) {
+    const rascunho = obterCrmTarefaRascunho(clienteId);
+    const titulo = rascunho.titulo.trim();
+
+    if (!titulo) {
+      alert("Informe o titulo da tarefa antes de adicionar.");
+      return;
+    }
+
+    if (!rascunho.vencimento) {
+      alert("Informe a data de vencimento da tarefa.");
+      return;
+    }
+
+    const agora = new Date().toISOString();
+    const novaTarefa: CrmTarefaConfig = {
+      id: `tarefa-${Date.now()}`,
+      titulo,
+      descricao: rascunho.descricao.trim(),
+      vencimento: rascunho.vencimento,
+      prioridade: rascunho.prioridade,
+      status: "pendente",
+      criadoEm: agora,
+      concluidoEm: "",
+    };
+
+    setCrmClientes((clientesAtuais) =>
+      clientesAtuais.map((clienteAtual) =>
+        clienteAtual.id === clienteId
+          ? {
+              ...clienteAtual,
+              atualizadoEm: agora,
+              tarefas: ordenarCrmTarefas([
+                ...clienteAtual.tarefas,
+                novaTarefa,
+              ]).slice(0, 100),
+              interacoes: [
+                ...clienteAtual.interacoes,
+                {
+                  id: `interacao-${Date.now()}`,
+                  texto: `Tarefa criada: ${titulo}.`,
+                  origem: "sistema" as CrmInteracaoOrigem,
+                  dataHora: agora,
+                },
+              ].slice(-100),
+            }
+          : clienteAtual
+      )
+    );
+    setCrmTarefasRascunho((rascunhosAtuais) => ({
+      ...rascunhosAtuais,
+      [clienteId]: {
+        titulo: "",
+        descricao: "",
+        vencimento: "",
+        prioridade: "media",
+      },
+    }));
+  }
+
+  function alternarCrmTarefaStatus(
+    clienteId: string,
+    tarefaId: string,
+    status: CrmTarefaStatus
+  ) {
+    const agora = new Date().toISOString();
+
+    setCrmClientes((clientesAtuais) =>
+      clientesAtuais.map((clienteAtual) => {
+        if (clienteAtual.id !== clienteId) return clienteAtual;
+
+        const tarefaAlterada = clienteAtual.tarefas.find(
+          (tarefa) => tarefa.id === tarefaId
+        );
+
+        if (!tarefaAlterada || tarefaAlterada.status === status) {
+          return clienteAtual;
+        }
+
+        return {
+          ...clienteAtual,
+          atualizadoEm: agora,
+          tarefas: ordenarCrmTarefas(
+            clienteAtual.tarefas.map((tarefa) =>
+              tarefa.id === tarefaId
+                ? {
+                    ...tarefa,
+                    status,
+                    concluidoEm: status === "concluida" ? agora : "",
+                  }
+                : tarefa
+            )
+          ),
+          interacoes: [
+            ...clienteAtual.interacoes,
+            {
+              id: `interacao-${Date.now()}`,
+              texto:
+                status === "concluida"
+                  ? `Tarefa concluida: ${tarefaAlterada.titulo}.`
+                  : `Tarefa reaberta: ${tarefaAlterada.titulo}.`,
+              origem: "sistema" as CrmInteracaoOrigem,
+              dataHora: agora,
+            },
+          ].slice(-100),
+        };
+      })
+    );
   }
 
   function adicionarCrmCliente() {
@@ -7958,6 +8224,203 @@ export default function EmpresaForm({
                             rows={3}
                             className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
                           />
+                        </div>
+
+                        <div className="md:col-span-2 rounded-2xl border border-slate-200 bg-white p-4">
+                          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold text-slate-900">
+                                Tarefas e lembretes
+                              </p>
+                              <p className="mt-1 text-xs text-slate-500">
+                                Controle proximos passos com vencimento,
+                                prioridade e status.
+                              </p>
+                            </div>
+
+                            <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                              {
+                                clienteCrm.tarefas.filter(
+                                  (tarefa) => tarefa.status === "pendente"
+                                ).length
+                              }{" "}
+                              pendente(s)
+                            </span>
+                          </div>
+
+                          <div className="mt-4 grid gap-3">
+                            <Input
+                              label="Titulo da tarefa"
+                              value={obterCrmTarefaRascunho(clienteCrm.id).titulo}
+                              onChange={(e) =>
+                                atualizarCrmTarefaRascunho(
+                                  clienteCrm.id,
+                                  "titulo",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="Ex.: Enviar proposta revisada"
+                            />
+
+                            <div className="grid gap-3 md:grid-cols-3">
+                              <Input
+                                label="Data de vencimento"
+                                type="date"
+                                value={
+                                  obterCrmTarefaRascunho(clienteCrm.id)
+                                    .vencimento
+                                }
+                                onChange={(e) =>
+                                  atualizarCrmTarefaRascunho(
+                                    clienteCrm.id,
+                                    "vencimento",
+                                    e.target.value
+                                  )
+                                }
+                              />
+
+                              <label className="block text-sm font-medium text-slate-700">
+                                Prioridade
+                                <select
+                                  value={
+                                    obterCrmTarefaRascunho(clienteCrm.id)
+                                      .prioridade
+                                  }
+                                  onChange={(e) =>
+                                    atualizarCrmTarefaRascunho(
+                                      clienteCrm.id,
+                                      "prioridade",
+                                      e.target.value
+                                    )
+                                  }
+                                  className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-4 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                                >
+                                  {crmTarefaPrioridades.map((prioridade) => (
+                                    <option
+                                      key={prioridade.id}
+                                      value={prioridade.id}
+                                    >
+                                      {prioridade.nome}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+
+                              <div className="flex items-end">
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  onClick={() =>
+                                    adicionarCrmTarefa(clienteCrm.id)
+                                  }
+                                >
+                                  Adicionar tarefa
+                                </Button>
+                              </div>
+                            </div>
+
+                            <label className="block text-sm font-medium text-slate-700">
+                              Descricao opcional
+                              <textarea
+                                value={
+                                  obterCrmTarefaRascunho(clienteCrm.id)
+                                    .descricao
+                                }
+                                onChange={(e) =>
+                                  atualizarCrmTarefaRascunho(
+                                    clienteCrm.id,
+                                    "descricao",
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="Detalhes, combinados ou contexto da tarefa."
+                                rows={2}
+                                className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                              />
+                            </label>
+                          </div>
+
+                          <div className="mt-4 grid gap-3">
+                            {clienteCrm.tarefas.length > 0 ? (
+                              clienteCrm.tarefas.map((tarefa) => {
+                                const prioridade = obterCrmTarefaPrioridade(
+                                  tarefa.prioridade
+                                );
+
+                                return (
+                                  <article
+                                    key={tarefa.id}
+                                    className={`rounded-xl border p-3 ${
+                                      tarefa.status === "concluida"
+                                        ? "border-green-200 bg-green-50"
+                                        : "border-slate-200 bg-slate-50"
+                                    }`}
+                                  >
+                                    <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                      <div className="min-w-0">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <h6 className="text-sm font-bold text-slate-900">
+                                            {tarefa.titulo}
+                                          </h6>
+                                          <span
+                                            className={`rounded-full px-2.5 py-1 text-xs font-bold ${prioridade.classes}`}
+                                          >
+                                            {prioridade.nome}
+                                          </span>
+                                          <span
+                                            className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                                              tarefa.status === "concluida"
+                                                ? "bg-green-700 text-white"
+                                                : "bg-blue-100 text-blue-700"
+                                            }`}
+                                          >
+                                            {tarefa.status === "concluida"
+                                              ? "Concluida"
+                                              : "Pendente"}
+                                          </span>
+                                        </div>
+
+                                        <p className="mt-2 text-xs font-medium text-slate-500">
+                                          Vencimento:{" "}
+                                          {formatarDataVencimentoCrm(
+                                            tarefa.vencimento
+                                          )}
+                                        </p>
+
+                                        {tarefa.descricao && (
+                                          <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-600">
+                                            {tarefa.descricao}
+                                          </p>
+                                        )}
+                                      </div>
+
+                                      <Button
+                                        type="button"
+                                        variant="secondary"
+                                        onClick={() =>
+                                          alternarCrmTarefaStatus(
+                                            clienteCrm.id,
+                                            tarefa.id,
+                                            tarefa.status === "concluida"
+                                              ? "pendente"
+                                              : "concluida"
+                                          )
+                                        }
+                                      >
+                                        {tarefa.status === "concluida"
+                                          ? "Reabrir"
+                                          : "Concluir"}
+                                      </Button>
+                                    </div>
+                                  </article>
+                                );
+                              })
+                            ) : (
+                              <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-4 text-center text-sm text-slate-500">
+                                Nenhuma tarefa registrada para este lead.
+                              </p>
+                            )}
+                          </div>
                         </div>
 
                         <div className="md:col-span-2 rounded-2xl border border-slate-200 bg-white p-4">

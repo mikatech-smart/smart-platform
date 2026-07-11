@@ -144,6 +144,21 @@ type CrmInteracaoConfig = {
   dataHora: string;
 };
 
+type CrmTarefaPrioridade = "baixa" | "media" | "alta";
+
+type CrmTarefaStatus = "pendente" | "concluida";
+
+type CrmTarefaConfig = {
+  id: string;
+  titulo: string;
+  descricao: string;
+  vencimento: string;
+  prioridade: CrmTarefaPrioridade;
+  status: CrmTarefaStatus;
+  criadoEm?: string;
+  concluidoEm?: string;
+};
+
 type CrmClienteConfig = {
   id: string;
   nome: string;
@@ -158,6 +173,7 @@ type CrmClienteConfig = {
   atualizadoEm?: string;
   movimentadoEm?: string;
   interacoes: CrmInteracaoConfig[];
+  tarefas: CrmTarefaConfig[];
 };
 
 type CrmConfig = {
@@ -255,6 +271,71 @@ function normalizarCrmInteracoes(valor: unknown): CrmInteracaoConfig[] {
     });
 }
 
+function normalizarCrmTarefaPrioridade(valor: unknown): CrmTarefaPrioridade {
+  return valor === "media" || valor === "alta" ? valor : "baixa";
+}
+
+function normalizarCrmTarefaStatus(valor: unknown): CrmTarefaStatus {
+  return valor === "concluida" ? "concluida" : "pendente";
+}
+
+function ordenarCrmTarefas(tarefas: CrmTarefaConfig[]) {
+  return [...tarefas].sort((a, b) => {
+    if (a.status !== b.status) return a.status === "pendente" ? -1 : 1;
+
+    const dataA = new Date(a.vencimento).getTime();
+    const dataB = new Date(b.vencimento).getTime();
+
+    return (
+      (Number.isNaN(dataA) ? 0 : dataA) -
+      (Number.isNaN(dataB) ? 0 : dataB)
+    );
+  });
+}
+
+function normalizarCrmTarefas(valor: unknown): CrmTarefaConfig[] {
+  if (!Array.isArray(valor)) return [];
+
+  return ordenarCrmTarefas(
+    valor
+      .slice(0, 100)
+      .map((item, indice) => {
+        const tarefa =
+          item && typeof item === "object" && !Array.isArray(item)
+            ? (item as Record<string, unknown>)
+            : {};
+
+        return {
+          id:
+            typeof tarefa.id === "string" && tarefa.id.trim()
+              ? tarefa.id
+              : `tarefa-${indice + 1}`,
+          titulo:
+            typeof tarefa.titulo === "string"
+              ? tarefa.titulo
+              : typeof tarefa.nome === "string"
+                ? tarefa.nome
+                : "",
+          descricao:
+            typeof tarefa.descricao === "string" ? tarefa.descricao : "",
+          vencimento:
+            typeof tarefa.vencimento === "string"
+              ? tarefa.vencimento
+              : typeof tarefa.dataVencimento === "string"
+                ? tarefa.dataVencimento
+                : "",
+          prioridade: normalizarCrmTarefaPrioridade(tarefa.prioridade),
+          status: normalizarCrmTarefaStatus(tarefa.status),
+          criadoEm:
+            typeof tarefa.criadoEm === "string" ? tarefa.criadoEm : "",
+          concluidoEm:
+            typeof tarefa.concluidoEm === "string" ? tarefa.concluidoEm : "",
+        };
+      })
+      .filter((tarefa) => tarefa.titulo.trim())
+  );
+}
+
 function normalizarCrmConfig(valor: unknown): CrmConfig {
   if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
     return { clientes: [] };
@@ -306,6 +387,7 @@ function normalizarCrmConfig(valor: unknown): CrmConfig {
               ? cliente.movimentadoEm
               : "",
           interacoes: normalizarCrmInteracoes(cliente.interacoes),
+          tarefas: normalizarCrmTarefas(cliente.tarefas),
         };
       })
     : [];
@@ -451,6 +533,7 @@ export async function registrarLeadNoCrm(payload: CrmLeadPayload) {
     atualizadoEm: agora,
     movimentadoEm: agora,
     interacoes: [interacaoLead],
+    tarefas: [],
   };
   const clientes =
     indiceExistente >= 0
