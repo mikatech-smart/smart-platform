@@ -630,12 +630,36 @@ type IaTomComunicacao =
   | "consultivo"
   | "descontraido";
 
+type IaContextoFonte =
+  | "dados_empresa"
+  | "pagina_publica"
+  | "landing_page"
+  | "cardapio_digital"
+  | "catalogo"
+  | "agendamento"
+  | "fidelidade"
+  | "crm";
+
+type IaContextoConfig = {
+  fontes: Record<IaContextoFonte, boolean>;
+  ultimaAtualizacao: string;
+  resumo: string;
+  dados: Record<string, unknown>;
+};
+
 type IaConfig = {
   ativa: boolean;
   nomeAssistente: string;
   tomComunicacao: IaTomComunicacao;
   instrucoesPersonalizadas: string;
+  contexto: IaContextoConfig;
 };
+
+type IaConfigCampoEditavel =
+  | "ativa"
+  | "nomeAssistente"
+  | "tomComunicacao"
+  | "instrucoesPersonalizadas";
 
 type CrmClienteStatus = "prospect" | "ativo" | "inativo";
 
@@ -839,11 +863,80 @@ const iaTonsComunicacao: Array<{
   },
 ];
 
+const iaContextoFontes: Array<{
+  id: IaContextoFonte;
+  nome: string;
+  descricao: string;
+}> = [
+  {
+    id: "dados_empresa",
+    nome: "Dados da empresa",
+    descricao: "Nome, categoria, descricao, contatos e identidade visual.",
+  },
+  {
+    id: "pagina_publica",
+    nome: "Pagina Publica",
+    descricao: "Link publico, redes sociais, conectividade e recursos ativos.",
+  },
+  {
+    id: "landing_page",
+    nome: "Landing Page",
+    descricao: "Conteudo publicado, secoes, SEO e configuracoes comerciais.",
+  },
+  {
+    id: "cardapio_digital",
+    nome: "Cardapio Digital",
+    descricao: "Categorias, produtos, valores e disponibilidade.",
+  },
+  {
+    id: "catalogo",
+    nome: "Catalogo",
+    descricao: "Produtos, categorias, imagens e links de orcamento.",
+  },
+  {
+    id: "agendamento",
+    nome: "Agendamento",
+    descricao: "Servicos, duracao, valores e horarios configurados.",
+  },
+  {
+    id: "fidelidade",
+    nome: "Programa de Fidelidade",
+    descricao: "Campanha, recompensa, regras e status.",
+  },
+  {
+    id: "crm",
+    nome: "CRM",
+    descricao: "Leads, pipeline, tarefas, historico e automacoes.",
+  },
+];
+
+const iaContextoFontesPadrao: Record<IaContextoFonte, boolean> = {
+  dados_empresa: true,
+  pagina_publica: true,
+  landing_page: true,
+  cardapio_digital: true,
+  catalogo: true,
+  agendamento: true,
+  fidelidade: true,
+  crm: true,
+};
+
+const iaContextoPadrao: IaContextoConfig = {
+  fontes: { ...iaContextoFontesPadrao },
+  ultimaAtualizacao: "",
+  resumo: "",
+  dados: {},
+};
+
 const iaConfigPadrao: IaConfig = {
   ativa: false,
   nomeAssistente: "Assistente MikaON",
   tomComunicacao: "profissional",
   instrucoesPersonalizadas: "",
+  contexto: {
+    ...iaContextoPadrao,
+    fontes: { ...iaContextoFontesPadrao },
+  },
 };
 
 const crmPipelineEtapas: Array<{
@@ -1775,9 +1868,56 @@ function normalizarIaTomComunicacao(valor: unknown): IaTomComunicacao {
     : "profissional";
 }
 
+function normalizarIaContextoFontes(valor: unknown) {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return { ...iaContextoFontesPadrao };
+  }
+
+  const fontes = valor as Partial<Record<IaContextoFonte, unknown>>;
+
+  return iaContextoFontes.reduce<Record<IaContextoFonte, boolean>>(
+    (fontesNormalizadas, fonte) => ({
+      ...fontesNormalizadas,
+      [fonte.id]:
+        typeof fontes[fonte.id] === "boolean"
+          ? Boolean(fontes[fonte.id])
+          : iaContextoFontesPadrao[fonte.id],
+    }),
+    { ...iaContextoFontesPadrao }
+  );
+}
+
+function normalizarIaContexto(valor: unknown): IaContextoConfig {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return {
+      ...iaContextoPadrao,
+      fontes: { ...iaContextoFontesPadrao },
+    };
+  }
+
+  const contexto = valor as Record<string, unknown>;
+  const dados =
+    contexto.dados && typeof contexto.dados === "object" && !Array.isArray(contexto.dados)
+      ? (contexto.dados as Record<string, unknown>)
+      : {};
+
+  return {
+    fontes: normalizarIaContextoFontes(contexto.fontes),
+    ultimaAtualizacao: lerCampoTexto(contexto, "ultimaAtualizacao"),
+    resumo: lerCampoTexto(contexto, "resumo"),
+    dados,
+  };
+}
+
 function normalizarIaConfig(valor: unknown): IaConfig {
   if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
-    return { ...iaConfigPadrao };
+    return {
+      ...iaConfigPadrao,
+      contexto: {
+        ...iaConfigPadrao.contexto,
+        fontes: { ...iaConfigPadrao.contexto.fontes },
+      },
+    };
   }
 
   const config = valor as Record<string, unknown>;
@@ -1794,6 +1934,7 @@ function normalizarIaConfig(valor: unknown): IaConfig {
     instrucoesPersonalizadas:
       lerCampoTexto(config, "instrucoesPersonalizadas") ||
       lerCampoTexto(config, "instrucoes_personalizadas"),
+    contexto: normalizarIaContexto(config.contexto),
   };
 }
 
@@ -6003,12 +6144,18 @@ export default function EmpresaForm({
   }
 
   function montarIaConfig(): IaConfig {
+    const contexto = criarIaContextoUnificado();
+
     return {
       ...iaConfig,
+      contexto,
     };
   }
 
-  function atualizarIaConfig(campo: keyof IaConfig, valor: string | boolean) {
+  function atualizarIaConfig(
+    campo: IaConfigCampoEditavel,
+    valor: string | boolean
+  ) {
     setIaConfig((configAtual) => ({
       ...configAtual,
       [campo]:
@@ -6016,6 +6163,164 @@ export default function EmpresaForm({
           ? normalizarIaTomComunicacao(valor)
           : valor,
     }));
+  }
+
+  function atualizarIaContextoFonte(fonte: IaContextoFonte, ativo: boolean) {
+    setIaConfig((configAtual) => ({
+      ...configAtual,
+      contexto: {
+        ...configAtual.contexto,
+        fontes: {
+          ...configAtual.contexto.fontes,
+          [fonte]: ativo,
+        },
+      },
+    }));
+  }
+
+  function criarIaContextoUnificado(): IaContextoConfig {
+    const fontes = iaConfig.contexto.fontes;
+    const dados: Record<string, unknown> = {};
+    const resumo: string[] = [];
+    const basePublica = BrandConfig.publicAppUrl.replace(/\/$/, "");
+    const slugContexto = slugPublico || slugAdmin || slug;
+    const recursosAtivos = Object.entries(recursosContratados)
+      .filter(([, ativo]) => ativo)
+      .map(([recurso]) => recurso);
+
+    if (fontes.dados_empresa) {
+      dados.dados_empresa = {
+        nome,
+        slug: slugContexto,
+        categoria,
+        descricao,
+        contatos: {
+          telefone,
+          whatsapp,
+          email,
+          site,
+          endereco,
+          horarioAtendimento,
+        },
+        identidadeVisual: {
+          logo,
+          banner,
+          corPrincipal,
+          corSecundaria,
+          corBotoes,
+        },
+      };
+      resumo.push(`Empresa: ${nome || "Nao informado"}.`);
+    }
+
+    if (fontes.pagina_publica) {
+      dados.pagina_publica = {
+        url: slugContexto ? `${basePublica}/${slugContexto}` : "",
+        redesSociais: {
+          instagram,
+          facebook,
+          tiktok,
+          youtube,
+          kwai,
+        },
+        conectividade: {
+          wifiNome,
+          googleReviewUrl,
+          pixNome,
+        },
+        recursosAtivos,
+      };
+      resumo.push(`Pagina publica com ${recursosAtivos.length} recurso(s) ativo(s).`);
+    }
+
+    if (fontes.landing_page) {
+      const landingPageConfig = montarLandingPageConfig();
+
+      dados.landing_page = {
+        publicada: landingPageConfig.publicada,
+        hero: landingPageConfig.hero,
+        sobre: landingPageConfig.sobre,
+        servicos: landingPageConfig.servicos.slice(0, 10),
+        contato: landingPageConfig.contato,
+        cta: landingPageConfig.cta,
+        seo: landingPageConfig.seo,
+      };
+      resumo.push(
+        `Landing Page ${landingPageConfig.publicada ? "publicada" : "em rascunho"}.`
+      );
+    }
+
+    if (fontes.cardapio_digital) {
+      dados.cardapio_digital = {
+        categorias: cardapioCategorias.slice(0, 20),
+        produtos: cardapioProdutos.slice(0, 50),
+      };
+      resumo.push(`${cardapioProdutos.length} item(ns) no Cardapio Digital.`);
+    }
+
+    if (fontes.catalogo) {
+      dados.catalogo = {
+        categorias: catalogoCategorias.slice(0, 20),
+        produtos: catalogoProdutos.slice(0, 50),
+      };
+      resumo.push(`${catalogoProdutos.length} produto(s) no Catalogo.`);
+    }
+
+    if (fontes.agendamento) {
+      dados.agendamento = {
+        servicos: agendamentoServicos.slice(0, 30),
+        horariosAtendimento,
+      };
+      resumo.push(`${agendamentoServicos.length} servico(s) de Agendamento.`);
+    }
+
+    if (fontes.fidelidade) {
+      dados.fidelidade = {
+        ...fidelidadeConfig,
+      };
+      resumo.push(
+        fidelidadeConfig.ativo
+          ? "Programa de Fidelidade ativo."
+          : "Programa de Fidelidade inativo."
+      );
+    }
+
+    if (fontes.crm) {
+      const pipelineResumo = crmPipelineEtapas.map((etapa) => ({
+        etapa: etapa.nome,
+        total: crmClientes.filter(
+          (cliente) =>
+            normalizarCrmPipelineEtapa(cliente.etapaPipeline) === etapa.id
+        ).length,
+      }));
+
+      dados.crm = {
+        totalLeads: crmClientes.length,
+        pipeline: pipelineResumo,
+        automacoes: crmAutomacoes,
+        leads: crmClientes.slice(0, 50).map((cliente) => ({
+          nome: cliente.nome,
+          telefone: cliente.telefone,
+          email: cliente.email,
+          status: cliente.status,
+          etapaPipeline: normalizarCrmPipelineEtapa(cliente.etapaPipeline),
+          tags: cliente.tags,
+          totalTarefas: cliente.tarefas.length,
+          tarefasPendentes: cliente.tarefas.filter(
+            (tarefa) => tarefa.status === "pendente"
+          ).length,
+          totalInteracoes: cliente.interacoes.length,
+        })),
+      };
+      resumo.push(`${crmClientes.length} lead(s) no CRM.`);
+    }
+
+    return {
+      fontes: { ...fontes },
+      ultimaAtualizacao: new Date().toISOString(),
+      resumo: resumo.join(" "),
+      dados,
+    };
   }
 
   function montarCrmConfig(): CrmConfig {
@@ -6803,6 +7108,7 @@ export default function EmpresaForm({
     JSON.stringify(landingPageVersaoPublicada);
   const landingPagePublicadaEfetiva = landingPageVersaoPublicada.publicada;
   const landingPagePreviewConfig = montarLandingPageConfig();
+  const iaContextoPreview = criarIaContextoUnificado();
   const pastaUploadLanding = `landing-page/${slugPublico || empresaId || "rascunho"}`;
   const empresaLandingPreview: EmpresaLanding = {
     id: empresaId || "preview",
@@ -9195,6 +9501,70 @@ export default function EmpresaForm({
                       className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
                       placeholder="Ex.: Priorize respostas curtas, pergunte o melhor horario de contato e direcione interessados para o WhatsApp."
                     />
+                  </div>
+
+                  <div className="md:col-span-2 rounded-2xl border border-slate-200 bg-white p-4">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-slate-900">
+                        Contexto da empresa
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-slate-500">
+                        Selecione quais fontes serao consolidadas para o
+                        assistente utilizar em consultas futuras.
+                      </p>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      {iaContextoFontes.map((fonte) => (
+                        <label
+                          key={fonte.id}
+                          className="flex gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={iaConfig.contexto.fontes[fonte.id]}
+                            onChange={(e) =>
+                              atualizarIaContextoFonte(
+                                fonte.id,
+                                e.target.checked
+                              )
+                            }
+                            className="mt-1"
+                          />
+                          <span>
+                            <span className="block font-bold text-slate-900">
+                              {fonte.nome}
+                            </span>
+                            <span className="mt-1 block text-xs leading-5 text-slate-500">
+                              {fonte.descricao}
+                            </span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+
+                    <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-sm font-bold text-slate-900">
+                          Previa do contexto unificado
+                        </p>
+                        <span className="text-xs font-medium text-slate-500">
+                          {Object.keys(iaContextoPreview.dados).length} fonte(s)
+                        </span>
+                      </div>
+
+                      <p className="mt-2 text-xs leading-5 text-slate-600">
+                        {iaContextoPreview.resumo ||
+                          "Nenhuma fonte selecionada para o contexto."}
+                      </p>
+
+                      <textarea
+                        value={JSON.stringify(iaContextoPreview, null, 2)}
+                        readOnly
+                        rows={10}
+                        className="mt-3 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-xs text-slate-700 outline-none"
+                      />
+                    </div>
                   </div>
 
                   <div className="md:col-span-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-600">
