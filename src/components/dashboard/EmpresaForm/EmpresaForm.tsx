@@ -5730,19 +5730,25 @@ export default function EmpresaForm({
                             </select>
                           </div>
 
-                          <Input
-                            label="Imagem (URL, opcional)"
-                            value={produtoCardapio.imagemUrl}
-                            onChange={(e) =>
-                              atualizarCardapioProduto(
-                                indice,
-                                "imagemUrl",
-                                e.target.value
-                              )
-                            }
-                            placeholder="https://..."
-                          />
                         </div>
+
+                        <UploadImagem
+                          titulo={`Imagem do produto ${indice + 1}`}
+                          imagem={produtoCardapio.imagemUrl}
+                          accept="image/*"
+                          formatosPermitidos="PNG, JPG, JPEG ou WEBP ate 5 MB"
+                          tamanhoMaximoMb={5}
+                          pasta={`cardapio/${slugPublico || empresaId || "rascunho"}/produtos/${produtoCardapio.id || indice + 1}`}
+                          onUpload={async (url) =>
+                            atualizarCardapioProduto(indice, "imagemUrl", url)
+                          }
+                        />
+
+                        {produtoCardapio.imagemUrl.trim() && (
+                          <p className="break-all text-xs text-slate-500">
+                            URL atual da imagem: {produtoCardapio.imagemUrl}
+                          </p>
+                        )}
 
                         <div>
                           <label className="block font-medium text-slate-700">

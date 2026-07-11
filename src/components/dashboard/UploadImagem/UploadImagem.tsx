@@ -40,6 +40,7 @@ export default function UploadImagem({
   tipoArquivo = "imagem",
   accept,
   formatosPermitidos,
+  tamanhoMaximoMb = 5,
   pasta,
   onUpload,
   onSelecionar,
@@ -52,6 +53,11 @@ export default function UploadImagem({
 
   const isAudio = tipoArquivo === "audio";
   const isBanner = !isAudio && titulo.toLowerCase().includes("banner");
+  const isProductImage =
+    !isAudio &&
+    ["produto", "capa", "cardapio"].some((termo) =>
+      titulo.toLowerCase().includes(termo)
+    );
   const placeholder = isBanner
     ? {
         tipo: "BANNER",
@@ -66,6 +72,13 @@ export default function UploadImagem({
         formato: formatosPermitidos || "Arquivo de audio",
         detalhe: "Player HTML5 na Landing Page.",
       }
+    : isProductImage
+    ? {
+        tipo: "IMAGEM",
+        tamanho: "Ate 5 MB",
+        formato: formatosPermitidos || "PNG - JPG - WEBP",
+        detalhe: "Produto ou capa.",
+      }
     : {
         tipo: "LOGO",
         tamanho: "800 x 800 px",
@@ -76,6 +89,8 @@ export default function UploadImagem({
     ? "Formatos permitidos: MP3, WAV, OGG e M4A."
     : isBanner
     ? "Use imagem horizontal para melhor resultado."
+    : isProductImage
+    ? `Escolha da galeria ou tire uma foto no celular. ${formatosPermitidos || "PNG, JPG ou WEBP."}`
     : "Recomendado: PNG com fundo transparente.";
   const previewClassName = isAudio
     ? "upload-imagem__audio-preview"
@@ -132,12 +147,37 @@ export default function UploadImagem({
     if (!arquivo) return;
 
     const extensaoArquivo = arquivo.name.split(".").pop()?.toLowerCase() || "";
+    const formatosImagemPermitidos = ["png", "jpg", "jpeg", "webp"];
 
     if (
       isAudio &&
       !["mp3", "wav", "ogg", "m4a"].includes(extensaoArquivo)
     ) {
       alert("Formato invalido. Envie um arquivo MP3, WAV, OGG ou M4A.");
+
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
+
+      return;
+    }
+
+    if (
+      !isAudio &&
+      (!formatosImagemPermitidos.includes(extensaoArquivo) ||
+        !["image/png", "image/jpeg", "image/webp"].includes(arquivo.type))
+    ) {
+      alert("Formato invalido. Envie uma imagem PNG, JPG, JPEG ou WEBP.");
+
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
+
+      return;
+    }
+
+    if (!isAudio && arquivo.size > tamanhoMaximoMb * 1024 * 1024) {
+      alert(`Imagem muito grande. Envie um arquivo de ate ${tamanhoMaximoMb} MB.`);
 
       if (inputRef.current) {
         inputRef.current.value = "";

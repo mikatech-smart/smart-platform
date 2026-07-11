@@ -4,6 +4,7 @@ export interface UploadImagemProps {
   tipoArquivo?: "imagem" | "audio";
   accept?: string;
   formatosPermitidos?: string;
+  tamanhoMaximoMb?: number;
 
   pasta?: string;
   onUpload?: (url: string) => Promise<void>;
