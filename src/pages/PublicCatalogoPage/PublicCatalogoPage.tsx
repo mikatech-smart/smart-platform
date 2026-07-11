@@ -183,6 +183,8 @@ export default function PublicCatalogoPage() {
   const { slug } = useParams();
   const [empresa, setEmpresa] = useState<EmpresaCatalogo | null>(null);
   const [carregando, setCarregando] = useState(true);
+  const [buscaProduto, setBuscaProduto] = useState("");
+  const [categoriaSelecionada, setCategoriaSelecionada] = useState("todos");
 
   useEffect(() => {
     async function carregarCatalogo() {
@@ -227,20 +229,87 @@ export default function PublicCatalogoPage() {
         (valor) => valor.trim()
       )
   );
-  const produtosSemCategoria = produtosAtivos.filter(
+  const categoriasComConteudo = categoriasAtivas.filter((categoria) =>
+    produtosAtivos.some(
+      (produto) =>
+        produto.categoriaId === categoria.id &&
+        categoriasAtivasIds.has(produto.categoriaId)
+    )
+  );
+  const possuiProdutosSemCategoria = produtosAtivos.some(
     (produto) => !produto.categoriaId
+  );
+  const termoBusca = buscaProduto.trim().toLocaleLowerCase("pt-BR");
+  const produtosFiltrados = produtosAtivos.filter((produto) => {
+    if (!termoBusca) return true;
+
+    return [produto.nome, produto.descricao, produto.preco].some((valor) =>
+      valor.toLocaleLowerCase("pt-BR").includes(termoBusca)
+    );
+  });
+  const produtosSemCategoria = produtosFiltrados.filter(
+    (produto) =>
+      !produto.categoriaId &&
+      (categoriaSelecionada === "todos" ||
+        categoriaSelecionada === "sem-categoria")
   );
   const catalogoContratado =
     empresa?.recursos_contratados?.catalogo === true;
   const possuiConteudo =
+    possuiProdutosSemCategoria || categoriasComConteudo.length > 0;
+  const possuiResultadoFiltrado =
     produtosSemCategoria.length > 0 ||
-    categoriasAtivas.some((categoria) =>
-      produtosAtivos.some(
-        (produto) =>
-          produto.categoriaId === categoria.id &&
-          categoriasAtivasIds.has(produto.categoriaId)
-      )
-    );
+    categoriasAtivas.some((categoria) => {
+      if (
+        categoriaSelecionada !== "todos" &&
+        categoriaSelecionada !== categoria.id
+      ) {
+        return false;
+      }
+
+      return produtosFiltrados.some(
+        (produto) => produto.categoriaId === categoria.id
+      );
+    });
+  const whatsappOrcamento = (empresa?.whatsapp || empresa?.telefone || "")
+    .replace(/\D/g, "")
+    .replace(/^0+/, "");
+  const whatsappComPais = whatsappOrcamento
+    ? whatsappOrcamento.startsWith("55")
+      ? whatsappOrcamento
+      : `55${whatsappOrcamento}`
+    : "";
+
+  function criarLinkOrcamento(produto: CatalogoProdutoConfig) {
+    if (!whatsappComPais || !empresa) return "";
+
+    const mensagem = [
+      `Ola, gostaria de solicitar um orcamento para ${produto.nome || "um produto"} do catalogo de ${empresa.nome}.`,
+      produto.preco ? `Preco informado: ${produto.preco}.` : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    return `https://wa.me/${whatsappComPais}?text=${encodeURIComponent(mensagem)}`;
+  }
+
+  function rolarParaCategoria(categoriaId: string) {
+    setCategoriaSelecionada(categoriaId);
+
+    window.setTimeout(() => {
+      const alvo =
+        categoriaId === "todos"
+          ? "catalogo-conteudo"
+          : categoriaId === "sem-categoria"
+            ? "catalogo-sem-categoria"
+            : `catalogo-categoria-${categoriaId}`;
+
+      document.getElementById(alvo)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 0);
+  }
 
   if (carregando) {
     return (
@@ -292,16 +361,74 @@ export default function PublicCatalogoPage() {
         </div>
       </header>
 
-      <section className="public-catalogo-content">
+      <section className="public-catalogo-tools" aria-label="Busca e filtros do catalogo">
+        <label className="public-catalogo-search">
+          <span>Buscar produto</span>
+          <input
+            type="search"
+            value={buscaProduto}
+            onChange={(event) => setBuscaProduto(event.target.value)}
+            placeholder="Digite o nome, descricao ou preco"
+          />
+        </label>
+
+        <div className="public-catalogo-filters" aria-label="Filtrar por categoria">
+          <button
+            type="button"
+            className={categoriaSelecionada === "todos" ? "is-active" : ""}
+            onClick={() => rolarParaCategoria("todos")}
+          >
+            Todos
+          </button>
+
+          {categoriasComConteudo.map((categoria) => (
+            <button
+              type="button"
+              className={
+                categoriaSelecionada === categoria.id ? "is-active" : ""
+              }
+              key={categoria.id}
+              onClick={() => rolarParaCategoria(categoria.id)}
+            >
+              {categoria.nome || "Categoria"}
+            </button>
+          ))}
+
+          {possuiProdutosSemCategoria && (
+            <button
+              type="button"
+              className={
+                categoriaSelecionada === "sem-categoria" ? "is-active" : ""
+              }
+              onClick={() => rolarParaCategoria("sem-categoria")}
+            >
+              Outros itens
+            </button>
+          )}
+        </div>
+      </section>
+
+      <section className="public-catalogo-content" id="catalogo-conteudo">
         {categoriasAtivas.map((categoria) => {
-          const produtosDaCategoria = produtosAtivos.filter(
+          if (
+            categoriaSelecionada !== "todos" &&
+            categoriaSelecionada !== categoria.id
+          ) {
+            return null;
+          }
+
+          const produtosDaCategoria = produtosFiltrados.filter(
             (produto) => produto.categoriaId === categoria.id
           );
 
           if (produtosDaCategoria.length === 0) return null;
 
           return (
-            <section className="public-catalogo-section" key={categoria.id}>
+            <section
+              className="public-catalogo-section"
+              id={`catalogo-categoria-${categoria.id}`}
+              key={categoria.id}
+            >
               <div className="public-catalogo-section__heading">
                 <h2>{categoria.nome || "Categoria"}</h2>
                 {categoria.descricao && <p>{categoria.descricao}</p>}
@@ -318,6 +445,16 @@ export default function PublicCatalogoPage() {
                       <h3>{produto.nome || "Produto"}</h3>
                       {produto.descricao && <p>{produto.descricao}</p>}
                       {produto.preco && <strong>{produto.preco}</strong>}
+                      {whatsappComPais && (
+                        <a
+                          className="public-catalogo-product__quote"
+                          href={criarLinkOrcamento(produto)}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Solicitar Orcamento
+                        </a>
+                      )}
                     </div>
                   </article>
                 ))}
@@ -327,7 +464,7 @@ export default function PublicCatalogoPage() {
         })}
 
         {produtosSemCategoria.length > 0 && (
-          <section className="public-catalogo-section">
+          <section className="public-catalogo-section" id="catalogo-sem-categoria">
             <div className="public-catalogo-section__heading">
               <h2>Outros itens</h2>
             </div>
@@ -343,10 +480,27 @@ export default function PublicCatalogoPage() {
                     <h3>{produto.nome || "Produto"}</h3>
                     {produto.descricao && <p>{produto.descricao}</p>}
                     {produto.preco && <strong>{produto.preco}</strong>}
+                    {whatsappComPais && (
+                      <a
+                        className="public-catalogo-product__quote"
+                        href={criarLinkOrcamento(produto)}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Solicitar Orcamento
+                      </a>
+                    )}
                   </div>
                 </article>
               ))}
             </div>
+          </section>
+        )}
+
+        {!possuiResultadoFiltrado && (
+          <section className="public-catalogo-empty">
+            <h2>Nenhum item encontrado</h2>
+            <p>Ajuste a busca ou selecione outra categoria.</p>
           </section>
         )}
       </section>
