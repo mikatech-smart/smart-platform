@@ -114,6 +114,17 @@ function removeResourceHints(html = "") {
     .replace(/<link\s+rel="preconnect"[^>]*>\s*/gi, "");
 }
 
+function applySecurityHeaders(headers) {
+  headers.set("X-Content-Type-Options", "nosniff");
+  headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  headers.set(
+    "Permissions-Policy",
+    "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
+  );
+
+  return headers;
+}
+
 function absoluteImage(value = "") {
   const image = String(value).trim();
 
@@ -570,10 +581,12 @@ export async function onRequestGet(context) {
 
   if (url.pathname === "/robots.txt") {
     return new Response(buildRobotsTxt(), {
-      headers: {
-        "content-type": "text/plain; charset=utf-8",
-        "cache-control": "public, max-age=300",
-      },
+      headers: applySecurityHeaders(
+        new Headers({
+          "content-type": "text/plain; charset=utf-8",
+          "cache-control": "public, max-age=300",
+        })
+      ),
     });
   }
 
@@ -581,10 +594,12 @@ export async function onRequestGet(context) {
     const empresas = await getEmpresasParaSitemap(context.env);
 
     return new Response(buildSitemapXml(empresas), {
-      headers: {
-        "content-type": "application/xml; charset=utf-8",
-        "cache-control": "public, max-age=300",
-      },
+      headers: applySecurityHeaders(
+        new Headers({
+          "content-type": "application/xml; charset=utf-8",
+          "cache-control": "public, max-age=300",
+        })
+      ),
     });
   }
 
@@ -597,10 +612,12 @@ export async function onRequestGet(context) {
     const metadata = buildMetadata(route, empresa);
 
     return new Response(JSON.stringify(buildManifest(metadata)), {
-      headers: {
-        "content-type": "application/manifest+json; charset=utf-8",
-        "cache-control": "public, max-age=300",
-      },
+      headers: applySecurityHeaders(
+        new Headers({
+          "content-type": "application/manifest+json; charset=utf-8",
+          "cache-control": "public, max-age=300",
+        })
+      ),
     });
   }
 
@@ -621,6 +638,7 @@ export async function onRequestGet(context) {
     const headers = new Headers(response.headers);
 
     headers.set("content-type", "text/html; charset=utf-8");
+    applySecurityHeaders(headers);
 
     return new Response(html, {
       status: response.status,
@@ -638,6 +656,7 @@ export async function onRequestGet(context) {
   const headers = new Headers(response.headers);
 
   headers.set("content-type", "text/html; charset=utf-8");
+  applySecurityHeaders(headers);
 
   return new Response(html, {
     status: response.status,
