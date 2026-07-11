@@ -32,6 +32,7 @@ type AparenciaEmpresa = Empresa & {
   gradiente_direcao?: string | null;
   recursos_contratados?: {
     cardapio_digital?: boolean;
+    catalogo?: boolean;
   } | null;
 };
 
@@ -274,6 +275,8 @@ export default function PublicEmpresaPage() {
   const estiloAparencia = criarEstiloAparencia(empresa);
   const cardapioDigitalContratado =
     (empresa as AparenciaEmpresa).recursos_contratados?.cardapio_digital === true;
+  const catalogoContratado =
+    (empresa as AparenciaEmpresa).recursos_contratados?.catalogo === true;
 
   return (
     <main className="public-empresa-page" style={estiloAparencia}>
@@ -328,6 +331,19 @@ export default function PublicEmpresaPage() {
                 href={`/cardapio/${empresa.slug}`}
               >
                 Ver cardapio
+              </a>
+            </section>
+          )}
+
+          {catalogoContratado && (
+            <section className="public-empresa-section public-empresa-info-card">
+              <span>Catalogo</span>
+              <p>Consulte produtos, servicos, imagens e valores atualizados.</p>
+              <a
+                className="public-empresa-map-link"
+                href={`/catalogo/${empresa.slug}`}
+              >
+                Ver catalogo
               </a>
             </section>
           )}

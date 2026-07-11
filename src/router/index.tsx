@@ -4,6 +4,7 @@ import PublicProfile from "../pages/connect/PublicProfile/PublicProfile";
 import PublicEmpresaPage from "../pages/PublicEmpresaPage/PublicEmpresaPage";
 import PublicLandingPage from "../pages/PublicLandingPage/PublicLandingPage";
 import PublicCardapioPage from "../pages/PublicCardapioPage/PublicCardapioPage";
+import PublicCatalogoPage from "../pages/PublicCatalogoPage/PublicCatalogoPage";
 
 import Dashboard from "../pages/dashboard/Dashboard";
 import Empresas from "../pages/dashboard/Empresas";
@@ -34,6 +35,11 @@ export default function AppRouter() {
         <Route
           path="/cardapio/:slug"
           element={<PublicCardapioPage />}
+        />
+
+        <Route
+          path="/catalogo/:slug"
+          element={<PublicCatalogoPage />}
         />
 
         {/* Dashboard */}

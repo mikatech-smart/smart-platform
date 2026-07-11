@@ -227,6 +227,10 @@ function getRequestRoute(pathname) {
     return { kind: "cardapio", slug: parts[1] };
   }
 
+  if (parts.length === 2 && parts[0] === "catalogo") {
+    return { kind: "catalogo", slug: parts[1] };
+  }
+
   return null;
 }
 
@@ -263,7 +267,7 @@ async function getEmpresasParaSitemap(env) {
   }
 
   const params = new URLSearchParams({
-    select: "slug,ativo,landing_page_config",
+    select: "slug,ativo,landing_page_config,recursos_contratados,cardapio_config,catalogo_config",
     ativo: "eq.true",
     order: "slug.asc",
     limit: "10000",
@@ -320,6 +324,30 @@ function isCardapioPublicado(empresa) {
   );
 }
 
+function isCatalogoPublicado(empresa) {
+  if (empresa?.recursos_contratados?.catalogo !== true) {
+    return false;
+  }
+
+  const produtos = empresa?.catalogo_config?.produtos;
+
+  if (!Array.isArray(produtos)) return false;
+
+  return produtos.some((produto) => {
+    const ativo = typeof produto?.ativo === "boolean" ? produto.ativo : true;
+
+    return (
+      ativo &&
+      [
+        produto?.nome,
+        produto?.descricao,
+        produto?.preco,
+        produto?.imagemUrl,
+      ].some((valor) => String(valor || "").trim())
+    );
+  });
+}
+
 function buildRobotsTxt() {
   return [
     "User-agent: *",
@@ -349,6 +377,14 @@ function buildSitemapXml(empresas = []) {
 
     if (isLandingPagePublicada(empresa)) {
       urls.push(`${PUBLIC_APP_URL}/landing/${encodeURIComponent(slug)}`);
+    }
+
+    if (isCardapioPublicado(empresa)) {
+      urls.push(`${PUBLIC_APP_URL}/cardapio/${encodeURIComponent(slug)}`);
+    }
+
+    if (isCatalogoPublicado(empresa)) {
+      urls.push(`${PUBLIC_APP_URL}/catalogo/${encodeURIComponent(slug)}`);
     }
 
     if (urls.length >= SITEMAP_MAX_URLS) break;
@@ -447,6 +483,8 @@ function buildMetadata(route, empresa) {
       (landingSeo.titulo || landingHero.titulo || empresa?.nome)) ||
     (route.kind === "cardapio" &&
       `Cardapio de ${empresa?.nome || DEFAULT_TITLE}`) ||
+    (route.kind === "catalogo" &&
+      `Catalogo de ${empresa?.nome || DEFAULT_TITLE}`) ||
     empresa?.nome ||
     DEFAULT_TITLE;
   const description = truncate(
@@ -454,6 +492,8 @@ function buildMetadata(route, empresa) {
       (landingSeo.descricao || empresa?.descricao || landingHero.subtitulo)) ||
       (route.kind === "cardapio" &&
         (empresa?.descricao || empresa?.categoria || "Cardapio Digital")) ||
+      (route.kind === "catalogo" &&
+        (empresa?.descricao || empresa?.categoria || "Catalogo")) ||
       empresa?.descricao ||
       empresa?.categoria ||
       DEFAULT_DESCRIPTION
@@ -494,12 +534,16 @@ function buildMetadata(route, empresa) {
       ? "noindex,nofollow"
       : route.kind === "cardapio" && !isCardapioPublicado(empresa)
         ? "noindex,nofollow"
+      : route.kind === "catalogo" && !isCatalogoPublicado(empresa)
+        ? "noindex,nofollow"
       : "index,follow";
   const url =
     route.kind === "landing"
       ? normalizeCanonicalUrl(`/landing/${route.slug}`)
       : route.kind === "cardapio"
         ? normalizeCanonicalUrl(`/cardapio/${route.slug}`)
+      : route.kind === "catalogo"
+        ? normalizeCanonicalUrl(`/catalogo/${route.slug}`)
       : normalizeCanonicalUrl(`/${route.slug}`);
 
   const manifestUrl = `${PUBLIC_APP_URL}/manifest.webmanifest?${new URLSearchParams({
@@ -544,6 +588,8 @@ function buildManifest(metadata) {
       ? `/landing/${metadata.route.slug}`
       : metadata.route.kind === "cardapio"
         ? `/cardapio/${metadata.route.slug}`
+      : metadata.route.kind === "catalogo"
+        ? `/catalogo/${metadata.route.slug}`
       : `/${metadata.route.slug}`;
 
   return {
@@ -671,7 +717,7 @@ export async function onRequestGet(context) {
     const slug = url.searchParams.get("slug") || "";
     const kindParam = url.searchParams.get("kind");
     const kind =
-      kindParam === "landing" || kindParam === "cardapio"
+      kindParam === "landing" || kindParam === "cardapio" || kindParam === "catalogo"
         ? kindParam
         : "public";
     const empresa = slug ? await getEmpresa(context.env, slug) : null;
