@@ -647,12 +647,30 @@ type IaContextoConfig = {
   dados: Record<string, unknown>;
 };
 
+type IaPerguntaFrequenteConfig = {
+  id: string;
+  pergunta: string;
+  resposta: string;
+};
+
+type IaBaseConhecimentoConfig = {
+  perguntasFrequentes: IaPerguntaFrequenteConfig[];
+  politicasEmpresa: string;
+  informacoesImportantes: string;
+};
+
+type IaFaqRascunho = {
+  pergunta: string;
+  resposta: string;
+};
+
 type IaConfig = {
   ativa: boolean;
   nomeAssistente: string;
   tomComunicacao: IaTomComunicacao;
   instrucoesPersonalizadas: string;
   contexto: IaContextoConfig;
+  baseConhecimento: IaBaseConhecimentoConfig;
 };
 
 type IaConfigCampoEditavel =
@@ -928,6 +946,12 @@ const iaContextoPadrao: IaContextoConfig = {
   dados: {},
 };
 
+const iaBaseConhecimentoPadrao: IaBaseConhecimentoConfig = {
+  perguntasFrequentes: [],
+  politicasEmpresa: "",
+  informacoesImportantes: "",
+};
+
 const iaConfigPadrao: IaConfig = {
   ativa: false,
   nomeAssistente: "Assistente MikaON",
@@ -936,6 +960,11 @@ const iaConfigPadrao: IaConfig = {
   contexto: {
     ...iaContextoPadrao,
     fontes: { ...iaContextoFontesPadrao },
+  },
+  baseConhecimento: {
+    perguntasFrequentes: [],
+    politicasEmpresa: "",
+    informacoesImportantes: "",
   },
 };
 
@@ -1909,6 +1938,70 @@ function normalizarIaContexto(valor: unknown): IaContextoConfig {
   };
 }
 
+function normalizarIaPerguntasFrequentes(
+  valor: unknown
+): IaPerguntaFrequenteConfig[] {
+  if (!Array.isArray(valor)) {
+    return [];
+  }
+
+  return valor
+    .map((item, indice) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) {
+        return null;
+      }
+
+      const perguntaFrequente = item as Record<string, unknown>;
+      const pergunta =
+        lerCampoTexto(perguntaFrequente, "pergunta") ||
+        lerCampoTexto(perguntaFrequente, "titulo");
+      const resposta =
+        lerCampoTexto(perguntaFrequente, "resposta") ||
+        lerCampoTexto(perguntaFrequente, "texto");
+
+      if (!pergunta && !resposta) {
+        return null;
+      }
+
+      return {
+        id:
+          lerCampoTexto(perguntaFrequente, "id") ||
+          `faq-${Date.now()}-${indice}`,
+        pergunta,
+        resposta,
+      };
+    })
+    .filter(
+      (perguntaFrequente): perguntaFrequente is IaPerguntaFrequenteConfig =>
+        Boolean(perguntaFrequente)
+    )
+    .slice(0, 50);
+}
+
+function normalizarIaBaseConhecimento(valor: unknown): IaBaseConhecimentoConfig {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return { ...iaBaseConhecimentoPadrao };
+  }
+
+  const baseConhecimento = valor as Record<string, unknown>;
+
+  return {
+    perguntasFrequentes: normalizarIaPerguntasFrequentes(
+      baseConhecimento.perguntasFrequentes ||
+        baseConhecimento.perguntas_frequentes ||
+        baseConhecimento.faqs
+    ),
+    politicasEmpresa:
+      lerCampoTexto(baseConhecimento, "politicasEmpresa") ||
+      lerCampoTexto(baseConhecimento, "politicas_empresa") ||
+      lerCampoTexto(baseConhecimento, "politicas"),
+    informacoesImportantes:
+      lerCampoTexto(baseConhecimento, "informacoesImportantes") ||
+      lerCampoTexto(baseConhecimento, "informacoes_importantes") ||
+      lerCampoTexto(baseConhecimento, "informacoes"),
+  };
+}
+
 function normalizarIaConfig(valor: unknown): IaConfig {
   if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
     return {
@@ -1916,6 +2009,12 @@ function normalizarIaConfig(valor: unknown): IaConfig {
       contexto: {
         ...iaConfigPadrao.contexto,
         fontes: { ...iaConfigPadrao.contexto.fontes },
+      },
+      baseConhecimento: {
+        ...iaConfigPadrao.baseConhecimento,
+        perguntasFrequentes: [
+          ...iaConfigPadrao.baseConhecimento.perguntasFrequentes,
+        ],
       },
     };
   }
@@ -1935,6 +2034,9 @@ function normalizarIaConfig(valor: unknown): IaConfig {
       lerCampoTexto(config, "instrucoesPersonalizadas") ||
       lerCampoTexto(config, "instrucoes_personalizadas"),
     contexto: normalizarIaContexto(config.contexto),
+    baseConhecimento: normalizarIaBaseConhecimento(
+      config.baseConhecimento || config.base_conhecimento
+    ),
   };
 }
 
@@ -4957,7 +5059,21 @@ export default function EmpresaForm({
     useState<FidelidadeConfig>(() => ({ ...fidelidadeConfigPadrao }));
   const [iaConfig, setIaConfig] = useState<IaConfig>(() => ({
     ...iaConfigPadrao,
+    contexto: {
+      ...iaConfigPadrao.contexto,
+      fontes: { ...iaConfigPadrao.contexto.fontes },
+    },
+    baseConhecimento: {
+      ...iaConfigPadrao.baseConhecimento,
+      perguntasFrequentes: [
+        ...iaConfigPadrao.baseConhecimento.perguntasFrequentes,
+      ],
+    },
   }));
+  const [iaFaqRascunho, setIaFaqRascunho] = useState<IaFaqRascunho>({
+    pergunta: "",
+    resposta: "",
+  });
   const [crmClientes, setCrmClientes] =
     useState<CrmClienteConfig[]>(() =>
       crmConfigPadrao.clientes.map((cliente) => ({ ...cliente }))
@@ -6178,6 +6294,87 @@ export default function EmpresaForm({
     }));
   }
 
+  function atualizarIaBaseConhecimento(
+    campo: "politicasEmpresa" | "informacoesImportantes",
+    valor: string
+  ) {
+    setIaConfig((configAtual) => ({
+      ...configAtual,
+      baseConhecimento: {
+        ...configAtual.baseConhecimento,
+        [campo]: valor,
+      },
+    }));
+  }
+
+  function atualizarIaFaqRascunho(campo: keyof IaFaqRascunho, valor: string) {
+    setIaFaqRascunho((rascunhoAtual) => ({
+      ...rascunhoAtual,
+      [campo]: valor,
+    }));
+  }
+
+  function adicionarIaPerguntaFrequente() {
+    const pergunta = iaFaqRascunho.pergunta.trim();
+    const resposta = iaFaqRascunho.resposta.trim();
+
+    if (!pergunta || !resposta) {
+      return;
+    }
+
+    setIaConfig((configAtual) => ({
+      ...configAtual,
+      baseConhecimento: {
+        ...configAtual.baseConhecimento,
+        perguntasFrequentes: [
+          ...configAtual.baseConhecimento.perguntasFrequentes,
+          {
+            id: `faq-${Date.now()}`,
+            pergunta,
+            resposta,
+          },
+        ].slice(0, 50),
+      },
+    }));
+    setIaFaqRascunho({ pergunta: "", resposta: "" });
+  }
+
+  function atualizarIaPerguntaFrequente(
+    indice: number,
+    campo: keyof Omit<IaPerguntaFrequenteConfig, "id">,
+    valor: string
+  ) {
+    setIaConfig((configAtual) => ({
+      ...configAtual,
+      baseConhecimento: {
+        ...configAtual.baseConhecimento,
+        perguntasFrequentes:
+          configAtual.baseConhecimento.perguntasFrequentes.map(
+            (perguntaFrequente, indiceAtual) =>
+              indiceAtual === indice
+                ? {
+                    ...perguntaFrequente,
+                    [campo]: valor,
+                  }
+                : perguntaFrequente
+          ),
+      },
+    }));
+  }
+
+  function removerIaPerguntaFrequente(indice: number) {
+    setIaConfig((configAtual) => ({
+      ...configAtual,
+      baseConhecimento: {
+        ...configAtual.baseConhecimento,
+        perguntasFrequentes:
+          configAtual.baseConhecimento.perguntasFrequentes.filter(
+            (_, indiceAtual) => indiceAtual !== indice
+          ),
+      },
+    }));
+  }
+
   function criarIaContextoUnificado(): IaContextoConfig {
     const fontes = iaConfig.contexto.fontes;
     const dados: Record<string, unknown> = {};
@@ -6313,6 +6510,28 @@ export default function EmpresaForm({
         })),
       };
       resumo.push(`${crmClientes.length} lead(s) no CRM.`);
+    }
+
+    const baseConhecimento = iaConfig.baseConhecimento;
+    const totalFaqs = baseConhecimento.perguntasFrequentes.filter(
+      (perguntaFrequente) =>
+        perguntaFrequente.pergunta.trim() || perguntaFrequente.resposta.trim()
+    ).length;
+    const possuiPoliticas = Boolean(baseConhecimento.politicasEmpresa.trim());
+    const possuiInformacoes = Boolean(
+      baseConhecimento.informacoesImportantes.trim()
+    );
+
+    dados.base_conhecimento = {
+      perguntasFrequentes: baseConhecimento.perguntasFrequentes.slice(0, 50),
+      politicasEmpresa: baseConhecimento.politicasEmpresa,
+      informacoesImportantes: baseConhecimento.informacoesImportantes,
+    };
+
+    if (totalFaqs || possuiPoliticas || possuiInformacoes) {
+      resumo.push(
+        `Base de conhecimento com ${totalFaqs} pergunta(s) frequente(s).`
+      );
     }
 
     return {
@@ -9501,6 +9720,172 @@ export default function EmpresaForm({
                       className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
                       placeholder="Ex.: Priorize respostas curtas, pergunte o melhor horario de contato e direcione interessados para o WhatsApp."
                     />
+                  </div>
+
+                  <div className="md:col-span-2 rounded-2xl border border-slate-200 bg-white p-4">
+                    <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-900">
+                          Base de conhecimento
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-slate-500">
+                          Cadastre respostas frequentes, politicas e detalhes
+                          importantes para uso futuro pelo assistente.
+                        </p>
+                      </div>
+
+                      <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-green-700">
+                        {iaConfig.baseConhecimento.perguntasFrequentes.length}
+                        /50 FAQs
+                      </span>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      <Input
+                        label="Pergunta frequente"
+                        value={iaFaqRascunho.pergunta}
+                        onChange={(e) =>
+                          atualizarIaFaqRascunho("pergunta", e.target.value)
+                        }
+                        placeholder="Ex.: Qual e o prazo de entrega?"
+                      />
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">
+                          Resposta
+                        </label>
+                        <textarea
+                          value={iaFaqRascunho.resposta}
+                          onChange={(e) =>
+                            atualizarIaFaqRascunho("resposta", e.target.value)
+                          }
+                          rows={3}
+                          className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                          placeholder="Ex.: O prazo medio e de 3 dias uteis apos a confirmacao."
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={adicionarIaPerguntaFrequente}
+                          disabled={
+                            !iaFaqRascunho.pergunta.trim() ||
+                            !iaFaqRascunho.resposta.trim() ||
+                            iaConfig.baseConhecimento.perguntasFrequentes
+                              .length >= 50
+                          }
+                        >
+                          Adicionar pergunta
+                        </Button>
+                      </div>
+                    </div>
+
+                    {iaConfig.baseConhecimento.perguntasFrequentes.length > 0 ? (
+                      <div className="mt-4 grid gap-3">
+                        {iaConfig.baseConhecimento.perguntasFrequentes.map(
+                          (perguntaFrequente, indice) => (
+                            <div
+                              key={perguntaFrequente.id}
+                              className="rounded-xl border border-slate-200 bg-slate-50 p-3"
+                            >
+                              <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                <p className="text-sm font-bold text-slate-900">
+                                  FAQ {indice + 1}
+                                </p>
+
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  onClick={() =>
+                                    removerIaPerguntaFrequente(indice)
+                                  }
+                                >
+                                  Remover
+                                </Button>
+                              </div>
+
+                              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                                <Input
+                                  label="Pergunta"
+                                  value={perguntaFrequente.pergunta}
+                                  onChange={(e) =>
+                                    atualizarIaPerguntaFrequente(
+                                      indice,
+                                      "pergunta",
+                                      e.target.value
+                                    )
+                                  }
+                                />
+
+                                <div>
+                                  <label className="block text-sm font-medium text-slate-700">
+                                    Resposta
+                                  </label>
+                                  <textarea
+                                    value={perguntaFrequente.resposta}
+                                    onChange={(e) =>
+                                      atualizarIaPerguntaFrequente(
+                                        indice,
+                                        "resposta",
+                                        e.target.value
+                                      )
+                                    }
+                                    rows={3}
+                                    className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    ) : (
+                      <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                        Nenhuma pergunta frequente cadastrada ainda.
+                      </div>
+                    )}
+
+                    <div className="mt-4 grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">
+                          Politicas da empresa
+                        </label>
+                        <textarea
+                          value={iaConfig.baseConhecimento.politicasEmpresa}
+                          onChange={(e) =>
+                            atualizarIaBaseConhecimento(
+                              "politicasEmpresa",
+                              e.target.value
+                            )
+                          }
+                          rows={5}
+                          className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                          placeholder="Ex.: Politica de troca, garantia, cancelamento, prazos e regras de atendimento."
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">
+                          Informacoes importantes
+                        </label>
+                        <textarea
+                          value={
+                            iaConfig.baseConhecimento.informacoesImportantes
+                          }
+                          onChange={(e) =>
+                            atualizarIaBaseConhecimento(
+                              "informacoesImportantes",
+                              e.target.value
+                            )
+                          }
+                          rows={5}
+                          className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                          placeholder="Ex.: Diferenciais, perguntas sensiveis, instrucoes de atendimento e observacoes internas."
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <div className="md:col-span-2 rounded-2xl border border-slate-200 bg-white p-4">
