@@ -49,6 +49,34 @@ export type ErpPdvProdutoPayload = {
   ativo: boolean;
 };
 
+export type ErpPdvCliente = {
+  id: string;
+  empresa_id: string;
+  nome: string;
+  cpf_cnpj: string;
+  telefone: string;
+  whatsapp: string;
+  email: string;
+  endereco: string;
+  observacoes: string;
+  ativo: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ErpPdvClientePayload = {
+  id?: string;
+  empresaId: string;
+  nome: string;
+  cpfCnpj: string;
+  telefone: string;
+  whatsapp: string;
+  email: string;
+  endereco: string;
+  observacoes: string;
+  ativo: boolean;
+};
+
 export type ErpPdvMovimentacaoTipo = "entrada" | "saida" | "ajuste" | "venda";
 
 export type ErpPdvMovimentacao = {
@@ -93,6 +121,8 @@ export type ErpPdvVendaItemPayload = {
 export type ErpPdvFinalizarVendaPayload = {
   empresaId: string;
   caixaId: string;
+  clienteId?: string;
+  clienteNome?: string;
   operador: string;
   formaPagamento: ErpPdvFormaPagamento;
   itens: ErpPdvVendaItemPayload[];
@@ -103,6 +133,8 @@ export type ErpPdvVendaFinalizada = {
   numero: number;
   total: number;
   forma_pagamento: string;
+  cliente_id: string | null;
+  cliente_nome: string;
   operador: string;
   finalizada_em: string;
   movimentacoes: ErpPdvMovimentacao[];
@@ -172,6 +204,21 @@ type ErpPdvEstoqueRow = {
   estoque_minimo: number | string;
 };
 
+type ErpPdvClienteRow = {
+  id: string;
+  empresa_id: string;
+  nome: string;
+  cpf_cnpj?: string;
+  telefone?: string;
+  whatsapp?: string;
+  email?: string;
+  endereco?: string;
+  observacoes?: string;
+  ativo: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
 type ErpPdvMovimentacaoRow = {
   id: string;
   empresa_id: string;
@@ -192,6 +239,8 @@ type ErpPdvVendaRow = {
   numero: number | string;
   total: number | string;
   forma_pagamento: string;
+  cliente_id?: string | null;
+  cliente_nome?: string;
   operador?: string;
   finalizada_em: string;
 };
@@ -269,6 +318,23 @@ function normalizarMovimentacao(
     observacao: row.observacao || "",
     usuario_responsavel: row.usuario_responsavel || "",
     created_at: row.created_at,
+  };
+}
+
+function normalizarCliente(row: ErpPdvClienteRow): ErpPdvCliente {
+  return {
+    id: row.id,
+    empresa_id: row.empresa_id,
+    nome: row.nome || "",
+    cpf_cnpj: row.cpf_cnpj || "",
+    telefone: row.telefone || "",
+    whatsapp: row.whatsapp || "",
+    email: row.email || "",
+    endereco: row.endereco || "",
+    observacoes: row.observacoes || "",
+    ativo: row.ativo,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
   };
 }
 
@@ -395,6 +461,92 @@ export async function listarErpPdvProdutos(empresaId: string) {
       normalizarProduto(produto, estoquesPorProduto.get(produto.id))
     ),
     error: null,
+  };
+}
+
+export async function listarErpPdvClientes(empresaId: string) {
+  const { data, error } = await supabase
+    .from("erp_pdv_clientes")
+    .select(
+      "id, empresa_id, nome, cpf_cnpj, telefone, whatsapp, email, endereco, observacoes, ativo, created_at, updated_at"
+    )
+    .eq("empresa_id", empresaId)
+    .eq("ativo", true)
+    .order("nome", { ascending: true })
+    .limit(200);
+
+  return {
+    data: ((data || []) as ErpPdvClienteRow[]).map(normalizarCliente),
+    error,
+  };
+}
+
+export async function buscarErpPdvClientes(empresaId: string, termo: string) {
+  const termoBusca = termo.trim();
+
+  if (!termoBusca) {
+    return listarErpPdvClientes(empresaId);
+  }
+
+  const termoLike = `%${termoBusca}%`;
+  const { data, error } = await supabase
+    .from("erp_pdv_clientes")
+    .select(
+      "id, empresa_id, nome, cpf_cnpj, telefone, whatsapp, email, endereco, observacoes, ativo, created_at, updated_at"
+    )
+    .eq("empresa_id", empresaId)
+    .eq("ativo", true)
+    .or(
+      `nome.ilike.${termoLike},cpf_cnpj.ilike.${termoLike},telefone.ilike.${termoLike}`
+    )
+    .order("nome", { ascending: true })
+    .limit(20);
+
+  return {
+    data: ((data || []) as ErpPdvClienteRow[]).map(normalizarCliente),
+    error,
+  };
+}
+
+export async function salvarErpPdvCliente(payload: ErpPdvClientePayload) {
+  if (!payload.nome.trim()) {
+    return {
+      data: null,
+      error: new Error("Informe o nome do cliente."),
+    };
+  }
+
+  const agora = new Date().toISOString();
+  const clientePayload = {
+    empresa_id: payload.empresaId,
+    nome: payload.nome.trim(),
+    cpf_cnpj: payload.cpfCnpj.trim(),
+    telefone: payload.telefone.trim(),
+    whatsapp: payload.whatsapp.trim(),
+    email: payload.email.trim(),
+    endereco: payload.endereco.trim(),
+    observacoes: payload.observacoes.trim(),
+    ativo: payload.ativo,
+    updated_at: agora,
+  };
+
+  const query = payload.id
+    ? supabase
+        .from("erp_pdv_clientes")
+        .update(clientePayload)
+        .eq("id", payload.id)
+        .eq("empresa_id", payload.empresaId)
+    : supabase.from("erp_pdv_clientes").insert(clientePayload);
+
+  const { data, error } = await query
+    .select(
+      "id, empresa_id, nome, cpf_cnpj, telefone, whatsapp, email, endereco, observacoes, ativo, created_at, updated_at"
+    )
+    .single();
+
+  return {
+    data: data ? normalizarCliente(data as ErpPdvClienteRow) : null,
+    error,
   };
 }
 
@@ -980,12 +1132,16 @@ export async function finalizarErpPdvVenda(
       desconto: 0,
       total: subtotal,
       forma_pagamento: payload.formaPagamento,
+      cliente_id: payload.clienteId || null,
+      cliente_nome: payload.clienteNome?.trim() || "Consumidor nao identificado",
       operador,
       observacao: "",
       finalizada_em: agora,
       updated_at: agora,
     })
-    .select("id, numero, total, forma_pagamento, operador, finalizada_em")
+    .select(
+      "id, numero, total, forma_pagamento, cliente_id, cliente_nome, operador, finalizada_em"
+    )
     .single();
 
   if (vendaError || !vendaData) {
@@ -1099,6 +1255,8 @@ export async function finalizarErpPdvVenda(
       numero: toNumber(venda.numero),
       total: toNumber(venda.total),
       forma_pagamento: venda.forma_pagamento,
+      cliente_id: venda.cliente_id || null,
+      cliente_nome: venda.cliente_nome || "Consumidor nao identificado",
       operador: venda.operador || operador,
       finalizada_em: venda.finalizada_em,
       movimentacoes,

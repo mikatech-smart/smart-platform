@@ -13,19 +13,24 @@ import {
 import {
   abrirErpPdvCaixa,
   buscarErpPdvCaixaAberto,
+  buscarErpPdvClientes,
   calcularErpPdvResumoCaixa,
   fecharErpPdvCaixa,
   criarErpPdvCategoria,
   listarErpPdvMovimentacoes,
   listarErpPdvCategorias,
+  listarErpPdvClientes,
   listarErpPdvProdutos,
   finalizarErpPdvVenda,
   registrarErpPdvCaixaMovimentacao,
   registrarErpPdvMovimentacao,
+  salvarErpPdvCliente,
   salvarErpPdvProduto,
   type ErpPdvCaixa,
   type ErpPdvCaixaMovimentacaoTipo,
   type ErpPdvCaixaResumo,
+  type ErpPdvCliente,
+  type ErpPdvClientePayload,
   type ErpPdvFormaPagamento,
   type ErpPdvCategoria,
   type ErpPdvMovimentacao,
@@ -879,6 +884,16 @@ type ErpPdvCarrinhoItem = {
   quantidade: number;
 };
 
+type ErpPdvClienteForm = {
+  nome: string;
+  cpfCnpj: string;
+  telefone: string;
+  whatsapp: string;
+  email: string;
+  endereco: string;
+  observacoes: string;
+};
+
 type ErpPdvCupomLayout = "58mm" | "80mm" | "a4";
 
 type ErpPdvCupomItem = {
@@ -893,6 +908,9 @@ type ErpPdvCupomNaoFiscal = {
   empresa: string;
   cnpj: string;
   endereco: string;
+  cliente: string;
+  clienteDocumento: string;
+  clienteContato: string;
   dataHora: string;
   operador: string;
   pagamento: string;
@@ -1001,6 +1019,16 @@ const erpPdvCaixaMovimentoFormPadrao: ErpPdvCaixaMovimentoForm = {
   tipo: "suprimento",
   valor: "",
   observacao: "",
+};
+
+const erpPdvClienteFormPadrao: ErpPdvClienteForm = {
+  nome: "",
+  cpfCnpj: "",
+  telefone: "",
+  whatsapp: "",
+  email: "",
+  endereco: "",
+  observacoes: "",
 };
 
 const erpPdvProdutoFormPadrao: ErpPdvProdutoForm = {
@@ -5759,6 +5787,14 @@ export default function EmpresaForm({
   const [erpPdvMovimentacoes, setErpPdvMovimentacoes] = useState<
     ErpPdvMovimentacao[]
   >([]);
+  const [erpPdvClientes, setErpPdvClientes] = useState<ErpPdvCliente[]>([]);
+  const [erpPdvClienteBusca, setErpPdvClienteBusca] = useState("");
+  const [erpPdvClienteSelecionadoId, setErpPdvClienteSelecionadoId] =
+    useState("");
+  const [erpPdvClienteForm, setErpPdvClienteForm] =
+    useState<ErpPdvClienteForm>(() => ({ ...erpPdvClienteFormPadrao }));
+  const [erpPdvExibirCadastroCliente, setErpPdvExibirCadastroCliente] =
+    useState(false);
   const [erpPdvPdvBusca, setErpPdvPdvBusca] = useState("");
   const [erpPdvCarrinho, setErpPdvCarrinho] = useState<ErpPdvCarrinhoItem[]>(
     []
@@ -5916,6 +5952,24 @@ export default function EmpresaForm({
   const erpPdvProdutosPorId = new Map(
     erpPdvProdutos.map((produto) => [produto.id, produto])
   );
+  const erpPdvClientesPorId = new Map(
+    erpPdvClientes.map((clienteErp) => [clienteErp.id, clienteErp])
+  );
+  const erpPdvClienteSelecionado =
+    erpPdvClientesPorId.get(erpPdvClienteSelecionadoId) || null;
+  const erpPdvClienteTermoBusca = erpPdvClienteBusca.trim().toLowerCase();
+  const erpPdvClientesEncontrados = erpPdvClienteTermoBusca
+    ? erpPdvClientes
+        .filter((clienteErp) =>
+          [
+            clienteErp.nome,
+            clienteErp.cpf_cnpj,
+            clienteErp.telefone,
+            clienteErp.whatsapp,
+          ].some((valor) => valor.toLowerCase().includes(erpPdvClienteTermoBusca))
+        )
+        .slice(0, 6)
+    : erpPdvClientes.slice(0, 6);
   const erpPdvPdvTermoBusca = erpPdvPdvBusca.trim().toLowerCase();
   const erpPdvPdvProdutosEncontrados = erpPdvPdvTermoBusca
     ? erpPdvProdutos
@@ -6231,22 +6285,26 @@ export default function EmpresaForm({
         categoriasResultado,
         produtosResultado,
         movimentacoesResultado,
+        clientesResultado,
         caixaResultado,
       ] = await Promise.all([
         listarErpPdvCategorias(empresaIdAtual),
         listarErpPdvProdutos(empresaIdAtual),
         listarErpPdvMovimentacoes(empresaIdAtual),
+        listarErpPdvClientes(empresaIdAtual),
         buscarErpPdvCaixaAberto(empresaIdAtual),
       ]);
 
       if (categoriasResultado.error) throw categoriasResultado.error;
       if (produtosResultado.error) throw produtosResultado.error;
       if (movimentacoesResultado.error) throw movimentacoesResultado.error;
+      if (clientesResultado.error) throw clientesResultado.error;
       if (caixaResultado.error) throw caixaResultado.error;
 
       setErpPdvCategorias(categoriasResultado.data);
       setErpPdvProdutos(produtosResultado.data);
       setErpPdvMovimentacoes(movimentacoesResultado.data);
+      setErpPdvClientes(clientesResultado.data);
       setErpPdvCaixaAberto(caixaResultado.data);
       setErpPdvCaixaOperador(caixaResultado.data?.operador || "");
 
@@ -7200,6 +7258,117 @@ export default function EmpresaForm({
     );
   }
 
+  function atualizarClienteFormErpPdv(
+    campo: keyof ErpPdvClienteForm,
+    valor: string
+  ) {
+    setErpPdvClienteForm((formAtual) => ({
+      ...formAtual,
+      [campo]: valor,
+    }));
+  }
+
+  function selecionarClienteVendaErpPdv(clienteErp: ErpPdvCliente) {
+    setErpPdvClienteSelecionadoId(clienteErp.id);
+    setErpPdvClienteBusca(clienteErp.nome);
+    setErpPdvExibirCadastroCliente(false);
+  }
+
+  function limparClienteVendaErpPdv() {
+    setErpPdvClienteSelecionadoId("");
+    setErpPdvClienteBusca("");
+  }
+
+  async function buscarClientesVendaErpPdv() {
+    if (!empresaId) return;
+
+    try {
+      setErpPdvSalvando(true);
+      const { data, error } = await buscarErpPdvClientes(
+        empresaId,
+        erpPdvClienteBusca
+      );
+
+      if (error) throw error;
+
+      setErpPdvClientes(data);
+      setErpPdvFeedback({
+        tipo: "info",
+        texto:
+          data.length > 0
+            ? `${data.length} cliente(s) encontrado(s).`
+            : "Nenhum cliente encontrado. Cadastre sem sair do PDV.",
+      });
+    } catch (error) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel buscar clientes.",
+      });
+    } finally {
+      setErpPdvSalvando(false);
+    }
+  }
+
+  async function salvarClienteVendaErpPdv() {
+    if (!empresaId) return;
+
+    if (!erpPdvClienteForm.nome.trim()) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "Informe o nome do cliente.",
+      });
+      return;
+    }
+
+    try {
+      setErpPdvSalvando(true);
+      const payload: ErpPdvClientePayload = {
+        empresaId,
+        nome: erpPdvClienteForm.nome,
+        cpfCnpj: erpPdvClienteForm.cpfCnpj,
+        telefone: erpPdvClienteForm.telefone,
+        whatsapp: erpPdvClienteForm.whatsapp,
+        email: erpPdvClienteForm.email,
+        endereco: erpPdvClienteForm.endereco,
+        observacoes: erpPdvClienteForm.observacoes,
+        ativo: true,
+      };
+      const { data, error } = await salvarErpPdvCliente(payload);
+
+      if (error) throw error;
+      if (!data) throw new Error("Cliente nao retornado pelo Supabase.");
+
+      setErpPdvClientes((clientesAtuais) => {
+        const demaisClientes = clientesAtuais.filter(
+          (clienteAtual) => clienteAtual.id !== data.id
+        );
+
+        return [data, ...demaisClientes].sort((a, b) =>
+          a.nome.localeCompare(b.nome)
+        );
+      });
+      selecionarClienteVendaErpPdv(data);
+      setErpPdvClienteForm({ ...erpPdvClienteFormPadrao });
+      setErpPdvFeedback({
+        tipo: "sucesso",
+        texto: "Cliente cadastrado e vinculado a venda.",
+      });
+    } catch (error) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel salvar o cliente.",
+      });
+    } finally {
+      setErpPdvSalvando(false);
+    }
+  }
+
   function gerarTextoCupomErpPdv(cupom: ErpPdvCupomNaoFiscal) {
     const linhas = [
       `${cupom.empresa}`,
@@ -7208,6 +7377,9 @@ export default function EmpresaForm({
       `Data: ${new Date(cupom.dataHora).toLocaleString("pt-BR")}`,
       `Operador: ${cupom.operador}`,
       `Pagamento: ${cupom.pagamento}`,
+      `Cliente: ${cupom.cliente}`,
+      cupom.clienteDocumento ? `Documento: ${cupom.clienteDocumento}` : "",
+      cupom.clienteContato ? `Contato: ${cupom.clienteContato}` : "",
       "",
       "Itens:",
       ...cupom.itens.map(
@@ -7284,6 +7456,17 @@ export default function EmpresaForm({
       <div>Data/Hora: ${new Date(cupom.dataHora).toLocaleString("pt-BR")}</div>
       <div>Operador: ${escaparHtmlCupomErpPdv(cupom.operador)}</div>
       <div>Pagamento: ${escaparHtmlCupomErpPdv(cupom.pagamento)}</div>
+      <div>Cliente: ${escaparHtmlCupomErpPdv(cupom.cliente)}</div>
+      ${
+        cupom.clienteDocumento
+          ? `<div>Documento: ${escaparHtmlCupomErpPdv(cupom.clienteDocumento)}</div>`
+          : ""
+      }
+      ${
+        cupom.clienteContato
+          ? `<div>Contato: ${escaparHtmlCupomErpPdv(cupom.clienteContato)}</div>`
+          : ""
+      }
       <div class="linha"></div>
       <table>
         <thead>
@@ -7431,6 +7614,8 @@ export default function EmpresaForm({
       const { data, error } = await finalizarErpPdvVenda({
         empresaId,
         caixaId: erpPdvCaixaAberto.id,
+        clienteId: erpPdvClienteSelecionado?.id,
+        clienteNome: erpPdvClienteSelecionado?.nome,
         operador: erpPdvOperadorVenda,
         formaPagamento: erpPdvFormaPagamentoVenda,
         itens: erpPdvCarrinhoDetalhado.map((item) => ({
@@ -7467,6 +7652,13 @@ export default function EmpresaForm({
         empresa: nome.trim() || "Empresa",
         cnpj: "Nao informado",
         endereco: montarEnderecoCompleto() || endereco.trim() || "Nao informado",
+        cliente: data.cliente_nome || "Consumidor nao identificado",
+        clienteDocumento: erpPdvClienteSelecionado?.cpf_cnpj || "",
+        clienteContato:
+          erpPdvClienteSelecionado?.whatsapp ||
+          erpPdvClienteSelecionado?.telefone ||
+          erpPdvClienteSelecionado?.email ||
+          "",
         dataHora: data.finalizada_em,
         operador: data.operador,
         pagamento: obterLabelFormaPagamentoErpPdv(data.forma_pagamento),
@@ -7477,6 +7669,7 @@ export default function EmpresaForm({
       setErpPdvCupomLayout(erpPdvImpressaoConfig.largura);
       setErpPdvCarrinho([]);
       setErpPdvPdvBusca("");
+      limparClienteVendaErpPdv();
       setErpPdvFeedback({
         tipo: "sucesso",
         texto: `Venda #${data.numero} finalizada. Cupom nao fiscal gerado.`,
@@ -10423,6 +10616,200 @@ export default function EmpresaForm({
                     )}
                   </div>
 
+                  <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                          Cliente da venda
+                        </p>
+                        <p className="mt-1 text-sm font-bold text-slate-900">
+                          {erpPdvClienteSelecionado
+                            ? erpPdvClienteSelecionado.nome
+                            : "Consumidor nao identificado"}
+                        </p>
+                        {erpPdvClienteSelecionado && (
+                          <p className="mt-1 text-xs font-semibold text-slate-500">
+                            {[
+                              erpPdvClienteSelecionado.cpf_cnpj,
+                              erpPdvClienteSelecionado.telefone,
+                            ]
+                              .filter(Boolean)
+                              .join(" | ") || "Sem documento/telefone"}
+                          </p>
+                        )}
+                      </div>
+
+                      {erpPdvClienteSelecionado && (
+                        <button
+                          type="button"
+                          onClick={limparClienteVendaErpPdv}
+                          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-600"
+                        >
+                          Remover
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+                      <input
+                        value={erpPdvClienteBusca}
+                        onChange={(e) => setErpPdvClienteBusca(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            buscarClientesVendaErpPdv();
+                          }
+                        }}
+                        placeholder="Buscar por nome, CPF/CNPJ ou telefone"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={buscarClientesVendaErpPdv}
+                        disabled={erpPdvSalvando}
+                        className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Buscar
+                      </button>
+                    </div>
+
+                    {erpPdvClientesEncontrados.length > 0 && (
+                      <div className="mt-3 grid gap-2">
+                        {erpPdvClientesEncontrados.map((clienteErp) => (
+                          <button
+                            type="button"
+                            key={clienteErp.id}
+                            onClick={() => selecionarClienteVendaErpPdv(clienteErp)}
+                            className={`rounded-xl border px-3 py-2 text-left text-sm transition ${
+                              erpPdvClienteSelecionadoId === clienteErp.id
+                                ? "border-green-500 bg-green-50 text-green-800"
+                                : "border-slate-200 bg-white text-slate-700 hover:border-green-300 hover:bg-green-50"
+                            }`}
+                          >
+                            <span className="block font-black">
+                              {clienteErp.nome}
+                            </span>
+                            <span className="mt-1 block text-xs font-semibold text-slate-500">
+                              {[
+                                clienteErp.cpf_cnpj,
+                                clienteErp.telefone,
+                                clienteErp.whatsapp,
+                              ]
+                                .filter(Boolean)
+                                .join(" | ") || "Sem contato cadastrado"}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setErpPdvExibirCadastroCliente((exibir) => !exibir)
+                      }
+                      className="mt-3 rounded-xl border border-dashed border-green-300 bg-white px-4 py-3 text-sm font-black text-green-700 transition hover:bg-green-50"
+                    >
+                      {erpPdvExibirCadastroCliente
+                        ? "Ocultar cadastro rapido"
+                        : "Cadastrar cliente sem sair do PDV"}
+                    </button>
+
+                    {erpPdvExibirCadastroCliente && (
+                      <div className="mt-3 grid gap-3 rounded-xl border border-slate-200 bg-white p-3">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <Input
+                            label="Nome"
+                            value={erpPdvClienteForm.nome}
+                            onChange={(e) =>
+                              atualizarClienteFormErpPdv("nome", e.target.value)
+                            }
+                            placeholder="Nome do cliente"
+                          />
+                          <Input
+                            label="CPF/CNPJ"
+                            value={erpPdvClienteForm.cpfCnpj}
+                            onChange={(e) =>
+                              atualizarClienteFormErpPdv(
+                                "cpfCnpj",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Documento"
+                          />
+                          <Input
+                            label="Telefone"
+                            value={erpPdvClienteForm.telefone}
+                            onChange={(e) =>
+                              atualizarClienteFormErpPdv(
+                                "telefone",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Telefone"
+                          />
+                          <Input
+                            label="WhatsApp"
+                            value={erpPdvClienteForm.whatsapp}
+                            onChange={(e) =>
+                              atualizarClienteFormErpPdv(
+                                "whatsapp",
+                                e.target.value
+                              )
+                            }
+                            placeholder="WhatsApp"
+                          />
+                          <Input
+                            label="E-mail"
+                            value={erpPdvClienteForm.email}
+                            onChange={(e) =>
+                              atualizarClienteFormErpPdv("email", e.target.value)
+                            }
+                            placeholder="cliente@email.com"
+                          />
+                          <Input
+                            label="Endereco"
+                            value={erpPdvClienteForm.endereco}
+                            onChange={(e) =>
+                              atualizarClienteFormErpPdv(
+                                "endereco",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Endereco completo"
+                          />
+                        </div>
+
+                        <label className="block text-sm font-medium text-slate-700">
+                          Observacoes
+                          <textarea
+                            value={erpPdvClienteForm.observacoes}
+                            onChange={(e) =>
+                              atualizarClienteFormErpPdv(
+                                "observacoes",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Preferencias, referencias ou detalhes importantes"
+                            className="mt-1 min-h-20 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                          />
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={salvarClienteVendaErpPdv}
+                          disabled={erpPdvSalvando || !erpPdvClienteForm.nome.trim()}
+                          className="rounded-xl bg-green-600 px-4 py-3 text-sm font-black text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {erpPdvSalvando
+                            ? "Salvando cliente..."
+                            : "Salvar e vincular cliente"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="mt-4 rounded-2xl bg-slate-950 p-4 text-white">
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div>
@@ -10578,6 +10965,16 @@ export default function EmpresaForm({
                         </p>
                         <p>Operador: {erpPdvCupomNaoFiscal.operador}</p>
                         <p>Pagamento: {erpPdvCupomNaoFiscal.pagamento}</p>
+                        <p>Cliente: {erpPdvCupomNaoFiscal.cliente}</p>
+                        {erpPdvCupomNaoFiscal.clienteDocumento && (
+                          <p>
+                            Documento:{" "}
+                            {erpPdvCupomNaoFiscal.clienteDocumento}
+                          </p>
+                        )}
+                        {erpPdvCupomNaoFiscal.clienteContato && (
+                          <p>Contato: {erpPdvCupomNaoFiscal.clienteContato}</p>
+                        )}
                       </div>
 
                       <div className="my-2 border-t border-dashed border-slate-400" />
