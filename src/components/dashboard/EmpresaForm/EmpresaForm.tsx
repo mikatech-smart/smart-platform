@@ -21,11 +21,15 @@ import {
   listarErpPdvMovimentacoes,
   listarErpPdvCategorias,
   listarErpPdvClientes,
+  listarErpPdvEntradas,
+  listarErpPdvFornecedores,
   listarErpPdvProdutos,
   finalizarErpPdvVenda,
+  registrarErpPdvEntradaMercadorias,
   registrarErpPdvCaixaMovimentacao,
   registrarErpPdvMovimentacao,
   salvarErpPdvCliente,
+  salvarErpPdvFornecedor,
   salvarErpPdvProduto,
   type ErpPdvCaixa,
   type ErpPdvCaixaMovimentacaoTipo,
@@ -34,7 +38,10 @@ import {
   type ErpPdvClientePayload,
   type ErpPdvFormaPagamento,
   type ErpPdvFormacaoPrecoTipo,
+  type ErpPdvEntradaMercadoria,
   type ErpPdvCategoria,
+  type ErpPdvFornecedor,
+  type ErpPdvFornecedorPayload,
   type ErpPdvMovimentacao,
   type ErpPdvMovimentacaoPayload,
   type ErpPdvMovimentacaoTipo,
@@ -903,6 +910,37 @@ type ErpPdvClienteForm = {
   observacoes: string;
 };
 
+type ErpPdvFornecedorForm = {
+  razaoSocial: string;
+  nomeFantasia: string;
+  cpfCnpj: string;
+  inscricaoEstadual: string;
+  contato: string;
+  telefone: string;
+  whatsapp: string;
+  email: string;
+  endereco: string;
+  observacoes: string;
+};
+
+type ErpPdvEntradaItemForm = {
+  produtoId: string;
+  quantidade: string;
+  custoUnitario: string;
+  desconto: string;
+  frete: string;
+  outrasDespesas: string;
+};
+
+type ErpPdvEntradaForm = {
+  fornecedorId: string;
+  numeroNota: string;
+  dataCompra: string;
+  observacoes: string;
+  item: ErpPdvEntradaItemForm;
+  itens: ErpPdvEntradaItemForm[];
+};
+
 type ErpPdvCupomLayout = "58mm" | "80mm" | "a4";
 
 type ErpPdvCupomItem = {
@@ -1049,6 +1087,37 @@ const erpPdvClienteFormPadrao: ErpPdvClienteForm = {
   email: "",
   endereco: "",
   observacoes: "",
+};
+
+const erpPdvFornecedorFormPadrao: ErpPdvFornecedorForm = {
+  razaoSocial: "",
+  nomeFantasia: "",
+  cpfCnpj: "",
+  inscricaoEstadual: "",
+  contato: "",
+  telefone: "",
+  whatsapp: "",
+  email: "",
+  endereco: "",
+  observacoes: "",
+};
+
+const erpPdvEntradaItemFormPadrao: ErpPdvEntradaItemForm = {
+  produtoId: "",
+  quantidade: "",
+  custoUnitario: "",
+  desconto: "",
+  frete: "",
+  outrasDespesas: "",
+};
+
+const erpPdvEntradaFormPadrao: ErpPdvEntradaForm = {
+  fornecedorId: "",
+  numeroNota: "",
+  dataCompra: new Date().toISOString().slice(0, 10),
+  observacoes: "",
+  item: { ...erpPdvEntradaItemFormPadrao },
+  itens: [],
 };
 
 const erpPdvProdutoFormPadrao: ErpPdvProdutoForm = {
@@ -5861,6 +5930,20 @@ export default function EmpresaForm({
     ErpPdvMovimentacao[]
   >([]);
   const [erpPdvClientes, setErpPdvClientes] = useState<ErpPdvCliente[]>([]);
+  const [erpPdvFornecedores, setErpPdvFornecedores] = useState<
+    ErpPdvFornecedor[]
+  >([]);
+  const [erpPdvEntradas, setErpPdvEntradas] = useState<
+    ErpPdvEntradaMercadoria[]
+  >([]);
+  const [erpPdvFornecedorForm, setErpPdvFornecedorForm] =
+    useState<ErpPdvFornecedorForm>(() => ({ ...erpPdvFornecedorFormPadrao }));
+  const [erpPdvEntradaForm, setErpPdvEntradaForm] =
+    useState<ErpPdvEntradaForm>(() => ({
+      ...erpPdvEntradaFormPadrao,
+      item: { ...erpPdvEntradaItemFormPadrao },
+      itens: [],
+    }));
   const [erpPdvClienteBusca, setErpPdvClienteBusca] = useState("");
   const [erpPdvClienteSelecionadoId, setErpPdvClienteSelecionadoId] =
     useState("");
@@ -6129,6 +6212,35 @@ export default function EmpresaForm({
   const erpPdvProdutoMovimentacaoSelecionado = erpPdvProdutosPorId.get(
     erpPdvMovimentacaoForm.produtoId
   );
+  const erpPdvEntradaTotais = erpPdvEntradaForm.itens.reduce(
+    (totais, item) => {
+      const quantidade = parseNumeroErpPdv(item.quantidade);
+      const custoUnitario = parseNumeroErpPdv(item.custoUnitario);
+      const desconto = parseNumeroErpPdv(item.desconto);
+      const frete = parseNumeroErpPdv(item.frete);
+      const outrasDespesas = parseNumeroErpPdv(item.outrasDespesas);
+
+      return {
+        produtos: totais.produtos + quantidade * custoUnitario,
+        descontos: totais.descontos + desconto,
+        frete: totais.frete + frete,
+        outrasDespesas: totais.outrasDespesas + outrasDespesas,
+        itens: totais.itens + quantidade,
+      };
+    },
+    {
+      produtos: 0,
+      descontos: 0,
+      frete: 0,
+      outrasDespesas: 0,
+      itens: 0,
+    }
+  );
+  const erpPdvEntradaTotal =
+    erpPdvEntradaTotais.produtos -
+    erpPdvEntradaTotais.descontos +
+    erpPdvEntradaTotais.frete +
+    erpPdvEntradaTotais.outrasDespesas;
   const erpPdvMovimentacoesFiltradas = erpPdvMovimentacoes.filter(
     (movimentacao) => {
       if (
@@ -6393,12 +6505,16 @@ export default function EmpresaForm({
         produtosResultado,
         movimentacoesResultado,
         clientesResultado,
+        fornecedoresResultado,
+        entradasResultado,
         caixaResultado,
       ] = await Promise.all([
         listarErpPdvCategorias(empresaIdAtual),
         listarErpPdvProdutos(empresaIdAtual),
         listarErpPdvMovimentacoes(empresaIdAtual),
         listarErpPdvClientes(empresaIdAtual),
+        listarErpPdvFornecedores(empresaIdAtual),
+        listarErpPdvEntradas(empresaIdAtual),
         buscarErpPdvCaixaAberto(empresaIdAtual),
       ]);
 
@@ -6406,12 +6522,16 @@ export default function EmpresaForm({
       if (produtosResultado.error) throw produtosResultado.error;
       if (movimentacoesResultado.error) throw movimentacoesResultado.error;
       if (clientesResultado.error) throw clientesResultado.error;
+      if (fornecedoresResultado.error) throw fornecedoresResultado.error;
+      if (entradasResultado.error) throw entradasResultado.error;
       if (caixaResultado.error) throw caixaResultado.error;
 
       setErpPdvCategorias(categoriasResultado.data);
       setErpPdvProdutos(produtosResultado.data);
       setErpPdvMovimentacoes(movimentacoesResultado.data);
       setErpPdvClientes(clientesResultado.data);
+      setErpPdvFornecedores(fornecedoresResultado.data);
+      setErpPdvEntradas(entradasResultado.data);
       setErpPdvCaixaAberto(caixaResultado.data);
       setErpPdvCaixaOperador(caixaResultado.data?.operador || "");
 
@@ -7641,6 +7761,211 @@ export default function EmpresaForm({
           error instanceof Error
             ? error.message
             : "Nao foi possivel salvar o cliente.",
+      });
+    } finally {
+      setErpPdvSalvando(false);
+    }
+  }
+
+  function atualizarFornecedorFormErpPdv(
+    campo: keyof ErpPdvFornecedorForm,
+    valor: string
+  ) {
+    setErpPdvFornecedorForm((formAtual) => ({
+      ...formAtual,
+      [campo]: valor,
+    }));
+  }
+
+  async function salvarFornecedorErpPdv() {
+    if (!empresaId) return;
+
+    if (!erpPdvFornecedorForm.razaoSocial.trim()) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "Informe a razao social do fornecedor.",
+      });
+      return;
+    }
+
+    try {
+      setErpPdvSalvando(true);
+      const payload: ErpPdvFornecedorPayload = {
+        empresaId,
+        razaoSocial: erpPdvFornecedorForm.razaoSocial,
+        nomeFantasia: erpPdvFornecedorForm.nomeFantasia,
+        cpfCnpj: erpPdvFornecedorForm.cpfCnpj,
+        inscricaoEstadual: erpPdvFornecedorForm.inscricaoEstadual,
+        contato: erpPdvFornecedorForm.contato,
+        telefone: erpPdvFornecedorForm.telefone,
+        whatsapp: erpPdvFornecedorForm.whatsapp,
+        email: erpPdvFornecedorForm.email,
+        endereco: erpPdvFornecedorForm.endereco,
+        observacoes: erpPdvFornecedorForm.observacoes,
+        ativo: true,
+      };
+      const { data, error } = await salvarErpPdvFornecedor(payload);
+
+      if (error) throw error;
+      if (!data) throw new Error("Fornecedor nao retornado pelo Supabase.");
+
+      setErpPdvFornecedores((fornecedoresAtuais) => [
+        data,
+        ...fornecedoresAtuais.filter((fornecedor) => fornecedor.id !== data.id),
+      ]);
+      setErpPdvEntradaForm((formAtual) => ({
+        ...formAtual,
+        fornecedorId: data.id,
+      }));
+      setErpPdvFornecedorForm({ ...erpPdvFornecedorFormPadrao });
+      setErpPdvFeedback({
+        tipo: "sucesso",
+        texto: "Fornecedor salvo e selecionado na entrada.",
+      });
+    } catch (error) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel salvar o fornecedor.",
+      });
+    } finally {
+      setErpPdvSalvando(false);
+    }
+  }
+
+  function atualizarEntradaFormErpPdv(
+    campo: keyof Omit<ErpPdvEntradaForm, "item" | "itens">,
+    valor: string
+  ) {
+    setErpPdvEntradaForm((formAtual) => ({
+      ...formAtual,
+      [campo]: valor,
+    }));
+  }
+
+  function atualizarEntradaItemFormErpPdv(
+    campo: keyof ErpPdvEntradaItemForm,
+    valor: string
+  ) {
+    setErpPdvEntradaForm((formAtual) => ({
+      ...formAtual,
+      item: {
+        ...formAtual.item,
+        [campo]: valor,
+      },
+    }));
+  }
+
+  function adicionarItemEntradaErpPdv() {
+    const item = erpPdvEntradaForm.item;
+    const quantidade = parseNumeroErpPdv(item.quantidade);
+    const custoUnitario = parseNumeroErpPdv(item.custoUnitario);
+
+    if (!item.produtoId || quantidade <= 0 || custoUnitario <= 0) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "Selecione produto, quantidade e custo unitario da entrada.",
+      });
+      return;
+    }
+
+    setErpPdvEntradaForm((formAtual) => ({
+      ...formAtual,
+      itens: [...formAtual.itens, item],
+      item: { ...erpPdvEntradaItemFormPadrao },
+    }));
+  }
+
+  function removerItemEntradaErpPdv(indice: number) {
+    setErpPdvEntradaForm((formAtual) => ({
+      ...formAtual,
+      itens: formAtual.itens.filter((_, indiceAtual) => indiceAtual !== indice),
+    }));
+  }
+
+  async function registrarEntradaMercadoriasErpPdv() {
+    if (!empresaId) return;
+
+    if (!erpPdvEntradaForm.fornecedorId) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "Selecione o fornecedor da entrada.",
+      });
+      return;
+    }
+
+    if (!erpPdvEntradaForm.itens.length) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "Adicione pelo menos um produto na entrada.",
+      });
+      return;
+    }
+
+    try {
+      setErpPdvSalvando(true);
+      const { data, error } = await registrarErpPdvEntradaMercadorias({
+        empresaId,
+        fornecedorId: erpPdvEntradaForm.fornecedorId,
+        numeroNota: erpPdvEntradaForm.numeroNota,
+        dataCompra: erpPdvEntradaForm.dataCompra,
+        observacoes: erpPdvEntradaForm.observacoes,
+        itens: erpPdvEntradaForm.itens.map((item) => ({
+          produtoId: item.produtoId,
+          quantidade: parseNumeroErpPdv(item.quantidade),
+          custoUnitario: parseNumeroErpPdv(item.custoUnitario),
+          desconto: parseNumeroErpPdv(item.desconto),
+          frete: parseNumeroErpPdv(item.frete),
+          outrasDespesas: parseNumeroErpPdv(item.outrasDespesas),
+        })),
+      });
+
+      if (error) throw error;
+      if (!data) throw new Error("Entrada nao retornada pelo Supabase.");
+
+      setErpPdvEntradas((entradasAtuais) => [
+        data.entrada,
+        ...entradasAtuais,
+      ]);
+      setErpPdvMovimentacoes((movimentacoesAtuais) => [
+        ...data.movimentacoes,
+        ...movimentacoesAtuais,
+      ]);
+      setErpPdvProdutos((produtosAtuais) =>
+        produtosAtuais.map((produto) => {
+          const itemEntrada = data.entrada.itens.find(
+            (item) => item.produto_id === produto.id
+          );
+
+          return itemEntrada
+            ? {
+                ...produto,
+                custo: itemEntrada.custo_unitario,
+                estoque_atual: itemEntrada.estoque_posterior,
+              }
+            : produto;
+        })
+      );
+      setErpPdvEntradaForm({
+        ...erpPdvEntradaFormPadrao,
+        dataCompra: new Date().toISOString().slice(0, 10),
+        item: { ...erpPdvEntradaItemFormPadrao },
+        itens: [],
+      });
+      setErpPdvFeedback({
+        tipo: "sucesso",
+        texto: "Entrada registrada, estoque atualizado e historico salvo.",
+      });
+      await carregarRelatorioErpPdv();
+    } catch (error) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel registrar a entrada.",
       });
     } finally {
       setErpPdvSalvando(false);
@@ -12274,6 +12599,541 @@ export default function EmpresaForm({
                     Nenhum produto encontrado para a busca atual.
                   </p>
                 )}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+                    Compras
+                  </p>
+                  <h4 className="mt-2 text-lg font-bold text-slate-900">
+                    Fornecedores e entrada de mercadorias
+                  </h4>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Registre compras manuais, atualize estoque e mantenha o
+                    historico preparado para XML da NF-e e DANFE.
+                  </p>
+                </div>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                  {erpPdvEntradas.length} entrada(s)
+                </span>
+              </div>
+
+              <div className="mt-4 grid gap-4 xl:grid-cols-[380px_1fr]">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <h5 className="font-black text-slate-900">
+                    Cadastro de fornecedor
+                  </h5>
+                  <div className="mt-3 grid gap-3">
+                    <Input
+                      label="Razao social"
+                      value={erpPdvFornecedorForm.razaoSocial}
+                      onChange={(e) =>
+                        atualizarFornecedorFormErpPdv(
+                          "razaoSocial",
+                          e.target.value
+                        )
+                      }
+                      placeholder="Fornecedor Ltda"
+                    />
+                    <Input
+                      label="Nome fantasia"
+                      value={erpPdvFornecedorForm.nomeFantasia}
+                      onChange={(e) =>
+                        atualizarFornecedorFormErpPdv(
+                          "nomeFantasia",
+                          e.target.value
+                        )
+                      }
+                      placeholder="Nome comercial"
+                    />
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Input
+                        label="CPF/CNPJ"
+                        value={erpPdvFornecedorForm.cpfCnpj}
+                        onChange={(e) =>
+                          atualizarFornecedorFormErpPdv(
+                            "cpfCnpj",
+                            e.target.value
+                          )
+                        }
+                        placeholder="Documento"
+                      />
+                      <Input
+                        label="Inscricao Estadual"
+                        value={erpPdvFornecedorForm.inscricaoEstadual}
+                        onChange={(e) =>
+                          atualizarFornecedorFormErpPdv(
+                            "inscricaoEstadual",
+                            e.target.value
+                          )
+                        }
+                        placeholder="IE"
+                      />
+                      <Input
+                        label="Contato"
+                        value={erpPdvFornecedorForm.contato}
+                        onChange={(e) =>
+                          atualizarFornecedorFormErpPdv(
+                            "contato",
+                            e.target.value
+                          )
+                        }
+                        placeholder="Nome"
+                      />
+                      <Input
+                        label="Telefone"
+                        value={erpPdvFornecedorForm.telefone}
+                        onChange={(e) =>
+                          atualizarFornecedorFormErpPdv(
+                            "telefone",
+                            e.target.value
+                          )
+                        }
+                        placeholder="Telefone"
+                      />
+                      <Input
+                        label="WhatsApp"
+                        value={erpPdvFornecedorForm.whatsapp}
+                        onChange={(e) =>
+                          atualizarFornecedorFormErpPdv(
+                            "whatsapp",
+                            e.target.value
+                          )
+                        }
+                        placeholder="WhatsApp"
+                      />
+                      <Input
+                        label="E-mail"
+                        value={erpPdvFornecedorForm.email}
+                        onChange={(e) =>
+                          atualizarFornecedorFormErpPdv(
+                            "email",
+                            e.target.value
+                          )
+                        }
+                        placeholder="fornecedor@email.com"
+                      />
+                    </div>
+                    <Input
+                      label="Endereco"
+                      value={erpPdvFornecedorForm.endereco}
+                      onChange={(e) =>
+                        atualizarFornecedorFormErpPdv(
+                          "endereco",
+                          e.target.value
+                        )
+                      }
+                      placeholder="Endereco completo"
+                    />
+                    <label className="block text-sm font-medium text-slate-700">
+                      Observacoes
+                      <textarea
+                        value={erpPdvFornecedorForm.observacoes}
+                        onChange={(e) =>
+                          atualizarFornecedorFormErpPdv(
+                            "observacoes",
+                            e.target.value
+                          )
+                        }
+                        rows={3}
+                        className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={salvarFornecedorErpPdv}
+                      disabled={
+                        erpPdvSalvando ||
+                        !recursosContratados.erp_pdv ||
+                        !erpPdvFornecedorForm.razaoSocial.trim()
+                      }
+                      className="rounded-xl bg-green-700 px-4 py-3 text-sm font-black text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {erpPdvSalvando ? "Salvando..." : "Salvar fornecedor"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 p-4">
+                  <h5 className="font-black text-slate-900">
+                    Entrada manual
+                  </h5>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700">
+                        Fornecedor
+                      </label>
+                      <select
+                        value={erpPdvEntradaForm.fornecedorId}
+                        onChange={(e) =>
+                          atualizarEntradaFormErpPdv(
+                            "fornecedorId",
+                            e.target.value
+                          )
+                        }
+                        className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-800 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                      >
+                        <option value="">Selecione</option>
+                        {erpPdvFornecedores.map((fornecedor) => (
+                          <option key={fornecedor.id} value={fornecedor.id}>
+                            {fornecedor.nome_fantasia ||
+                              fornecedor.razao_social}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <Input
+                      label="Numero da nota"
+                      value={erpPdvEntradaForm.numeroNota}
+                      onChange={(e) =>
+                        atualizarEntradaFormErpPdv(
+                          "numeroNota",
+                          e.target.value
+                        )
+                      }
+                      placeholder="NF / pedido"
+                    />
+                    <Input
+                      label="Data da compra"
+                      type="date"
+                      value={erpPdvEntradaForm.dataCompra}
+                      onChange={(e) =>
+                        atualizarEntradaFormErpPdv(
+                          "dataCompra",
+                          e.target.value
+                        )
+                      }
+                    />
+                    <Input
+                      label="Chave DANFE"
+                      value=""
+                      disabled
+                      placeholder="Preparado para futura leitura"
+                    />
+                  </div>
+
+                  <div className="mt-4 rounded-2xl bg-slate-50 p-3">
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+                      <div className="xl:col-span-2">
+                        <label className="block text-sm font-semibold text-slate-700">
+                          Produto
+                        </label>
+                        <select
+                          value={erpPdvEntradaForm.item.produtoId}
+                          onChange={(e) => {
+                            const produto = erpPdvProdutosPorId.get(
+                              e.target.value
+                            );
+                            atualizarEntradaItemFormErpPdv(
+                              "produtoId",
+                              e.target.value
+                            );
+                            if (produto) {
+                              atualizarEntradaItemFormErpPdv(
+                                "custoUnitario",
+                                formatarNumeroErpPdv(produto.custo)
+                              );
+                            }
+                          }}
+                          className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-800 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                        >
+                          <option value="">Selecione</option>
+                          {erpPdvProdutos.map((produto) => (
+                            <option key={produto.id} value={produto.id}>
+                              {produto.nome}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <Input
+                        label="Quantidade"
+                        value={erpPdvEntradaForm.item.quantidade}
+                        onChange={(e) =>
+                          atualizarEntradaItemFormErpPdv(
+                            "quantidade",
+                            e.target.value
+                          )
+                        }
+                        placeholder="0"
+                      />
+                      <Input
+                        label="Custo unitario"
+                        value={erpPdvEntradaForm.item.custoUnitario}
+                        onChange={(e) =>
+                          atualizarEntradaItemFormErpPdv(
+                            "custoUnitario",
+                            e.target.value
+                          )
+                        }
+                        placeholder="0,00"
+                      />
+                      <Input
+                        label="Desconto"
+                        value={erpPdvEntradaForm.item.desconto}
+                        onChange={(e) =>
+                          atualizarEntradaItemFormErpPdv(
+                            "desconto",
+                            e.target.value
+                          )
+                        }
+                        placeholder="0,00"
+                      />
+                      <Input
+                        label="Frete"
+                        value={erpPdvEntradaForm.item.frete}
+                        onChange={(e) =>
+                          atualizarEntradaItemFormErpPdv(
+                            "frete",
+                            e.target.value
+                          )
+                        }
+                        placeholder="0,00"
+                      />
+                      <Input
+                        label="Outras despesas"
+                        value={erpPdvEntradaForm.item.outrasDespesas}
+                        onChange={(e) =>
+                          atualizarEntradaItemFormErpPdv(
+                            "outrasDespesas",
+                            e.target.value
+                          )
+                        }
+                        placeholder="0,00"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={adicionarItemEntradaErpPdv}
+                      className="mt-3 rounded-xl border border-green-300 bg-white px-4 py-3 text-sm font-black text-green-700 transition hover:bg-green-50"
+                    >
+                      Adicionar item
+                    </button>
+                  </div>
+
+                  <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200">
+                    <table className="min-w-full divide-y divide-slate-200 text-sm">
+                      <thead className="bg-slate-50">
+                        <tr>
+                          {[
+                            "Produto",
+                            "Qtd.",
+                            "Custo",
+                            "Desc.",
+                            "Frete",
+                            "Desp.",
+                            "Total",
+                            "",
+                          ].map((cabecalho) => (
+                            <th
+                              key={cabecalho}
+                              className="px-3 py-3 text-left text-xs font-black uppercase tracking-wide text-slate-500"
+                            >
+                              {cabecalho}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {erpPdvEntradaForm.itens.length > 0 ? (
+                          erpPdvEntradaForm.itens.map((item, indice) => {
+                            const produto = erpPdvProdutosPorId.get(
+                              item.produtoId
+                            );
+                            const quantidade = parseNumeroErpPdv(item.quantidade);
+                            const custoUnitario = parseNumeroErpPdv(
+                              item.custoUnitario
+                            );
+                            const totalItem =
+                              quantidade * custoUnitario -
+                              parseNumeroErpPdv(item.desconto) +
+                              parseNumeroErpPdv(item.frete) +
+                              parseNumeroErpPdv(item.outrasDespesas);
+
+                            return (
+                              <tr key={`${item.produtoId}-${indice}`}>
+                                <td className="px-3 py-3 font-bold text-slate-900">
+                                  {produto?.nome || "Produto"}
+                                </td>
+                                <td className="px-3 py-3">
+                                  {item.quantidade}
+                                </td>
+                                <td className="px-3 py-3">
+                                  R$ {formatarMoedaErpPdv(custoUnitario)}
+                                </td>
+                                <td className="px-3 py-3">
+                                  R${" "}
+                                  {formatarMoedaErpPdv(
+                                    parseNumeroErpPdv(item.desconto)
+                                  )}
+                                </td>
+                                <td className="px-3 py-3">
+                                  R${" "}
+                                  {formatarMoedaErpPdv(
+                                    parseNumeroErpPdv(item.frete)
+                                  )}
+                                </td>
+                                <td className="px-3 py-3">
+                                  R${" "}
+                                  {formatarMoedaErpPdv(
+                                    parseNumeroErpPdv(item.outrasDespesas)
+                                  )}
+                                </td>
+                                <td className="px-3 py-3 font-bold">
+                                  R$ {formatarMoedaErpPdv(totalItem)}
+                                </td>
+                                <td className="px-3 py-3 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      removerItemEntradaErpPdv(indice)
+                                    }
+                                    className="text-xs font-black text-red-600"
+                                  >
+                                    Remover
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td
+                              colSpan={8}
+                              className="px-3 py-6 text-center text-slate-500"
+                            >
+                              Nenhum item adicionado.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-4">
+                    <div className="rounded-xl bg-slate-50 p-3">
+                      <p className="text-xs font-bold uppercase text-slate-500">
+                        Produtos
+                      </p>
+                      <p className="font-black text-slate-900">
+                        R$ {formatarMoedaErpPdv(erpPdvEntradaTotais.produtos)}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 p-3">
+                      <p className="text-xs font-bold uppercase text-slate-500">
+                        Descontos
+                      </p>
+                      <p className="font-black text-slate-900">
+                        R$ {formatarMoedaErpPdv(erpPdvEntradaTotais.descontos)}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 p-3">
+                      <p className="text-xs font-bold uppercase text-slate-500">
+                        Frete/despesas
+                      </p>
+                      <p className="font-black text-slate-900">
+                        R${" "}
+                        {formatarMoedaErpPdv(
+                          erpPdvEntradaTotais.frete +
+                            erpPdvEntradaTotais.outrasDespesas
+                        )}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-green-50 p-3">
+                      <p className="text-xs font-bold uppercase text-green-700">
+                        Total
+                      </p>
+                      <p className="font-black text-green-800">
+                        R$ {formatarMoedaErpPdv(erpPdvEntradaTotal)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <label className="mt-4 block text-sm font-medium text-slate-700">
+                    Observacoes da entrada
+                    <textarea
+                      value={erpPdvEntradaForm.observacoes}
+                      onChange={(e) =>
+                        atualizarEntradaFormErpPdv(
+                          "observacoes",
+                          e.target.value
+                        )
+                      }
+                      rows={3}
+                      placeholder="Observacoes internas, chave de acesso ou dados para futura importacao XML."
+                      className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={registrarEntradaMercadoriasErpPdv}
+                    disabled={
+                      erpPdvSalvando ||
+                      !recursosContratados.erp_pdv ||
+                      !erpPdvEntradaForm.fornecedorId ||
+                      erpPdvEntradaForm.itens.length === 0
+                    }
+                    className="mt-4 rounded-xl bg-green-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {erpPdvSalvando
+                      ? "Registrando..."
+                      : "Registrar entrada e atualizar estoque"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-slate-200 p-4">
+                <h5 className="font-black text-slate-900">
+                  Historico de entradas
+                </h5>
+                <div className="mt-3 grid gap-3">
+                  {erpPdvEntradas.length > 0 ? (
+                    erpPdvEntradas.slice(0, 12).map((entrada) => (
+                      <div
+                        key={entrada.id}
+                        className="rounded-xl bg-slate-50 px-4 py-3"
+                      >
+                        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                          <div>
+                            <p className="font-black text-slate-900">
+                              {entrada.fornecedor_nome || "Fornecedor"}
+                            </p>
+                            <p className="text-sm text-slate-500">
+                              NF: {entrada.numero_nota || "sem numero"} |{" "}
+                              {new Date(
+                                `${entrada.data_compra}T00:00:00`
+                              ).toLocaleDateString("pt-BR")}{" "}
+                              | {entrada.itens.length} item(ns)
+                            </p>
+                          </div>
+                          <span className="font-black text-green-700">
+                            R$ {formatarMoedaErpPdv(entrada.total_entrada)}
+                          </span>
+                        </div>
+                        {entrada.itens.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-2 text-xs font-bold text-slate-600">
+                            {entrada.itens.slice(0, 4).map((item) => (
+                              <span
+                                key={item.id}
+                                className="rounded-full bg-white px-3 py-1"
+                              >
+                                {item.descricao}:{" "}
+                                {formatarNumeroErpPdv(item.quantidade) || "0"}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-slate-500">
+                      Nenhuma entrada registrada ainda.
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 

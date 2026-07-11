@@ -100,6 +100,88 @@ export type ErpPdvClientePayload = {
   ativo: boolean;
 };
 
+export type ErpPdvFornecedor = {
+  id: string;
+  empresa_id: string;
+  razao_social: string;
+  nome_fantasia: string;
+  cpf_cnpj: string;
+  inscricao_estadual: string;
+  contato: string;
+  telefone: string;
+  whatsapp: string;
+  email: string;
+  endereco: string;
+  observacoes: string;
+  ativo: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ErpPdvFornecedorPayload = {
+  id?: string;
+  empresaId: string;
+  razaoSocial: string;
+  nomeFantasia: string;
+  cpfCnpj: string;
+  inscricaoEstadual: string;
+  contato: string;
+  telefone: string;
+  whatsapp: string;
+  email: string;
+  endereco: string;
+  observacoes: string;
+  ativo: boolean;
+};
+
+export type ErpPdvEntradaItemPayload = {
+  produtoId: string;
+  quantidade: number;
+  custoUnitario: number;
+  desconto: number;
+  frete: number;
+  outrasDespesas: number;
+};
+
+export type ErpPdvEntradaMercadoriaPayload = {
+  empresaId: string;
+  fornecedorId: string;
+  numeroNota: string;
+  dataCompra: string;
+  observacoes: string;
+  itens: ErpPdvEntradaItemPayload[];
+};
+
+export type ErpPdvEntradaItem = {
+  id: string;
+  produto_id: string;
+  descricao: string;
+  quantidade: number;
+  custo_unitario: number;
+  desconto: number;
+  frete: number;
+  outras_despesas: number;
+  custo_total: number;
+  estoque_anterior: number;
+  estoque_posterior: number;
+};
+
+export type ErpPdvEntradaMercadoria = {
+  id: string;
+  fornecedor_id: string | null;
+  fornecedor_nome: string;
+  numero_nota: string;
+  data_compra: string;
+  observacoes: string;
+  total_produtos: number;
+  total_descontos: number;
+  total_frete: number;
+  total_outras_despesas: number;
+  total_entrada: number;
+  created_at: string;
+  itens: ErpPdvEntradaItem[];
+};
+
 export type ErpPdvMovimentacaoTipo = "entrada" | "saida" | "ajuste" | "venda";
 
 export type ErpPdvMovimentacao = {
@@ -308,6 +390,54 @@ type ErpPdvClienteRow = {
   updated_at: string;
 };
 
+type ErpPdvFornecedorRow = {
+  id: string;
+  empresa_id: string;
+  razao_social: string;
+  nome_fantasia?: string;
+  cpf_cnpj?: string;
+  inscricao_estadual?: string;
+  contato?: string;
+  telefone?: string;
+  whatsapp?: string;
+  email?: string;
+  endereco?: string;
+  observacoes?: string;
+  ativo: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+type ErpPdvEntradaRow = {
+  id: string;
+  fornecedor_id?: string | null;
+  fornecedor_nome?: string;
+  numero_nota?: string;
+  data_compra: string;
+  observacoes?: string;
+  total_produtos: number | string;
+  total_descontos: number | string;
+  total_frete: number | string;
+  total_outras_despesas: number | string;
+  total_entrada: number | string;
+  created_at: string;
+};
+
+type ErpPdvEntradaItemRow = {
+  id: string;
+  entrada_id: string;
+  produto_id: string;
+  descricao: string;
+  quantidade: number | string;
+  custo_unitario: number | string;
+  desconto: number | string;
+  frete: number | string;
+  outras_despesas: number | string;
+  custo_total: number | string;
+  estoque_anterior: number | string;
+  estoque_posterior: number | string;
+};
+
 type ErpPdvMovimentacaoRow = {
   id: string;
   empresa_id: string;
@@ -470,6 +600,63 @@ function normalizarCliente(row: ErpPdvClienteRow): ErpPdvCliente {
     ativo: row.ativo,
     created_at: row.created_at,
     updated_at: row.updated_at,
+  };
+}
+
+function normalizarFornecedor(row: ErpPdvFornecedorRow): ErpPdvFornecedor {
+  return {
+    id: row.id,
+    empresa_id: row.empresa_id,
+    razao_social: row.razao_social || "",
+    nome_fantasia: row.nome_fantasia || "",
+    cpf_cnpj: row.cpf_cnpj || "",
+    inscricao_estadual: row.inscricao_estadual || "",
+    contato: row.contato || "",
+    telefone: row.telefone || "",
+    whatsapp: row.whatsapp || "",
+    email: row.email || "",
+    endereco: row.endereco || "",
+    observacoes: row.observacoes || "",
+    ativo: row.ativo,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+function normalizarEntradaItem(row: ErpPdvEntradaItemRow): ErpPdvEntradaItem {
+  return {
+    id: row.id,
+    produto_id: row.produto_id,
+    descricao: row.descricao || "",
+    quantidade: toNumber(row.quantidade),
+    custo_unitario: toNumber(row.custo_unitario),
+    desconto: toNumber(row.desconto),
+    frete: toNumber(row.frete),
+    outras_despesas: toNumber(row.outras_despesas),
+    custo_total: toNumber(row.custo_total),
+    estoque_anterior: toNumber(row.estoque_anterior),
+    estoque_posterior: toNumber(row.estoque_posterior),
+  };
+}
+
+function normalizarEntrada(
+  row: ErpPdvEntradaRow,
+  itens: ErpPdvEntradaItem[] = []
+): ErpPdvEntradaMercadoria {
+  return {
+    id: row.id,
+    fornecedor_id: row.fornecedor_id || null,
+    fornecedor_nome: row.fornecedor_nome || "",
+    numero_nota: row.numero_nota || "",
+    data_compra: row.data_compra,
+    observacoes: row.observacoes || "",
+    total_produtos: toNumber(row.total_produtos),
+    total_descontos: toNumber(row.total_descontos),
+    total_frete: toNumber(row.total_frete),
+    total_outras_despesas: toNumber(row.total_outras_despesas),
+    total_entrada: toNumber(row.total_entrada),
+    created_at: row.created_at,
+    itens,
   };
 }
 
@@ -691,6 +878,70 @@ export async function salvarErpPdvCliente(payload: ErpPdvClientePayload) {
   };
 }
 
+export async function listarErpPdvFornecedores(empresaId: string) {
+  const { data, error } = await supabase
+    .from("erp_pdv_fornecedores")
+    .select(
+      "id, empresa_id, razao_social, nome_fantasia, cpf_cnpj, inscricao_estadual, contato, telefone, whatsapp, email, endereco, observacoes, ativo, created_at, updated_at"
+    )
+    .eq("empresa_id", empresaId)
+    .eq("ativo", true)
+    .order("razao_social", { ascending: true })
+    .limit(200);
+
+  return {
+    data: ((data || []) as ErpPdvFornecedorRow[]).map(normalizarFornecedor),
+    error,
+  };
+}
+
+export async function salvarErpPdvFornecedor(
+  payload: ErpPdvFornecedorPayload
+) {
+  if (!payload.razaoSocial.trim()) {
+    return {
+      data: null,
+      error: new Error("Informe a razao social do fornecedor."),
+    };
+  }
+
+  const agora = new Date().toISOString();
+  const fornecedorPayload = {
+    empresa_id: payload.empresaId,
+    razao_social: payload.razaoSocial.trim(),
+    nome_fantasia: payload.nomeFantasia.trim(),
+    cpf_cnpj: payload.cpfCnpj.trim(),
+    inscricao_estadual: payload.inscricaoEstadual.trim(),
+    contato: payload.contato.trim(),
+    telefone: payload.telefone.trim(),
+    whatsapp: payload.whatsapp.trim(),
+    email: payload.email.trim(),
+    endereco: payload.endereco.trim(),
+    observacoes: payload.observacoes.trim(),
+    ativo: payload.ativo,
+    updated_at: agora,
+  };
+
+  const query = payload.id
+    ? supabase
+        .from("erp_pdv_fornecedores")
+        .update(fornecedorPayload)
+        .eq("id", payload.id)
+        .eq("empresa_id", payload.empresaId)
+    : supabase.from("erp_pdv_fornecedores").insert(fornecedorPayload);
+
+  const { data, error } = await query
+    .select(
+      "id, empresa_id, razao_social, nome_fantasia, cpf_cnpj, inscricao_estadual, contato, telefone, whatsapp, email, endereco, observacoes, ativo, created_at, updated_at"
+    )
+    .single();
+
+  return {
+    data: data ? normalizarFornecedor(data as ErpPdvFornecedorRow) : null,
+    error,
+  };
+}
+
 export async function salvarErpPdvProduto(payload: ErpPdvProdutoPayload) {
   const produtoPayload = {
     empresa_id: payload.empresaId,
@@ -794,6 +1045,341 @@ export async function listarErpPdvMovimentacoes(empresaId: string) {
       normalizarMovimentacao
     ),
     error,
+  };
+}
+
+export async function listarErpPdvEntradas(empresaId: string) {
+  const { data: entradasData, error: entradasError } = await supabase
+    .from("erp_pdv_entradas")
+    .select(
+      "id, fornecedor_id, fornecedor_nome, numero_nota, data_compra, observacoes, total_produtos, total_descontos, total_frete, total_outras_despesas, total_entrada, created_at"
+    )
+    .eq("empresa_id", empresaId)
+    .order("data_compra", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (entradasError) {
+    return {
+      data: [],
+      error: entradasError,
+    };
+  }
+
+  const entradasRows = (entradasData || []) as ErpPdvEntradaRow[];
+  const entradaIds = entradasRows.map((entrada) => entrada.id);
+  let itensRows: ErpPdvEntradaItemRow[] = [];
+
+  if (entradaIds.length > 0) {
+    const { data: itensData, error: itensError } = await supabase
+      .from("erp_pdv_entrada_itens")
+      .select(
+        "id, entrada_id, produto_id, descricao, quantidade, custo_unitario, desconto, frete, outras_despesas, custo_total, estoque_anterior, estoque_posterior"
+      )
+      .eq("empresa_id", empresaId)
+      .in("entrada_id", entradaIds);
+
+    if (itensError) {
+      return {
+        data: [],
+        error: itensError,
+      };
+    }
+
+    itensRows = (itensData || []) as ErpPdvEntradaItemRow[];
+  }
+
+  const itensPorEntrada = new Map<string, ErpPdvEntradaItem[]>();
+  itensRows.forEach((item) => {
+    itensPorEntrada.set(item.entrada_id, [
+      ...(itensPorEntrada.get(item.entrada_id) || []),
+      normalizarEntradaItem(item),
+    ]);
+  });
+
+  return {
+    data: entradasRows.map((entrada) =>
+      normalizarEntrada(entrada, itensPorEntrada.get(entrada.id) || [])
+    ),
+    error: null,
+  };
+}
+
+export async function registrarErpPdvEntradaMercadorias(
+  payload: ErpPdvEntradaMercadoriaPayload
+) {
+  const itens = payload.itens
+    .map((item) => ({
+      ...item,
+      quantidade: toNumber(item.quantidade),
+      custoUnitario: toNumber(item.custoUnitario),
+      desconto: toNumber(item.desconto),
+      frete: toNumber(item.frete),
+      outrasDespesas: toNumber(item.outrasDespesas),
+    }))
+    .filter((item) => item.produtoId && item.quantidade > 0);
+
+  if (!payload.fornecedorId) {
+    return {
+      data: null,
+      error: new Error("Selecione o fornecedor da entrada."),
+    };
+  }
+
+  if (!payload.dataCompra) {
+    return {
+      data: null,
+      error: new Error("Informe a data da compra."),
+    };
+  }
+
+  if (!itens.length) {
+    return {
+      data: null,
+      error: new Error("Adicione pelo menos um item na entrada."),
+    };
+  }
+
+  const fornecedorResultado = await supabase
+    .from("erp_pdv_fornecedores")
+    .select("id, razao_social, nome_fantasia")
+    .eq("empresa_id", payload.empresaId)
+    .eq("id", payload.fornecedorId)
+    .maybeSingle();
+
+  if (fornecedorResultado.error || !fornecedorResultado.data) {
+    return {
+      data: null,
+      error:
+        fornecedorResultado.error ||
+        new Error("Fornecedor nao encontrado para esta empresa."),
+    };
+  }
+
+  const produtoIds = itens.map((item) => item.produtoId);
+  const { data: produtosData, error: produtosError } = await supabase
+    .from("erp_pdv_produtos")
+    .select("id, nome, custo")
+    .eq("empresa_id", payload.empresaId)
+    .in("id", produtoIds);
+
+  if (produtosError) {
+    return {
+      data: null,
+      error: produtosError,
+    };
+  }
+
+  const produtosPorId = new Map(
+    ((produtosData || []) as Pick<ErpPdvProdutoRow, "id" | "nome" | "custo">[]).map(
+      (produto) => [produto.id, produto]
+    )
+  );
+
+  const { data: estoquesData, error: estoquesError } = await supabase
+    .from("erp_pdv_estoques")
+    .select("produto_id, quantidade_atual, estoque_minimo")
+    .eq("empresa_id", payload.empresaId)
+    .in("produto_id", produtoIds);
+
+  if (estoquesError) {
+    return {
+      data: null,
+      error: estoquesError,
+    };
+  }
+
+  const estoquesPorProduto = new Map(
+    ((estoquesData || []) as ErpPdvEstoqueRow[]).map((estoque) => [
+      estoque.produto_id,
+      estoque,
+    ])
+  );
+
+  const totalProdutos = itens.reduce(
+    (total, item) => total + item.quantidade * item.custoUnitario,
+    0
+  );
+  const totalDescontos = itens.reduce((total, item) => total + item.desconto, 0);
+  const totalFrete = itens.reduce((total, item) => total + item.frete, 0);
+  const totalOutrasDespesas = itens.reduce(
+    (total, item) => total + item.outrasDespesas,
+    0
+  );
+  const totalEntrada =
+    totalProdutos - totalDescontos + totalFrete + totalOutrasDespesas;
+  const fornecedor = fornecedorResultado.data as {
+    id: string;
+    razao_social: string;
+    nome_fantasia?: string;
+  };
+  const agora = new Date().toISOString();
+
+  const { data: entradaData, error: entradaError } = await supabase
+    .from("erp_pdv_entradas")
+    .insert({
+      empresa_id: payload.empresaId,
+      fornecedor_id: fornecedor.id,
+      fornecedor_nome: fornecedor.nome_fantasia || fornecedor.razao_social,
+      numero_nota: payload.numeroNota.trim(),
+      data_compra: payload.dataCompra,
+      observacoes: payload.observacoes.trim(),
+      total_produtos: totalProdutos,
+      total_descontos: totalDescontos,
+      total_frete: totalFrete,
+      total_outras_despesas: totalOutrasDespesas,
+      total_entrada: totalEntrada,
+      updated_at: agora,
+    })
+    .select(
+      "id, fornecedor_id, fornecedor_nome, numero_nota, data_compra, observacoes, total_produtos, total_descontos, total_frete, total_outras_despesas, total_entrada, created_at"
+    )
+    .single();
+
+  if (entradaError || !entradaData) {
+    return {
+      data: null,
+      error: entradaError,
+    };
+  }
+
+  const entrada = entradaData as ErpPdvEntradaRow;
+  const itensRegistrados: ErpPdvEntradaItem[] = [];
+  const movimentacoes: ErpPdvMovimentacao[] = [];
+
+  for (const item of itens) {
+    const produto = produtosPorId.get(item.produtoId);
+    if (!produto) {
+      return {
+        data: null,
+        error: new Error("Produto da entrada nao encontrado."),
+      };
+    }
+
+    const estoque = estoquesPorProduto.get(item.produtoId);
+    const estoqueAnterior = toNumber(estoque?.quantidade_atual);
+    const estoqueMinimo = toNumber(estoque?.estoque_minimo);
+    const estoquePosterior = estoqueAnterior + item.quantidade;
+    const custoTotal =
+      item.quantidade * item.custoUnitario -
+      item.desconto +
+      item.frete +
+      item.outrasDespesas;
+    const custoMedio =
+      estoquePosterior > 0
+        ? (estoqueAnterior * toNumber(produto.custo) + custoTotal) /
+          estoquePosterior
+        : item.custoUnitario;
+
+    const { data: itemData, error: itemError } = await supabase
+      .from("erp_pdv_entrada_itens")
+      .insert({
+        empresa_id: payload.empresaId,
+        entrada_id: entrada.id,
+        produto_id: item.produtoId,
+        descricao: produto.nome,
+        quantidade: item.quantidade,
+        custo_unitario: item.custoUnitario,
+        desconto: item.desconto,
+        frete: item.frete,
+        outras_despesas: item.outrasDespesas,
+        custo_total: custoTotal,
+        estoque_anterior: estoqueAnterior,
+        estoque_posterior: estoquePosterior,
+      })
+      .select(
+        "id, entrada_id, produto_id, descricao, quantidade, custo_unitario, desconto, frete, outras_despesas, custo_total, estoque_anterior, estoque_posterior"
+      )
+      .single();
+
+    if (itemError || !itemData) {
+      return {
+        data: null,
+        error: itemError,
+      };
+    }
+
+    const { error: estoqueUpdateError } = await supabase
+      .from("erp_pdv_estoques")
+      .upsert(
+        {
+          empresa_id: payload.empresaId,
+          produto_id: item.produtoId,
+          quantidade_atual: estoquePosterior,
+          estoque_minimo: estoqueMinimo,
+          ultimo_custo: item.custoUnitario,
+          custo_medio: custoMedio,
+          updated_at: agora,
+          ultima_movimentacao_em: agora,
+        },
+        {
+          onConflict: "produto_id",
+        }
+      );
+
+    if (estoqueUpdateError) {
+      return {
+        data: null,
+        error: estoqueUpdateError,
+      };
+    }
+
+    const { error: produtoUpdateError } = await supabase
+      .from("erp_pdv_produtos")
+      .update({
+        custo: item.custoUnitario,
+        updated_at: agora,
+      })
+      .eq("empresa_id", payload.empresaId)
+      .eq("id", item.produtoId);
+
+    if (produtoUpdateError) {
+      return {
+        data: null,
+        error: produtoUpdateError,
+      };
+    }
+
+    const { data: movimentacaoData, error: movimentacaoError } = await supabase
+      .from("erp_pdv_movimentacoes")
+      .insert({
+        empresa_id: payload.empresaId,
+        produto_id: item.produtoId,
+        tipo: "entrada",
+        quantidade: item.quantidade,
+        estoque_anterior: estoqueAnterior,
+        estoque_posterior: estoquePosterior,
+        origem: "compra",
+        motivo: payload.numeroNota.trim()
+          ? `Compra NF ${payload.numeroNota.trim()}`
+          : "Entrada manual de mercadorias",
+        observacao: payload.observacoes.trim(),
+        usuario_responsavel: fornecedor.nome_fantasia || fornecedor.razao_social,
+      })
+      .select(
+        "id, empresa_id, produto_id, tipo, quantidade, estoque_anterior, estoque_posterior, origem, motivo, observacao, usuario_responsavel, created_at"
+      )
+      .single();
+
+    if (movimentacaoError || !movimentacaoData) {
+      return {
+        data: null,
+        error: movimentacaoError,
+      };
+    }
+
+    itensRegistrados.push(normalizarEntradaItem(itemData as ErpPdvEntradaItemRow));
+    movimentacoes.push(
+      normalizarMovimentacao(movimentacaoData as ErpPdvMovimentacaoRow)
+    );
+  }
+
+  return {
+    data: {
+      entrada: normalizarEntrada(entrada, itensRegistrados),
+      movimentacoes,
+    },
+    error: null,
   };
 }
 
