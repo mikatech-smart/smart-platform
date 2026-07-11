@@ -56,6 +56,7 @@ type AbaEmpresa =
   | "aparencia"
   | "plano"
   | "landing"
+  | "cardapio"
   | "contato"
   | "endereco"
   | "redes"
@@ -88,6 +89,7 @@ const abasEmpresa: Array<{
   { id: "aparencia", label: "Personalizar Página" },
   { id: "plano", label: "Plano e Recursos", adminOnly: true },
   { id: "landing", label: "Landing Page" },
+  { id: "cardapio", label: "Cardapio Digital" },
   { id: "contato", label: "Contato" },
   { id: "endereco", label: "Endereço" },
   { id: "redes", label: "Redes Sociais" },
@@ -484,6 +486,50 @@ type LandingPageBlocoExtraConfig = {
   segmento: string;
   descricao: string;
   recursoFuturo: string;
+};
+
+type CardapioCategoriaConfig = {
+  id: string;
+  nome: string;
+  descricao: string;
+  visivel: boolean;
+};
+
+type CardapioProdutoConfig = {
+  id: string;
+  categoriaId: string;
+  nome: string;
+  descricao: string;
+  preco: string;
+  imagemUrl: string;
+  disponivel: boolean;
+};
+
+type CardapioConfig = {
+  categorias: CardapioCategoriaConfig[];
+  produtos: CardapioProdutoConfig[];
+};
+
+const cardapioCategoriaPadrao: CardapioCategoriaConfig = {
+  id: "categoria-1",
+  nome: "",
+  descricao: "",
+  visivel: true,
+};
+
+const cardapioProdutoPadrao: CardapioProdutoConfig = {
+  id: "produto-1",
+  categoriaId: "",
+  nome: "",
+  descricao: "",
+  preco: "",
+  imagemUrl: "",
+  disponivel: true,
+};
+
+const cardapioConfigPadrao: CardapioConfig = {
+  categorias: [{ ...cardapioCategoriaPadrao }],
+  produtos: [{ ...cardapioProdutoPadrao }],
 };
 
 const landingPageHeroPadrao: LandingPageHeroConfig = {
@@ -1033,6 +1079,82 @@ function lerCampoBooleano(objeto: Record<string, unknown>, campo: string) {
   const valor = objeto[campo];
 
   return typeof valor === "boolean" ? valor : false;
+}
+
+function criarCardapioId(prefixo: string, indice: number) {
+  return `${prefixo}-${indice + 1}`;
+}
+
+function normalizarCardapioConfig(valor: unknown): CardapioConfig {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return structuredClone(cardapioConfigPadrao);
+  }
+
+  const config = valor as Record<string, unknown>;
+  const categorias = Array.isArray(config.categorias)
+    ? config.categorias.slice(0, 30).map((item, indice) => {
+        if (!item || typeof item !== "object" || Array.isArray(item)) {
+          return {
+            ...cardapioCategoriaPadrao,
+            id: criarCardapioId("categoria", indice),
+          };
+        }
+
+        const categoria = item as Record<string, unknown>;
+
+        return {
+          id:
+            lerCampoTexto(categoria, "id") ||
+            criarCardapioId("categoria", indice),
+          nome: lerCampoTexto(categoria, "nome"),
+          descricao: lerCampoTexto(categoria, "descricao"),
+          visivel:
+            typeof categoria.visivel === "boolean"
+              ? categoria.visivel
+              : true,
+        };
+      })
+    : cardapioConfigPadrao.categorias.map((categoria) => ({ ...categoria }));
+  const categoriaIds = new Set(categorias.map((categoria) => categoria.id));
+  const produtos = Array.isArray(config.produtos)
+    ? config.produtos.slice(0, 100).map((item, indice) => {
+        if (!item || typeof item !== "object" || Array.isArray(item)) {
+          return {
+            ...cardapioProdutoPadrao,
+            id: criarCardapioId("produto", indice),
+          };
+        }
+
+        const produto = item as Record<string, unknown>;
+        const categoriaId = lerCampoTexto(produto, "categoriaId");
+
+        return {
+          id:
+            lerCampoTexto(produto, "id") ||
+            criarCardapioId("produto", indice),
+          categoriaId: categoriaIds.has(categoriaId) ? categoriaId : "",
+          nome: lerCampoTexto(produto, "nome"),
+          descricao: lerCampoTexto(produto, "descricao"),
+          preco: lerCampoTexto(produto, "preco"),
+          imagemUrl: lerCampoTexto(produto, "imagemUrl"),
+          disponivel:
+            typeof produto.disponivel === "boolean"
+              ? produto.disponivel
+              : true,
+        };
+      })
+    : cardapioConfigPadrao.produtos.map((produto) => ({ ...produto }));
+
+  return {
+    categorias:
+      categorias.length > 0
+        ? categorias
+        : cardapioConfigPadrao.categorias.map((categoria) => ({ ...categoria })),
+    produtos:
+      produtos.length > 0
+        ? produtos
+        : cardapioConfigPadrao.produtos.map((produto) => ({ ...produto })),
+  };
 }
 
 function normalizarObjetoLanding<T extends Record<string, string>>(
@@ -3721,6 +3843,14 @@ export default function EmpresaForm({
     landingPageVersaoHistoricoVisualizada,
     setLandingPageVersaoHistoricoVisualizada,
   ] = useState<LandingPagePublicavelConfig | null>(null);
+  const [cardapioCategorias, setCardapioCategorias] =
+    useState<CardapioCategoriaConfig[]>(() =>
+      cardapioConfigPadrao.categorias.map((categoria) => ({ ...categoria }))
+    );
+  const [cardapioProdutos, setCardapioProdutos] =
+    useState<CardapioProdutoConfig[]>(() =>
+      cardapioConfigPadrao.produtos.map((produto) => ({ ...produto }))
+    );
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -3838,9 +3968,13 @@ export default function EmpresaForm({
       plano?: string | null;
       recursos_contratados?: unknown;
       landing_page_config?: unknown;
+      cardapio_config?: unknown;
     };
     const landingPageConfig = normalizarLandingPageConfig(
       dadosComPlano.landing_page_config
+    );
+    const cardapioConfig = normalizarCardapioConfig(
+      dadosComPlano.cardapio_config
     );
 
     setNome(data.nome || "");
@@ -3874,6 +4008,8 @@ export default function EmpresaForm({
     );
     setLandingPageHistoricoVersoes(landingPageConfig.historicoVersoes);
     setLandingPageVersaoHistoricoVisualizada(null);
+    setCardapioCategorias(cardapioConfig.categorias);
+    setCardapioProdutos(cardapioConfig.produtos);
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
 
@@ -4503,6 +4639,136 @@ export default function EmpresaForm({
     setLandingPageVisibilidadeSecoes(config.visibilidadeSecoes);
   }
 
+  function montarCardapioConfig(): CardapioConfig {
+    return {
+      categorias: cardapioCategorias.slice(0, 30),
+      produtos: cardapioProdutos.slice(0, 100),
+    };
+  }
+
+  function atualizarCardapioCategoria(
+    indice: number,
+    campo: keyof CardapioCategoriaConfig,
+    valor: string | boolean
+  ) {
+    setCardapioCategorias((categoriasAtuais) =>
+      categoriasAtuais.map((categoriaAtual, indiceAtual) =>
+        indiceAtual === indice
+          ? {
+              ...categoriaAtual,
+              [campo]: valor,
+            }
+          : categoriaAtual
+      )
+    );
+  }
+
+  function adicionarCardapioCategoria() {
+    setCardapioCategorias((categoriasAtuais) => {
+      if (categoriasAtuais.length >= 30) return categoriasAtuais;
+
+      return [
+        ...categoriasAtuais,
+        {
+          ...cardapioCategoriaPadrao,
+          id: `categoria-${Date.now()}`,
+        },
+      ];
+    });
+  }
+
+  function removerCardapioCategoria(indice: number) {
+    setCardapioCategorias((categoriasAtuais) => {
+      if (categoriasAtuais.length <= 1) return categoriasAtuais;
+
+      const categoriaRemovida = categoriasAtuais[indice];
+
+      setCardapioProdutos((produtosAtuais) =>
+        produtosAtuais.map((produto) =>
+          produto.categoriaId === categoriaRemovida.id
+            ? {
+                ...produto,
+                categoriaId: "",
+              }
+            : produto
+        )
+      );
+
+      return categoriasAtuais.filter((_, indiceAtual) => indiceAtual !== indice);
+    });
+  }
+
+  function moverCardapioCategoria(indice: number, direcao: "up" | "down") {
+    setCardapioCategorias((categoriasAtuais) => {
+      const novoIndice = direcao === "up" ? indice - 1 : indice + 1;
+
+      if (novoIndice < 0 || novoIndice >= categoriasAtuais.length) {
+        return categoriasAtuais;
+      }
+
+      const categoriasOrdenadas = [...categoriasAtuais];
+      const [categoriaMovida] = categoriasOrdenadas.splice(indice, 1);
+      categoriasOrdenadas.splice(novoIndice, 0, categoriaMovida);
+
+      return categoriasOrdenadas;
+    });
+  }
+
+  function atualizarCardapioProduto(
+    indice: number,
+    campo: keyof CardapioProdutoConfig,
+    valor: string | boolean
+  ) {
+    setCardapioProdutos((produtosAtuais) =>
+      produtosAtuais.map((produtoAtual, indiceAtual) =>
+        indiceAtual === indice
+          ? {
+              ...produtoAtual,
+              [campo]: valor,
+            }
+          : produtoAtual
+      )
+    );
+  }
+
+  function adicionarCardapioProduto() {
+    setCardapioProdutos((produtosAtuais) => {
+      if (produtosAtuais.length >= 100) return produtosAtuais;
+
+      return [
+        ...produtosAtuais,
+        {
+          ...cardapioProdutoPadrao,
+          id: `produto-${Date.now()}`,
+        },
+      ];
+    });
+  }
+
+  function removerCardapioProduto(indice: number) {
+    setCardapioProdutos((produtosAtuais) => {
+      if (produtosAtuais.length <= 1) return produtosAtuais;
+
+      return produtosAtuais.filter((_, indiceAtual) => indiceAtual !== indice);
+    });
+  }
+
+  function moverCardapioProduto(indice: number, direcao: "up" | "down") {
+    setCardapioProdutos((produtosAtuais) => {
+      const novoIndice = direcao === "up" ? indice - 1 : indice + 1;
+
+      if (novoIndice < 0 || novoIndice >= produtosAtuais.length) {
+        return produtosAtuais;
+      }
+
+      const produtosOrdenados = [...produtosAtuais];
+      const [produtoMovido] = produtosOrdenados.splice(indice, 1);
+      produtosOrdenados.splice(novoIndice, 0, produtoMovido);
+
+      return produtosOrdenados;
+    });
+  }
+
   async function publicarLandingPageAlteracoes() {
     if (!empresaId) {
       alert("Empresa ainda nao foi carregada. Tente novamente.");
@@ -4607,6 +4873,7 @@ export default function EmpresaForm({
     const whatsappLocal = obterTelefoneLocal(whatsapp);
     const telefoneLocal = obterTelefoneLocal(telefone);
     const landingPageConfig = montarLandingPageConfig();
+    const cardapioConfig = montarCardapioConfig();
 
     if (whatsappLocal && whatsappLocal.length < 10) {
       alert("Informe um WhatsApp válido com DDD.");
@@ -4660,6 +4927,7 @@ export default function EmpresaForm({
       youtube: normalizarUsuarioRedeSocial(youtube),
       kwai: normalizarUsuarioRedeSocial(kwai),
       landing_page_config: landingPageConfig,
+      cardapio_config: cardapioConfig,
     };
 
     if (suportaCorFundoHero) {
@@ -5160,6 +5428,350 @@ export default function EmpresaForm({
                 })}
               </div>
             </div>
+          </div>
+        </Card>
+      )}
+
+      {abaAtiva === "cardapio" && (
+        <Card
+          title="Cardapio Digital"
+          subtitle="Estrutura inicial para organizar categorias e produtos do cardapio da empresa."
+        >
+          <div className="space-y-5">
+            <div
+              className={`rounded-2xl border p-4 ${
+                recursosContratados.cardapio_digital
+                  ? "border-green-200 bg-green-50"
+                  : "border-amber-200 bg-amber-50"
+              }`}
+            >
+              <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div className="min-w-0">
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+                      recursosContratados.cardapio_digital
+                        ? "bg-green-700 text-white"
+                        : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {recursosContratados.cardapio_digital
+                      ? "Ativo"
+                      : "Nao contratado"}
+                  </span>
+
+                  <h3 className="mt-3 text-xl font-bold text-slate-900">
+                    Estrutura do Cardapio Digital
+                  </h3>
+
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                    Cadastre categorias, produtos, ordem de exibicao e status de disponibilidade. A publicacao do cardapio e pedidos serao conectados em etapas futuras.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <fieldset
+              disabled={!recursosContratados.cardapio_digital}
+              className="grid gap-5 disabled:opacity-60"
+            >
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+                      Categorias
+                    </p>
+
+                    <h4 className="mt-2 text-lg font-bold text-slate-900">
+                      Organizacao do cardapio
+                    </h4>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={adicionarCardapioCategoria}
+                    disabled={
+                      !recursosContratados.cardapio_digital ||
+                      cardapioCategorias.length >= 30
+                    }
+                    className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Adicionar categoria
+                  </button>
+                </div>
+
+                <div className="mt-4 grid gap-3">
+                  {cardapioCategorias.map((categoriaCardapio, indice) => (
+                    <div
+                      key={categoriaCardapio.id}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                    >
+                      <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="grid min-w-0 flex-1 gap-4 md:grid-cols-2">
+                          <Input
+                            label={`Categoria ${indice + 1}`}
+                            value={categoriaCardapio.nome}
+                            onChange={(e) =>
+                              atualizarCardapioCategoria(
+                                indice,
+                                "nome",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Ex.: Entradas, Pizzas, Bebidas"
+                          />
+
+                          <Input
+                            label="Descricao curta"
+                            value={categoriaCardapio.descricao}
+                            onChange={(e) =>
+                              atualizarCardapioCategoria(
+                                indice,
+                                "descricao",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Opcional"
+                          />
+                        </div>
+
+                        <div className="grid gap-2 sm:flex lg:shrink-0">
+                          <button
+                            type="button"
+                            disabled={indice === 0}
+                            onClick={() => moverCardapioCategoria(indice, "up")}
+                            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            Subir
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={indice === cardapioCategorias.length - 1}
+                            onClick={() =>
+                              moverCardapioCategoria(indice, "down")
+                            }
+                            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            Descer
+                          </button>
+
+                          {cardapioCategorias.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removerCardapioCategoria(indice)}
+                              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600"
+                            >
+                              Remover
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <label className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={categoriaCardapio.visivel}
+                          onChange={(e) =>
+                            atualizarCardapioCategoria(
+                              indice,
+                              "visivel",
+                              e.target.checked
+                            )
+                          }
+                        />
+                        Exibir categoria
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+                      Produtos
+                    </p>
+
+                    <h4 className="mt-2 text-lg font-bold text-slate-900">
+                      Itens do cardapio
+                    </h4>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={adicionarCardapioProduto}
+                    disabled={
+                      !recursosContratados.cardapio_digital ||
+                      cardapioProdutos.length >= 100
+                    }
+                    className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Adicionar produto
+                  </button>
+                </div>
+
+                <div className="mt-4 grid gap-4">
+                  {cardapioProdutos.map((produtoCardapio, indice) => (
+                    <div
+                      key={produtoCardapio.id}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                    >
+                      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <h5 className="font-bold text-slate-900">
+                            Produto {indice + 1}
+                          </h5>
+
+                          <label className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                            <input
+                              type="checkbox"
+                              checked={produtoCardapio.disponivel}
+                              onChange={(e) =>
+                                atualizarCardapioProduto(
+                                  indice,
+                                  "disponivel",
+                                  e.target.checked
+                                )
+                              }
+                            />
+                            Disponivel
+                          </label>
+                        </div>
+
+                        <div className="grid gap-2 sm:flex sm:shrink-0">
+                          <button
+                            type="button"
+                            disabled={indice === 0}
+                            onClick={() => moverCardapioProduto(indice, "up")}
+                            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            Subir
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={indice === cardapioProdutos.length - 1}
+                            onClick={() => moverCardapioProduto(indice, "down")}
+                            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            Descer
+                          </button>
+
+                          {cardapioProdutos.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removerCardapioProduto(indice)}
+                              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600"
+                            >
+                              Remover
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid gap-4">
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <Input
+                            label="Nome do produto"
+                            value={produtoCardapio.nome}
+                            onChange={(e) =>
+                              atualizarCardapioProduto(
+                                indice,
+                                "nome",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Ex.: Pizza marguerita"
+                          />
+
+                          <Input
+                            label="Preco"
+                            value={produtoCardapio.preco}
+                            onChange={(e) =>
+                              atualizarCardapioProduto(
+                                indice,
+                                "preco",
+                                e.target.value
+                              )
+                            }
+                            placeholder="R$ 39,90"
+                          />
+
+                          <div>
+                            <label className="block font-medium text-slate-700">
+                              Categoria
+                            </label>
+
+                            <select
+                              value={produtoCardapio.categoriaId}
+                              onChange={(e) =>
+                                atualizarCardapioProduto(
+                                  indice,
+                                  "categoriaId",
+                                  e.target.value
+                                )
+                              }
+                              className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                            >
+                              <option value="">Sem categoria</option>
+                              {cardapioCategorias.map((categoriaCardapio) => (
+                                <option
+                                  key={categoriaCardapio.id}
+                                  value={categoriaCardapio.id}
+                                >
+                                  {categoriaCardapio.nome ||
+                                    "Categoria sem nome"}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <Input
+                            label="Imagem (URL, opcional)"
+                            value={produtoCardapio.imagemUrl}
+                            onChange={(e) =>
+                              atualizarCardapioProduto(
+                                indice,
+                                "imagemUrl",
+                                e.target.value
+                              )
+                            }
+                            placeholder="https://..."
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block font-medium text-slate-700">
+                            Descricao
+                          </label>
+
+                          <textarea
+                            value={produtoCardapio.descricao}
+                            onChange={(e) =>
+                              atualizarCardapioProduto(
+                                indice,
+                                "descricao",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Ingredientes, tamanho, observacoes ou diferenciais."
+                            rows={4}
+                            className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                          />
+                        </div>
+
+                        {!produtoCardapio.disponivel && (
+                          <span className="w-fit rounded-full bg-red-100 px-3 py-1 text-xs font-bold text-red-700">
+                            Esgotado
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </fieldset>
           </div>
         </Card>
       )}

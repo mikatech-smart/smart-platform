@@ -14,10 +14,20 @@ const recursosContratadosPadrao = {
 };
 
 function erroColunaLandingPageConfig(error: { message?: string; code?: string }) {
+  const mensagem = error.message?.toLowerCase() || "";
+
   return (
-    error.code === "PGRST204" ||
-    error.message?.includes("landing_page_config") ||
-    false
+    mensagem.includes("landing_page_config") ||
+    (error.code === "PGRST204" && mensagem.includes("landing"))
+  );
+}
+
+function erroColunaCardapioConfig(error: { message?: string; code?: string }) {
+  const mensagem = error.message?.toLowerCase() || "";
+
+  return (
+    mensagem.includes("cardapio_config") ||
+    (error.code === "PGRST204" && mensagem.includes("cardapio"))
   );
 }
 
@@ -284,6 +294,39 @@ export async function atualizarEmpresa(
   });
 
   if (error) {
+    if (erroColunaCardapioConfig(error)) {
+      if ("cardapio_config" in dados) {
+        const { cardapio_config: _cardapioConfig, ...dadosSemCardapio } =
+          dados as Record<string, unknown>;
+        const { data: dataSemCardapio, error: errorSemCardapio } =
+          await supabase
+            .from("empresas")
+            .update(dadosSemCardapio)
+            .eq("id", id)
+            .select();
+
+        if (!errorSemCardapio && dataSemCardapio?.length) {
+          console.warn(
+            "cardapio_config ainda nao existe no Supabase; demais dados foram salvos sem o Cardapio Digital."
+          );
+
+          return {
+            data: dataSemCardapio[0],
+            error: null,
+          };
+        }
+      }
+
+      return {
+        data: null,
+        error: {
+          ...error,
+          message:
+            "A coluna cardapio_config ainda não existe na tabela empresas. Crie a coluna JSONB para salvar o Cardápio Digital.",
+        },
+      };
+    }
+
     if (erroColunaLandingPageConfig(error)) {
       return {
         data: null,
