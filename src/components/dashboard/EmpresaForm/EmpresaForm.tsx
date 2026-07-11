@@ -19,6 +19,7 @@ import {
   abrirErpPdvCaixa,
   buscarErpPdvCaixaAberto,
   buscarErpPdvClientes,
+  buscarErpPdvVendasParaTroca,
   calcularErpPdvResumoCaixa,
   fecharErpPdvCaixa,
   gerarErpPdvRelatorioOperacional,
@@ -28,10 +29,13 @@ import {
   listarErpPdvClientes,
   listarErpPdvEntradas,
   listarErpPdvFornecedores,
+  listarErpPdvValesTroca,
   listarErpPdvProdutos,
   finalizarErpPdvVenda,
+  obterErpPdvResumoTrocas,
   registrarErpPdvEntradaMercadorias,
   registrarErpPdvCaixaMovimentacao,
+  registrarErpPdvDevolucao,
   registrarErpPdvMovimentacao,
   salvarErpPdvCliente,
   salvarErpPdvFornecedor,
@@ -54,6 +58,9 @@ import {
   type ErpPdvProdutoPayload,
   type ErpPdvRelatorioResumo,
   type ErpPdvTabelaPreco,
+  type ErpPdvTrocasResumo,
+  type ErpPdvValeTroca,
+  type ErpPdvVendaBusca,
 } from "../../../services/erpPdv/erpPdv.service";
 
 import Card from "../../ui/Card";
@@ -1021,6 +1028,10 @@ type ErpPdvCupomNaoFiscal = {
   dataHora: string;
   operador: string;
   pagamento: string;
+  valeTrocaNumero: string;
+  valeTrocaValor: number;
+  pagamentoComplementar: number;
+  observacaoOperacional: string;
   itens: ErpPdvCupomItem[];
   total: number;
 };
@@ -1050,6 +1061,21 @@ type ErpPdvCaixaMovimentoForm = {
   observacao: string;
 };
 
+type ErpPdvTrocaFiltros = {
+  numero: string;
+  cliente: string;
+  documento: string;
+  data: string;
+  operador: string;
+};
+
+type ErpPdvDevolucaoForm = {
+  motivo: string;
+  operador: string;
+  validadeDias: string;
+  quantidades: Record<string, string>;
+};
+
 const erpPdvFormasPagamento: Array<{
   id: ErpPdvFormaPagamento;
   label: string;
@@ -1058,6 +1084,7 @@ const erpPdvFormasPagamento: Array<{
   { id: "pix", label: "PIX" },
   { id: "debito", label: "Cartao de Debito" },
   { id: "credito", label: "Cartao de Credito" },
+  { id: "vale_troca", label: "Vale-Troca" },
   { id: "outros", label: "Outros" },
 ];
 
@@ -1136,6 +1163,21 @@ const erpPdvCaixaMovimentoFormPadrao: ErpPdvCaixaMovimentoForm = {
   tipo: "suprimento",
   valor: "",
   observacao: "",
+};
+
+const erpPdvTrocaFiltrosPadrao: ErpPdvTrocaFiltros = {
+  numero: "",
+  cliente: "",
+  documento: "",
+  data: "",
+  operador: "",
+};
+
+const erpPdvDevolucaoFormPadrao: ErpPdvDevolucaoForm = {
+  motivo: "",
+  operador: "",
+  validadeDias: "30",
+  quantidades: {},
 };
 
 const erpPdvClienteFormPadrao: ErpPdvClienteForm = {
@@ -6187,6 +6229,11 @@ export default function EmpresaForm({
   const [erpPdvOperadorVenda, setErpPdvOperadorVenda] = useState("");
   const [erpPdvFormaPagamentoVenda, setErpPdvFormaPagamentoVenda] =
     useState<ErpPdvFormaPagamento>("dinheiro");
+  const [erpPdvValeTrocaSelecionadoId, setErpPdvValeTrocaSelecionadoId] =
+    useState("");
+  const [erpPdvValesTroca, setErpPdvValesTroca] = useState<ErpPdvValeTroca[]>(
+    []
+  );
   const [erpPdvTabelaPrecoVenda, setErpPdvTabelaPrecoVenda] =
     useState<ErpPdvTabelaPreco>("varejo");
   const [erpPdvCaixaAberto, setErpPdvCaixaAberto] =
@@ -6230,6 +6277,17 @@ export default function EmpresaForm({
     useState("todos");
   const [erpPdvRelatorio, setErpPdvRelatorio] =
     useState<ErpPdvRelatorioResumo | null>(null);
+  const [erpPdvTrocaFiltros, setErpPdvTrocaFiltros] =
+    useState<ErpPdvTrocaFiltros>(() => ({ ...erpPdvTrocaFiltrosPadrao }));
+  const [erpPdvVendasTroca, setErpPdvVendasTroca] = useState<
+    ErpPdvVendaBusca[]
+  >([]);
+  const [erpPdvVendaTrocaSelecionada, setErpPdvVendaTrocaSelecionada] =
+    useState<ErpPdvVendaBusca | null>(null);
+  const [erpPdvDevolucaoForm, setErpPdvDevolucaoForm] =
+    useState<ErpPdvDevolucaoForm>(() => ({ ...erpPdvDevolucaoFormPadrao }));
+  const [erpPdvTrocasResumo, setErpPdvTrocasResumo] =
+    useState<ErpPdvTrocasResumo | null>(null);
   const [erpPdvCategoriaNome, setErpPdvCategoriaNome] = useState("");
   const [erpPdvProdutoForm, setErpPdvProdutoForm] =
     useState<ErpPdvProdutoForm>(() => ({ ...erpPdvProdutoFormPadrao }));
@@ -6418,6 +6476,22 @@ export default function EmpresaForm({
   const erpPdvCarrinhoTotal = erpPdvCarrinhoDetalhado.reduce(
     (total, item) => total + item.subtotal,
     0
+  );
+  const erpPdvValesAtivos = erpPdvValesTroca.filter(
+    (vale) =>
+      vale.status === "ativo" &&
+      vale.saldo_restante > 0 &&
+      vale.validade_em >= new Date().toISOString().slice(0, 10)
+  );
+  const erpPdvValeTrocaSelecionado =
+    erpPdvValesAtivos.find((vale) => vale.id === erpPdvValeTrocaSelecionadoId) ||
+    null;
+  const erpPdvValorValeUsado = erpPdvValeTrocaSelecionado
+    ? Math.min(erpPdvCarrinhoTotal, erpPdvValeTrocaSelecionado.saldo_restante)
+    : 0;
+  const erpPdvComplementoPagamento = Math.max(
+    0,
+    erpPdvCarrinhoTotal - erpPdvValorValeUsado
   );
   const erpPdvCarrinhoQuantidadeItens = erpPdvCarrinhoDetalhado.reduce(
     (total, item) => total + item.quantidade,
@@ -6765,6 +6839,8 @@ export default function EmpresaForm({
         clientesResultado,
         fornecedoresResultado,
         entradasResultado,
+        valesResultado,
+        trocasResultado,
         caixaResultado,
       ] = await Promise.all([
         listarErpPdvCategorias(empresaIdAtual),
@@ -6773,6 +6849,8 @@ export default function EmpresaForm({
         listarErpPdvClientes(empresaIdAtual),
         listarErpPdvFornecedores(empresaIdAtual),
         listarErpPdvEntradas(empresaIdAtual),
+        listarErpPdvValesTroca(empresaIdAtual),
+        obterErpPdvResumoTrocas(empresaIdAtual),
         buscarErpPdvCaixaAberto(empresaIdAtual),
       ]);
 
@@ -6782,6 +6860,8 @@ export default function EmpresaForm({
       if (clientesResultado.error) throw clientesResultado.error;
       if (fornecedoresResultado.error) throw fornecedoresResultado.error;
       if (entradasResultado.error) throw entradasResultado.error;
+      if (valesResultado.error) throw valesResultado.error;
+      if (trocasResultado.error) throw trocasResultado.error;
       if (caixaResultado.error) throw caixaResultado.error;
 
       setErpPdvCategorias(categoriasResultado.data);
@@ -6790,6 +6870,8 @@ export default function EmpresaForm({
       setErpPdvClientes(clientesResultado.data);
       setErpPdvFornecedores(fornecedoresResultado.data);
       setErpPdvEntradas(entradasResultado.data);
+      setErpPdvValesTroca(valesResultado.data);
+      setErpPdvTrocasResumo(trocasResultado.data);
       setErpPdvCaixaAberto(caixaResultado.data);
       setErpPdvCaixaOperador(caixaResultado.data?.operador || "");
 
@@ -7911,6 +7993,152 @@ export default function EmpresaForm({
     URL.revokeObjectURL(url);
   }
 
+  function atualizarTrocaFiltroErpPdv(
+    campo: keyof ErpPdvTrocaFiltros,
+    valor: string
+  ) {
+    setErpPdvTrocaFiltros((filtrosAtuais) => ({
+      ...filtrosAtuais,
+      [campo]: valor,
+    }));
+  }
+
+  function atualizarDevolucaoFormErpPdv(
+    campo: keyof Omit<ErpPdvDevolucaoForm, "quantidades">,
+    valor: string
+  ) {
+    setErpPdvDevolucaoForm((formAtual) => ({
+      ...formAtual,
+      [campo]: valor,
+    }));
+  }
+
+  function atualizarQuantidadeDevolucaoErpPdv(
+    itemId: string,
+    quantidade: string
+  ) {
+    setErpPdvDevolucaoForm((formAtual) => ({
+      ...formAtual,
+      quantidades: {
+        ...formAtual.quantidades,
+        [itemId]: quantidade,
+      },
+    }));
+  }
+
+  async function buscarVendasTrocaErpPdv() {
+    if (!empresaId) return;
+
+    try {
+      setErpPdvSalvando(true);
+      const { data, error } = await buscarErpPdvVendasParaTroca(
+        empresaId,
+        erpPdvTrocaFiltros
+      );
+
+      if (error) throw error;
+
+      setErpPdvVendasTroca(data);
+      setErpPdvVendaTrocaSelecionada(data[0] || null);
+      setErpPdvDevolucaoForm({
+        ...erpPdvDevolucaoFormPadrao,
+        operador: erpPdvCaixaOperador || erpPdvOperadorVenda,
+      });
+      setErpPdvFeedback({
+        tipo: "info",
+        texto:
+          data.length > 0
+            ? `${data.length} venda(s) encontrada(s) para troca/devolucao.`
+            : "Nenhuma venda encontrada com os filtros informados.",
+      });
+    } catch (error) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel buscar vendas para troca.",
+      });
+    } finally {
+      setErpPdvSalvando(false);
+    }
+  }
+
+  function selecionarVendaTrocaErpPdv(venda: ErpPdvVendaBusca) {
+    setErpPdvVendaTrocaSelecionada(venda);
+    setErpPdvDevolucaoForm({
+      ...erpPdvDevolucaoFormPadrao,
+      operador: erpPdvCaixaOperador || erpPdvOperadorVenda,
+    });
+  }
+
+  async function registrarDevolucaoErpPdv() {
+    if (!empresaId || !erpPdvVendaTrocaSelecionada) return;
+
+    const itens = erpPdvVendaTrocaSelecionada.itens
+      .map((item) => ({
+        vendaItemId: item.id,
+        quantidade: parseNumeroErpPdv(
+          erpPdvDevolucaoForm.quantidades[item.id] || ""
+        ),
+      }))
+      .filter((item) => item.quantidade > 0);
+
+    try {
+      setErpPdvSalvando(true);
+      const { data, error } = await registrarErpPdvDevolucao({
+        empresaId,
+        vendaId: erpPdvVendaTrocaSelecionada.id,
+        operador: erpPdvDevolucaoForm.operador,
+        motivo: erpPdvDevolucaoForm.motivo,
+        validadeDias: parseNumeroErpPdv(erpPdvDevolucaoForm.validadeDias),
+        itens,
+      });
+
+      if (error) throw error;
+      if (!data) throw new Error("Devolucao nao retornada pelo Supabase.");
+
+      setErpPdvMovimentacoes((movimentacoesAtuais) => [
+        ...data.movimentacoes,
+        ...movimentacoesAtuais,
+      ]);
+      setErpPdvProdutos((produtosAtuais) =>
+        produtosAtuais.map((produto) => {
+          const movimentacao = data.movimentacoes.find(
+            (item) => item.produto_id === produto.id
+          );
+
+          return movimentacao
+            ? {
+                ...produto,
+                estoque_atual: movimentacao.estoque_posterior,
+              }
+            : produto;
+        })
+      );
+      setErpPdvValesTroca((valesAtuais) => [data.vale, ...valesAtuais]);
+      const resumoResultado = await obterErpPdvResumoTrocas(empresaId);
+      if (resumoResultado.error) throw resumoResultado.error;
+      setErpPdvTrocasResumo(resumoResultado.data);
+      await buscarVendasTrocaErpPdv();
+      await carregarRelatorioErpPdv();
+      setErpPdvFeedback({
+        tipo: "sucesso",
+        texto: `Devolucao registrada e vale-troca #${data.vale.numero} emitido.`,
+      });
+    } catch (error) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel registrar a devolucao.",
+      });
+    } finally {
+      setErpPdvSalvando(false);
+    }
+  }
+
   function atualizarClienteFormErpPdv(
     campo: keyof ErpPdvClienteForm,
     valor: string
@@ -8584,6 +8812,14 @@ export default function EmpresaForm({
       `Data: ${new Date(cupom.dataHora).toLocaleString("pt-BR")}`,
       `Operador: ${cupom.operador}`,
       `Pagamento: ${cupom.pagamento}`,
+      cupom.valeTrocaNumero
+        ? `Vale-Troca: #${cupom.valeTrocaNumero} - R$ ${formatarMoedaErpPdv(
+            cupom.valeTrocaValor
+          )}`
+        : "",
+      cupom.pagamentoComplementar > 0
+        ? `Complemento: R$ ${formatarMoedaErpPdv(cupom.pagamentoComplementar)}`
+        : "",
       `Cliente: ${cupom.cliente}`,
       cupom.clienteDocumento ? `Documento: ${cupom.clienteDocumento}` : "",
       cupom.clienteContato ? `Contato: ${cupom.clienteContato}` : "",
@@ -8606,6 +8842,7 @@ export default function EmpresaForm({
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })}`,
+      cupom.observacaoOperacional,
       "",
       "Documento sem valor fiscal.",
     ];
@@ -8665,6 +8902,20 @@ export default function EmpresaForm({
       <div>Data/Hora: ${new Date(cupom.dataHora).toLocaleString("pt-BR")}</div>
       <div>Operador: ${escaparHtmlCupomErpPdv(cupom.operador)}</div>
       <div>Pagamento: ${escaparHtmlCupomErpPdv(cupom.pagamento)}</div>
+      ${
+        cupom.valeTrocaNumero
+          ? `<div>Vale-Troca: #${escaparHtmlCupomErpPdv(
+              cupom.valeTrocaNumero
+            )} - R$ ${formatarMoedaErpPdv(cupom.valeTrocaValor)}</div>`
+          : ""
+      }
+      ${
+        cupom.pagamentoComplementar > 0
+          ? `<div>Complemento: R$ ${formatarMoedaErpPdv(
+              cupom.pagamentoComplementar
+            )}</div>`
+          : ""
+      }
       <div>Cliente: ${escaparHtmlCupomErpPdv(cupom.cliente)}</div>
       ${
         cupom.clienteDocumento
@@ -8717,6 +8968,11 @@ export default function EmpresaForm({
         })}</span>
       </div>
       <div class="linha"></div>
+      ${
+        cupom.observacaoOperacional
+          ? `<div>${escaparHtmlCupomErpPdv(cupom.observacaoOperacional)}</div><div class="linha"></div>`
+          : ""
+      }
       <section class="centro">
         <div>Documento sem valor fiscal.</div>
         <div>Nao substitui NFC-e ou NF-e.</div>
@@ -8813,6 +9069,14 @@ export default function EmpresaForm({
       return;
     }
 
+    if (erpPdvFormaPagamentoVenda === "vale_troca" && !erpPdvValeTrocaSelecionado) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "Selecione um vale-troca ativo para finalizar a venda.",
+      });
+      return;
+    }
+
     try {
       setErpPdvSalvando(true);
       const itensCupom = erpPdvCarrinhoDetalhado.map((item) => ({
@@ -8830,6 +9094,10 @@ export default function EmpresaForm({
         clienteNome: erpPdvClienteSelecionado?.nome,
         operador: erpPdvOperadorVenda,
         formaPagamento: erpPdvFormaPagamentoVenda,
+        valeTrocaId:
+          erpPdvFormaPagamentoVenda === "vale_troca"
+            ? erpPdvValeTrocaSelecionadoId
+            : undefined,
         itens: erpPdvCarrinhoDetalhado.map((item) => ({
           produtoId: item.produto.id,
           descricao: item.produto.nome,
@@ -8874,12 +9142,23 @@ export default function EmpresaForm({
         dataHora: data.finalizada_em,
         operador: data.operador,
         pagamento: obterLabelFormaPagamentoErpPdv(data.forma_pagamento),
+        valeTrocaNumero: erpPdvValeTrocaSelecionado
+          ? String(erpPdvValeTrocaSelecionado.numero)
+          : "",
+        valeTrocaValor: data.vale_troca_valor_utilizado,
+        pagamentoComplementar: data.pagamento_complementar,
+        observacaoOperacional: data.vale_troca_valor_utilizado
+          ? data.pagamento_complementar > 0
+            ? "Venda com utilizacao de vale-troca e pagamento complementar."
+            : "Venda quitada com vale-troca."
+          : "",
         itens: itensCupom,
         total: data.total,
       };
       setErpPdvCupomNaoFiscal(cupomGerado);
       setErpPdvCupomLayout(erpPdvImpressaoConfig.largura);
       setErpPdvCarrinho([]);
+      setErpPdvValeTrocaSelecionadoId("");
       setErpPdvPdvBusca("");
       limparClienteVendaErpPdv();
       setErpPdvFeedback({
@@ -8887,7 +9166,10 @@ export default function EmpresaForm({
         texto: `Venda #${data.numero} finalizada. Cupom nao fiscal gerado.`,
       });
       executarDestinoCupomConfiguradoErpPdv(cupomGerado);
+      const valesResultado = await listarErpPdvValesTroca(empresaId);
+      if (!valesResultado.error) setErpPdvValesTroca(valesResultado.data);
       await atualizarResumoCaixaErpPdv();
+      await carregarRelatorioErpPdv();
     } catch (error) {
       setErpPdvFeedback({
         tipo: "erro",
@@ -11128,6 +11410,365 @@ export default function EmpresaForm({
               <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                   <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+                    Trocas e devolucoes
+                  </p>
+                  <h4 className="mt-2 text-lg font-bold text-slate-900">
+                    Vale-Troca operacional
+                  </h4>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Localize vendas, devolva itens ao estoque e emita vales
+                    para novas compras. Sem emissao fiscal nesta Sprint.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={buscarVendasTrocaErpPdv}
+                  disabled={erpPdvSalvando}
+                  className="rounded-xl bg-green-700 px-4 py-3 text-sm font-black text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {erpPdvSalvando ? "Buscando..." : "Buscar vendas"}
+                </button>
+              </div>
+
+              <div className="mt-4 grid gap-3 md:grid-cols-5">
+                <Input
+                  label="Numero"
+                  value={erpPdvTrocaFiltros.numero}
+                  onChange={(e) =>
+                    atualizarTrocaFiltroErpPdv("numero", e.target.value)
+                  }
+                  placeholder="#"
+                />
+                <Input
+                  label="Cliente"
+                  value={erpPdvTrocaFiltros.cliente}
+                  onChange={(e) =>
+                    atualizarTrocaFiltroErpPdv("cliente", e.target.value)
+                  }
+                  placeholder="Nome"
+                />
+                <Input
+                  label="CPF/CNPJ"
+                  value={erpPdvTrocaFiltros.documento}
+                  onChange={(e) =>
+                    atualizarTrocaFiltroErpPdv("documento", e.target.value)
+                  }
+                  placeholder="Documento"
+                />
+                <Input
+                  label="Data"
+                  type="date"
+                  value={erpPdvTrocaFiltros.data}
+                  onChange={(e) =>
+                    atualizarTrocaFiltroErpPdv("data", e.target.value)
+                  }
+                />
+                <Input
+                  label="Operador"
+                  value={erpPdvTrocaFiltros.operador}
+                  onChange={(e) =>
+                    atualizarTrocaFiltroErpPdv("operador", e.target.value)
+                  }
+                  placeholder="Operador"
+                />
+              </div>
+
+              <div className="mt-4 grid gap-4 xl:grid-cols-[360px_1fr]">
+                <div className="grid max-h-[560px] gap-2 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                  {erpPdvVendasTroca.length > 0 ? (
+                    erpPdvVendasTroca.map((venda) => (
+                      <button
+                        type="button"
+                        key={venda.id}
+                        onClick={() => selecionarVendaTrocaErpPdv(venda)}
+                        className={`rounded-xl border px-3 py-3 text-left transition ${
+                          erpPdvVendaTrocaSelecionada?.id === venda.id
+                            ? "border-green-500 bg-green-50"
+                            : "border-slate-200 bg-white hover:border-green-300"
+                        }`}
+                      >
+                        <span className="block text-sm font-black text-slate-900">
+                          Venda #{venda.numero}
+                        </span>
+                        <span className="mt-1 block text-xs font-semibold text-slate-500">
+                          {venda.cliente_nome} |{" "}
+                          {new Date(venda.finalizada_em).toLocaleDateString(
+                            "pt-BR"
+                          )}
+                        </span>
+                        <span className="mt-2 block text-sm font-black text-green-700">
+                          R$ {formatarMoedaErpPdv(venda.total)}
+                        </span>
+                      </button>
+                    ))
+                  ) : (
+                    <p className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
+                      Use os filtros para localizar uma venda finalizada.
+                    </p>
+                  )}
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 p-4">
+                  {erpPdvVendaTrocaSelecionada ? (
+                    <div className="grid gap-4">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <h5 className="font-black text-slate-900">
+                            Venda #{erpPdvVendaTrocaSelecionada.numero}
+                          </h5>
+                          <p className="text-sm text-slate-500">
+                            {erpPdvVendaTrocaSelecionada.cliente_nome} | Operador:{" "}
+                            {erpPdvVendaTrocaSelecionada.operador || "-"}
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+                          Total R${" "}
+                          {formatarMoedaErpPdv(
+                            erpPdvVendaTrocaSelecionada.total
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="overflow-x-auto rounded-2xl border border-slate-200">
+                        <table className="min-w-full divide-y divide-slate-200 text-sm">
+                          <thead className="bg-slate-50">
+                            <tr>
+                              {[
+                                "Item",
+                                "Vendido",
+                                "Ja devolvido",
+                                "Disponivel",
+                                "Devolver",
+                              ].map((cabecalho) => (
+                                <th
+                                  key={cabecalho}
+                                  className="px-3 py-3 text-left text-xs font-black uppercase tracking-wide text-slate-500"
+                                >
+                                  {cabecalho}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 bg-white">
+                            {erpPdvVendaTrocaSelecionada.itens.map((item) => (
+                              <tr key={item.id}>
+                                <td className="px-3 py-3">
+                                  <p className="font-black text-slate-900">
+                                    {item.descricao}
+                                  </p>
+                                  <p className="text-xs text-slate-500">
+                                    R$ {formatarMoedaErpPdv(item.preco_unitario)}
+                                  </p>
+                                </td>
+                                <td className="px-3 py-3">
+                                  {formatarNumeroErpPdv(item.quantidade) || "0"}
+                                </td>
+                                <td className="px-3 py-3">
+                                  {formatarNumeroErpPdv(
+                                    item.quantidade_devolvida
+                                  ) || "0"}
+                                </td>
+                                <td className="px-3 py-3">
+                                  {formatarNumeroErpPdv(
+                                    item.quantidade_disponivel
+                                  ) || "0"}
+                                </td>
+                                <td className="px-3 py-3">
+                                  <input
+                                    value={
+                                      erpPdvDevolucaoForm.quantidades[item.id] ||
+                                      ""
+                                    }
+                                    onChange={(e) =>
+                                      atualizarQuantidadeDevolucaoErpPdv(
+                                        item.id,
+                                        e.target.value
+                                      )
+                                    }
+                                    placeholder="0"
+                                    disabled={item.quantidade_disponivel <= 0}
+                                    className="w-24 rounded-xl border border-slate-200 px-3 py-2 font-bold outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100 disabled:opacity-50"
+                                  />
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-3">
+                        <Input
+                          label="Operador"
+                          value={erpPdvDevolucaoForm.operador}
+                          onChange={(e) =>
+                            atualizarDevolucaoFormErpPdv(
+                              "operador",
+                              e.target.value
+                            )
+                          }
+                          placeholder="Responsavel"
+                        />
+                        <Input
+                          label="Validade do vale (dias)"
+                          value={erpPdvDevolucaoForm.validadeDias}
+                          onChange={(e) =>
+                            atualizarDevolucaoFormErpPdv(
+                              "validadeDias",
+                              e.target.value
+                            )
+                          }
+                          placeholder="30"
+                        />
+                        <div className="flex items-end">
+                          <button
+                            type="button"
+                            onClick={registrarDevolucaoErpPdv}
+                            disabled={
+                              erpPdvSalvando ||
+                              !erpPdvDevolucaoForm.operador.trim() ||
+                              !erpPdvDevolucaoForm.motivo.trim()
+                            }
+                            className="w-full rounded-xl bg-green-700 px-4 py-3 text-sm font-black text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {erpPdvSalvando
+                              ? "Registrando..."
+                              : "Registrar devolucao"}
+                          </button>
+                        </div>
+                      </div>
+
+                      <label className="block text-sm font-medium text-slate-700">
+                        Motivo da devolucao
+                        <textarea
+                          value={erpPdvDevolucaoForm.motivo}
+                          onChange={(e) =>
+                            atualizarDevolucaoFormErpPdv(
+                              "motivo",
+                              e.target.value
+                            )
+                          }
+                          rows={3}
+                          className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                          placeholder="Ex.: troca por tamanho, defeito, arrependimento..."
+                        />
+                      </label>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500">
+                      Selecione uma venda para registrar devolucao total ou
+                      parcial.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-4 xl:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 p-4">
+                  <h5 className="font-black text-slate-900">
+                    Relatorio de trocas e devolucoes
+                  </h5>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    {[
+                      [
+                        "Devolvido",
+                        `R$ ${formatarMoedaErpPdv(
+                          erpPdvTrocasResumo?.totalDevolvido || 0
+                        )}`,
+                      ],
+                      [
+                        "Vales emitidos",
+                        `R$ ${formatarMoedaErpPdv(
+                          erpPdvTrocasResumo?.totalValesEmitidos || 0
+                        )}`,
+                      ],
+                      [
+                        "Vales em aberto",
+                        `R$ ${formatarMoedaErpPdv(
+                          erpPdvTrocasResumo?.totalValesEmAberto || 0
+                        )}`,
+                      ],
+                      [
+                        "Vales utilizados",
+                        `R$ ${formatarMoedaErpPdv(
+                          erpPdvTrocasResumo?.totalValesUtilizados || 0
+                        )}`,
+                      ],
+                    ].map(([label, valor]) => (
+                      <div key={label} className="rounded-xl bg-slate-50 p-3">
+                        <p className="text-xs font-bold uppercase text-slate-500">
+                          {label}
+                        </p>
+                        <p className="font-black text-slate-900">{valor}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 grid gap-2">
+                    {(erpPdvTrocasResumo?.devolucoes || []).slice(0, 6).map(
+                      (devolucao) => (
+                        <div
+                          key={devolucao.id}
+                          className="rounded-xl bg-slate-50 px-3 py-2 text-sm"
+                        >
+                          <p className="font-black text-slate-900">
+                            Devolucao #{devolucao.numero} |{" "}
+                            {devolucao.tipo === "total" ? "Total" : "Parcial"}
+                          </p>
+                          <p className="text-slate-500">
+                            {devolucao.cliente_nome} - R${" "}
+                            {formatarMoedaErpPdv(devolucao.valor_devolvido)}
+                          </p>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 p-4">
+                  <h5 className="font-black text-slate-900">
+                    Vales-Troca
+                  </h5>
+                  <div className="mt-3 grid gap-2">
+                    {erpPdvValesTroca.length > 0 ? (
+                      erpPdvValesTroca.slice(0, 8).map((vale) => (
+                        <div
+                          key={vale.id}
+                          className="rounded-xl bg-slate-50 px-3 py-2 text-sm"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="font-black text-slate-900">
+                                Vale #{vale.numero} - {vale.cliente_nome}
+                              </p>
+                              <p className="text-slate-500">
+                                Validade:{" "}
+                                {new Date(
+                                  `${vale.validade_em}T00:00:00`
+                                ).toLocaleDateString("pt-BR")}
+                              </p>
+                            </div>
+                            <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-600">
+                              {vale.status}
+                            </span>
+                          </div>
+                          <p className="mt-2 font-black text-green-700">
+                            Saldo R$ {formatarMoedaErpPdv(vale.saldo_restante)}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-slate-500">
+                        Nenhum vale-troca emitido ainda.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <p className="text-sm font-bold uppercase tracking-wide text-green-700">
                     Impressao
                   </p>
 
@@ -12133,6 +12774,30 @@ export default function EmpresaForm({
                         </select>
                       </div>
 
+                      {erpPdvFormaPagamentoVenda === "vale_troca" && (
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wide text-slate-300">
+                            Vale-Troca
+                          </label>
+
+                          <select
+                            value={erpPdvValeTrocaSelecionadoId}
+                            onChange={(e) =>
+                              setErpPdvValeTrocaSelecionadoId(e.target.value)
+                            }
+                            className="mt-2 w-full rounded-xl border border-white/20 bg-white px-3 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-green-400 focus:ring-4 focus:ring-green-900/40"
+                          >
+                            <option value="">Selecione um vale ativo</option>
+                            {erpPdvValesAtivos.map((vale) => (
+                              <option key={vale.id} value={vale.id}>
+                                #{vale.numero} - {vale.cliente_nome} - R${" "}
+                                {formatarMoedaErpPdv(vale.saldo_restante)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
                       <div>
                         <label className="block text-xs font-bold uppercase tracking-wide text-slate-300">
                           Operador
@@ -12162,6 +12827,28 @@ export default function EmpresaForm({
                       </span>
                     </div>
 
+                    {erpPdvFormaPagamentoVenda === "vale_troca" && (
+                      <div className="mt-3 grid gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm font-bold text-slate-200 sm:grid-cols-3">
+                        <span>
+                          Vale usado: R$ {formatarMoedaErpPdv(erpPdvValorValeUsado)}
+                        </span>
+                        <span>
+                          Complemento: R${" "}
+                          {formatarMoedaErpPdv(erpPdvComplementoPagamento)}
+                        </span>
+                        <span>
+                          Saldo apos venda: R${" "}
+                          {formatarMoedaErpPdv(
+                            Math.max(
+                              0,
+                              (erpPdvValeTrocaSelecionado?.saldo_restante || 0) -
+                                erpPdvValorValeUsado
+                            )
+                          )}
+                        </span>
+                      </div>
+                    )}
+
                     <div className="mt-4 grid gap-2 sm:grid-cols-2">
                       <button
                         type="button"
@@ -12179,7 +12866,9 @@ export default function EmpresaForm({
                           erpPdvCarrinho.length === 0 ||
                           erpPdvSalvando ||
                           !erpPdvCaixaAberto ||
-                          !erpPdvOperadorVenda.trim()
+                          !erpPdvOperadorVenda.trim() ||
+                          (erpPdvFormaPagamentoVenda === "vale_troca" &&
+                            !erpPdvValeTrocaSelecionado)
                         }
                         className="rounded-xl bg-green-500 px-4 py-4 text-sm font-black text-slate-950 transition hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-50"
                       >
@@ -12264,6 +12953,23 @@ export default function EmpresaForm({
                         </p>
                         <p>Operador: {erpPdvCupomNaoFiscal.operador}</p>
                         <p>Pagamento: {erpPdvCupomNaoFiscal.pagamento}</p>
+                        {erpPdvCupomNaoFiscal.valeTrocaNumero && (
+                          <p>
+                            Vale-Troca: #{erpPdvCupomNaoFiscal.valeTrocaNumero} -
+                            R${" "}
+                            {formatarMoedaErpPdv(
+                              erpPdvCupomNaoFiscal.valeTrocaValor
+                            )}
+                          </p>
+                        )}
+                        {erpPdvCupomNaoFiscal.pagamentoComplementar > 0 && (
+                          <p>
+                            Complemento: R${" "}
+                            {formatarMoedaErpPdv(
+                              erpPdvCupomNaoFiscal.pagamentoComplementar
+                            )}
+                          </p>
+                        )}
                         <p>Cliente: {erpPdvCupomNaoFiscal.cliente}</p>
                         {erpPdvCupomNaoFiscal.clienteDocumento && (
                           <p>
@@ -12319,6 +13025,15 @@ export default function EmpresaForm({
                       </div>
 
                       <div className="my-2 border-t border-dashed border-slate-400" />
+
+                      {erpPdvCupomNaoFiscal.observacaoOperacional && (
+                        <>
+                          <p className="text-center text-xs">
+                            {erpPdvCupomNaoFiscal.observacaoOperacional}
+                          </p>
+                          <div className="my-2 border-t border-dashed border-slate-400" />
+                        </>
+                      )}
 
                       <div className="text-center">
                         <p>Documento sem valor fiscal.</p>

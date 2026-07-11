@@ -236,6 +236,7 @@ export type ErpPdvFormaPagamento =
   | "pix"
   | "debito"
   | "credito"
+  | "vale_troca"
   | "outros";
 
 export type ErpPdvVendaItemPayload = {
@@ -252,6 +253,7 @@ export type ErpPdvFinalizarVendaPayload = {
   clienteNome?: string;
   operador: string;
   formaPagamento: ErpPdvFormaPagamento;
+  valeTrocaId?: string;
   itens: ErpPdvVendaItemPayload[];
 };
 
@@ -263,8 +265,98 @@ export type ErpPdvVendaFinalizada = {
   cliente_id: string | null;
   cliente_nome: string;
   operador: string;
+  vale_troca_id: string | null;
+  vale_troca_valor_utilizado: number;
+  pagamento_complementar: number;
   finalizada_em: string;
   movimentacoes: ErpPdvMovimentacao[];
+};
+
+export type ErpPdvVendaBuscaItem = {
+  id: string;
+  produto_id: string | null;
+  descricao: string;
+  quantidade: number;
+  quantidade_devolvida: number;
+  quantidade_disponivel: number;
+  preco_unitario: number;
+  total: number;
+};
+
+export type ErpPdvVendaBusca = {
+  id: string;
+  numero: number;
+  total: number;
+  forma_pagamento: string;
+  cliente_id: string | null;
+  cliente_nome: string;
+  operador: string;
+  finalizada_em: string;
+  historico_operacional: ErpPdvHistoricoOperacionalItem[];
+  itens: ErpPdvVendaBuscaItem[];
+};
+
+export type ErpPdvHistoricoOperacionalItem = {
+  data: string;
+  tipo: string;
+  descricao: string;
+  valor?: number;
+};
+
+export type ErpPdvDevolucaoItemPayload = {
+  vendaItemId: string;
+  quantidade: number;
+};
+
+export type ErpPdvRegistrarDevolucaoPayload = {
+  empresaId: string;
+  vendaId: string;
+  operador: string;
+  motivo: string;
+  validadeDias: number;
+  itens: ErpPdvDevolucaoItemPayload[];
+};
+
+export type ErpPdvValeTrocaStatus = "ativo" | "utilizado" | "expirado" | "cancelado";
+
+export type ErpPdvValeTroca = {
+  id: string;
+  empresa_id: string;
+  venda_origem_id: string | null;
+  cliente_id: string | null;
+  numero: number;
+  cliente_nome: string;
+  valor_original: number;
+  saldo_restante: number;
+  emitido_em: string;
+  validade_em: string;
+  status: ErpPdvValeTrocaStatus;
+  observacao: string;
+  historico: ErpPdvHistoricoOperacionalItem[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type ErpPdvDevolucao = {
+  id: string;
+  numero: number;
+  venda_id: string;
+  vale_troca_id: string | null;
+  tipo: "total" | "parcial";
+  motivo: string;
+  operador: string;
+  cliente_nome: string;
+  valor_devolvido: number;
+  created_at: string;
+};
+
+export type ErpPdvTrocasResumo = {
+  devolucoes: ErpPdvDevolucao[];
+  vales: ErpPdvValeTroca[];
+  totalDevolvido: number;
+  totalValesEmitidos: number;
+  totalValesEmAberto: number;
+  totalValesUtilizados: number;
 };
 
 export type ErpPdvCaixaStatus = "aberto" | "fechado";
@@ -494,6 +586,10 @@ type ErpPdvVendaRow = {
   cliente_id?: string | null;
   cliente_nome?: string;
   operador?: string;
+  vale_troca_id?: string | null;
+  vale_troca_valor_utilizado?: number | string;
+  pagamento_complementar?: number | string;
+  historico_operacional?: unknown;
   finalizada_em: string;
 };
 
@@ -503,8 +599,40 @@ type ErpPdvVendaItemRow = {
   produto_id?: string | null;
   descricao: string;
   quantidade: number | string;
+  quantidade_devolvida?: number | string;
   preco_unitario: number | string;
   total: number | string;
+};
+
+type ErpPdvValeTrocaRow = {
+  id: string;
+  empresa_id: string;
+  venda_origem_id?: string | null;
+  cliente_id?: string | null;
+  numero: number | string;
+  cliente_nome?: string;
+  valor_original: number | string;
+  saldo_restante: number | string;
+  emitido_em: string;
+  validade_em: string;
+  status: ErpPdvValeTrocaStatus;
+  observacao?: string;
+  historico?: unknown;
+  created_at: string;
+  updated_at: string;
+};
+
+type ErpPdvDevolucaoRow = {
+  id: string;
+  numero: number | string;
+  venda_id: string;
+  vale_troca_id?: string | null;
+  tipo: "total" | "parcial";
+  motivo: string;
+  operador?: string;
+  cliente_nome?: string;
+  valor_devolvido: number | string;
+  created_at: string;
 };
 
 type ErpPdvCaixaRow = {
@@ -567,6 +695,39 @@ function normalizarHistoricoPrecos(valor: unknown): ErpPdvHistoricoPrecoItem[] {
       };
     })
     .filter((item): item is ErpPdvHistoricoPrecoItem => Boolean(item?.data));
+}
+
+function normalizarHistoricoOperacional(
+  valor: unknown
+): ErpPdvHistoricoOperacionalItem[] {
+  if (!Array.isArray(valor)) return [];
+
+  return valor
+    .slice(0, 100)
+    .map((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+      const historico = item as Record<string, unknown>;
+      const data = String(historico.data || "");
+      const tipo = String(historico.tipo || "");
+      const descricao = String(historico.descricao || "");
+
+      if (!data || !tipo || !descricao) return null;
+
+      const historicoNormalizado: ErpPdvHistoricoOperacionalItem = {
+        data,
+        tipo,
+        descricao,
+      };
+
+      if (historico.valor !== undefined) {
+        historicoNormalizado.valor = toNumber(
+          historico.valor as number | string
+        );
+      }
+
+      return historicoNormalizado;
+    })
+    .filter((item): item is ErpPdvHistoricoOperacionalItem => Boolean(item));
 }
 
 function normalizarProduto(
@@ -737,6 +898,41 @@ function normalizarCaixaMovimentacao(
     valor: toNumber(row.valor),
     operador: row.operador || "",
     observacao: row.observacao || "",
+    created_at: row.created_at,
+  };
+}
+
+function normalizarValeTroca(row: ErpPdvValeTrocaRow): ErpPdvValeTroca {
+  return {
+    id: row.id,
+    empresa_id: row.empresa_id,
+    venda_origem_id: row.venda_origem_id || null,
+    cliente_id: row.cliente_id || null,
+    numero: toNumber(row.numero),
+    cliente_nome: row.cliente_nome || "Consumidor nao identificado",
+    valor_original: toNumber(row.valor_original),
+    saldo_restante: toNumber(row.saldo_restante),
+    emitido_em: row.emitido_em,
+    validade_em: row.validade_em,
+    status: row.status,
+    observacao: row.observacao || "",
+    historico: normalizarHistoricoOperacional(row.historico),
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+function normalizarDevolucao(row: ErpPdvDevolucaoRow): ErpPdvDevolucao {
+  return {
+    id: row.id,
+    numero: toNumber(row.numero),
+    venda_id: row.venda_id,
+    vale_troca_id: row.vale_troca_id || null,
+    tipo: row.tipo,
+    motivo: row.motivo,
+    operador: row.operador || "",
+    cliente_nome: row.cliente_nome || "Consumidor nao identificado",
+    valor_devolvido: toNumber(row.valor_devolvido),
     created_at: row.created_at,
   };
 }
@@ -1569,7 +1765,7 @@ export async function registrarErpPdvCaixaMovimentacao(payload: {
 export async function calcularErpPdvResumoCaixa(caixa: ErpPdvCaixa) {
   const { data: vendasData, error: vendasError } = await supabase
     .from("erp_pdv_vendas")
-    .select("forma_pagamento, total")
+    .select("forma_pagamento, total, pagamento_complementar")
     .eq("empresa_id", caixa.empresa_id)
     .eq("caixa_id", caixa.id)
     .eq("status", "finalizada");
@@ -1598,9 +1794,14 @@ export async function calcularErpPdvResumoCaixa(caixa: ErpPdvCaixa) {
     Record<string, number>
   >((formas, venda) => {
     const forma = String(venda.forma_pagamento || "outros");
+    const valorCaixa =
+      forma === "vale_troca"
+        ? toNumber(venda.pagamento_complementar)
+        : toNumber(venda.total);
+
     return {
       ...formas,
-      [forma]: (formas[forma] || 0) + toNumber(venda.total),
+      [forma]: (formas[forma] || 0) + valorCaixa,
     };
   }, {});
   const totalVendas = Object.values(vendasPorFormaPagamento).reduce(
@@ -2076,6 +2277,497 @@ export async function registrarErpPdvMovimentacao(
   };
 }
 
+export async function buscarErpPdvVendasParaTroca(
+  empresaId: string,
+  filtros: {
+    numero: string;
+    cliente: string;
+    documento: string;
+    data: string;
+    operador: string;
+  }
+) {
+  let vendasQuery = supabase
+    .from("erp_pdv_vendas")
+    .select(
+      "id, numero, total, forma_pagamento, cliente_id, cliente_nome, operador, vale_troca_id, vale_troca_valor_utilizado, pagamento_complementar, historico_operacional, finalizada_em"
+    )
+    .eq("empresa_id", empresaId)
+    .eq("status", "finalizada")
+    .order("finalizada_em", { ascending: false })
+    .limit(50);
+
+  if (filtros.numero.trim()) {
+    vendasQuery = vendasQuery.eq("numero", filtros.numero.trim());
+  }
+
+  if (filtros.cliente.trim()) {
+    vendasQuery = vendasQuery.ilike("cliente_nome", `%${filtros.cliente.trim()}%`);
+  }
+
+  if (filtros.data) {
+    vendasQuery = vendasQuery
+      .gte("finalizada_em", `${filtros.data}T00:00:00`)
+      .lte("finalizada_em", `${filtros.data}T23:59:59`);
+  }
+
+  if (filtros.operador.trim()) {
+    vendasQuery = vendasQuery.ilike("operador", `%${filtros.operador.trim()}%`);
+  }
+
+  const { data: vendasData, error: vendasError } = await vendasQuery;
+
+  if (vendasError) {
+    return {
+      data: [],
+      error: vendasError,
+    };
+  }
+
+  let vendasRows = (vendasData || []) as ErpPdvVendaRow[];
+
+  if (filtros.documento.trim()) {
+    const documento = filtros.documento.trim();
+    const clienteIds = vendasRows
+      .map((venda) => venda.cliente_id)
+      .filter((id): id is string => Boolean(id));
+
+    if (clienteIds.length > 0) {
+      const { data: clientesData, error: clientesError } = await supabase
+        .from("erp_pdv_clientes")
+        .select("id")
+        .eq("empresa_id", empresaId)
+        .in("id", clienteIds)
+        .ilike("cpf_cnpj", `%${documento}%`);
+
+      if (clientesError) {
+        return {
+          data: [],
+          error: clientesError,
+        };
+      }
+
+      const clientesEncontrados = new Set(
+        (clientesData || []).map((cliente) => cliente.id)
+      );
+      vendasRows = vendasRows.filter((venda) =>
+        venda.cliente_id ? clientesEncontrados.has(venda.cliente_id) : false
+      );
+    } else {
+      vendasRows = [];
+    }
+  }
+
+  const vendaIds = vendasRows.map((venda) => venda.id);
+  let itensRows: ErpPdvVendaItemRow[] = [];
+
+  if (vendaIds.length > 0) {
+    const { data: itensData, error: itensError } = await supabase
+      .from("erp_pdv_venda_itens")
+      .select(
+        "id, venda_id, produto_id, descricao, quantidade, quantidade_devolvida, preco_unitario, total"
+      )
+      .eq("empresa_id", empresaId)
+      .in("venda_id", vendaIds);
+
+    if (itensError) {
+      return {
+        data: [],
+        error: itensError,
+      };
+    }
+
+    itensRows = (itensData || []) as ErpPdvVendaItemRow[];
+  }
+
+  const itensPorVenda = new Map<string, ErpPdvVendaBuscaItem[]>();
+  itensRows.forEach((item) => {
+    const quantidade = toNumber(item.quantidade);
+    const quantidadeDevolvida = toNumber(item.quantidade_devolvida);
+    const itemNormalizado: ErpPdvVendaBuscaItem = {
+      id: item.id,
+      produto_id: item.produto_id || null,
+      descricao: item.descricao,
+      quantidade,
+      quantidade_devolvida: quantidadeDevolvida,
+      quantidade_disponivel: Math.max(0, quantidade - quantidadeDevolvida),
+      preco_unitario: toNumber(item.preco_unitario),
+      total: toNumber(item.total),
+    };
+
+    itensPorVenda.set(item.venda_id, [
+      ...(itensPorVenda.get(item.venda_id) || []),
+      itemNormalizado,
+    ]);
+  });
+
+  return {
+    data: vendasRows.map((venda) => ({
+      id: venda.id,
+      numero: toNumber(venda.numero),
+      total: toNumber(venda.total),
+      forma_pagamento: venda.forma_pagamento,
+      cliente_id: venda.cliente_id || null,
+      cliente_nome: venda.cliente_nome || "Consumidor nao identificado",
+      operador: venda.operador || "",
+      finalizada_em: venda.finalizada_em,
+      historico_operacional: normalizarHistoricoOperacional(
+        venda.historico_operacional
+      ),
+      itens: itensPorVenda.get(venda.id) || [],
+    })) as ErpPdvVendaBusca[],
+    error: null,
+  };
+}
+
+export async function listarErpPdvValesTroca(empresaId: string) {
+  const { data, error } = await supabase
+    .from("erp_pdv_vale_trocas")
+    .select(
+      "id, empresa_id, venda_origem_id, cliente_id, numero, cliente_nome, valor_original, saldo_restante, emitido_em, validade_em, status, observacao, historico, created_at, updated_at"
+    )
+    .eq("empresa_id", empresaId)
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  return {
+    data: ((data || []) as ErpPdvValeTrocaRow[]).map(normalizarValeTroca),
+    error,
+  };
+}
+
+export async function obterErpPdvResumoTrocas(empresaId: string) {
+  const { data: devolucoesData, error: devolucoesError } = await supabase
+    .from("erp_pdv_devolucoes")
+    .select(
+      "id, numero, venda_id, vale_troca_id, tipo, motivo, operador, cliente_nome, valor_devolvido, created_at"
+    )
+    .eq("empresa_id", empresaId)
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (devolucoesError) {
+    return {
+      data: null,
+      error: devolucoesError,
+    };
+  }
+
+  const valesResultado = await listarErpPdvValesTroca(empresaId);
+  if (valesResultado.error) {
+    return {
+      data: null,
+      error: valesResultado.error,
+    };
+  }
+
+  const devolucoes = ((devolucoesData || []) as ErpPdvDevolucaoRow[]).map(
+    normalizarDevolucao
+  );
+  const vales = valesResultado.data;
+
+  return {
+    data: {
+      devolucoes,
+      vales,
+      totalDevolvido: devolucoes.reduce(
+        (total, devolucao) => total + devolucao.valor_devolvido,
+        0
+      ),
+      totalValesEmitidos: vales.reduce(
+        (total, vale) => total + vale.valor_original,
+        0
+      ),
+      totalValesEmAberto: vales
+        .filter((vale) => vale.status === "ativo")
+        .reduce((total, vale) => total + vale.saldo_restante, 0),
+      totalValesUtilizados: vales.reduce(
+        (total, vale) => total + (vale.valor_original - vale.saldo_restante),
+        0
+      ),
+    } as ErpPdvTrocasResumo,
+    error: null,
+  };
+}
+
+export async function registrarErpPdvDevolucao(
+  payload: ErpPdvRegistrarDevolucaoPayload
+) {
+  const itensSolicitados = payload.itens
+    .map((item) => ({
+      vendaItemId: item.vendaItemId,
+      quantidade: toNumber(item.quantidade),
+    }))
+    .filter((item) => item.vendaItemId && item.quantidade > 0);
+
+  if (!payload.vendaId) {
+    return { data: null, error: new Error("Selecione uma venda.") };
+  }
+
+  if (!payload.motivo.trim()) {
+    return { data: null, error: new Error("Informe o motivo da devolucao.") };
+  }
+
+  if (!itensSolicitados.length) {
+    return { data: null, error: new Error("Selecione itens para devolver.") };
+  }
+
+  const { data: vendaData, error: vendaError } = await supabase
+    .from("erp_pdv_vendas")
+    .select(
+      "id, numero, total, forma_pagamento, cliente_id, cliente_nome, operador, vale_troca_id, vale_troca_valor_utilizado, pagamento_complementar, historico_operacional, finalizada_em"
+    )
+    .eq("empresa_id", payload.empresaId)
+    .eq("id", payload.vendaId)
+    .eq("status", "finalizada")
+    .single();
+
+  if (vendaError || !vendaData) {
+    return {
+      data: null,
+      error: vendaError || new Error("Venda nao encontrada."),
+    };
+  }
+
+  const venda = vendaData as ErpPdvVendaRow;
+  const vendaItemIds = itensSolicitados.map((item) => item.vendaItemId);
+  const { data: itensData, error: itensError } = await supabase
+    .from("erp_pdv_venda_itens")
+    .select(
+      "id, venda_id, produto_id, descricao, quantidade, quantidade_devolvida, preco_unitario, total"
+    )
+    .eq("empresa_id", payload.empresaId)
+    .eq("venda_id", payload.vendaId)
+    .in("id", vendaItemIds);
+
+  if (itensError) {
+    return { data: null, error: itensError };
+  }
+
+  const itensRows = (itensData || []) as ErpPdvVendaItemRow[];
+  const itensPorId = new Map(itensRows.map((item) => [item.id, item]));
+  const itensDevolvidos = itensSolicitados.map((solicitado) => {
+    const item = itensPorId.get(solicitado.vendaItemId);
+    if (!item) {
+      throw new Error("Item da venda nao encontrado.");
+    }
+
+    const quantidadeOriginal = toNumber(item.quantidade);
+    const quantidadeDevolvida = toNumber(item.quantidade_devolvida);
+    const disponivel = quantidadeOriginal - quantidadeDevolvida;
+
+    if (solicitado.quantidade > disponivel) {
+      throw new Error(`Quantidade indisponivel para devolver ${item.descricao}.`);
+    }
+
+    return {
+      item,
+      quantidade: solicitado.quantidade,
+      valor: solicitado.quantidade * toNumber(item.preco_unitario),
+      quantidadeDevolvidaAtual: quantidadeDevolvida,
+      quantidadeOriginal,
+    };
+  });
+
+  const valorDevolvido = itensDevolvidos.reduce(
+    (total, item) => total + item.valor,
+    0
+  );
+  const tipo =
+    itensDevolvidos.reduce((total, item) => total + item.quantidade, 0) ===
+    itensRows.reduce((total, item) => total + toNumber(item.quantidade), 0)
+      ? "total"
+      : "parcial";
+  const agora = new Date().toISOString();
+  const validadeDias = Math.max(1, Math.min(365, toNumber(payload.validadeDias) || 30));
+  const validade = new Date();
+  validade.setDate(validade.getDate() + validadeDias);
+  const validadeEm = validade.toISOString().slice(0, 10);
+  const historicoVale: ErpPdvHistoricoOperacionalItem[] = [
+    {
+      data: agora,
+      tipo: "emissao",
+      descricao: `Vale-troca emitido pela devolucao da venda #${venda.numero}.`,
+      valor: valorDevolvido,
+    },
+  ];
+
+  const { data: valeData, error: valeError } = await supabase
+    .from("erp_pdv_vale_trocas")
+    .insert({
+      empresa_id: payload.empresaId,
+      venda_origem_id: payload.vendaId,
+      cliente_id: venda.cliente_id || null,
+      cliente_nome: venda.cliente_nome || "Consumidor nao identificado",
+      valor_original: valorDevolvido,
+      saldo_restante: valorDevolvido,
+      emitido_em: agora,
+      validade_em: validadeEm,
+      status: "ativo",
+      observacao: payload.motivo.trim(),
+      historico: historicoVale,
+      updated_at: agora,
+    })
+    .select(
+      "id, empresa_id, venda_origem_id, cliente_id, numero, cliente_nome, valor_original, saldo_restante, emitido_em, validade_em, status, observacao, historico, created_at, updated_at"
+    )
+    .single();
+
+  if (valeError || !valeData) {
+    return { data: null, error: valeError };
+  }
+
+  const vale = normalizarValeTroca(valeData as ErpPdvValeTrocaRow);
+  const { data: devolucaoData, error: devolucaoError } = await supabase
+    .from("erp_pdv_devolucoes")
+    .insert({
+      empresa_id: payload.empresaId,
+      venda_id: payload.vendaId,
+      vale_troca_id: vale.id,
+      tipo,
+      motivo: payload.motivo.trim(),
+      operador: payload.operador.trim(),
+      cliente_nome: venda.cliente_nome || "Consumidor nao identificado",
+      valor_devolvido: valorDevolvido,
+    })
+    .select(
+      "id, numero, venda_id, vale_troca_id, tipo, motivo, operador, cliente_nome, valor_devolvido, created_at"
+    )
+    .single();
+
+  if (devolucaoError || !devolucaoData) {
+    return { data: null, error: devolucaoError };
+  }
+
+  const devolucao = normalizarDevolucao(devolucaoData as ErpPdvDevolucaoRow);
+  const movimentacoes: ErpPdvMovimentacao[] = [];
+
+  await supabase.from("erp_pdv_vale_troca_movimentacoes").insert({
+    empresa_id: payload.empresaId,
+    vale_troca_id: vale.id,
+    devolucao_id: devolucao.id,
+    tipo: "emissao",
+    valor: valorDevolvido,
+    saldo_antes: 0,
+    saldo_depois: valorDevolvido,
+    observacao: payload.motivo.trim(),
+  });
+
+  for (const itemDevolvido of itensDevolvidos) {
+    const item = itemDevolvido.item;
+    await supabase.from("erp_pdv_devolucao_itens").insert({
+      empresa_id: payload.empresaId,
+      devolucao_id: devolucao.id,
+      venda_item_id: item.id,
+      produto_id: item.produto_id || null,
+      descricao: item.descricao,
+      quantidade: itemDevolvido.quantidade,
+      preco_unitario: toNumber(item.preco_unitario),
+      valor_total: itemDevolvido.valor,
+    });
+
+    await supabase
+      .from("erp_pdv_venda_itens")
+      .update({
+        quantidade_devolvida:
+          itemDevolvido.quantidadeDevolvidaAtual + itemDevolvido.quantidade,
+      })
+      .eq("empresa_id", payload.empresaId)
+      .eq("id", item.id);
+
+    if (!item.produto_id) continue;
+
+    const { data: estoqueData, error: estoqueError } = await supabase
+      .from("erp_pdv_estoques")
+      .select("produto_id, quantidade_atual, estoque_minimo")
+      .eq("empresa_id", payload.empresaId)
+      .eq("produto_id", item.produto_id)
+      .maybeSingle();
+
+    if (estoqueError) return { data: null, error: estoqueError };
+
+    const estoqueAnterior = toNumber(
+      (estoqueData as ErpPdvEstoqueRow | null)?.quantidade_atual
+    );
+    const estoqueMinimo = toNumber(
+      (estoqueData as ErpPdvEstoqueRow | null)?.estoque_minimo
+    );
+    const estoquePosterior = estoqueAnterior + itemDevolvido.quantidade;
+
+    const { error: estoqueUpdateError } = await supabase
+      .from("erp_pdv_estoques")
+      .upsert(
+        {
+          empresa_id: payload.empresaId,
+          produto_id: item.produto_id,
+          quantidade_atual: estoquePosterior,
+          estoque_minimo: estoqueMinimo,
+          updated_at: agora,
+          ultima_movimentacao_em: agora,
+        },
+        { onConflict: "produto_id" }
+      );
+
+    if (estoqueUpdateError) return { data: null, error: estoqueUpdateError };
+
+    const { data: movimentacaoData, error: movimentacaoError } = await supabase
+      .from("erp_pdv_movimentacoes")
+      .insert({
+        empresa_id: payload.empresaId,
+        produto_id: item.produto_id,
+        tipo: "entrada",
+        quantidade: itemDevolvido.quantidade,
+        estoque_anterior: estoqueAnterior,
+        estoque_posterior: estoquePosterior,
+        origem: "devolucao",
+        motivo: `Devolucao venda #${venda.numero}`,
+        observacao: payload.motivo.trim(),
+        usuario_responsavel: payload.operador.trim(),
+      })
+      .select(
+        "id, empresa_id, produto_id, tipo, quantidade, estoque_anterior, estoque_posterior, origem, motivo, observacao, usuario_responsavel, created_at"
+      )
+      .single();
+
+    if (movimentacaoError || !movimentacaoData) {
+      return { data: null, error: movimentacaoError };
+    }
+
+    movimentacoes.push(
+      normalizarMovimentacao(movimentacaoData as ErpPdvMovimentacaoRow)
+    );
+  }
+
+  const historicoAtual = normalizarHistoricoOperacional(
+    venda.historico_operacional
+  );
+  await supabase
+    .from("erp_pdv_vendas")
+    .update({
+      historico_operacional: [
+        {
+          data: agora,
+          tipo: "devolucao",
+          descricao: `Devolucao ${tipo} registrada. Vale-troca #${vale.numero} emitido.`,
+          valor: valorDevolvido,
+        },
+        ...historicoAtual,
+      ],
+      updated_at: agora,
+    })
+    .eq("empresa_id", payload.empresaId)
+    .eq("id", payload.vendaId);
+
+  return {
+    data: {
+      devolucao,
+      vale,
+      movimentacoes,
+    },
+    error: null,
+  };
+}
+
 export async function finalizarErpPdvVenda(
   payload: ErpPdvFinalizarVendaPayload
 ) {
@@ -2174,6 +2866,46 @@ export async function finalizarErpPdvVenda(
   );
   const agora = new Date().toISOString();
   const operador = payload.operador.trim();
+  let valeTroca: ErpPdvValeTroca | null = null;
+  let valorValeUtilizado = 0;
+  let pagamentoComplementar = subtotal;
+
+  if (payload.valeTrocaId) {
+    const { data: valeData, error: valeError } = await supabase
+      .from("erp_pdv_vale_trocas")
+      .select(
+        "id, empresa_id, venda_origem_id, cliente_id, numero, cliente_nome, valor_original, saldo_restante, emitido_em, validade_em, status, observacao, historico, created_at, updated_at"
+      )
+      .eq("empresa_id", payload.empresaId)
+      .eq("id", payload.valeTrocaId)
+      .single();
+
+    if (valeError || !valeData) {
+      return {
+        data: null,
+        error: valeError || new Error("Vale-troca nao encontrado."),
+      };
+    }
+
+    valeTroca = normalizarValeTroca(valeData as ErpPdvValeTrocaRow);
+
+    if (valeTroca.status !== "ativo" || valeTroca.saldo_restante <= 0) {
+      return {
+        data: null,
+        error: new Error("Vale-troca sem saldo disponivel."),
+      };
+    }
+
+    if (valeTroca.validade_em < new Date().toISOString().slice(0, 10)) {
+      return {
+        data: null,
+        error: new Error("Vale-troca vencido."),
+      };
+    }
+
+    valorValeUtilizado = Math.min(subtotal, valeTroca.saldo_restante);
+    pagamentoComplementar = Math.max(0, subtotal - valorValeUtilizado);
+  }
 
   const { data: vendaData, error: vendaError } = await supabase
     .from("erp_pdv_vendas")
@@ -2185,15 +2917,30 @@ export async function finalizarErpPdvVenda(
       desconto: 0,
       total: subtotal,
       forma_pagamento: payload.formaPagamento,
+      vale_troca_id: valeTroca?.id || null,
+      vale_troca_valor_utilizado: valorValeUtilizado,
+      pagamento_complementar: pagamentoComplementar,
       cliente_id: payload.clienteId || null,
       cliente_nome: payload.clienteNome?.trim() || "Consumidor nao identificado",
       operador,
-      observacao: "",
+      observacao: valeTroca
+        ? `Vale-troca #${valeTroca.numero} utilizado. Complemento: ${pagamentoComplementar.toFixed(2)}`
+        : "",
+      historico_operacional: valeTroca
+        ? [
+            {
+              data: agora,
+              tipo: "utilizacao_vale",
+              descricao: `Vale-troca #${valeTroca.numero} utilizado na venda.`,
+              valor: valorValeUtilizado,
+            },
+          ]
+        : [],
       finalizada_em: agora,
       updated_at: agora,
     })
     .select(
-      "id, numero, total, forma_pagamento, cliente_id, cliente_nome, operador, finalizada_em"
+      "id, numero, total, forma_pagamento, cliente_id, cliente_nome, operador, vale_troca_id, vale_troca_valor_utilizado, pagamento_complementar, finalizada_em"
     )
     .single();
 
@@ -2205,6 +2952,52 @@ export async function finalizarErpPdvVenda(
   }
 
   const venda = vendaData as ErpPdvVendaRow;
+
+  if (valeTroca && valorValeUtilizado > 0) {
+    const saldoAntes = valeTroca.saldo_restante;
+    const saldoDepois = Math.max(0, saldoAntes - valorValeUtilizado);
+    const historicoVale = [
+      {
+        data: agora,
+        tipo: "utilizacao",
+        descricao: `Vale utilizado na venda #${venda.numero}.`,
+        valor: valorValeUtilizado,
+      },
+      ...valeTroca.historico,
+    ];
+
+    const { error: valeUpdateError } = await supabase
+      .from("erp_pdv_vale_trocas")
+      .update({
+        saldo_restante: saldoDepois,
+        status: saldoDepois > 0 ? "ativo" : "utilizado",
+        historico: historicoVale,
+        updated_at: agora,
+      })
+      .eq("empresa_id", payload.empresaId)
+      .eq("id", valeTroca.id);
+
+    if (valeUpdateError) {
+      return { data: null, error: valeUpdateError };
+    }
+
+    const { error: valeMovError } = await supabase
+      .from("erp_pdv_vale_troca_movimentacoes")
+      .insert({
+        empresa_id: payload.empresaId,
+        vale_troca_id: valeTroca.id,
+        venda_id: venda.id,
+        tipo: "utilizacao",
+        valor: valorValeUtilizado,
+        saldo_antes: saldoAntes,
+        saldo_depois: saldoDepois,
+        observacao: `Venda #${venda.numero}`,
+      });
+
+    if (valeMovError) {
+      return { data: null, error: valeMovError };
+    }
+  }
   const itensPayload = itens.map((item) => ({
     empresa_id: payload.empresaId,
     venda_id: venda.id,
@@ -2311,6 +3104,9 @@ export async function finalizarErpPdvVenda(
       cliente_id: venda.cliente_id || null,
       cliente_nome: venda.cliente_nome || "Consumidor nao identificado",
       operador: venda.operador || operador,
+      vale_troca_id: venda.vale_troca_id || null,
+      vale_troca_valor_utilizado: toNumber(venda.vale_troca_valor_utilizado),
+      pagamento_complementar: toNumber(venda.pagamento_complementar),
       finalizada_em: venda.finalizada_em,
       movimentacoes,
     } as ErpPdvVendaFinalizada,
