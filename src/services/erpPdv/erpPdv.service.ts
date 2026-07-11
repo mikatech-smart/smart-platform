@@ -19,6 +19,12 @@ export type ErpPdvProduto = {
   marca: string;
   custo: number;
   preco_venda: number;
+  preco_atacado: number;
+  preco_revenda: number;
+  preco_personalizado: number;
+  formacao_preco_tipo: ErpPdvFormacaoPrecoTipo;
+  percentual_preco: number;
+  historico_precos: ErpPdvHistoricoPrecoItem[];
   unidade: string;
   localizacao: string;
   ncm: string;
@@ -27,6 +33,18 @@ export type ErpPdvProduto = {
   ativo: boolean;
   estoque_atual: number;
   estoque_minimo: number;
+};
+
+export type ErpPdvFormacaoPrecoTipo = "manual" | "percentual_custo";
+
+export type ErpPdvTabelaPreco = "varejo" | "atacado" | "revenda" | "personalizada";
+
+export type ErpPdvHistoricoPrecoItem = {
+  data: string;
+  tabela: ErpPdvTabelaPreco;
+  precoAnterior: number;
+  precoNovo: number;
+  origem: string;
 };
 
 export type ErpPdvProdutoPayload = {
@@ -39,6 +57,11 @@ export type ErpPdvProdutoPayload = {
   marca: string;
   custo: number;
   precoVenda: number;
+  precoAtacado: number;
+  precoRevenda: number;
+  precoPersonalizado: number;
+  formacaoPrecoTipo: ErpPdvFormacaoPrecoTipo;
+  percentualPreco: number;
   unidade: string;
   localizacao: string;
   ncm: string;
@@ -190,6 +213,12 @@ type ErpPdvProdutoRow = {
   marca?: string;
   custo: number | string;
   preco_venda: number | string;
+  preco_atacado?: number | string;
+  preco_revenda?: number | string;
+  preco_personalizado?: number | string;
+  formacao_preco_tipo?: string;
+  percentual_preco?: number | string;
+  historico_precos?: unknown;
   unidade: string;
   localizacao?: string;
   ncm?: string;
@@ -277,6 +306,36 @@ function toNumber(valor: number | string | null | undefined) {
   return Number.isFinite(numero) ? numero : 0;
 }
 
+function normalizarFormacaoPrecoTipo(valor: string | undefined) {
+  return valor === "percentual_custo" ? valor : "manual";
+}
+
+function normalizarHistoricoPrecos(valor: unknown): ErpPdvHistoricoPrecoItem[] {
+  if (!Array.isArray(valor)) return [];
+
+  return valor
+    .slice(0, 50)
+    .map((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+      const historico = item as Record<string, unknown>;
+      const tabela =
+        historico.tabela === "atacado" ||
+        historico.tabela === "revenda" ||
+        historico.tabela === "personalizada"
+          ? historico.tabela
+          : "varejo";
+
+      return {
+        data: String(historico.data || ""),
+        tabela,
+        precoAnterior: toNumber(historico.precoAnterior as number | string),
+        precoNovo: toNumber(historico.precoNovo as number | string),
+        origem: String(historico.origem || "manual"),
+      };
+    })
+    .filter((item): item is ErpPdvHistoricoPrecoItem => Boolean(item?.data));
+}
+
 function normalizarProduto(
   row: ErpPdvProdutoRow,
   estoque?: ErpPdvEstoqueRow
@@ -291,6 +350,12 @@ function normalizarProduto(
     marca: row.marca || "",
     custo: toNumber(row.custo),
     preco_venda: toNumber(row.preco_venda),
+    preco_atacado: toNumber(row.preco_atacado),
+    preco_revenda: toNumber(row.preco_revenda),
+    preco_personalizado: toNumber(row.preco_personalizado),
+    formacao_preco_tipo: normalizarFormacaoPrecoTipo(row.formacao_preco_tipo),
+    percentual_preco: toNumber(row.percentual_preco),
+    historico_precos: normalizarHistoricoPrecos(row.historico_precos),
     unidade: row.unidade || "un",
     localizacao: row.localizacao || "",
     ncm: row.ncm || "",
@@ -419,6 +484,12 @@ export async function listarErpPdvProdutos(empresaId: string) {
         marca,
         custo,
         preco_venda,
+        preco_atacado,
+        preco_revenda,
+        preco_personalizado,
+        formacao_preco_tipo,
+        percentual_preco,
+        historico_precos,
         unidade,
         localizacao,
         ncm,
@@ -560,6 +631,11 @@ export async function salvarErpPdvProduto(payload: ErpPdvProdutoPayload) {
     marca: payload.marca.trim(),
     custo: payload.custo,
     preco_venda: payload.precoVenda,
+    preco_atacado: payload.precoAtacado,
+    preco_revenda: payload.precoRevenda,
+    preco_personalizado: payload.precoPersonalizado,
+    formacao_preco_tipo: payload.formacaoPrecoTipo,
+    percentual_preco: payload.percentualPreco,
     unidade: payload.unidade.trim() || "un",
     localizacao: payload.localizacao.trim(),
     ncm: payload.ncm.trim(),

@@ -32,12 +32,14 @@ import {
   type ErpPdvCliente,
   type ErpPdvClientePayload,
   type ErpPdvFormaPagamento,
+  type ErpPdvFormacaoPrecoTipo,
   type ErpPdvCategoria,
   type ErpPdvMovimentacao,
   type ErpPdvMovimentacaoPayload,
   type ErpPdvMovimentacaoTipo,
   type ErpPdvProduto,
   type ErpPdvProdutoPayload,
+  type ErpPdvTabelaPreco,
 } from "../../../services/erpPdv/erpPdv.service";
 
 import Card from "../../ui/Card";
@@ -856,6 +858,11 @@ type ErpPdvProdutoForm = {
   marca: string;
   custo: string;
   precoVenda: string;
+  precoAtacado: string;
+  precoRevenda: string;
+  precoPersonalizado: string;
+  formacaoPrecoTipo: ErpPdvFormacaoPrecoTipo;
+  percentualPreco: string;
   unidade: string;
   estoqueAtual: string;
   estoqueMinimo: string;
@@ -901,6 +908,7 @@ type ErpPdvCupomItem = {
   quantidade: number;
   precoUnitario: number;
   subtotal: number;
+  tabelaPreco: ErpPdvTabelaPreco;
 };
 
 type ErpPdvCupomNaoFiscal = {
@@ -952,6 +960,16 @@ const erpPdvFormasPagamento: Array<{
   { id: "debito", label: "Cartao de Debito" },
   { id: "credito", label: "Cartao de Credito" },
   { id: "outros", label: "Outros" },
+];
+
+const erpPdvTabelasPreco: Array<{
+  id: ErpPdvTabelaPreco;
+  label: string;
+}> = [
+  { id: "varejo", label: "Varejo" },
+  { id: "atacado", label: "Atacado" },
+  { id: "revenda", label: "Revenda" },
+  { id: "personalizada", label: "Personalizada" },
 ];
 
 const erpPdvModosImpressao: Array<{
@@ -1040,6 +1058,11 @@ const erpPdvProdutoFormPadrao: ErpPdvProdutoForm = {
   marca: "",
   custo: "",
   precoVenda: "",
+  precoAtacado: "",
+  precoRevenda: "",
+  precoPersonalizado: "",
+  formacaoPrecoTipo: "manual",
+  percentualPreco: "",
   unidade: "un",
   estoqueAtual: "",
   estoqueMinimo: "",
@@ -2829,6 +2852,49 @@ function formatarNumeroErpPdv(valor: number) {
   return String(valor).replace(".", ",");
 }
 
+function formatarMoedaErpPdv(valor: number) {
+  return valor.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function calcularPrecoPorPercentualErpPdv(custo: number, percentual: number) {
+  if (custo <= 0 || percentual <= 0) return 0;
+
+  return custo + custo * (percentual / 100);
+}
+
+function calcularIndicadoresPrecoErpPdv(custo: number, preco: number) {
+  const lucro = preco - custo;
+  const margemPercentual = preco > 0 ? (lucro / preco) * 100 : 0;
+  const markupPercentual = custo > 0 ? (lucro / custo) * 100 : 0;
+
+  return {
+    lucro,
+    margemPercentual,
+    markupPercentual,
+    abaixoDoCusto: custo > 0 && preco > 0 && preco < custo,
+  };
+}
+
+function obterPrecoProdutoPorTabelaErpPdv(
+  produto: ErpPdvProduto,
+  tabela: ErpPdvTabelaPreco
+) {
+  if (tabela === "atacado") return produto.preco_atacado || produto.preco_venda;
+  if (tabela === "revenda") return produto.preco_revenda || produto.preco_venda;
+  if (tabela === "personalizada") {
+    return produto.preco_personalizado || produto.preco_venda;
+  }
+
+  return produto.preco_venda;
+}
+
+function obterLabelTabelaPrecoErpPdv(tabela: ErpPdvTabelaPreco) {
+  return erpPdvTabelasPreco.find((item) => item.id === tabela)?.label || tabela;
+}
+
 function criarErpPdvProdutoForm(produto: ErpPdvProduto): ErpPdvProdutoForm {
   return {
     id: produto.id,
@@ -2839,6 +2905,11 @@ function criarErpPdvProdutoForm(produto: ErpPdvProduto): ErpPdvProdutoForm {
     marca: produto.marca,
     custo: formatarNumeroErpPdv(produto.custo),
     precoVenda: formatarNumeroErpPdv(produto.preco_venda),
+    precoAtacado: formatarNumeroErpPdv(produto.preco_atacado),
+    precoRevenda: formatarNumeroErpPdv(produto.preco_revenda),
+    precoPersonalizado: formatarNumeroErpPdv(produto.preco_personalizado),
+    formacaoPrecoTipo: produto.formacao_preco_tipo,
+    percentualPreco: formatarNumeroErpPdv(produto.percentual_preco),
     unidade: produto.unidade || "un",
     estoqueAtual: formatarNumeroErpPdv(produto.estoque_atual),
     estoqueMinimo: formatarNumeroErpPdv(produto.estoque_minimo),
@@ -5802,6 +5873,8 @@ export default function EmpresaForm({
   const [erpPdvOperadorVenda, setErpPdvOperadorVenda] = useState("");
   const [erpPdvFormaPagamentoVenda, setErpPdvFormaPagamentoVenda] =
     useState<ErpPdvFormaPagamento>("dinheiro");
+  const [erpPdvTabelaPrecoVenda, setErpPdvTabelaPrecoVenda] =
+    useState<ErpPdvTabelaPreco>("varejo");
   const [erpPdvCaixaAberto, setErpPdvCaixaAberto] =
     useState<ErpPdvCaixa | null>(null);
   const [erpPdvCaixaOperador, setErpPdvCaixaOperador] = useState("");
@@ -5995,11 +6068,17 @@ export default function EmpresaForm({
       const quantidade = Number.isFinite(item.quantidade)
         ? Math.max(0, item.quantidade)
         : 0;
+      const precoUnitario = obterPrecoProdutoPorTabelaErpPdv(
+        produto,
+        erpPdvTabelaPrecoVenda
+      );
 
       return {
         produto,
         quantidade,
-        subtotal: produto.preco_venda * quantidade,
+        precoUnitario,
+        tabelaPreco: erpPdvTabelaPrecoVenda,
+        subtotal: precoUnitario * quantidade,
       };
     })
     .filter(
@@ -6008,6 +6087,8 @@ export default function EmpresaForm({
       ): item is {
         produto: ErpPdvProduto;
         quantidade: number;
+        precoUnitario: number;
+        tabelaPreco: ErpPdvTabelaPreco;
         subtotal: number;
       } => Boolean(item)
     );
@@ -6018,6 +6099,21 @@ export default function EmpresaForm({
   const erpPdvCarrinhoQuantidadeItens = erpPdvCarrinhoDetalhado.reduce(
     (total, item) => total + item.quantidade,
     0
+  );
+  const erpPdvProdutoFormCusto = parseNumeroErpPdv(erpPdvProdutoForm.custo);
+  const erpPdvProdutoFormPercentual = parseNumeroErpPdv(
+    erpPdvProdutoForm.percentualPreco
+  );
+  const erpPdvProdutoFormPrecoCalculado =
+    erpPdvProdutoForm.formacaoPrecoTipo === "percentual_custo"
+      ? calcularPrecoPorPercentualErpPdv(
+          erpPdvProdutoFormCusto,
+          erpPdvProdutoFormPercentual
+        )
+      : parseNumeroErpPdv(erpPdvProdutoForm.precoVenda);
+  const erpPdvProdutoFormIndicadores = calcularIndicadoresPrecoErpPdv(
+    erpPdvProdutoFormCusto,
+    erpPdvProdutoFormPrecoCalculado
   );
   const erpPdvProdutoMovimentacaoSelecionado = erpPdvProdutosPorId.get(
     erpPdvMovimentacaoForm.produtoId
@@ -6952,10 +7048,28 @@ export default function EmpresaForm({
     campo: keyof ErpPdvProdutoForm,
     valor: string | boolean
   ) {
-    setErpPdvProdutoForm((formAtual) => ({
-      ...formAtual,
-      [campo]: valor,
-    }));
+    setErpPdvProdutoForm((formAtual) => {
+      const proximoForm = {
+        ...formAtual,
+        [campo]: valor,
+      };
+
+      if (
+        proximoForm.formacaoPrecoTipo === "percentual_custo" &&
+        (campo === "custo" ||
+          campo === "percentualPreco" ||
+          campo === "formacaoPrecoTipo")
+      ) {
+        const precoCalculado = calcularPrecoPorPercentualErpPdv(
+          parseNumeroErpPdv(proximoForm.custo),
+          parseNumeroErpPdv(proximoForm.percentualPreco)
+        );
+
+        proximoForm.precoVenda = formatarNumeroErpPdv(precoCalculado);
+      }
+
+      return proximoForm;
+    });
   }
 
   function atualizarErpPdvMovimentacaoForm(
@@ -7384,7 +7498,9 @@ export default function EmpresaForm({
       "Itens:",
       ...cupom.itens.map(
         (item) =>
-          `${formatarNumeroErpPdv(item.quantidade)} x ${item.descricao} - R$ ${item.subtotal.toLocaleString(
+          `${formatarNumeroErpPdv(item.quantidade)} x ${item.descricao} (${obterLabelTabelaPrecoErpPdv(
+            item.tabelaPreco
+          )}) - R$ ${item.subtotal.toLocaleString(
             "pt-BR",
             {
               minimumFractionDigits: 2,
@@ -7480,7 +7596,9 @@ export default function EmpresaForm({
           ${cupom.itens
             .map(
               (item) => `<tr>
-                <td>${escaparHtmlCupomErpPdv(item.descricao)}<br />Unit.: R$ ${item.precoUnitario.toLocaleString(
+                <td>${escaparHtmlCupomErpPdv(item.descricao)}<br />${escaparHtmlCupomErpPdv(
+                  obterLabelTabelaPrecoErpPdv(item.tabelaPreco)
+                )}<br />Unit.: R$ ${item.precoUnitario.toLocaleString(
                   "pt-BR",
                   {
                     minimumFractionDigits: 2,
@@ -7607,8 +7725,9 @@ export default function EmpresaForm({
       const itensCupom = erpPdvCarrinhoDetalhado.map((item) => ({
         descricao: item.produto.nome,
         quantidade: item.quantidade,
-        precoUnitario: item.produto.preco_venda,
+        precoUnitario: item.precoUnitario,
         subtotal: item.subtotal,
+        tabelaPreco: item.tabelaPreco,
       }));
 
       const { data, error } = await finalizarErpPdvVenda({
@@ -7622,7 +7741,7 @@ export default function EmpresaForm({
           produtoId: item.produto.id,
           descricao: item.produto.nome,
           quantidade: item.quantidade,
-          precoUnitario: item.produto.preco_venda,
+          precoUnitario: item.precoUnitario,
         })),
       });
 
@@ -7777,6 +7896,14 @@ export default function EmpresaForm({
       return;
     }
 
+    if (erpPdvProdutoFormIndicadores.abaixoDoCusto) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "O preco de venda esta abaixo do custo. Ajuste antes de salvar.",
+      });
+      return;
+    }
+
     const payload: ErpPdvProdutoPayload = {
       id: erpPdvProdutoForm.id || undefined,
       empresaId,
@@ -7786,7 +7913,14 @@ export default function EmpresaForm({
       sku: erpPdvProdutoForm.sku,
       marca: erpPdvProdutoForm.marca,
       custo: parseNumeroErpPdv(erpPdvProdutoForm.custo),
-      precoVenda: parseNumeroErpPdv(erpPdvProdutoForm.precoVenda),
+      precoVenda: erpPdvProdutoFormPrecoCalculado,
+      precoAtacado: parseNumeroErpPdv(erpPdvProdutoForm.precoAtacado),
+      precoRevenda: parseNumeroErpPdv(erpPdvProdutoForm.precoRevenda),
+      precoPersonalizado: parseNumeroErpPdv(
+        erpPdvProdutoForm.precoPersonalizado
+      ),
+      formacaoPrecoTipo: erpPdvProdutoForm.formacaoPrecoTipo,
+      percentualPreco: parseNumeroErpPdv(erpPdvProdutoForm.percentualPreco),
       unidade: erpPdvProdutoForm.unidade,
       localizacao: erpPdvProdutoForm.localizacao,
       ncm: erpPdvProdutoForm.ncm,
@@ -10415,7 +10549,7 @@ export default function EmpresaForm({
                     </span>
                   </div>
 
-                  <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
+                  <div className="mt-4 grid gap-3 md:grid-cols-[1fr_180px_auto]">
                     <Input
                       label="Buscar por nome, SKU ou codigo de barras"
                       value={erpPdvPdvBusca}
@@ -10429,6 +10563,27 @@ export default function EmpresaForm({
                       placeholder="Digite ou leia o codigo de barras"
                       className="border-white/20 bg-white text-slate-900"
                     />
+
+                    <div>
+                      <label className="block text-sm font-bold text-slate-200">
+                        Tabela
+                      </label>
+                      <select
+                        value={erpPdvTabelaPrecoVenda}
+                        onChange={(e) =>
+                          setErpPdvTabelaPrecoVenda(
+                            e.target.value as ErpPdvTabelaPreco
+                          )
+                        }
+                        className="mt-1 w-full rounded-xl border border-white/20 bg-white px-3 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-green-400 focus:ring-4 focus:ring-green-900/40"
+                      >
+                        {erpPdvTabelasPreco.map((tabela) => (
+                          <option key={tabela.id} value={tabela.id}>
+                            {tabela.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
                     <button
                       type="button"
@@ -10445,14 +10600,25 @@ export default function EmpresaForm({
 
                   <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                     {erpPdvPdvProdutosEncontrados.length > 0 ? (
-                      erpPdvPdvProdutosEncontrados.map((produto) => (
+                      erpPdvPdvProdutosEncontrados.map((produto) => {
+                        const precoTabela = obterPrecoProdutoPorTabelaErpPdv(
+                          produto,
+                          erpPdvTabelaPrecoVenda
+                        );
+                        const indicadores = calcularIndicadoresPrecoErpPdv(
+                          produto.custo,
+                          precoTabela
+                        );
+
+                        return (
                         <button
                           type="button"
                           key={produto.id}
                           onClick={() => adicionarProdutoAoCarrinhoErpPdv(produto)}
                           disabled={
                             !recursosContratados.erp_pdv ||
-                            produto.estoque_atual <= 0
+                            produto.estoque_atual <= 0 ||
+                            indicadores.abaixoDoCusto
                           }
                           className="min-h-32 rounded-2xl border border-white/10 bg-white/10 p-3 text-left transition hover:border-green-300 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
                         >
@@ -10484,17 +10650,20 @@ export default function EmpresaForm({
                           <div className="mt-3 flex items-center justify-between gap-2 text-sm">
                             <span className="font-black text-green-200">
                               R${" "}
-                              {produto.preco_venda.toLocaleString("pt-BR", {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })}
+                              {formatarMoedaErpPdv(precoTabela)}
                             </span>
                             <span className="rounded-full bg-white/10 px-2 py-1 text-xs font-bold text-slate-200">
                               Est.: {formatarNumeroErpPdv(produto.estoque_atual)}
                             </span>
                           </div>
+                          {indicadores.abaixoDoCusto && (
+                            <p className="mt-2 rounded-lg bg-red-500/20 px-2 py-1 text-xs font-bold text-red-100">
+                              Preco abaixo do custo
+                            </p>
+                          )}
                         </button>
-                      ))
+                        );
+                      })
                     ) : (
                       <p className="rounded-2xl bg-white/10 px-4 py-4 text-sm font-semibold text-slate-300 md:col-span-2 xl:col-span-4">
                         Nenhum produto ativo encontrado para o termo informado.
@@ -10554,13 +10723,10 @@ export default function EmpresaForm({
                                   </p>
                                   <p className="mt-1 text-sm font-semibold text-slate-500">
                                     Unit.: R${" "}
-                                    {item.produto.preco_venda.toLocaleString(
-                                      "pt-BR",
-                                      {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2,
-                                      }
-                                    )}
+                                    {formatarMoedaErpPdv(item.precoUnitario)}
+                                  </p>
+                                  <p className="mt-1 text-xs font-bold text-green-700">
+                                    {obterLabelTabelaPrecoErpPdv(item.tabelaPreco)}
                                   </p>
                                 </div>
 
@@ -10983,6 +11149,9 @@ export default function EmpresaForm({
                         {erpPdvCupomNaoFiscal.itens.map((item, indice) => (
                           <div key={`${item.descricao}-${indice}`}>
                             <p className="font-bold">{item.descricao}</p>
+                            <p className="text-[11px] text-slate-500">
+                              {obterLabelTabelaPrecoErpPdv(item.tabelaPreco)}
+                            </p>
                             <div className="flex justify-between gap-2">
                               <span>
                                 {formatarNumeroErpPdv(item.quantidade)} x R${" "}
@@ -11201,6 +11370,79 @@ export default function EmpresaForm({
                     onChange={(e) =>
                       atualizarErpPdvProdutoForm("precoVenda", e.target.value)
                     }
+                    disabled={
+                      erpPdvProdutoForm.formacaoPrecoTipo ===
+                      "percentual_custo"
+                    }
+                    placeholder="0,00"
+                  />
+
+                  <div>
+                    <label className="block font-medium text-slate-700">
+                      Formacao de preco
+                    </label>
+                    <select
+                      value={erpPdvProdutoForm.formacaoPrecoTipo}
+                      onChange={(e) =>
+                        atualizarErpPdvProdutoForm(
+                          "formacaoPrecoTipo",
+                          e.target.value as ErpPdvFormacaoPrecoTipo
+                        )
+                      }
+                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                    >
+                      <option value="manual">Valor manual</option>
+                      <option value="percentual_custo">
+                        Percentual sobre custo
+                      </option>
+                    </select>
+                  </div>
+
+                  <Input
+                    label="% sobre custo"
+                    value={erpPdvProdutoForm.percentualPreco}
+                    onChange={(e) =>
+                      atualizarErpPdvProdutoForm(
+                        "percentualPreco",
+                        e.target.value
+                      )
+                    }
+                    placeholder="Ex.: 60"
+                  />
+
+                  <Input
+                    label="Preco atacado"
+                    value={erpPdvProdutoForm.precoAtacado}
+                    onChange={(e) =>
+                      atualizarErpPdvProdutoForm(
+                        "precoAtacado",
+                        e.target.value
+                      )
+                    }
+                    placeholder="0,00"
+                  />
+
+                  <Input
+                    label="Preco revenda"
+                    value={erpPdvProdutoForm.precoRevenda}
+                    onChange={(e) =>
+                      atualizarErpPdvProdutoForm(
+                        "precoRevenda",
+                        e.target.value
+                      )
+                    }
+                    placeholder="0,00"
+                  />
+
+                  <Input
+                    label="Preco personalizado"
+                    value={erpPdvProdutoForm.precoPersonalizado}
+                    onChange={(e) =>
+                      atualizarErpPdvProdutoForm(
+                        "precoPersonalizado",
+                        e.target.value
+                      )
+                    }
                     placeholder="0,00"
                   />
 
@@ -11257,6 +11499,69 @@ export default function EmpresaForm({
                     }
                     placeholder="Preparado para fiscal futuro"
                   />
+                </div>
+
+                <div className="mt-4 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-4">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Lucro
+                    </p>
+                    <p
+                      className={`mt-1 text-lg font-black ${
+                        erpPdvProdutoFormIndicadores.lucro < 0
+                          ? "text-red-600"
+                          : "text-green-700"
+                      }`}
+                    >
+                      R$ {formatarMoedaErpPdv(erpPdvProdutoFormIndicadores.lucro)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Margem
+                    </p>
+                    <p className="mt-1 text-lg font-black text-slate-900">
+                      {erpPdvProdutoFormIndicadores.margemPercentual.toLocaleString(
+                        "pt-BR",
+                        {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        }
+                      )}
+                      %
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Markup
+                    </p>
+                    <p className="mt-1 text-lg font-black text-slate-900">
+                      {erpPdvProdutoFormIndicadores.markupPercentual.toLocaleString(
+                        "pt-BR",
+                        {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        }
+                      )}
+                      %
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Status
+                    </p>
+                    <p
+                      className={`mt-1 rounded-full px-3 py-2 text-xs font-black ${
+                        erpPdvProdutoFormIndicadores.abaixoDoCusto
+                          ? "bg-red-100 text-red-700"
+                          : "bg-green-100 text-green-700"
+                      }`}
+                    >
+                      {erpPdvProdutoFormIndicadores.abaixoDoCusto
+                        ? "Abaixo do custo"
+                        : "Preco valido"}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="mt-4 grid gap-4">
@@ -11362,6 +11667,10 @@ export default function EmpresaForm({
                     const categoriaProduto = erpPdvCategorias.find(
                       (categoriaErp) => categoriaErp.id === produto.categoria_id
                     );
+                    const indicadores = calcularIndicadoresPrecoErpPdv(
+                      produto.custo,
+                      produto.preco_venda
+                    );
 
                     return (
                       <button
@@ -11410,13 +11719,53 @@ export default function EmpresaForm({
 
                         <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-3">
                           <span>
-                            Venda: R$ {produto.preco_venda.toLocaleString("pt-BR", {
+                            Custo: R$ {formatarMoedaErpPdv(produto.custo)}
+                          </span>
+                          <span>
+                            Venda: R$ {formatarMoedaErpPdv(produto.preco_venda)}
+                          </span>
+                          <span>
+                            Lucro: R$ {formatarMoedaErpPdv(indicadores.lucro)}
+                          </span>
+                          <span>
+                            Margem:{" "}
+                            {indicadores.margemPercentual.toLocaleString("pt-BR", {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2,
                             })}
+                            %
+                          </span>
+                          <span>
+                            Markup:{" "}
+                            {indicadores.markupPercentual.toLocaleString("pt-BR", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                            %
                           </span>
                           <span>Estoque: {produto.estoque_atual}</span>
                           <span>Minimo: {produto.estoque_minimo}</span>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold text-slate-600">
+                          <span className="rounded-full bg-white px-3 py-1">
+                            Atacado: R${" "}
+                            {formatarMoedaErpPdv(
+                              produto.preco_atacado || produto.preco_venda
+                            )}
+                          </span>
+                          <span className="rounded-full bg-white px-3 py-1">
+                            Revenda: R${" "}
+                            {formatarMoedaErpPdv(
+                              produto.preco_revenda || produto.preco_venda
+                            )}
+                          </span>
+                          <span className="rounded-full bg-white px-3 py-1">
+                            Personalizada: R${" "}
+                            {formatarMoedaErpPdv(
+                              produto.preco_personalizado ||
+                                produto.preco_venda
+                            )}
+                          </span>
                         </div>
                       </button>
                     );
