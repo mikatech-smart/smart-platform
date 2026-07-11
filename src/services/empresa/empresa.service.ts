@@ -7,6 +7,7 @@ const recursosContratadosPadrao = {
   landing_page: false,
   dominio_personalizado: false,
   cardapio_digital: false,
+  catalogo: false,
   wifi: false,
   google_reviews: false,
   nfc: true,
@@ -28,6 +29,15 @@ function erroColunaCardapioConfig(error: { message?: string; code?: string }) {
   return (
     mensagem.includes("cardapio_config") ||
     (error.code === "PGRST204" && mensagem.includes("cardapio"))
+  );
+}
+
+function erroColunaCatalogoConfig(error: { message?: string; code?: string }) {
+  const mensagem = error.message?.toLowerCase() || "";
+
+  return (
+    mensagem.includes("catalogo_config") ||
+    (error.code === "PGRST204" && mensagem.includes("catalogo"))
   );
 }
 
@@ -294,6 +304,39 @@ export async function atualizarEmpresa(
   });
 
   if (error) {
+    if (erroColunaCatalogoConfig(error)) {
+      if ("catalogo_config" in dados) {
+        const { catalogo_config: _catalogoConfig, ...dadosSemCatalogo } =
+          dados as Record<string, unknown>;
+        const { data: dataSemCatalogo, error: errorSemCatalogo } =
+          await supabase
+            .from("empresas")
+            .update(dadosSemCatalogo)
+            .eq("id", id)
+            .select();
+
+        if (!errorSemCatalogo && dataSemCatalogo?.length) {
+          console.warn(
+            "catalogo_config ainda nao existe no Supabase; demais dados foram salvos sem o Catalogo."
+          );
+
+          return {
+            data: dataSemCatalogo[0],
+            error: null,
+          };
+        }
+      }
+
+      return {
+        data: null,
+        error: {
+          ...error,
+          message:
+            "A coluna catalogo_config ainda nao existe na tabela empresas. Crie a coluna JSONB para salvar o Catalogo.",
+        },
+      };
+    }
+
     if (erroColunaCardapioConfig(error)) {
       if ("cardapio_config" in dados) {
         const { cardapio_config: _cardapioConfig, ...dadosSemCardapio } =

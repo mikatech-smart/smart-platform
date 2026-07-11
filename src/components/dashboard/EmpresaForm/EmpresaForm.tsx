@@ -57,6 +57,7 @@ type AbaEmpresa =
   | "plano"
   | "landing"
   | "cardapio"
+  | "catalogo"
   | "contato"
   | "endereco"
   | "redes"
@@ -90,6 +91,7 @@ const abasEmpresa: Array<{
   { id: "plano", label: "Plano e Recursos", adminOnly: true },
   { id: "landing", label: "Landing Page" },
   { id: "cardapio", label: "Cardapio Digital" },
+  { id: "catalogo", label: "Catalogo" },
   { id: "contato", label: "Contato" },
   { id: "endereco", label: "Endereço" },
   { id: "redes", label: "Redes Sociais" },
@@ -103,6 +105,7 @@ type RecursoEmpresaId =
   | "landing_page"
   | "dominio_personalizado"
   | "cardapio_digital"
+  | "catalogo"
   | "wifi"
   | "google_reviews"
   | "nfc"
@@ -138,6 +141,7 @@ const recursosPadrao: RecursosContratados = {
   landing_page: false,
   dominio_personalizado: false,
   cardapio_digital: false,
+  catalogo: false,
   wifi: false,
   google_reviews: false,
   nfc: true,
@@ -178,6 +182,12 @@ const recursosEmpresa: Array<{
     id: "cardapio_digital",
     nome: "Cardapio Digital",
     descricao: "Estrutura futura para produtos, categorias e pedidos.",
+    statusInativo: "Em breve",
+  },
+  {
+    id: "catalogo",
+    nome: "Catalogo",
+    descricao: "Estrutura para vitrine de produtos e servicos sem checkout.",
     statusInativo: "Em breve",
   },
   {
@@ -511,6 +521,28 @@ type CardapioConfig = {
   produtos: CardapioProdutoConfig[];
 };
 
+type CatalogoCategoriaConfig = {
+  id: string;
+  nome: string;
+  descricao: string;
+  ativo: boolean;
+};
+
+type CatalogoProdutoConfig = {
+  id: string;
+  categoriaId: string;
+  nome: string;
+  descricao: string;
+  preco: string;
+  imagemUrl: string;
+  ativo: boolean;
+};
+
+type CatalogoConfig = {
+  categorias: CatalogoCategoriaConfig[];
+  produtos: CatalogoProdutoConfig[];
+};
+
 const cardapioCategoriaPadrao: CardapioCategoriaConfig = {
   id: "categoria-1",
   nome: "",
@@ -532,6 +564,28 @@ const cardapioProdutoPadrao: CardapioProdutoConfig = {
 const cardapioConfigPadrao: CardapioConfig = {
   categorias: [{ ...cardapioCategoriaPadrao }],
   produtos: [{ ...cardapioProdutoPadrao }],
+};
+
+const catalogoCategoriaPadrao: CatalogoCategoriaConfig = {
+  id: "categoria-1",
+  nome: "",
+  descricao: "",
+  ativo: true,
+};
+
+const catalogoProdutoPadrao: CatalogoProdutoConfig = {
+  id: "produto-1",
+  categoriaId: "",
+  nome: "",
+  descricao: "",
+  preco: "",
+  imagemUrl: "",
+  ativo: true,
+};
+
+const catalogoConfigPadrao: CatalogoConfig = {
+  categorias: [{ ...catalogoCategoriaPadrao }],
+  produtos: [{ ...catalogoProdutoPadrao }],
 };
 
 const landingPageHeroPadrao: LandingPageHeroConfig = {
@@ -1157,6 +1211,73 @@ function normalizarCardapioConfig(valor: unknown): CardapioConfig {
       produtos.length > 0
         ? produtos
         : cardapioConfigPadrao.produtos.map((produto) => ({ ...produto })),
+  };
+}
+
+function normalizarCatalogoConfig(valor: unknown): CatalogoConfig {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return structuredClone(catalogoConfigPadrao);
+  }
+
+  const config = valor as Record<string, unknown>;
+  const categorias = Array.isArray(config.categorias)
+    ? config.categorias.slice(0, 30).map((item, indice) => {
+        if (!item || typeof item !== "object" || Array.isArray(item)) {
+          return {
+            ...catalogoCategoriaPadrao,
+            id: criarCardapioId("categoria", indice),
+          };
+        }
+
+        const categoria = item as Record<string, unknown>;
+
+        return {
+          id:
+            lerCampoTexto(categoria, "id") ||
+            criarCardapioId("categoria", indice),
+          nome: lerCampoTexto(categoria, "nome"),
+          descricao: lerCampoTexto(categoria, "descricao"),
+          ativo:
+            typeof categoria.ativo === "boolean" ? categoria.ativo : true,
+        };
+      })
+    : catalogoConfigPadrao.categorias.map((categoria) => ({ ...categoria }));
+  const categoriaIds = new Set(categorias.map((categoria) => categoria.id));
+  const produtos = Array.isArray(config.produtos)
+    ? config.produtos.slice(0, 100).map((item, indice) => {
+        if (!item || typeof item !== "object" || Array.isArray(item)) {
+          return {
+            ...catalogoProdutoPadrao,
+            id: criarCardapioId("produto", indice),
+          };
+        }
+
+        const produto = item as Record<string, unknown>;
+        const categoriaId = lerCampoTexto(produto, "categoriaId");
+
+        return {
+          id:
+            lerCampoTexto(produto, "id") ||
+            criarCardapioId("produto", indice),
+          categoriaId: categoriaIds.has(categoriaId) ? categoriaId : "",
+          nome: lerCampoTexto(produto, "nome"),
+          descricao: lerCampoTexto(produto, "descricao"),
+          preco: lerCampoTexto(produto, "preco"),
+          imagemUrl: lerCampoTexto(produto, "imagemUrl"),
+          ativo: typeof produto.ativo === "boolean" ? produto.ativo : true,
+        };
+      })
+    : catalogoConfigPadrao.produtos.map((produto) => ({ ...produto }));
+
+  return {
+    categorias:
+      categorias.length > 0
+        ? categorias
+        : catalogoConfigPadrao.categorias.map((categoria) => ({ ...categoria })),
+    produtos:
+      produtos.length > 0
+        ? produtos
+        : catalogoConfigPadrao.produtos.map((produto) => ({ ...produto })),
   };
 }
 
@@ -3865,6 +3986,14 @@ export default function EmpresaForm({
     useState<CardapioProdutoConfig[]>(() =>
       cardapioConfigPadrao.produtos.map((produto) => ({ ...produto }))
     );
+  const [catalogoCategorias, setCatalogoCategorias] =
+    useState<CatalogoCategoriaConfig[]>(() =>
+      catalogoConfigPadrao.categorias.map((categoria) => ({ ...categoria }))
+    );
+  const [catalogoProdutos, setCatalogoProdutos] =
+    useState<CatalogoProdutoConfig[]>(() =>
+      catalogoConfigPadrao.produtos.map((produto) => ({ ...produto }))
+    );
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -3983,12 +4112,16 @@ export default function EmpresaForm({
       recursos_contratados?: unknown;
       landing_page_config?: unknown;
       cardapio_config?: unknown;
+      catalogo_config?: unknown;
     };
     const landingPageConfig = normalizarLandingPageConfig(
       dadosComPlano.landing_page_config
     );
     const cardapioConfig = normalizarCardapioConfig(
       dadosComPlano.cardapio_config
+    );
+    const catalogoConfig = normalizarCatalogoConfig(
+      dadosComPlano.catalogo_config
     );
 
     setNome(data.nome || "");
@@ -4024,6 +4157,8 @@ export default function EmpresaForm({
     setLandingPageVersaoHistoricoVisualizada(null);
     setCardapioCategorias(cardapioConfig.categorias);
     setCardapioProdutos(cardapioConfig.produtos);
+    setCatalogoCategorias(catalogoConfig.categorias);
+    setCatalogoProdutos(catalogoConfig.produtos);
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
 
@@ -4783,6 +4918,136 @@ export default function EmpresaForm({
     });
   }
 
+  function montarCatalogoConfig(): CatalogoConfig {
+    return {
+      categorias: catalogoCategorias.slice(0, 30),
+      produtos: catalogoProdutos.slice(0, 100),
+    };
+  }
+
+  function atualizarCatalogoCategoria(
+    indice: number,
+    campo: keyof CatalogoCategoriaConfig,
+    valor: string | boolean
+  ) {
+    setCatalogoCategorias((categoriasAtuais) =>
+      categoriasAtuais.map((categoriaAtual, indiceAtual) =>
+        indiceAtual === indice
+          ? {
+              ...categoriaAtual,
+              [campo]: valor,
+            }
+          : categoriaAtual
+      )
+    );
+  }
+
+  function adicionarCatalogoCategoria() {
+    setCatalogoCategorias((categoriasAtuais) => {
+      if (categoriasAtuais.length >= 30) return categoriasAtuais;
+
+      return [
+        ...categoriasAtuais,
+        {
+          ...catalogoCategoriaPadrao,
+          id: `categoria-${Date.now()}`,
+        },
+      ];
+    });
+  }
+
+  function removerCatalogoCategoria(indice: number) {
+    setCatalogoCategorias((categoriasAtuais) => {
+      if (categoriasAtuais.length <= 1) return categoriasAtuais;
+
+      const categoriaRemovida = categoriasAtuais[indice];
+
+      setCatalogoProdutos((produtosAtuais) =>
+        produtosAtuais.map((produto) =>
+          produto.categoriaId === categoriaRemovida.id
+            ? {
+                ...produto,
+                categoriaId: "",
+              }
+            : produto
+        )
+      );
+
+      return categoriasAtuais.filter((_, indiceAtual) => indiceAtual !== indice);
+    });
+  }
+
+  function moverCatalogoCategoria(indice: number, direcao: "up" | "down") {
+    setCatalogoCategorias((categoriasAtuais) => {
+      const novoIndice = direcao === "up" ? indice - 1 : indice + 1;
+
+      if (novoIndice < 0 || novoIndice >= categoriasAtuais.length) {
+        return categoriasAtuais;
+      }
+
+      const categoriasOrdenadas = [...categoriasAtuais];
+      const [categoriaMovida] = categoriasOrdenadas.splice(indice, 1);
+      categoriasOrdenadas.splice(novoIndice, 0, categoriaMovida);
+
+      return categoriasOrdenadas;
+    });
+  }
+
+  function atualizarCatalogoProduto(
+    indice: number,
+    campo: keyof CatalogoProdutoConfig,
+    valor: string | boolean
+  ) {
+    setCatalogoProdutos((produtosAtuais) =>
+      produtosAtuais.map((produtoAtual, indiceAtual) =>
+        indiceAtual === indice
+          ? {
+              ...produtoAtual,
+              [campo]: valor,
+            }
+          : produtoAtual
+      )
+    );
+  }
+
+  function adicionarCatalogoProduto() {
+    setCatalogoProdutos((produtosAtuais) => {
+      if (produtosAtuais.length >= 100) return produtosAtuais;
+
+      return [
+        ...produtosAtuais,
+        {
+          ...catalogoProdutoPadrao,
+          id: `produto-${Date.now()}`,
+        },
+      ];
+    });
+  }
+
+  function removerCatalogoProduto(indice: number) {
+    setCatalogoProdutos((produtosAtuais) => {
+      if (produtosAtuais.length <= 1) return produtosAtuais;
+
+      return produtosAtuais.filter((_, indiceAtual) => indiceAtual !== indice);
+    });
+  }
+
+  function moverCatalogoProduto(indice: number, direcao: "up" | "down") {
+    setCatalogoProdutos((produtosAtuais) => {
+      const novoIndice = direcao === "up" ? indice - 1 : indice + 1;
+
+      if (novoIndice < 0 || novoIndice >= produtosAtuais.length) {
+        return produtosAtuais;
+      }
+
+      const produtosOrdenados = [...produtosAtuais];
+      const [produtoMovido] = produtosOrdenados.splice(indice, 1);
+      produtosOrdenados.splice(novoIndice, 0, produtoMovido);
+
+      return produtosOrdenados;
+    });
+  }
+
   async function publicarLandingPageAlteracoes() {
     if (!empresaId) {
       alert("Empresa ainda nao foi carregada. Tente novamente.");
@@ -4888,6 +5153,7 @@ export default function EmpresaForm({
     const telefoneLocal = obterTelefoneLocal(telefone);
     const landingPageConfig = montarLandingPageConfig();
     const cardapioConfig = montarCardapioConfig();
+    const catalogoConfig = montarCatalogoConfig();
 
     if (whatsappLocal && whatsappLocal.length < 10) {
       alert("Informe um WhatsApp válido com DDD.");
@@ -4942,6 +5208,7 @@ export default function EmpresaForm({
       kwai: normalizarUsuarioRedeSocial(kwai),
       landing_page_config: landingPageConfig,
       cardapio_config: cardapioConfig,
+      catalogo_config: catalogoConfig,
     };
 
     if (suportaCorFundoHero) {
@@ -5804,6 +6071,353 @@ export default function EmpresaForm({
                         {!produtoCardapio.disponivel && (
                           <span className="w-fit rounded-full bg-red-100 px-3 py-1 text-xs font-bold text-red-700">
                             Esgotado
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </fieldset>
+          </div>
+        </Card>
+      )}
+
+      {abaAtiva === "catalogo" && (
+        <Card
+          title="Catalogo"
+          subtitle="Estrutura inicial para organizar categorias e produtos do catalogo da empresa."
+        >
+          <div className="space-y-5">
+            <div
+              className={`rounded-2xl border p-4 ${
+                recursosContratados.catalogo
+                  ? "border-green-200 bg-green-50"
+                  : "border-amber-200 bg-amber-50"
+              }`}
+            >
+              <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div className="min-w-0">
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+                      recursosContratados.catalogo
+                        ? "bg-green-700 text-white"
+                        : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {recursosContratados.catalogo ? "Ativo" : "Nao contratado"}
+                  </span>
+
+                  <h3 className="mt-3 text-xl font-bold text-slate-900">
+                    Estrutura do Catalogo
+                  </h3>
+
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                    Cadastre categorias, produtos, imagens, ordem de exibicao e status ativo/inativo. A exibicao publica sera conectada em etapas futuras.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <fieldset
+              disabled={!recursosContratados.catalogo}
+              className="grid gap-5 disabled:opacity-60"
+            >
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+                      Categorias
+                    </p>
+
+                    <h4 className="mt-2 text-lg font-bold text-slate-900">
+                      Organizacao do catalogo
+                    </h4>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={adicionarCatalogoCategoria}
+                    disabled={
+                      !recursosContratados.catalogo ||
+                      catalogoCategorias.length >= 30
+                    }
+                    className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Adicionar categoria
+                  </button>
+                </div>
+
+                <div className="mt-4 grid gap-3">
+                  {catalogoCategorias.map((categoriaCatalogo, indice) => (
+                    <div
+                      key={categoriaCatalogo.id}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                    >
+                      <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="grid min-w-0 flex-1 gap-4 md:grid-cols-2">
+                          <Input
+                            label={`Categoria ${indice + 1}`}
+                            value={categoriaCatalogo.nome}
+                            onChange={(e) =>
+                              atualizarCatalogoCategoria(
+                                indice,
+                                "nome",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Ex.: Produtos, Servicos, Promocoes"
+                          />
+
+                          <Input
+                            label="Descricao curta"
+                            value={categoriaCatalogo.descricao}
+                            onChange={(e) =>
+                              atualizarCatalogoCategoria(
+                                indice,
+                                "descricao",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Opcional"
+                          />
+                        </div>
+
+                        <div className="grid gap-2 sm:flex lg:shrink-0">
+                          <button
+                            type="button"
+                            disabled={indice === 0}
+                            onClick={() => moverCatalogoCategoria(indice, "up")}
+                            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            Subir
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={indice === catalogoCategorias.length - 1}
+                            onClick={() =>
+                              moverCatalogoCategoria(indice, "down")
+                            }
+                            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            Descer
+                          </button>
+
+                          {catalogoCategorias.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removerCatalogoCategoria(indice)}
+                              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600"
+                            >
+                              Remover
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <label className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={categoriaCatalogo.ativo}
+                          onChange={(e) =>
+                            atualizarCatalogoCategoria(
+                              indice,
+                              "ativo",
+                              e.target.checked
+                            )
+                          }
+                        />
+                        Categoria ativa
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+                      Produtos
+                    </p>
+
+                    <h4 className="mt-2 text-lg font-bold text-slate-900">
+                      Itens do catalogo
+                    </h4>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={adicionarCatalogoProduto}
+                    disabled={
+                      !recursosContratados.catalogo ||
+                      catalogoProdutos.length >= 100
+                    }
+                    className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Adicionar produto
+                  </button>
+                </div>
+
+                <div className="mt-4 grid gap-4">
+                  {catalogoProdutos.map((produtoCatalogo, indice) => (
+                    <div
+                      key={produtoCatalogo.id}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                    >
+                      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <h5 className="font-bold text-slate-900">
+                            Produto {indice + 1}
+                          </h5>
+
+                          <label className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                            <input
+                              type="checkbox"
+                              checked={produtoCatalogo.ativo}
+                              onChange={(e) =>
+                                atualizarCatalogoProduto(
+                                  indice,
+                                  "ativo",
+                                  e.target.checked
+                                )
+                              }
+                            />
+                            Produto ativo
+                          </label>
+                        </div>
+
+                        <div className="grid gap-2 sm:flex sm:shrink-0">
+                          <button
+                            type="button"
+                            disabled={indice === 0}
+                            onClick={() => moverCatalogoProduto(indice, "up")}
+                            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            Subir
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={indice === catalogoProdutos.length - 1}
+                            onClick={() => moverCatalogoProduto(indice, "down")}
+                            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            Descer
+                          </button>
+
+                          {catalogoProdutos.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removerCatalogoProduto(indice)}
+                              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600"
+                            >
+                              Remover
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid gap-4">
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <Input
+                            label="Nome do produto"
+                            value={produtoCatalogo.nome}
+                            onChange={(e) =>
+                              atualizarCatalogoProduto(
+                                indice,
+                                "nome",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Ex.: Produto premium"
+                          />
+
+                          <Input
+                            label="Preco"
+                            value={produtoCatalogo.preco}
+                            onChange={(e) =>
+                              atualizarCatalogoProduto(
+                                indice,
+                                "preco",
+                                e.target.value
+                              )
+                            }
+                            placeholder="R$ 99,90"
+                          />
+
+                          <div>
+                            <label className="block font-medium text-slate-700">
+                              Categoria
+                            </label>
+
+                            <select
+                              value={produtoCatalogo.categoriaId}
+                              onChange={(e) =>
+                                atualizarCatalogoProduto(
+                                  indice,
+                                  "categoriaId",
+                                  e.target.value
+                                )
+                              }
+                              className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                            >
+                              <option value="">Sem categoria</option>
+                              {catalogoCategorias.map((categoriaCatalogo) => (
+                                <option
+                                  key={categoriaCatalogo.id}
+                                  value={categoriaCatalogo.id}
+                                >
+                                  {categoriaCatalogo.nome ||
+                                    "Categoria sem nome"}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        <UploadImagem
+                          titulo={`Imagem do produto do catalogo ${indice + 1}`}
+                          imagem={produtoCatalogo.imagemUrl}
+                          accept="image/*"
+                          formatosPermitidos="PNG, JPG, JPEG ou WEBP ate 5 MB"
+                          tamanhoMaximoMb={5}
+                          pasta={`catalogo/${slugPublico || empresaId || "rascunho"}/produtos/${produtoCatalogo.id || indice + 1}`}
+                          onUpload={async (url) =>
+                            atualizarCatalogoProduto(indice, "imagemUrl", url)
+                          }
+                        />
+
+                        {produtoCatalogo.imagemUrl.trim() && (
+                          <p className="break-all text-xs text-slate-500">
+                            URL atual da imagem: {produtoCatalogo.imagemUrl}
+                          </p>
+                        )}
+
+                        <div>
+                          <label className="block font-medium text-slate-700">
+                            Descricao
+                          </label>
+
+                          <textarea
+                            value={produtoCatalogo.descricao}
+                            onChange={(e) =>
+                              atualizarCatalogoProduto(
+                                indice,
+                                "descricao",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Detalhes do produto, diferenciais ou condicoes comerciais."
+                            rows={4}
+                            className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                          />
+                        </div>
+
+                        {!produtoCatalogo.ativo && (
+                          <span className="w-fit rounded-full bg-slate-200 px-3 py-1 text-xs font-bold text-slate-700">
+                            Inativo
                           </span>
                         )}
                       </div>
