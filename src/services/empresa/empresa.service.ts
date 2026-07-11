@@ -12,6 +12,7 @@ const recursosContratadosPadrao = {
   wifi_marketing: false,
   fidelidade: false,
   crm: false,
+  erp_pdv: false,
   wifi: false,
   google_reviews: false,
   nfc: true,

@@ -10,6 +10,15 @@ import {
   buscarEmpresaPorSlug,
   atualizarEmpresa,
 } from "../../../services/empresa/empresa.service";
+import {
+  criarErpPdvCategoria,
+  listarErpPdvCategorias,
+  listarErpPdvProdutos,
+  salvarErpPdvProduto,
+  type ErpPdvCategoria,
+  type ErpPdvProduto,
+  type ErpPdvProdutoPayload,
+} from "../../../services/erpPdv/erpPdv.service";
 
 import Card from "../../ui/Card";
 import Input from "../../ui/Input";
@@ -66,6 +75,7 @@ type AbaEmpresa =
   | "wifiMarketing"
   | "fidelidade"
   | "crm"
+  | "erpPdv"
   | "ia"
   | "contato"
   | "endereco"
@@ -105,6 +115,7 @@ const abasEmpresa: Array<{
   { id: "wifiMarketing", label: "Wi-Fi Marketing" },
   { id: "fidelidade", label: "Fidelidade" },
   { id: "crm", label: "CRM" },
+  { id: "erpPdv", label: "ERP/PDV" },
   { id: "ia", label: "IA" },
   { id: "contato", label: "Contato" },
   { id: "endereco", label: "Endereço" },
@@ -124,6 +135,7 @@ type RecursoEmpresaId =
   | "wifi_marketing"
   | "fidelidade"
   | "crm"
+  | "erp_pdv"
   | "ia"
   | "wifi"
   | "google_reviews"
@@ -165,6 +177,7 @@ const recursosPadrao: RecursosContratados = {
   wifi_marketing: false,
   fidelidade: false,
   crm: false,
+  erp_pdv: false,
   ia: false,
   wifi: false,
   google_reviews: false,
@@ -236,6 +249,12 @@ const recursosEmpresa: Array<{
     id: "crm",
     nome: "CRM",
     descricao: "Cadastro e organizacao de clientes, tags, status e observacoes.",
+    statusInativo: "Em breve",
+  },
+  {
+    id: "erp_pdv",
+    nome: "ERP/PDV",
+    descricao: "Base online para produtos, estoque, vendas e caixa.",
     statusInativo: "Em breve",
   },
   {
@@ -806,6 +825,34 @@ type CrmClienteCampoEditavel =
 type CrmConfig = {
   clientes: CrmClienteConfig[];
   automacoes: CrmAutomacaoConfig[];
+};
+
+type ErpPdvProdutoForm = {
+  id: string;
+  nome: string;
+  categoriaId: string;
+  codigoBarras: string;
+  sku: string;
+  custo: string;
+  precoVenda: string;
+  unidade: string;
+  estoqueAtual: string;
+  estoqueMinimo: string;
+  ativo: boolean;
+};
+
+const erpPdvProdutoFormPadrao: ErpPdvProdutoForm = {
+  id: "",
+  nome: "",
+  categoriaId: "",
+  codigoBarras: "",
+  sku: "",
+  custo: "",
+  precoVenda: "",
+  unidade: "un",
+  estoqueAtual: "",
+  estoqueMinimo: "",
+  ativo: true,
 };
 
 const cardapioCategoriaPadrao: CardapioCategoriaConfig = {
@@ -2518,6 +2565,38 @@ function formatarBytesStorage(bytes: number) {
   return `${valor.toLocaleString("pt-BR", {
     maximumFractionDigits: indiceUnidade === 0 ? 0 : 1,
   })} ${unidades[indiceUnidade]}`;
+}
+
+function parseNumeroErpPdv(valor: string) {
+  const normalizado = valor
+    .replace(/[^\d,.-]/g, "")
+    .replace(/\./g, "")
+    .replace(",", ".");
+  const numero = Number(normalizado);
+
+  return Number.isFinite(numero) ? numero : 0;
+}
+
+function formatarNumeroErpPdv(valor: number) {
+  if (!Number.isFinite(valor) || valor === 0) return "";
+
+  return String(valor).replace(".", ",");
+}
+
+function criarErpPdvProdutoForm(produto: ErpPdvProduto): ErpPdvProdutoForm {
+  return {
+    id: produto.id,
+    nome: produto.nome,
+    categoriaId: produto.categoria_id || "",
+    codigoBarras: produto.codigo_barras,
+    sku: produto.sku,
+    custo: formatarNumeroErpPdv(produto.custo),
+    precoVenda: formatarNumeroErpPdv(produto.preco_venda),
+    unidade: produto.unidade || "un",
+    estoqueAtual: formatarNumeroErpPdv(produto.estoque_atual),
+    estoqueMinimo: formatarNumeroErpPdv(produto.estoque_minimo),
+    ativo: produto.ativo,
+  };
 }
 
 function normalizarVideosLanding(valor: unknown): LandingPageVideoConfig[] {
@@ -5450,6 +5529,20 @@ export default function EmpresaForm({
   const [crmTarefasRascunho, setCrmTarefasRascunho] = useState<
     Record<string, CrmTarefaRascunho>
   >({});
+  const [erpPdvCategorias, setErpPdvCategorias] = useState<ErpPdvCategoria[]>(
+    []
+  );
+  const [erpPdvProdutos, setErpPdvProdutos] = useState<ErpPdvProduto[]>([]);
+  const [erpPdvBusca, setErpPdvBusca] = useState("");
+  const [erpPdvCategoriaNome, setErpPdvCategoriaNome] = useState("");
+  const [erpPdvProdutoForm, setErpPdvProdutoForm] =
+    useState<ErpPdvProdutoForm>(() => ({ ...erpPdvProdutoFormPadrao }));
+  const [erpPdvCarregando, setErpPdvCarregando] = useState(false);
+  const [erpPdvSalvando, setErpPdvSalvando] = useState(false);
+  const [erpPdvFeedback, setErpPdvFeedback] = useState<{
+    tipo: "sucesso" | "erro" | "info";
+    texto: string;
+  } | null>(null);
   const [salvandoEmpresa, setSalvandoEmpresa] = useState(false);
   const [feedbackSalvamento, setFeedbackSalvamento] = useState<{
     tipo: "sucesso" | "erro" | "info";
@@ -5529,6 +5622,18 @@ export default function EmpresaForm({
   };
   const possuiAlteracoesAparencia =
     JSON.stringify(aparenciaAtual) !== JSON.stringify(aparenciaSalva);
+  const erpPdvProdutosFiltrados = erpPdvProdutos.filter((produto) => {
+    const termo = erpPdvBusca.trim().toLowerCase();
+
+    if (!termo) return true;
+
+    return [
+      produto.nome,
+      produto.sku,
+      produto.codigo_barras,
+    ].some((valor) => valor.toLowerCase().includes(termo));
+  });
+  const erpPdvPilotoMikatech = slugPublico === "mikatech";
 
   useEffect(() => {
     console.log("[Diagnóstico UPDATE] ID recebido no EmpresaForm:", {
@@ -5643,6 +5748,10 @@ export default function EmpresaForm({
     setIaConfig(iaConfigCarregado);
     setCrmClientes(crmConfigCarregado.clientes);
     setCrmAutomacoes(crmConfigCarregado.automacoes);
+    setErpPdvFeedback(null);
+    setErpPdvProdutoForm({ ...erpPdvProdutoFormPadrao });
+    setErpPdvBusca("");
+    carregarErpPdvDados(data.id);
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
 
@@ -5736,6 +5845,38 @@ export default function EmpresaForm({
       setStorageErro(mensagem);
     } finally {
       setStorageCarregando(false);
+    }
+  }
+
+  async function carregarErpPdvDados(empresaIdAtual = empresaId) {
+    if (!empresaIdAtual) return;
+
+    try {
+      setErpPdvCarregando(true);
+      setErpPdvFeedback(null);
+
+      const [categoriasResultado, produtosResultado] = await Promise.all([
+        listarErpPdvCategorias(empresaIdAtual),
+        listarErpPdvProdutos(empresaIdAtual),
+      ]);
+
+      if (categoriasResultado.error) throw categoriasResultado.error;
+      if (produtosResultado.error) throw produtosResultado.error;
+
+      setErpPdvCategorias(categoriasResultado.data);
+      setErpPdvProdutos(produtosResultado.data);
+    } catch (error) {
+      const mensagem =
+        error instanceof Error
+          ? error.message
+          : "Nao foi possivel carregar o ERP/PDV.";
+
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: mensagem,
+      });
+    } finally {
+      setErpPdvCarregando(false);
     }
   }
 
@@ -6351,6 +6492,137 @@ export default function EmpresaForm({
     setLandingPageSeo(config.seo);
     setLandingPageOrdemSecoes(config.ordemSecoes);
     setLandingPageVisibilidadeSecoes(config.visibilidadeSecoes);
+  }
+
+  function atualizarErpPdvProdutoForm(
+    campo: keyof ErpPdvProdutoForm,
+    valor: string | boolean
+  ) {
+    setErpPdvProdutoForm((formAtual) => ({
+      ...formAtual,
+      [campo]: valor,
+    }));
+  }
+
+  function limparErpPdvProdutoForm() {
+    setErpPdvProdutoForm({ ...erpPdvProdutoFormPadrao });
+  }
+
+  function editarErpPdvProduto(produto: ErpPdvProduto) {
+    setErpPdvProdutoForm(criarErpPdvProdutoForm(produto));
+    setErpPdvFeedback({
+      tipo: "info",
+      texto: "Produto carregado para edicao.",
+    });
+  }
+
+  async function adicionarErpPdvCategoria() {
+    const nomeCategoria = erpPdvCategoriaNome.trim();
+
+    if (!empresaId || !nomeCategoria) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "Informe o nome da categoria antes de salvar.",
+      });
+      return;
+    }
+
+    try {
+      setErpPdvSalvando(true);
+
+      const { data, error } = await criarErpPdvCategoria(
+        empresaId,
+        nomeCategoria
+      );
+
+      if (error) throw error;
+
+      if (data) {
+        setErpPdvCategorias((categoriasAtuais) => [
+          ...categoriasAtuais,
+          data,
+        ]);
+      }
+
+      setErpPdvCategoriaNome("");
+      setErpPdvFeedback({
+        tipo: "sucesso",
+        texto: "Categoria criada no ERP/PDV.",
+      });
+    } catch (error) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel criar a categoria.",
+      });
+    } finally {
+      setErpPdvSalvando(false);
+    }
+  }
+
+  async function salvarProdutoErpPdv() {
+    if (!empresaId) return;
+
+    if (!erpPdvProdutoForm.nome.trim()) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "Informe o nome do produto.",
+      });
+      return;
+    }
+
+    const payload: ErpPdvProdutoPayload = {
+      id: erpPdvProdutoForm.id || undefined,
+      empresaId,
+      categoriaId: erpPdvProdutoForm.categoriaId,
+      nome: erpPdvProdutoForm.nome,
+      codigoBarras: erpPdvProdutoForm.codigoBarras,
+      sku: erpPdvProdutoForm.sku,
+      custo: parseNumeroErpPdv(erpPdvProdutoForm.custo),
+      precoVenda: parseNumeroErpPdv(erpPdvProdutoForm.precoVenda),
+      unidade: erpPdvProdutoForm.unidade,
+      estoqueAtual: parseNumeroErpPdv(erpPdvProdutoForm.estoqueAtual),
+      estoqueMinimo: parseNumeroErpPdv(erpPdvProdutoForm.estoqueMinimo),
+      ativo: erpPdvProdutoForm.ativo,
+    };
+
+    try {
+      setErpPdvSalvando(true);
+
+      const { data, error } = await salvarErpPdvProduto(payload);
+
+      if (error) throw error;
+      if (!data) throw new Error("Produto nao retornado pelo Supabase.");
+
+      setErpPdvProdutos((produtosAtuais) => {
+        const existe = produtosAtuais.some((produto) => produto.id === data.id);
+
+        return existe
+          ? produtosAtuais.map((produto) =>
+              produto.id === data.id ? data : produto
+            )
+          : [...produtosAtuais, data].sort((a, b) =>
+              a.nome.localeCompare(b.nome)
+            );
+      });
+      setErpPdvProdutoForm(criarErpPdvProdutoForm(data));
+      setErpPdvFeedback({
+        tipo: "sucesso",
+        texto: "Produto salvo no ERP/PDV.",
+      });
+    } catch (error) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel salvar o produto.",
+      });
+    } finally {
+      setErpPdvSalvando(false);
+    }
   }
 
   function montarCardapioConfig(): CardapioConfig {
@@ -8262,6 +8534,352 @@ export default function EmpresaForm({
                     : "Abra ou atualize este painel para consultar o Storage."}
                 </p>
               )}
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {abaAtiva === "erpPdv" && (
+        <Card
+          title="ERP/PDV"
+          subtitle="Base inicial online para produtos, estoque, vendas e caixa."
+        >
+          <div className="space-y-5">
+            <div
+              className={`rounded-2xl border p-4 ${
+                recursosContratados.erp_pdv
+                  ? "border-green-200 bg-green-50"
+                  : "border-amber-200 bg-amber-50"
+              }`}
+            >
+              <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div className="min-w-0">
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+                      recursosContratados.erp_pdv
+                        ? "bg-green-700 text-white"
+                        : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {recursosContratados.erp_pdv ? "Ativo" : "Nao contratado"}
+                  </span>
+
+                  <h3 className="mt-3 text-xl font-bold text-slate-900">
+                    ERP/PDV online
+                  </h3>
+
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                    Cadastro inicial de categorias, produtos e estoque. Fiscal, emissao de documentos e modo offline ficam fora desta Sprint.
+                  </p>
+
+                  {!erpPdvPilotoMikatech && (
+                    <p className="mt-3 rounded-xl bg-white/70 px-3 py-2 text-xs font-semibold text-amber-700">
+                      Piloto inicial previsto para a empresa Mikatech.
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => carregarErpPdvDados()}
+                  disabled={erpPdvCarregando || !empresaId}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {erpPdvCarregando ? "Atualizando..." : "Atualizar dados"}
+                </button>
+              </div>
+            </div>
+
+            {erpPdvFeedback && (
+              <div
+                className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+                  erpPdvFeedback.tipo === "sucesso"
+                    ? "border-green-200 bg-green-50 text-green-700"
+                    : erpPdvFeedback.tipo === "erro"
+                    ? "border-red-200 bg-red-50 text-red-700"
+                    : "border-slate-200 bg-slate-50 text-slate-600"
+                }`}
+              >
+                {erpPdvFeedback.texto}
+              </div>
+            )}
+
+            <fieldset
+              disabled={!recursosContratados.erp_pdv || erpPdvSalvando}
+              className="grid gap-5 disabled:opacity-60"
+            >
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-end">
+                  <div className="min-w-0 flex-1">
+                    <Input
+                      label="Nova categoria"
+                      value={erpPdvCategoriaNome}
+                      onChange={(e) => setErpPdvCategoriaNome(e.target.value)}
+                      placeholder="Ex.: Comunicacao visual, Materiais, Servicos"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={adicionarErpPdvCategoria}
+                    disabled={
+                      !recursosContratados.erp_pdv ||
+                      erpPdvSalvando ||
+                      !erpPdvCategoriaNome.trim()
+                    }
+                    className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Adicionar categoria
+                  </button>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {erpPdvCategorias.length > 0 ? (
+                    erpPdvCategorias.map((categoriaErp) => (
+                      <span
+                        key={categoriaErp.id}
+                        className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600"
+                      >
+                        {categoriaErp.nome}
+                      </span>
+                    ))
+                  ) : (
+                    <p className="text-sm text-slate-500">
+                      Nenhuma categoria cadastrada ainda.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+                      Produto
+                    </p>
+
+                    <h4 className="mt-2 text-lg font-bold text-slate-900">
+                      Cadastro inicial
+                    </h4>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={limparErpPdvProdutoForm}
+                    className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50"
+                  >
+                    Novo produto
+                  </button>
+                </div>
+
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <Input
+                    label="Nome"
+                    value={erpPdvProdutoForm.nome}
+                    onChange={(e) =>
+                      atualizarErpPdvProdutoForm("nome", e.target.value)
+                    }
+                    placeholder="Ex.: Banner lona 90x60"
+                  />
+
+                  <div>
+                    <label className="block font-medium text-slate-700">
+                      Categoria
+                    </label>
+
+                    <select
+                      value={erpPdvProdutoForm.categoriaId}
+                      onChange={(e) =>
+                        atualizarErpPdvProdutoForm(
+                          "categoriaId",
+                          e.target.value
+                        )
+                      }
+                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                    >
+                      <option value="">Sem categoria</option>
+                      {erpPdvCategorias.map((categoriaErp) => (
+                        <option key={categoriaErp.id} value={categoriaErp.id}>
+                          {categoriaErp.nome}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <Input
+                    label="Codigo de barras"
+                    value={erpPdvProdutoForm.codigoBarras}
+                    onChange={(e) =>
+                      atualizarErpPdvProdutoForm(
+                        "codigoBarras",
+                        e.target.value
+                      )
+                    }
+                    placeholder="Opcional"
+                  />
+
+                  <Input
+                    label="SKU"
+                    value={erpPdvProdutoForm.sku}
+                    onChange={(e) =>
+                      atualizarErpPdvProdutoForm("sku", e.target.value)
+                    }
+                    placeholder="Ex.: BANNER-LONA-90X60"
+                  />
+
+                  <Input
+                    label="Custo"
+                    value={erpPdvProdutoForm.custo}
+                    onChange={(e) =>
+                      atualizarErpPdvProdutoForm("custo", e.target.value)
+                    }
+                    placeholder="0,00"
+                  />
+
+                  <Input
+                    label="Preco de venda"
+                    value={erpPdvProdutoForm.precoVenda}
+                    onChange={(e) =>
+                      atualizarErpPdvProdutoForm("precoVenda", e.target.value)
+                    }
+                    placeholder="0,00"
+                  />
+
+                  <Input
+                    label="Unidade"
+                    value={erpPdvProdutoForm.unidade}
+                    onChange={(e) =>
+                      atualizarErpPdvProdutoForm("unidade", e.target.value)
+                    }
+                    placeholder="un, m2, kg, cx"
+                  />
+
+                  <Input
+                    label="Estoque atual"
+                    value={erpPdvProdutoForm.estoqueAtual}
+                    onChange={(e) =>
+                      atualizarErpPdvProdutoForm(
+                        "estoqueAtual",
+                        e.target.value
+                      )
+                    }
+                    placeholder="0"
+                  />
+
+                  <Input
+                    label="Estoque minimo"
+                    value={erpPdvProdutoForm.estoqueMinimo}
+                    onChange={(e) =>
+                      atualizarErpPdvProdutoForm(
+                        "estoqueMinimo",
+                        e.target.value
+                      )
+                    }
+                    placeholder="0"
+                  />
+                </div>
+
+                <label className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={erpPdvProdutoForm.ativo}
+                    onChange={(e) =>
+                      atualizarErpPdvProdutoForm("ativo", e.target.checked)
+                    }
+                  />
+                  Produto ativo
+                </label>
+
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={salvarProdutoErpPdv}
+                    disabled={
+                      !recursosContratados.erp_pdv ||
+                      erpPdvSalvando ||
+                      !erpPdvProdutoForm.nome.trim()
+                    }
+                    className="rounded-xl bg-green-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {erpPdvSalvando ? "Salvando..." : "Salvar produto"}
+                  </button>
+                </div>
+              </div>
+            </fieldset>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                <div className="min-w-0 flex-1">
+                  <Input
+                    label="Buscar produtos"
+                    value={erpPdvBusca}
+                    onChange={(e) => setErpPdvBusca(e.target.value)}
+                    placeholder="Busque por nome, SKU ou codigo de barras"
+                  />
+                </div>
+
+                <span className="text-sm font-semibold text-slate-500">
+                  {erpPdvProdutosFiltrados.length} produto(s)
+                </span>
+              </div>
+
+              <div className="mt-4 grid gap-3">
+                {erpPdvProdutosFiltrados.length > 0 ? (
+                  erpPdvProdutosFiltrados.map((produto) => {
+                    const categoriaProduto = erpPdvCategorias.find(
+                      (categoriaErp) => categoriaErp.id === produto.categoria_id
+                    );
+
+                    return (
+                      <button
+                        type="button"
+                        key={produto.id}
+                        onClick={() => editarErpPdvProduto(produto)}
+                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-green-300 hover:bg-green-50"
+                      >
+                        <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                          <div className="min-w-0">
+                            <h5 className="font-bold text-slate-900">
+                              {produto.nome}
+                            </h5>
+
+                            <p className="mt-1 text-sm text-slate-500">
+                              {categoriaProduto?.nome || "Sem categoria"} · SKU:{" "}
+                              {produto.sku || "nao informado"} · Cod.:{" "}
+                              {produto.codigo_barras || "nao informado"}
+                            </p>
+                          </div>
+
+                          <span
+                            className={`w-fit rounded-full px-3 py-1 text-xs font-bold ${
+                              produto.ativo
+                                ? "bg-green-100 text-green-700"
+                                : "bg-slate-200 text-slate-600"
+                            }`}
+                          >
+                            {produto.ativo ? "Ativo" : "Inativo"}
+                          </span>
+                        </div>
+
+                        <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-3">
+                          <span>
+                            Venda: R$ {produto.preco_venda.toLocaleString("pt-BR", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </span>
+                          <span>Estoque: {produto.estoque_atual}</span>
+                          <span>Minimo: {produto.estoque_minimo}</span>
+                        </div>
+                      </button>
+                    );
+                  })
+                ) : (
+                  <p className="rounded-xl bg-slate-50 px-3 py-3 text-sm text-slate-500">
+                    Nenhum produto encontrado para a busca atual.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </Card>
