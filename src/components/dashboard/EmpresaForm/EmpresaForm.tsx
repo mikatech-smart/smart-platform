@@ -11,13 +11,21 @@ import {
   atualizarEmpresa,
 } from "../../../services/empresa/empresa.service";
 import {
+  abrirErpPdvCaixa,
+  buscarErpPdvCaixaAberto,
+  calcularErpPdvResumoCaixa,
+  fecharErpPdvCaixa,
   criarErpPdvCategoria,
   listarErpPdvMovimentacoes,
   listarErpPdvCategorias,
   listarErpPdvProdutos,
   finalizarErpPdvVenda,
+  registrarErpPdvCaixaMovimentacao,
   registrarErpPdvMovimentacao,
   salvarErpPdvProduto,
+  type ErpPdvCaixa,
+  type ErpPdvCaixaMovimentacaoTipo,
+  type ErpPdvCaixaResumo,
   type ErpPdvFormaPagamento,
   type ErpPdvCategoria,
   type ErpPdvMovimentacao,
@@ -911,6 +919,12 @@ type ErpPdvImpressaoConfig = {
   conectorLocalPreparado: boolean;
 };
 
+type ErpPdvCaixaMovimentoForm = {
+  tipo: ErpPdvCaixaMovimentacaoTipo;
+  valor: string;
+  observacao: string;
+};
+
 const erpPdvFormasPagamento: Array<{
   id: ErpPdvFormaPagamento;
   label: string;
@@ -981,6 +995,12 @@ const erpPdvImpressaoConfigPadrao: ErpPdvImpressaoConfig = {
   numeroVias: 1,
   perfil: "navegador",
   conectorLocalPreparado: true,
+};
+
+const erpPdvCaixaMovimentoFormPadrao: ErpPdvCaixaMovimentoForm = {
+  tipo: "suprimento",
+  valor: "",
+  observacao: "",
 };
 
 const erpPdvProdutoFormPadrao: ErpPdvProdutoForm = {
@@ -5746,6 +5766,20 @@ export default function EmpresaForm({
   const [erpPdvOperadorVenda, setErpPdvOperadorVenda] = useState("");
   const [erpPdvFormaPagamentoVenda, setErpPdvFormaPagamentoVenda] =
     useState<ErpPdvFormaPagamento>("dinheiro");
+  const [erpPdvCaixaAberto, setErpPdvCaixaAberto] =
+    useState<ErpPdvCaixa | null>(null);
+  const [erpPdvCaixaOperador, setErpPdvCaixaOperador] = useState("");
+  const [erpPdvCaixaSaldoInicial, setErpPdvCaixaSaldoInicial] = useState("");
+  const [erpPdvCaixaValorFechamento, setErpPdvCaixaValorFechamento] =
+    useState("");
+  const [erpPdvCaixaObservacaoFechamento, setErpPdvCaixaObservacaoFechamento] =
+    useState("");
+  const [erpPdvCaixaMovimentoForm, setErpPdvCaixaMovimentoForm] =
+    useState<ErpPdvCaixaMovimentoForm>(() => ({
+      ...erpPdvCaixaMovimentoFormPadrao,
+    }));
+  const [erpPdvResumoCaixa, setErpPdvResumoCaixa] =
+    useState<ErpPdvCaixaResumo | null>(null);
   const [erpPdvCupomNaoFiscal, setErpPdvCupomNaoFiscal] =
     useState<ErpPdvCupomNaoFiscal | null>(null);
   const [erpPdvCupomLayout, setErpPdvCupomLayout] =
@@ -6197,19 +6231,36 @@ export default function EmpresaForm({
         categoriasResultado,
         produtosResultado,
         movimentacoesResultado,
+        caixaResultado,
       ] = await Promise.all([
         listarErpPdvCategorias(empresaIdAtual),
         listarErpPdvProdutos(empresaIdAtual),
         listarErpPdvMovimentacoes(empresaIdAtual),
+        buscarErpPdvCaixaAberto(empresaIdAtual),
       ]);
 
       if (categoriasResultado.error) throw categoriasResultado.error;
       if (produtosResultado.error) throw produtosResultado.error;
       if (movimentacoesResultado.error) throw movimentacoesResultado.error;
+      if (caixaResultado.error) throw caixaResultado.error;
 
       setErpPdvCategorias(categoriasResultado.data);
       setErpPdvProdutos(produtosResultado.data);
       setErpPdvMovimentacoes(movimentacoesResultado.data);
+      setErpPdvCaixaAberto(caixaResultado.data);
+      setErpPdvCaixaOperador(caixaResultado.data?.operador || "");
+
+      if (caixaResultado.data) {
+        const resumoResultado = await calcularErpPdvResumoCaixa(caixaResultado.data);
+        if (resumoResultado.error) throw resumoResultado.error;
+        setErpPdvResumoCaixa(resumoResultado.data);
+        setErpPdvCaixaValorFechamento(
+          formatarNumeroErpPdv(resumoResultado.data?.totalEsperado || 0)
+        );
+      } else {
+        setErpPdvResumoCaixa(null);
+        setErpPdvCaixaValorFechamento("");
+      }
     } catch (error) {
       const mensagem =
         error instanceof Error
@@ -7009,6 +7060,139 @@ export default function EmpresaForm({
     });
   }
 
+  async function atualizarResumoCaixaErpPdv(caixa = erpPdvCaixaAberto) {
+    if (!caixa) {
+      setErpPdvResumoCaixa(null);
+      return;
+    }
+
+    const { data, error } = await calcularErpPdvResumoCaixa(caixa);
+    if (error) throw error;
+
+    setErpPdvResumoCaixa(data);
+    setErpPdvCaixaValorFechamento(
+      formatarNumeroErpPdv(data?.totalEsperado || 0)
+    );
+  }
+
+  async function abrirCaixaErpPdv() {
+    if (!empresaId) return;
+
+    try {
+      setErpPdvSalvando(true);
+
+      const { data, error } = await abrirErpPdvCaixa({
+        empresaId,
+        operador: erpPdvCaixaOperador,
+        saldoInicial: parseNumeroErpPdv(erpPdvCaixaSaldoInicial),
+      });
+
+      if (error) throw error;
+      if (!data) throw new Error("Caixa nao retornado pelo Supabase.");
+
+      setErpPdvCaixaAberto(data);
+      setErpPdvOperadorVenda(data.operador);
+      setErpPdvCaixaSaldoInicial("");
+      await atualizarResumoCaixaErpPdv(data);
+      setErpPdvFeedback({
+        tipo: "sucesso",
+        texto: "Caixa aberto. PDV liberado para vendas.",
+      });
+    } catch (error) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel abrir o caixa.",
+      });
+    } finally {
+      setErpPdvSalvando(false);
+    }
+  }
+
+  async function registrarMovimentoCaixaErpPdv() {
+    if (!empresaId || !erpPdvCaixaAberto) return;
+
+    try {
+      setErpPdvSalvando(true);
+
+      const { error } = await registrarErpPdvCaixaMovimentacao({
+        empresaId,
+        caixaId: erpPdvCaixaAberto.id,
+        tipo: erpPdvCaixaMovimentoForm.tipo,
+        valor: parseNumeroErpPdv(erpPdvCaixaMovimentoForm.valor),
+        operador: erpPdvOperadorVenda || erpPdvCaixaAberto.operador,
+        observacao: erpPdvCaixaMovimentoForm.observacao,
+      });
+
+      if (error) throw error;
+
+      setErpPdvCaixaMovimentoForm({ ...erpPdvCaixaMovimentoFormPadrao });
+      await atualizarResumoCaixaErpPdv();
+      setErpPdvFeedback({
+        tipo: "sucesso",
+        texto:
+          erpPdvCaixaMovimentoForm.tipo === "suprimento"
+            ? "Suprimento registrado."
+            : "Sangria registrada.",
+      });
+    } catch (error) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel registrar a movimentacao do caixa.",
+      });
+    } finally {
+      setErpPdvSalvando(false);
+    }
+  }
+
+  async function fecharCaixaErpPdv() {
+    if (!empresaId || !erpPdvCaixaAberto) return;
+
+    try {
+      setErpPdvSalvando(true);
+
+      const { data, error } = await fecharErpPdvCaixa({
+        empresaId,
+        caixaId: erpPdvCaixaAberto.id,
+        valorInformado: parseNumeroErpPdv(erpPdvCaixaValorFechamento),
+        observacao: erpPdvCaixaObservacaoFechamento,
+      });
+
+      if (error) throw error;
+      if (!data) throw new Error("Fechamento nao retornado pelo Supabase.");
+
+      setErpPdvResumoCaixa(data);
+      setErpPdvCaixaAberto(null);
+      setErpPdvCaixaObservacaoFechamento("");
+      setErpPdvCarrinho([]);
+      setErpPdvFeedback({
+        tipo: "sucesso",
+        texto: `Caixa fechado. Diferenca: R$ ${data.diferenca.toLocaleString(
+          "pt-BR",
+          {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }
+        )}.`,
+      });
+    } catch (error) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel fechar o caixa.",
+      });
+    } finally {
+      setErpPdvSalvando(false);
+    }
+  }
+
   function obterLabelFormaPagamentoErpPdv(forma: ErpPdvFormaPagamento | string) {
     return (
       erpPdvFormasPagamento.find((formaPagamento) => formaPagamento.id === forma)
@@ -7227,6 +7411,14 @@ export default function EmpresaForm({
       return;
     }
 
+    if (!erpPdvCaixaAberto) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "Abra um caixa antes de finalizar a venda.",
+      });
+      return;
+    }
+
     try {
       setErpPdvSalvando(true);
       const itensCupom = erpPdvCarrinhoDetalhado.map((item) => ({
@@ -7238,6 +7430,7 @@ export default function EmpresaForm({
 
       const { data, error } = await finalizarErpPdvVenda({
         empresaId,
+        caixaId: erpPdvCaixaAberto.id,
         operador: erpPdvOperadorVenda,
         formaPagamento: erpPdvFormaPagamentoVenda,
         itens: erpPdvCarrinhoDetalhado.map((item) => ({
@@ -7289,6 +7482,7 @@ export default function EmpresaForm({
         texto: `Venda #${data.numero} finalizada. Cupom nao fiscal gerado.`,
       });
       executarDestinoCupomConfiguradoErpPdv(cupomGerado);
+      await atualizarResumoCaixaErpPdv();
     } catch (error) {
       setErpPdvFeedback({
         tipo: "erro",
@@ -9686,6 +9880,329 @@ export default function EmpresaForm({
               </div>
             </div>
 
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+                    Caixa
+                  </p>
+
+                  <h4 className="mt-2 text-lg font-bold text-slate-900">
+                    Operacao do caixa
+                  </h4>
+
+                  <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500">
+                    Abra o caixa antes de vender. O fechamento consolida vendas,
+                    suprimentos, sangrias e diferenca informada.
+                  </p>
+                </div>
+
+                <span
+                  className={`w-fit rounded-full px-3 py-1 text-xs font-bold ${
+                    erpPdvCaixaAberto
+                      ? "bg-green-100 text-green-700"
+                      : "bg-amber-100 text-amber-700"
+                  }`}
+                >
+                  {erpPdvCaixaAberto ? "Caixa aberto" : "Caixa fechado"}
+                </span>
+              </div>
+
+              {!erpPdvCaixaAberto ? (
+                <>
+                  <div className="mt-4 grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
+                    <Input
+                      label="Operador"
+                      value={erpPdvCaixaOperador}
+                      onChange={(e) => setErpPdvCaixaOperador(e.target.value)}
+                      placeholder="Nome do operador"
+                    />
+
+                    <Input
+                      label="Valor inicial"
+                      value={erpPdvCaixaSaldoInicial}
+                      onChange={(e) =>
+                        setErpPdvCaixaSaldoInicial(e.target.value)
+                      }
+                      placeholder="0,00"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={abrirCaixaErpPdv}
+                      disabled={
+                        !recursosContratados.erp_pdv ||
+                        erpPdvSalvando ||
+                        !erpPdvCaixaOperador.trim()
+                      }
+                      className="rounded-xl bg-green-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {erpPdvSalvando ? "Abrindo..." : "Abrir caixa"}
+                    </button>
+                  </div>
+
+                  {erpPdvResumoCaixa?.caixa.status === "fechado" && (
+                    <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
+                        Ultimo fechamento
+                      </p>
+                      <div className="mt-3 grid gap-2 text-sm text-slate-600 md:grid-cols-3">
+                        <span>
+                          Esperado: R${" "}
+                          {erpPdvResumoCaixa.totalEsperado.toLocaleString(
+                            "pt-BR",
+                            {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            }
+                          )}
+                        </span>
+                        <span>
+                          Informado: R${" "}
+                          {erpPdvResumoCaixa.valorInformado.toLocaleString(
+                            "pt-BR",
+                            {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            }
+                          )}
+                        </span>
+                        <span>
+                          Diferenca: R${" "}
+                          {erpPdvResumoCaixa.diferenca.toLocaleString(
+                            "pt-BR",
+                            {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            }
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="mt-4 grid gap-4 xl:grid-cols-[1fr_1fr]">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                          Operador
+                        </p>
+                        <p className="mt-1 font-black text-slate-900">
+                          {erpPdvCaixaAberto.operador}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                          Aberto em
+                        </p>
+                        <p className="mt-1 font-black text-slate-900">
+                          {new Date(erpPdvCaixaAberto.aberto_em).toLocaleString(
+                            "pt-BR"
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                          Valor inicial
+                        </p>
+                        <p className="mt-1 font-black text-slate-900">
+                          R${" "}
+                          {erpPdvCaixaAberto.saldo_inicial.toLocaleString(
+                            "pt-BR",
+                            {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            }
+                          )}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto] md:items-end">
+                      <div>
+                        <label className="block font-medium text-slate-700">
+                          Tipo
+                        </label>
+                        <select
+                          value={erpPdvCaixaMovimentoForm.tipo}
+                          onChange={(e) =>
+                            setErpPdvCaixaMovimentoForm((formAtual) => ({
+                              ...formAtual,
+                              tipo: e.target
+                                .value as ErpPdvCaixaMovimentacaoTipo,
+                            }))
+                          }
+                          className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                        >
+                          <option value="suprimento">Suprimento</option>
+                          <option value="sangria">Sangria</option>
+                        </select>
+                      </div>
+
+                      <Input
+                        label="Valor"
+                        value={erpPdvCaixaMovimentoForm.valor}
+                        onChange={(e) =>
+                          setErpPdvCaixaMovimentoForm((formAtual) => ({
+                            ...formAtual,
+                            valor: e.target.value,
+                          }))
+                        }
+                        placeholder="0,00"
+                      />
+
+                      <Input
+                        label="Observacao"
+                        value={erpPdvCaixaMovimentoForm.observacao}
+                        onChange={(e) =>
+                          setErpPdvCaixaMovimentoForm((formAtual) => ({
+                            ...formAtual,
+                            observacao: e.target.value,
+                          }))
+                        }
+                        placeholder="Opcional"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={registrarMovimentoCaixaErpPdv}
+                        disabled={
+                          erpPdvSalvando ||
+                          !erpPdvCaixaMovimentoForm.valor.trim()
+                        }
+                        className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Registrar
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <div className="grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
+                      <span>
+                        Inicial: R${" "}
+                        {(erpPdvResumoCaixa?.caixa.saldo_inicial || 0).toLocaleString(
+                          "pt-BR",
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}
+                      </span>
+                      <span>
+                        Vendas: R${" "}
+                        {(erpPdvResumoCaixa?.totalVendas || 0).toLocaleString(
+                          "pt-BR",
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}
+                      </span>
+                      <span>
+                        Suprimentos: R${" "}
+                        {(erpPdvResumoCaixa?.suprimentos || 0).toLocaleString(
+                          "pt-BR",
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}
+                      </span>
+                      <span>
+                        Sangrias: R${" "}
+                        {(erpPdvResumoCaixa?.sangrias || 0).toLocaleString(
+                          "pt-BR",
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
+                      <p className="font-bold text-slate-900">
+                        Vendas por pagamento
+                      </p>
+                      {Object.entries(
+                        erpPdvResumoCaixa?.vendasPorFormaPagamento || {}
+                      ).length ? (
+                        Object.entries(
+                          erpPdvResumoCaixa?.vendasPorFormaPagamento || {}
+                        ).map(([forma, valor]) => (
+                          <div
+                            key={forma}
+                            className="mt-1 flex justify-between gap-2"
+                          >
+                            <span>{obterLabelFormaPagamentoErpPdv(forma)}</span>
+                            <span>
+                              R${" "}
+                              {valor.toLocaleString("pt-BR", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="mt-1">Nenhuma venda neste caixa.</p>
+                      )}
+                    </div>
+
+                    <div className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr]">
+                      <Input
+                        label="Valor informado"
+                        value={erpPdvCaixaValorFechamento}
+                        onChange={(e) =>
+                          setErpPdvCaixaValorFechamento(e.target.value)
+                        }
+                        placeholder="0,00"
+                      />
+
+                      <Input
+                        label="Observacao fechamento"
+                        value={erpPdvCaixaObservacaoFechamento}
+                        onChange={(e) =>
+                          setErpPdvCaixaObservacaoFechamento(e.target.value)
+                        }
+                        placeholder="Opcional"
+                      />
+                    </div>
+
+                    <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-sm font-bold text-slate-500">
+                          Total esperado
+                        </p>
+                        <p className="text-2xl font-black text-slate-950">
+                          R${" "}
+                          {(erpPdvResumoCaixa?.totalEsperado || 0).toLocaleString(
+                            "pt-BR",
+                            {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            }
+                          )}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={fecharCaixaErpPdv}
+                        disabled={erpPdvSalvando}
+                        className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {erpPdvSalvando ? "Fechando..." : "Fechar caixa"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="rounded-2xl border border-slate-200 bg-slate-950 p-4 text-white">
               <div className="flex min-w-0 flex-col gap-4 xl:flex-row">
                 <div className="min-w-0 flex-1">
@@ -9975,11 +10492,16 @@ export default function EmpresaForm({
                         disabled={
                           erpPdvCarrinho.length === 0 ||
                           erpPdvSalvando ||
+                          !erpPdvCaixaAberto ||
                           !erpPdvOperadorVenda.trim()
                         }
                         className="rounded-xl bg-green-500 px-4 py-4 text-sm font-black text-slate-950 transition hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        {erpPdvSalvando ? "Finalizando..." : "Finalizar venda"}
+                        {erpPdvSalvando
+                          ? "Finalizando..."
+                          : erpPdvCaixaAberto
+                          ? "Finalizar venda"
+                          : "Abra o caixa"}
                       </button>
                     </div>
                   </div>

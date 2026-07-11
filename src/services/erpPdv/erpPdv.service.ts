@@ -92,6 +92,7 @@ export type ErpPdvVendaItemPayload = {
 
 export type ErpPdvFinalizarVendaPayload = {
   empresaId: string;
+  caixaId: string;
   operador: string;
   formaPagamento: ErpPdvFormaPagamento;
   itens: ErpPdvVendaItemPayload[];
@@ -105,6 +106,46 @@ export type ErpPdvVendaFinalizada = {
   operador: string;
   finalizada_em: string;
   movimentacoes: ErpPdvMovimentacao[];
+};
+
+export type ErpPdvCaixaStatus = "aberto" | "fechado";
+
+export type ErpPdvCaixa = {
+  id: string;
+  empresa_id: string;
+  status: ErpPdvCaixaStatus;
+  operador: string;
+  aberto_em: string;
+  fechado_em: string | null;
+  saldo_inicial: number;
+  saldo_final: number;
+  valor_informado: number;
+  diferenca: number;
+  observacao: string;
+};
+
+export type ErpPdvCaixaMovimentacaoTipo = "suprimento" | "sangria";
+
+export type ErpPdvCaixaMovimentacao = {
+  id: string;
+  empresa_id: string;
+  caixa_id: string;
+  tipo: ErpPdvCaixaMovimentacaoTipo;
+  valor: number;
+  operador: string;
+  observacao: string;
+  created_at: string;
+};
+
+export type ErpPdvCaixaResumo = {
+  caixa: ErpPdvCaixa;
+  vendasPorFormaPagamento: Record<string, number>;
+  suprimentos: number;
+  sangrias: number;
+  totalVendas: number;
+  totalEsperado: number;
+  valorInformado: number;
+  diferenca: number;
 };
 
 type ErpPdvProdutoRow = {
@@ -155,6 +196,31 @@ type ErpPdvVendaRow = {
   finalizada_em: string;
 };
 
+type ErpPdvCaixaRow = {
+  id: string;
+  empresa_id: string;
+  status: ErpPdvCaixaStatus;
+  operador?: string;
+  aberto_em?: string | null;
+  fechado_em?: string | null;
+  saldo_inicial: number | string;
+  saldo_final: number | string;
+  valor_informado?: number | string;
+  diferenca?: number | string;
+  observacao?: string;
+};
+
+type ErpPdvCaixaMovimentacaoRow = {
+  id: string;
+  empresa_id: string;
+  caixa_id: string;
+  tipo: ErpPdvCaixaMovimentacaoTipo;
+  valor: number | string;
+  operador?: string;
+  observacao?: string;
+  created_at: string;
+};
+
 function toNumber(valor: number | string | null | undefined) {
   const numero =
     typeof valor === "number" ? valor : Number(String(valor || "0"));
@@ -202,6 +268,37 @@ function normalizarMovimentacao(
     motivo: row.motivo || "",
     observacao: row.observacao || "",
     usuario_responsavel: row.usuario_responsavel || "",
+    created_at: row.created_at,
+  };
+}
+
+function normalizarCaixa(row: ErpPdvCaixaRow): ErpPdvCaixa {
+  return {
+    id: row.id,
+    empresa_id: row.empresa_id,
+    status: row.status,
+    operador: row.operador || "",
+    aberto_em: row.aberto_em || "",
+    fechado_em: row.fechado_em || null,
+    saldo_inicial: toNumber(row.saldo_inicial),
+    saldo_final: toNumber(row.saldo_final),
+    valor_informado: toNumber(row.valor_informado),
+    diferenca: toNumber(row.diferenca),
+    observacao: row.observacao || "",
+  };
+}
+
+function normalizarCaixaMovimentacao(
+  row: ErpPdvCaixaMovimentacaoRow
+): ErpPdvCaixaMovimentacao {
+  return {
+    id: row.id,
+    empresa_id: row.empresa_id,
+    caixa_id: row.caixa_id,
+    tipo: row.tipo,
+    valor: toNumber(row.valor),
+    operador: row.operador || "",
+    observacao: row.observacao || "",
     created_at: row.created_at,
   };
 }
@@ -402,6 +499,263 @@ export async function listarErpPdvMovimentacoes(empresaId: string) {
   };
 }
 
+export async function buscarErpPdvCaixaAberto(empresaId: string) {
+  const { data, error } = await supabase
+    .from("erp_pdv_caixas")
+    .select(
+      "id, empresa_id, status, operador, aberto_em, fechado_em, saldo_inicial, saldo_final, valor_informado, diferenca, observacao"
+    )
+    .eq("empresa_id", empresaId)
+    .eq("status", "aberto")
+    .order("aberto_em", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return {
+    data: data ? normalizarCaixa(data as ErpPdvCaixaRow) : null,
+    error,
+  };
+}
+
+export async function abrirErpPdvCaixa(payload: {
+  empresaId: string;
+  operador: string;
+  saldoInicial: number;
+}) {
+  if (!payload.operador.trim()) {
+    return {
+      data: null,
+      error: new Error("Informe o operador para abrir o caixa."),
+    };
+  }
+
+  const caixaAberto = await buscarErpPdvCaixaAberto(payload.empresaId);
+  if (caixaAberto.error) {
+    return {
+      data: null,
+      error: caixaAberto.error,
+    };
+  }
+
+  if (caixaAberto.data) {
+    return {
+      data: null,
+      error: new Error("Ja existe um caixa aberto para esta empresa."),
+    };
+  }
+
+  const agora = new Date().toISOString();
+  const saldoInicial = toNumber(payload.saldoInicial);
+  const { data, error } = await supabase
+    .from("erp_pdv_caixas")
+    .insert({
+      empresa_id: payload.empresaId,
+      status: "aberto",
+      operador: payload.operador.trim(),
+      aberto_em: agora,
+      saldo_inicial: saldoInicial,
+      saldo_final: saldoInicial,
+      valor_informado: 0,
+      diferenca: 0,
+      updated_at: agora,
+    })
+    .select(
+      "id, empresa_id, status, operador, aberto_em, fechado_em, saldo_inicial, saldo_final, valor_informado, diferenca, observacao"
+    )
+    .single();
+
+  return {
+    data: data ? normalizarCaixa(data as ErpPdvCaixaRow) : null,
+    error,
+  };
+}
+
+export async function registrarErpPdvCaixaMovimentacao(payload: {
+  empresaId: string;
+  caixaId: string;
+  tipo: ErpPdvCaixaMovimentacaoTipo;
+  valor: number;
+  operador: string;
+  observacao: string;
+}) {
+  const valor = toNumber(payload.valor);
+
+  if (!payload.caixaId) {
+    return {
+      data: null,
+      error: new Error("Abra um caixa antes de registrar movimentacoes."),
+    };
+  }
+
+  if (valor <= 0) {
+    return {
+      data: null,
+      error: new Error("Informe um valor maior que zero."),
+    };
+  }
+
+  const { data, error } = await supabase
+    .from("erp_pdv_caixa_movimentacoes")
+    .insert({
+      empresa_id: payload.empresaId,
+      caixa_id: payload.caixaId,
+      tipo: payload.tipo,
+      valor,
+      operador: payload.operador.trim(),
+      observacao: payload.observacao.trim(),
+    })
+    .select("id, empresa_id, caixa_id, tipo, valor, operador, observacao, created_at")
+    .single();
+
+  return {
+    data: data
+      ? normalizarCaixaMovimentacao(data as ErpPdvCaixaMovimentacaoRow)
+      : null,
+    error,
+  };
+}
+
+export async function calcularErpPdvResumoCaixa(caixa: ErpPdvCaixa) {
+  const { data: vendasData, error: vendasError } = await supabase
+    .from("erp_pdv_vendas")
+    .select("forma_pagamento, total")
+    .eq("empresa_id", caixa.empresa_id)
+    .eq("caixa_id", caixa.id)
+    .eq("status", "finalizada");
+
+  if (vendasError) {
+    return {
+      data: null,
+      error: vendasError,
+    };
+  }
+
+  const { data: movimentacoesData, error: movimentacoesError } = await supabase
+    .from("erp_pdv_caixa_movimentacoes")
+    .select("tipo, valor")
+    .eq("empresa_id", caixa.empresa_id)
+    .eq("caixa_id", caixa.id);
+
+  if (movimentacoesError) {
+    return {
+      data: null,
+      error: movimentacoesError,
+    };
+  }
+
+  const vendasPorFormaPagamento = (vendasData || []).reduce<
+    Record<string, number>
+  >((formas, venda) => {
+    const forma = String(venda.forma_pagamento || "outros");
+    return {
+      ...formas,
+      [forma]: (formas[forma] || 0) + toNumber(venda.total),
+    };
+  }, {});
+  const totalVendas = Object.values(vendasPorFormaPagamento).reduce(
+    (total, valor) => total + valor,
+    0
+  );
+  const suprimentos = (movimentacoesData || [])
+    .filter((movimentacao) => movimentacao.tipo === "suprimento")
+    .reduce((total, movimentacao) => total + toNumber(movimentacao.valor), 0);
+  const sangrias = (movimentacoesData || [])
+    .filter((movimentacao) => movimentacao.tipo === "sangria")
+    .reduce((total, movimentacao) => total + toNumber(movimentacao.valor), 0);
+  const totalEsperado =
+    caixa.saldo_inicial + totalVendas + suprimentos - sangrias;
+  const valorInformado =
+    caixa.status === "aberto" ? totalEsperado : caixa.valor_informado;
+
+  return {
+    data: {
+      caixa,
+      vendasPorFormaPagamento,
+      suprimentos,
+      sangrias,
+      totalVendas,
+      totalEsperado,
+      valorInformado,
+      diferenca: valorInformado - totalEsperado,
+    } as ErpPdvCaixaResumo,
+    error: null,
+  };
+}
+
+export async function fecharErpPdvCaixa(payload: {
+  empresaId: string;
+  caixaId: string;
+  valorInformado: number;
+  observacao: string;
+}) {
+  const { data: caixaData, error: caixaError } = await supabase
+    .from("erp_pdv_caixas")
+    .select(
+      "id, empresa_id, status, operador, aberto_em, fechado_em, saldo_inicial, saldo_final, valor_informado, diferenca, observacao"
+    )
+    .eq("empresa_id", payload.empresaId)
+    .eq("id", payload.caixaId)
+    .single();
+
+  if (caixaError || !caixaData) {
+    return {
+      data: null,
+      error: caixaError,
+    };
+  }
+
+  const caixa = normalizarCaixa(caixaData as ErpPdvCaixaRow);
+  const resumoResultado = await calcularErpPdvResumoCaixa({
+    ...caixa,
+    valor_informado: toNumber(payload.valorInformado),
+  });
+
+  if (resumoResultado.error || !resumoResultado.data) {
+    return {
+      data: null,
+      error: resumoResultado.error,
+    };
+  }
+
+  const resumo = resumoResultado.data;
+  const agora = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("erp_pdv_caixas")
+    .update({
+      status: "fechado",
+      fechado_em: agora,
+      saldo_final: resumo.totalEsperado,
+      valor_informado: toNumber(payload.valorInformado),
+      diferenca: resumo.diferenca,
+      observacao: payload.observacao.trim(),
+      updated_at: agora,
+    })
+    .eq("empresa_id", payload.empresaId)
+    .eq("id", payload.caixaId)
+    .select(
+      "id, empresa_id, status, operador, aberto_em, fechado_em, saldo_inicial, saldo_final, valor_informado, diferenca, observacao"
+    )
+    .single();
+
+  if (error || !data) {
+    return {
+      data: null,
+      error,
+    };
+  }
+
+  const caixaFechado = normalizarCaixa(data as ErpPdvCaixaRow);
+  return {
+    data: {
+      ...resumo,
+      caixa: caixaFechado,
+      valorInformado: caixaFechado.valor_informado,
+      diferenca: caixaFechado.diferenca,
+    } as ErpPdvCaixaResumo,
+    error: null,
+  };
+}
+
 export async function registrarErpPdvMovimentacao(
   payload: ErpPdvMovimentacaoPayload
 ) {
@@ -549,6 +903,30 @@ export async function finalizarErpPdvVenda(
     };
   }
 
+  if (!payload.caixaId) {
+    return {
+      data: null,
+      error: new Error("Abra um caixa antes de finalizar a venda."),
+    };
+  }
+
+  const { data: caixaData, error: caixaError } = await supabase
+    .from("erp_pdv_caixas")
+    .select("id, status")
+    .eq("empresa_id", payload.empresaId)
+    .eq("id", payload.caixaId)
+    .eq("status", "aberto")
+    .maybeSingle();
+
+  if (caixaError || !caixaData) {
+    return {
+      data: null,
+      error:
+        caixaError ||
+        new Error("Abra um caixa antes de finalizar a venda."),
+    };
+  }
+
   const produtoIds = itens.map((item) => item.produtoId);
   const { data: estoqueData, error: estoqueError } = await supabase
     .from("erp_pdv_estoques")
@@ -596,6 +974,7 @@ export async function finalizarErpPdvVenda(
     .from("erp_pdv_vendas")
     .insert({
       empresa_id: payload.empresaId,
+      caixa_id: payload.caixaId,
       status: "finalizada",
       subtotal,
       desconto: 0,
