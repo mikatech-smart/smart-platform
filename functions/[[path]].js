@@ -239,6 +239,10 @@ function getRequestRoute(pathname) {
     return { kind: "wifi", slug: parts[1] };
   }
 
+  if (parts.length === 2 && parts[0] === "fidelidade") {
+    return { kind: "fidelidade", slug: parts[1] };
+  }
+
   return null;
 }
 
@@ -294,12 +298,18 @@ async function getEmpresasParaSitemap(env) {
   }
 
   const selectCompleto =
+    "slug,ativo,landing_page_config,recursos_contratados,cardapio_config,catalogo_config,agendamento_config,wifi_marketing_config,fidelidade_config";
+  const selectSemFidelidade =
     "slug,ativo,landing_page_config,recursos_contratados,cardapio_config,catalogo_config,agendamento_config,wifi_marketing_config";
   const selectComAgendamento =
     "slug,ativo,landing_page_config,recursos_contratados,cardapio_config,catalogo_config,agendamento_config";
   const selectLegado =
     "slug,ativo,landing_page_config,recursos_contratados,cardapio_config,catalogo_config";
   let response = await buscarEmpresas(selectCompleto);
+
+  if (!response.ok) {
+    response = await buscarEmpresas(selectSemFidelidade);
+  }
 
   if (!response.ok) {
     response = await buscarEmpresas(selectComAgendamento);
@@ -422,6 +432,30 @@ function isWifiMarketingPublicado(empresa) {
   );
 }
 
+function isFidelidadePublicada(empresa) {
+  if (empresa?.recursos_contratados?.fidelidade !== true) {
+    return false;
+  }
+
+  const config = empresa?.fidelidade_config;
+
+  if (!config || typeof config !== "object") return false;
+
+  const ativo = typeof config.ativo === "boolean" ? config.ativo : false;
+
+  return (
+    ativo &&
+    [
+      config.titulo,
+      config.descricao,
+      config.recompensa,
+      config.quantidade,
+      config.quantidadePontos,
+      config.quantidadeCarimbos,
+    ].some((valor) => String(valor || "").trim())
+  );
+}
+
 function buildRobotsTxt() {
   return [
     "User-agent: *",
@@ -467,6 +501,10 @@ function buildSitemapXml(empresas = []) {
 
     if (isWifiMarketingPublicado(empresa)) {
       urls.push(`${PUBLIC_APP_URL}/wifi/${encodeURIComponent(slug)}`);
+    }
+
+    if (isFidelidadePublicada(empresa)) {
+      urls.push(`${PUBLIC_APP_URL}/fidelidade/${encodeURIComponent(slug)}`);
     }
 
     if (urls.length >= SITEMAP_MAX_URLS) break;
@@ -561,6 +599,7 @@ function buildMetadata(route, empresa) {
   const landingSeo = landing.seo || {};
   const landingHero = landing.hero || {};
   const wifiMarketing = route.kind === "wifi" ? empresa?.wifi_marketing_config || {} : {};
+  const fidelidade = route.kind === "fidelidade" ? empresa?.fidelidade_config || {} : {};
   const title =
     (route.kind === "landing" &&
       (landingSeo.titulo || landingHero.titulo || empresa?.nome)) ||
@@ -574,6 +613,10 @@ function buildMetadata(route, empresa) {
       (wifiMarketing.titulo
         ? `${wifiMarketing.titulo} | ${empresa?.nome || DEFAULT_TITLE}`
         : `Wi-Fi Marketing de ${empresa?.nome || DEFAULT_TITLE}`)) ||
+    (route.kind === "fidelidade" &&
+      (fidelidade.titulo
+        ? `${fidelidade.titulo} | ${empresa?.nome || DEFAULT_TITLE}`
+        : `Programa de Fidelidade de ${empresa?.nome || DEFAULT_TITLE}`)) ||
     empresa?.nome ||
     DEFAULT_TITLE;
   const description = truncate(
@@ -590,6 +633,11 @@ function buildMetadata(route, empresa) {
           empresa?.descricao ||
           empresa?.categoria ||
           "Wi-Fi Marketing")) ||
+      (route.kind === "fidelidade" &&
+        (fidelidade.descricao ||
+          empresa?.descricao ||
+          empresa?.categoria ||
+          "Programa de Fidelidade")) ||
       empresa?.descricao ||
       empresa?.categoria ||
       DEFAULT_DESCRIPTION
@@ -603,8 +651,13 @@ function buildMetadata(route, empresa) {
     empresa?.site,
     route.kind === "wifi" ? "wifi marketing" : "",
     route.kind === "wifi" ? "campanha" : "",
+    route.kind === "fidelidade" ? "programa de fidelidade" : "",
+    route.kind === "fidelidade" ? "pontos" : "",
+    route.kind === "fidelidade" ? "carimbos" : "",
     wifiMarketing.titulo,
     wifiMarketing.mensagem,
+    fidelidade.titulo,
+    fidelidade.recompensa,
     landingHero.titulo,
     landingHero.subtitulo,
     landing?.sobre?.titulo,
@@ -642,6 +695,8 @@ function buildMetadata(route, empresa) {
         ? "noindex,nofollow"
       : route.kind === "wifi" && !isWifiMarketingPublicado(empresa)
         ? "noindex,nofollow"
+      : route.kind === "fidelidade" && !isFidelidadePublicada(empresa)
+        ? "noindex,nofollow"
       : "index,follow";
   const url =
     route.kind === "landing"
@@ -654,6 +709,8 @@ function buildMetadata(route, empresa) {
         ? normalizeCanonicalUrl(`/agendamento/${route.slug}`)
       : route.kind === "wifi"
         ? normalizeCanonicalUrl(`/wifi/${route.slug}`)
+      : route.kind === "fidelidade"
+        ? normalizeCanonicalUrl(`/fidelidade/${route.slug}`)
       : normalizeCanonicalUrl(`/${route.slug}`);
 
   const manifestUrl = `${PUBLIC_APP_URL}/manifest.webmanifest?${new URLSearchParams({
@@ -704,6 +761,8 @@ function buildManifest(metadata) {
         ? `/agendamento/${metadata.route.slug}`
       : metadata.route.kind === "wifi"
         ? `/wifi/${metadata.route.slug}`
+      : metadata.route.kind === "fidelidade"
+        ? `/fidelidade/${metadata.route.slug}`
       : `/${metadata.route.slug}`;
 
   return {
@@ -835,7 +894,8 @@ export async function onRequestGet(context) {
       kindParam === "cardapio" ||
       kindParam === "catalogo" ||
       kindParam === "agendamento" ||
-      kindParam === "wifi"
+      kindParam === "wifi" ||
+      kindParam === "fidelidade"
         ? kindParam
         : "public";
     const empresa = slug ? await getEmpresa(context.env, slug) : null;

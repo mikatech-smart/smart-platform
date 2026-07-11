@@ -89,6 +89,7 @@ export function getManifestUrl(
     | "catalogo"
     | "agendamento"
     | "wifi"
+    | "fidelidade"
 ) {
   const params = new URLSearchParams({
     slug,

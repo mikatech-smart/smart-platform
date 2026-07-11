@@ -7,6 +7,7 @@ import PublicCardapioPage from "../pages/PublicCardapioPage/PublicCardapioPage";
 import PublicCatalogoPage from "../pages/PublicCatalogoPage/PublicCatalogoPage";
 import PublicAgendamentoPage from "../pages/PublicAgendamentoPage/PublicAgendamentoPage";
 import PublicWifiMarketingPage from "../pages/PublicWifiMarketingPage/PublicWifiMarketingPage";
+import PublicFidelidadePage from "../pages/PublicFidelidadePage/PublicFidelidadePage";
 
 import Dashboard from "../pages/dashboard/Dashboard";
 import Empresas from "../pages/dashboard/Empresas";
@@ -52,6 +53,11 @@ export default function AppRouter() {
         <Route
           path="/wifi/:slug"
           element={<PublicWifiMarketingPage />}
+        />
+
+        <Route
+          path="/fidelidade/:slug"
+          element={<PublicFidelidadePage />}
         />
 
         {/* Dashboard */}

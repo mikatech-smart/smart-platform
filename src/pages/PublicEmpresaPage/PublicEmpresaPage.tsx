@@ -35,6 +35,7 @@ type AparenciaEmpresa = Empresa & {
     catalogo?: boolean;
     agendamento?: boolean;
     wifi_marketing?: boolean;
+    fidelidade?: boolean;
   } | null;
 };
 
@@ -283,6 +284,8 @@ export default function PublicEmpresaPage() {
     (empresa as AparenciaEmpresa).recursos_contratados?.agendamento === true;
   const wifiMarketingContratado =
     (empresa as AparenciaEmpresa).recursos_contratados?.wifi_marketing === true;
+  const fidelidadeContratada =
+    (empresa as AparenciaEmpresa).recursos_contratados?.fidelidade === true;
 
   return (
     <main className="public-empresa-page" style={estiloAparencia}>
@@ -376,6 +379,19 @@ export default function PublicEmpresaPage() {
                 href={`/wifi/${empresa.slug}`}
               >
                 Wi-Fi Marketing
+              </a>
+            </section>
+          )}
+
+          {fidelidadeContratada && (
+            <section className="public-empresa-section public-empresa-info-card">
+              <span>Programa de Fidelidade</span>
+              <p>Confira como acumular pontos ou carimbos e resgatar recompensas.</p>
+              <a
+                className="public-empresa-map-link"
+                href={`/fidelidade/${empresa.slug}`}
+              >
+                Programa de Fidelidade
               </a>
             </section>
           )}
