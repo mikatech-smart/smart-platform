@@ -188,6 +188,8 @@ export default function PublicCardapioPage() {
   const { slug } = useParams();
   const [empresa, setEmpresa] = useState<EmpresaCardapio | null>(null);
   const [carregando, setCarregando] = useState(true);
+  const [buscaProduto, setBuscaProduto] = useState("");
+  const [categoriaSelecionada, setCategoriaSelecionada] = useState("todos");
 
   useEffect(() => {
     async function carregarCardapio() {
@@ -234,20 +236,69 @@ export default function PublicCardapioPage() {
       produto.imagemUrl,
     ].some((valor) => valor.trim())
   );
-  const produtosSemCategoria = produtosPreenchidos.filter(
+  const categoriasComConteudo = categoriasVisiveis.filter((categoria) =>
+    produtosPreenchidos.some(
+      (produto) =>
+        produto.categoriaId === categoria.id &&
+        categoriasVisiveisIds.has(produto.categoriaId)
+    )
+  );
+  const possuiProdutosSemCategoria = produtosPreenchidos.some(
     (produto) => !produto.categoriaId
+  );
+  const termoBusca = buscaProduto.trim().toLocaleLowerCase("pt-BR");
+  const produtosFiltrados = produtosPreenchidos.filter((produto) => {
+    if (!termoBusca) return true;
+
+    return [
+      produto.nome,
+      produto.descricao,
+      produto.observacoes,
+      produto.preco,
+    ].some((valor) => valor.toLocaleLowerCase("pt-BR").includes(termoBusca));
+  });
+  const produtosSemCategoria = produtosFiltrados.filter(
+    (produto) =>
+      !produto.categoriaId &&
+      (categoriaSelecionada === "todos" ||
+        categoriaSelecionada === "sem-categoria")
   );
   const cardapioContratado =
     empresa?.recursos_contratados?.cardapio_digital === true;
   const possuiConteudo =
+    possuiProdutosSemCategoria || categoriasComConteudo.length > 0;
+  const possuiResultadoFiltrado =
     produtosSemCategoria.length > 0 ||
-    categoriasVisiveis.some((categoria) =>
-      produtosPreenchidos.some(
-        (produto) =>
-          produto.categoriaId === categoria.id &&
-          categoriasVisiveisIds.has(produto.categoriaId)
-      )
-    );
+    categoriasVisiveis.some((categoria) => {
+      if (
+        categoriaSelecionada !== "todos" &&
+        categoriaSelecionada !== categoria.id
+      ) {
+        return false;
+      }
+
+      return produtosFiltrados.some(
+        (produto) => produto.categoriaId === categoria.id
+      );
+    });
+
+  function rolarParaCategoria(categoriaId: string) {
+    setCategoriaSelecionada(categoriaId);
+
+    window.setTimeout(() => {
+      const alvo =
+        categoriaId === "todos"
+          ? "cardapio-conteudo"
+          : categoriaId === "sem-categoria"
+            ? "cardapio-sem-categoria"
+            : `cardapio-categoria-${categoriaId}`;
+
+      document.getElementById(alvo)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 0);
+  }
 
   if (carregando) {
     return (
@@ -298,16 +349,74 @@ export default function PublicCardapioPage() {
         </div>
       </header>
 
-      <section className="public-cardapio-content">
+      <section className="public-cardapio-tools" aria-label="Busca e filtros do cardapio">
+        <label className="public-cardapio-search">
+          <span>Buscar produto</span>
+          <input
+            type="search"
+            value={buscaProduto}
+            onChange={(event) => setBuscaProduto(event.target.value)}
+            placeholder="Digite o nome, descricao ou observacao"
+          />
+        </label>
+
+        <div className="public-cardapio-filters" aria-label="Filtrar por categoria">
+          <button
+            type="button"
+            className={categoriaSelecionada === "todos" ? "is-active" : ""}
+            onClick={() => rolarParaCategoria("todos")}
+          >
+            Todos
+          </button>
+
+          {categoriasComConteudo.map((categoria) => (
+            <button
+              type="button"
+              className={
+                categoriaSelecionada === categoria.id ? "is-active" : ""
+              }
+              key={categoria.id}
+              onClick={() => rolarParaCategoria(categoria.id)}
+            >
+              {categoria.nome || "Categoria"}
+            </button>
+          ))}
+
+          {possuiProdutosSemCategoria && (
+            <button
+              type="button"
+              className={
+                categoriaSelecionada === "sem-categoria" ? "is-active" : ""
+              }
+              onClick={() => rolarParaCategoria("sem-categoria")}
+            >
+              Outros itens
+            </button>
+          )}
+        </div>
+      </section>
+
+      <section className="public-cardapio-content" id="cardapio-conteudo">
         {categoriasVisiveis.map((categoria) => {
-          const produtosDaCategoria = produtosPreenchidos.filter(
+          if (
+            categoriaSelecionada !== "todos" &&
+            categoriaSelecionada !== categoria.id
+          ) {
+            return null;
+          }
+
+          const produtosDaCategoria = produtosFiltrados.filter(
             (produto) => produto.categoriaId === categoria.id
           );
 
           if (produtosDaCategoria.length === 0) return null;
 
           return (
-            <section className="public-cardapio-section" key={categoria.id}>
+            <section
+              className="public-cardapio-section"
+              id={`cardapio-categoria-${categoria.id}`}
+              key={categoria.id}
+            >
               <div className="public-cardapio-section__heading">
                 <h2>{categoria.nome || "Categoria"}</h2>
                 {categoria.descricao && <p>{categoria.descricao}</p>}
@@ -359,7 +468,7 @@ export default function PublicCardapioPage() {
         })}
 
         {produtosSemCategoria.length > 0 && (
-          <section className="public-cardapio-section">
+          <section className="public-cardapio-section" id="cardapio-sem-categoria">
             <div className="public-cardapio-section__heading">
               <h2>Outros itens</h2>
             </div>
@@ -403,6 +512,13 @@ export default function PublicCardapioPage() {
                 </article>
               ))}
             </div>
+          </section>
+        )}
+
+        {!possuiResultadoFiltrado && (
+          <section className="public-cardapio-empty">
+            <h2>Nenhum item encontrado</h2>
+            <p>Ajuste a busca ou selecione outra categoria.</p>
           </section>
         )}
       </section>
