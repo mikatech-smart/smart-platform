@@ -161,6 +161,19 @@ function absoluteUrl(value = "") {
   return `https://${url}`;
 }
 
+function normalizeCanonicalUrl(value = "/") {
+  try {
+    const url = new URL(String(value || "/").trim(), PUBLIC_APP_URL);
+    const pathname = url.pathname || "/";
+    const canonicalPath =
+      pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+
+    return `${PUBLIC_APP_URL}${canonicalPath}`;
+  } catch {
+    return `${PUBLIC_APP_URL}/`;
+  }
+}
+
 function compactObject(value = {}) {
   Object.keys(value).forEach((key) => {
     const current = value[key];
@@ -455,8 +468,8 @@ function buildMetadata(route, empresa) {
       : "index,follow";
   const url =
     route.kind === "landing"
-      ? `${PUBLIC_APP_URL}/landing/${route.slug}`
-      : `${PUBLIC_APP_URL}/${route.slug}`;
+      ? normalizeCanonicalUrl(`/landing/${route.slug}`)
+      : normalizeCanonicalUrl(`/${route.slug}`);
 
   const manifestUrl = `${PUBLIC_APP_URL}/manifest.webmanifest?${new URLSearchParams({
     slug: route.slug,
@@ -535,7 +548,7 @@ function injectMetadata(html, metadata) {
   const shortcutIcon = escapeHtml(metadata.shortcutIcon || favicon);
   const shortcutIconType = escapeHtml(getIconType(metadata.shortcutIcon || favicon));
   const appleTouchIcon = escapeHtml(metadata.appleTouchIcon || favicon);
-  const url = escapeHtml(metadata.url);
+  const url = escapeHtml(normalizeCanonicalUrl(metadata.url));
   const tags = [
     `<title>${title}</title>`,
     buildResourceHints(),
@@ -584,7 +597,7 @@ function injectMetadata(html, metadata) {
     .replace(/<meta\s+name="keywords"[^>]*>\s*/gi, "")
     .replace(/<meta\s+name="robots"[^>]*>\s*/gi, "")
     .replace(/<meta\s+name="theme-color"[^>]*>\s*/gi, "")
-    .replace(/<link\s+rel="canonical"[^>]*>\s*/gi, "")
+    .replace(/<link\b(?=[^>]*\brel=["']canonical["'])[^>]*>\s*/gi, "")
     .replace(
       /<script\s+id="schema-org-jsonld"\s+type="application\/ld\+json"[^>]*>[\s\S]*?<\/script>\s*/gi,
       ""

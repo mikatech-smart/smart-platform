@@ -65,6 +65,21 @@ export function getPublicUrl(pathname: string) {
   return `${getPublicBaseUrl()}${path}`;
 }
 
+export function normalizeCanonicalUrl(value?: string | null) {
+  const publicBaseUrl = getPublicBaseUrl();
+
+  try {
+    const url = new URL(value?.trim() || "/", publicBaseUrl);
+    const pathname = url.pathname || "/";
+    const canonicalPath =
+      pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+
+    return `${publicBaseUrl}${canonicalPath}`;
+  } catch {
+    return `${publicBaseUrl}/`;
+  }
+}
+
 export function getManifestUrl(slug: string, kind: "public" | "landing") {
   const params = new URLSearchParams({
     slug,
@@ -221,13 +236,15 @@ export function applyRobotsMetadata(content: SeoMetadata["robots"] = "index,foll
 }
 
 function upsertCanonical(url: string) {
-  const current = document.head.querySelector<HTMLLinkElement>(
-    'link[rel="canonical"]'
+  const links = Array.from(
+    document.head.querySelectorAll<HTMLLinkElement>('link[rel="canonical"]')
   );
+  const current = links.shift();
   const link = current || document.createElement("link");
 
+  links.forEach((item) => item.remove());
   link.setAttribute("rel", "canonical");
-  link.setAttribute("href", url);
+  link.setAttribute("href", normalizeCanonicalUrl(url));
 
   if (!current) {
     document.head.appendChild(link);
@@ -354,6 +371,7 @@ export function applySeoMetadata(metadata: SeoMetadata) {
   const description = normalizeSeoDescription(metadata.description);
   const image = normalizeSeoImage(metadata.image);
   const type = metadata.type || "website";
+  const canonicalUrl = normalizeCanonicalUrl(metadata.url);
 
   document.title = title;
   applyPerformanceResourceHints();
@@ -362,7 +380,7 @@ export function applySeoMetadata(metadata: SeoMetadata) {
   applyGoogleSiteVerification();
   applyRobotsMetadata(metadata.robots || "index,follow");
   upsertJsonLd(metadata.jsonLd);
-  upsertCanonical(metadata.url);
+  upsertCanonical(canonicalUrl);
   upsertMeta("name", "description", description);
   upsertMeta("name", "author", metadata.author || BrandConfig.platformName);
   upsertMeta(
@@ -373,7 +391,7 @@ export function applySeoMetadata(metadata: SeoMetadata) {
   upsertMeta("property", "og:title", title);
   upsertMeta("property", "og:description", description);
   upsertMeta("property", "og:image", image);
-  upsertMeta("property", "og:url", metadata.url);
+  upsertMeta("property", "og:url", canonicalUrl);
   upsertMeta("property", "og:type", type);
   upsertMeta("name", "twitter:card", "summary_large_image");
   upsertMeta("name", "twitter:title", title);
