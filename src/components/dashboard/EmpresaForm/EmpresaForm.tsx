@@ -16,6 +16,7 @@ import {
   buscarErpPdvClientes,
   calcularErpPdvResumoCaixa,
   fecharErpPdvCaixa,
+  gerarErpPdvRelatorioOperacional,
   criarErpPdvCategoria,
   listarErpPdvMovimentacoes,
   listarErpPdvCategorias,
@@ -39,6 +40,7 @@ import {
   type ErpPdvMovimentacaoTipo,
   type ErpPdvProduto,
   type ErpPdvProdutoPayload,
+  type ErpPdvRelatorioResumo,
   type ErpPdvTabelaPreco,
 } from "../../../services/erpPdv/erpPdv.service";
 
@@ -5907,6 +5909,15 @@ export default function EmpresaForm({
   const [erpPdvMovimentacaoInicio, setErpPdvMovimentacaoInicio] =
     useState("");
   const [erpPdvMovimentacaoFim, setErpPdvMovimentacaoFim] = useState("");
+  const [erpPdvRelatorioInicio, setErpPdvRelatorioInicio] = useState("");
+  const [erpPdvRelatorioFim, setErpPdvRelatorioFim] = useState("");
+  const [erpPdvRelatorioOperador, setErpPdvRelatorioOperador] = useState("");
+  const [erpPdvRelatorioClienteId, setErpPdvRelatorioClienteId] =
+    useState("todos");
+  const [erpPdvRelatorioFormaPagamento, setErpPdvRelatorioFormaPagamento] =
+    useState("todos");
+  const [erpPdvRelatorio, setErpPdvRelatorio] =
+    useState<ErpPdvRelatorioResumo | null>(null);
   const [erpPdvCategoriaNome, setErpPdvCategoriaNome] = useState("");
   const [erpPdvProdutoForm, setErpPdvProdutoForm] =
     useState<ErpPdvProdutoForm>(() => ({ ...erpPdvProdutoFormPadrao }));
@@ -6415,6 +6426,8 @@ export default function EmpresaForm({
         setErpPdvResumoCaixa(null);
         setErpPdvCaixaValorFechamento("");
       }
+
+      await carregarRelatorioErpPdv(empresaIdAtual);
     } catch (error) {
       const mensagem =
         error instanceof Error
@@ -7370,6 +7383,157 @@ export default function EmpresaForm({
       erpPdvFormasPagamento.find((formaPagamento) => formaPagamento.id === forma)
         ?.label || forma
     );
+  }
+
+  async function carregarRelatorioErpPdv(empresaIdAtual = empresaId) {
+    if (!empresaIdAtual) return;
+
+    try {
+      const { data, error } = await gerarErpPdvRelatorioOperacional(
+        empresaIdAtual,
+        {
+          dataInicio: erpPdvRelatorioInicio,
+          dataFim: erpPdvRelatorioFim,
+          operador: erpPdvRelatorioOperador,
+          clienteId: erpPdvRelatorioClienteId,
+          formaPagamento: erpPdvRelatorioFormaPagamento,
+        }
+      );
+
+      if (error) throw error;
+      setErpPdvRelatorio(data);
+    } catch (error) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel carregar os relatorios do PDV.",
+      });
+    }
+  }
+
+  function gerarHtmlRelatorioErpPdv() {
+    if (!erpPdvRelatorio) return "";
+
+    const linhasVendas = erpPdvRelatorio.vendas
+      .map(
+        (venda) => `<tr>
+          <td>#${venda.numero}</td>
+          <td>${new Date(venda.finalizada_em).toLocaleString("pt-BR")}</td>
+          <td>${escaparHtmlCupomErpPdv(venda.operador || "-")}</td>
+          <td>${escaparHtmlCupomErpPdv(venda.cliente_nome || "-")}</td>
+          <td>${escaparHtmlCupomErpPdv(
+            obterLabelFormaPagamentoErpPdv(venda.forma_pagamento)
+          )}</td>
+          <td>${formatarNumeroErpPdv(venda.quantidade_itens) || "0"}</td>
+          <td>R$ ${formatarMoedaErpPdv(venda.total)}</td>
+          <td>R$ ${formatarMoedaErpPdv(venda.lucro_bruto)}</td>
+        </tr>`
+      )
+      .join("");
+
+    return `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Relatorio ERP PDV</title>
+    <style>
+      body { font-family: Arial, sans-serif; color: #0f172a; margin: 24px; }
+      h1 { font-size: 22px; margin-bottom: 4px; }
+      .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 20px 0; }
+      .card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; }
+      .label { color: #64748b; font-size: 11px; text-transform: uppercase; font-weight: 700; }
+      .value { font-size: 18px; font-weight: 800; margin-top: 4px; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      th, td { border-bottom: 1px solid #e2e8f0; padding: 8px; text-align: left; }
+      th { background: #f8fafc; }
+      @media print { body { margin: 12mm; } }
+    </style>
+  </head>
+  <body>
+    <h1>Relatorio operacional ERP/PDV</h1>
+    <p>Mikatech - gerado em ${new Date().toLocaleString("pt-BR")}</p>
+    <div class="grid">
+      <div class="card"><div class="label">Vendas</div><div class="value">${erpPdvRelatorio.totalVendas}</div></div>
+      <div class="card"><div class="label">Faturamento</div><div class="value">R$ ${formatarMoedaErpPdv(erpPdvRelatorio.faturamento)}</div></div>
+      <div class="card"><div class="label">Lucro bruto</div><div class="value">R$ ${formatarMoedaErpPdv(erpPdvRelatorio.lucroBruto)}</div></div>
+      <div class="card"><div class="label">Ticket medio</div><div class="value">R$ ${formatarMoedaErpPdv(erpPdvRelatorio.ticketMedio)}</div></div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Venda</th><th>Data</th><th>Operador</th><th>Cliente</th><th>Pagamento</th><th>Itens</th><th>Total</th><th>Lucro</th>
+        </tr>
+      </thead>
+      <tbody>${linhasVendas || "<tr><td colspan='8'>Sem vendas no periodo.</td></tr>"}</tbody>
+    </table>
+  </body>
+</html>`;
+  }
+
+  function exportarRelatorioPdfErpPdv() {
+    if (!erpPdvRelatorio) return;
+
+    const janela = window.open("", "_blank", "width=1024,height=720");
+    if (!janela) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "Nao foi possivel abrir a janela do relatorio.",
+      });
+      return;
+    }
+
+    janela.document.open();
+    janela.document.write(gerarHtmlRelatorioErpPdv());
+    janela.document.close();
+    janela.focus();
+    janela.print();
+  }
+
+  function exportarRelatorioExcelErpPdv() {
+    if (!erpPdvRelatorio) return;
+
+    const linhas = [
+      [
+        "Venda",
+        "Data",
+        "Operador",
+        "Cliente",
+        "Forma de pagamento",
+        "Quantidade de itens",
+        "Total",
+        "Lucro bruto",
+      ],
+      ...erpPdvRelatorio.vendas.map((venda) => [
+        venda.numero,
+        new Date(venda.finalizada_em).toLocaleString("pt-BR"),
+        venda.operador,
+        venda.cliente_nome,
+        obterLabelFormaPagamentoErpPdv(venda.forma_pagamento),
+        venda.quantidade_itens,
+        venda.total.toFixed(2).replace(".", ","),
+        venda.lucro_bruto.toFixed(2).replace(".", ","),
+      ]),
+    ];
+    const csv = linhas
+      .map((linha) =>
+        linha
+          .map((valor) => `"${String(valor).replace(/"/g, '""')}"`)
+          .join(";")
+      )
+      .join("\n");
+    const blob = new Blob([`\ufeff${csv}`], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `relatorio-erp-pdv-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 
   function atualizarClienteFormErpPdv(
@@ -11222,6 +11386,341 @@ export default function EmpresaForm({
                 </div>
               </div>
             )}
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+                    Relatorios operacionais
+                  </p>
+                  <h4 className="mt-2 text-lg font-bold text-slate-900">
+                    Gestao de vendas e margem
+                  </h4>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Acompanhe faturamento, lucro bruto, ticket medio, produtos
+                    mais vendidos e estoque critico.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => carregarRelatorioErpPdv()}
+                    disabled={erpPdvSalvando}
+                    className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Atualizar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={exportarRelatorioPdfErpPdv}
+                    disabled={!erpPdvRelatorio}
+                    className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Exportar PDF
+                  </button>
+                  <button
+                    type="button"
+                    onClick={exportarRelatorioExcelErpPdv}
+                    disabled={!erpPdvRelatorio}
+                    className="rounded-xl bg-green-700 px-4 py-2 text-sm font-bold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Exportar Excel
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                <Input
+                  label="Data inicial"
+                  type="date"
+                  value={erpPdvRelatorioInicio}
+                  onChange={(e) => setErpPdvRelatorioInicio(e.target.value)}
+                />
+                <Input
+                  label="Data final"
+                  type="date"
+                  value={erpPdvRelatorioFim}
+                  onChange={(e) => setErpPdvRelatorioFim(e.target.value)}
+                />
+                <Input
+                  label="Operador"
+                  value={erpPdvRelatorioOperador}
+                  onChange={(e) => setErpPdvRelatorioOperador(e.target.value)}
+                  placeholder="Todos"
+                />
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700">
+                    Cliente
+                  </label>
+                  <select
+                    value={erpPdvRelatorioClienteId}
+                    onChange={(e) => setErpPdvRelatorioClienteId(e.target.value)}
+                    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-800 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                  >
+                    <option value="todos">Todos</option>
+                    <option value="sem_cliente">Consumidor nao identificado</option>
+                    {erpPdvClientes.map((clienteErp) => (
+                      <option key={clienteErp.id} value={clienteErp.id}>
+                        {clienteErp.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700">
+                    Pagamento
+                  </label>
+                  <select
+                    value={erpPdvRelatorioFormaPagamento}
+                    onChange={(e) =>
+                      setErpPdvRelatorioFormaPagamento(e.target.value)
+                    }
+                    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-800 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                  >
+                    <option value="todos">Todas</option>
+                    {erpPdvFormasPagamento.map((forma) => (
+                      <option key={forma.id} value={forma.id}>
+                        {forma.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {erpPdvRelatorio ? (
+                <>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                    {[
+                      ["Vendas do dia", String(erpPdvRelatorio.vendasHoje)],
+                      [
+                        "Faturamento",
+                        `R$ ${formatarMoedaErpPdv(erpPdvRelatorio.faturamento)}`,
+                      ],
+                      [
+                        "Lucro bruto",
+                        `R$ ${formatarMoedaErpPdv(erpPdvRelatorio.lucroBruto)}`,
+                      ],
+                      [
+                        "Ticket medio",
+                        `R$ ${formatarMoedaErpPdv(erpPdvRelatorio.ticketMedio)}`,
+                      ],
+                      [
+                        "Itens vendidos",
+                        formatarNumeroErpPdv(erpPdvRelatorio.quantidadeItens) ||
+                          "0",
+                      ],
+                    ].map(([label, valor]) => (
+                      <div
+                        key={label}
+                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                      >
+                        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                          {label}
+                        </p>
+                        <p className="mt-2 text-xl font-black text-slate-950">
+                          {valor}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 grid gap-4 xl:grid-cols-2">
+                    <div className="rounded-2xl border border-slate-200 p-4">
+                      <h5 className="font-black text-slate-900">
+                        Produtos mais vendidos
+                      </h5>
+                      <div className="mt-3 space-y-2">
+                        {erpPdvRelatorio.maisVendidos.length > 0 ? (
+                          erpPdvRelatorio.maisVendidos.map((produto) => (
+                            <div
+                              key={produto.chave}
+                              className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2 text-sm"
+                            >
+                              <span className="font-bold text-slate-800">
+                                {produto.label}
+                              </span>
+                              <span className="font-black text-green-700">
+                                {formatarNumeroErpPdv(produto.quantidadeItens) ||
+                                  "0"}{" "}
+                                un.
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-slate-500">
+                            Sem vendas no periodo.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 p-4">
+                      <h5 className="font-black text-slate-900">
+                        Estoque critico
+                      </h5>
+                      <div className="mt-3 space-y-2">
+                        {erpPdvRelatorio.estoqueCritico.length > 0 ? (
+                          erpPdvRelatorio.estoqueCritico.slice(0, 8).map(
+                            (produto) => (
+                              <div
+                                key={produto.id}
+                                className="flex items-center justify-between gap-3 rounded-xl bg-red-50 px-3 py-2 text-sm"
+                              >
+                                <span className="font-bold text-red-800">
+                                  {produto.nome}
+                                </span>
+                                <span className="font-black text-red-700">
+                                  {formatarNumeroErpPdv(produto.estoque_atual) ||
+                                    "0"}{" "}
+                                  / min.{" "}
+                                  {formatarNumeroErpPdv(produto.estoque_minimo) ||
+                                    "0"}
+                                </span>
+                              </div>
+                            )
+                          )
+                        ) : (
+                          <p className="text-sm text-slate-500">
+                            Nenhum produto abaixo do minimo.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-4 xl:grid-cols-3">
+                    {[
+                      ["Por operador", erpPdvRelatorio.porOperador],
+                      ["Por produto", erpPdvRelatorio.porProduto.slice(0, 8)],
+                      ["Por pagamento", erpPdvRelatorio.porFormaPagamento],
+                    ].map(([titulo, itens]) => (
+                      <div
+                        key={String(titulo)}
+                        className="rounded-2xl border border-slate-200 p-4"
+                      >
+                        <h5 className="font-black text-slate-900">
+                          {String(titulo)}
+                        </h5>
+                        <div className="mt-3 space-y-2">
+                          {(itens as typeof erpPdvRelatorio.porOperador).length >
+                          0 ? (
+                            (itens as typeof erpPdvRelatorio.porOperador).map(
+                              (item) => (
+                                <div
+                                  key={item.chave}
+                                  className="rounded-xl bg-slate-50 px-3 py-2 text-sm"
+                                >
+                                  <div className="flex justify-between gap-2">
+                                    <span className="font-bold text-slate-800">
+                                      {titulo === "Por pagamento"
+                                        ? obterLabelFormaPagamentoErpPdv(
+                                            item.label
+                                          )
+                                        : item.label}
+                                    </span>
+                                    <span className="font-black text-slate-900">
+                                      R$ {formatarMoedaErpPdv(item.faturamento)}
+                                    </span>
+                                  </div>
+                                  <p className="mt-1 text-xs font-semibold text-slate-500">
+                                    {item.quantidadeVendas} venda(s) |{" "}
+                                    {formatarNumeroErpPdv(item.quantidadeItens) ||
+                                      "0"}{" "}
+                                    item(ns) | lucro R${" "}
+                                    {formatarMoedaErpPdv(item.lucroBruto)}
+                                  </p>
+                                </div>
+                              )
+                            )
+                          ) : (
+                            <p className="text-sm text-slate-500">
+                              Sem dados no periodo.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200">
+                    <table className="min-w-full divide-y divide-slate-200 text-sm">
+                      <thead className="bg-slate-50">
+                        <tr>
+                          {[
+                            "Venda",
+                            "Data",
+                            "Operador",
+                            "Cliente",
+                            "Pagamento",
+                            "Itens",
+                            "Total",
+                            "Lucro",
+                          ].map((cabecalho) => (
+                            <th
+                              key={cabecalho}
+                              className="px-3 py-3 text-left text-xs font-black uppercase tracking-wide text-slate-500"
+                            >
+                              {cabecalho}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {erpPdvRelatorio.vendas.length > 0 ? (
+                          erpPdvRelatorio.vendas.slice(0, 80).map((venda) => (
+                            <tr key={venda.id}>
+                              <td className="px-3 py-3 font-bold text-slate-900">
+                                #{venda.numero}
+                              </td>
+                              <td className="px-3 py-3 text-slate-600">
+                                {new Date(venda.finalizada_em).toLocaleString(
+                                  "pt-BR"
+                                )}
+                              </td>
+                              <td className="px-3 py-3 text-slate-600">
+                                {venda.operador || "-"}
+                              </td>
+                              <td className="px-3 py-3 text-slate-600">
+                                {venda.cliente_nome || "-"}
+                              </td>
+                              <td className="px-3 py-3 text-slate-600">
+                                {obterLabelFormaPagamentoErpPdv(
+                                  venda.forma_pagamento
+                                )}
+                              </td>
+                              <td className="px-3 py-3 text-slate-600">
+                                {formatarNumeroErpPdv(venda.quantidade_itens) ||
+                                  "0"}
+                              </td>
+                              <td className="px-3 py-3 font-bold text-slate-900">
+                                R$ {formatarMoedaErpPdv(venda.total)}
+                              </td>
+                              <td className="px-3 py-3 font-bold text-green-700">
+                                R$ {formatarMoedaErpPdv(venda.lucro_bruto)}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td
+                              colSpan={8}
+                              className="px-3 py-6 text-center text-sm text-slate-500"
+                            >
+                              Sem vendas para os filtros atuais.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : (
+                <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                  Atualize o relatorio para carregar os indicadores.
+                </p>
+              )}
+            </div>
 
             <fieldset
               disabled={!recursosContratados.erp_pdv || erpPdvSalvando}

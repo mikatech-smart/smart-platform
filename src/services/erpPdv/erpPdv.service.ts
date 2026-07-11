@@ -203,6 +203,66 @@ export type ErpPdvCaixaResumo = {
   diferenca: number;
 };
 
+export type ErpPdvRelatorioFiltros = {
+  dataInicio: string;
+  dataFim: string;
+  operador: string;
+  clienteId: string;
+  formaPagamento: string;
+};
+
+export type ErpPdvRelatorioItem = {
+  id: string;
+  venda_id: string;
+  produto_id: string | null;
+  descricao: string;
+  quantidade: number;
+  preco_unitario: number;
+  total: number;
+  custo_unitario: number;
+  lucro_bruto: number;
+};
+
+export type ErpPdvRelatorioVenda = {
+  id: string;
+  numero: number;
+  total: number;
+  forma_pagamento: string;
+  cliente_id: string | null;
+  cliente_nome: string;
+  operador: string;
+  finalizada_em: string;
+  itens: ErpPdvRelatorioItem[];
+  quantidade_itens: number;
+  lucro_bruto: number;
+};
+
+export type ErpPdvRelatorioAgrupado = {
+  chave: string;
+  label: string;
+  quantidadeVendas: number;
+  quantidadeItens: number;
+  faturamento: number;
+  lucroBruto: number;
+};
+
+export type ErpPdvRelatorioResumo = {
+  vendas: ErpPdvRelatorioVenda[];
+  totalVendas: number;
+  faturamento: number;
+  lucroBruto: number;
+  ticketMedio: number;
+  quantidadeItens: number;
+  vendasHoje: number;
+  faturamentoHoje: number;
+  lucroHoje: number;
+  estoqueCritico: ErpPdvProduto[];
+  porOperador: ErpPdvRelatorioAgrupado[];
+  porProduto: ErpPdvRelatorioAgrupado[];
+  maisVendidos: ErpPdvRelatorioAgrupado[];
+  porFormaPagamento: ErpPdvRelatorioAgrupado[];
+};
+
 type ErpPdvProdutoRow = {
   id: string;
   empresa_id: string;
@@ -272,6 +332,16 @@ type ErpPdvVendaRow = {
   cliente_nome?: string;
   operador?: string;
   finalizada_em: string;
+};
+
+type ErpPdvVendaItemRow = {
+  id: string;
+  venda_id: string;
+  produto_id?: string | null;
+  descricao: string;
+  quantidade: number | string;
+  preco_unitario: number | string;
+  total: number | string;
 };
 
 type ErpPdvCaixaRow = {
@@ -906,6 +976,260 @@ export async function calcularErpPdvResumoCaixa(caixa: ErpPdvCaixa) {
       valorInformado,
       diferenca: valorInformado - totalEsperado,
     } as ErpPdvCaixaResumo,
+    error: null,
+  };
+}
+
+function adicionarAgrupamento(
+  mapa: Map<string, ErpPdvRelatorioAgrupado>,
+  chave: string,
+  label: string,
+  venda: ErpPdvRelatorioVenda,
+  quantidadeItens = venda.quantidade_itens
+) {
+  const itemAtual =
+    mapa.get(chave) || {
+      chave,
+      label,
+      quantidadeVendas: 0,
+      quantidadeItens: 0,
+      faturamento: 0,
+      lucroBruto: 0,
+    };
+
+  itemAtual.quantidadeVendas += 1;
+  itemAtual.quantidadeItens += quantidadeItens;
+  itemAtual.faturamento += venda.total;
+  itemAtual.lucroBruto += venda.lucro_bruto;
+  mapa.set(chave, itemAtual);
+}
+
+export async function gerarErpPdvRelatorioOperacional(
+  empresaId: string,
+  filtros: ErpPdvRelatorioFiltros
+) {
+  let vendasQuery = supabase
+    .from("erp_pdv_vendas")
+    .select(
+      "id, numero, total, forma_pagamento, cliente_id, cliente_nome, operador, finalizada_em"
+    )
+    .eq("empresa_id", empresaId)
+    .eq("status", "finalizada")
+    .order("finalizada_em", { ascending: false })
+    .limit(500);
+
+  if (filtros.dataInicio) {
+    vendasQuery = vendasQuery.gte(
+      "finalizada_em",
+      `${filtros.dataInicio}T00:00:00`
+    );
+  }
+
+  if (filtros.dataFim) {
+    vendasQuery = vendasQuery.lte(
+      "finalizada_em",
+      `${filtros.dataFim}T23:59:59`
+    );
+  }
+
+  if (filtros.operador.trim()) {
+    vendasQuery = vendasQuery.ilike("operador", `%${filtros.operador.trim()}%`);
+  }
+
+  if (filtros.clienteId && filtros.clienteId !== "todos") {
+    if (filtros.clienteId === "sem_cliente") {
+      vendasQuery = vendasQuery.is("cliente_id", null);
+    } else {
+      vendasQuery = vendasQuery.eq("cliente_id", filtros.clienteId);
+    }
+  }
+
+  if (filtros.formaPagamento && filtros.formaPagamento !== "todos") {
+    vendasQuery = vendasQuery.eq("forma_pagamento", filtros.formaPagamento);
+  }
+
+  const { data: vendasData, error: vendasError } = await vendasQuery;
+
+  if (vendasError) {
+    return {
+      data: null,
+      error: vendasError,
+    };
+  }
+
+  const vendasRows = (vendasData || []) as ErpPdvVendaRow[];
+  const vendaIds = vendasRows.map((venda) => venda.id);
+
+  const { data: produtosData, error: produtosError } = await listarErpPdvProdutos(
+    empresaId
+  );
+
+  if (produtosError) {
+    return {
+      data: null,
+      error: produtosError,
+    };
+  }
+
+  const produtosPorId = new Map(produtosData.map((produto) => [produto.id, produto]));
+
+  let itensRows: ErpPdvVendaItemRow[] = [];
+
+  if (vendaIds.length > 0) {
+    const { data: itensData, error: itensError } = await supabase
+      .from("erp_pdv_venda_itens")
+      .select("id, venda_id, produto_id, descricao, quantidade, preco_unitario, total")
+      .eq("empresa_id", empresaId)
+      .in("venda_id", vendaIds);
+
+    if (itensError) {
+      return {
+        data: null,
+        error: itensError,
+      };
+    }
+
+    itensRows = (itensData || []) as ErpPdvVendaItemRow[];
+  }
+
+  const itensPorVenda = new Map<string, ErpPdvRelatorioItem[]>();
+  itensRows.forEach((item) => {
+    const produto = item.produto_id
+      ? produtosPorId.get(item.produto_id)
+      : undefined;
+    const quantidade = toNumber(item.quantidade);
+    const total = toNumber(item.total);
+    const custoUnitario = produto?.custo || 0;
+    const itemNormalizado: ErpPdvRelatorioItem = {
+      id: item.id,
+      venda_id: item.venda_id,
+      produto_id: item.produto_id || null,
+      descricao: item.descricao || produto?.nome || "Produto",
+      quantidade,
+      preco_unitario: toNumber(item.preco_unitario),
+      total,
+      custo_unitario: custoUnitario,
+      lucro_bruto: total - custoUnitario * quantidade,
+    };
+
+    itensPorVenda.set(item.venda_id, [
+      ...(itensPorVenda.get(item.venda_id) || []),
+      itemNormalizado,
+    ]);
+  });
+
+  const vendas: ErpPdvRelatorioVenda[] = vendasRows.map((venda) => {
+    const itens = itensPorVenda.get(venda.id) || [];
+    const quantidadeItens = itens.reduce(
+      (total, item) => total + item.quantidade,
+      0
+    );
+    const lucroBruto = itens.reduce(
+      (total, item) => total + item.lucro_bruto,
+      0
+    );
+
+    return {
+      id: venda.id,
+      numero: toNumber(venda.numero),
+      total: toNumber(venda.total),
+      forma_pagamento: venda.forma_pagamento || "",
+      cliente_id: venda.cliente_id || null,
+      cliente_nome: venda.cliente_nome || "Consumidor nao identificado",
+      operador: venda.operador || "",
+      finalizada_em: venda.finalizada_em,
+      itens,
+      quantidade_itens: quantidadeItens,
+      lucro_bruto: lucroBruto,
+    };
+  });
+
+  const hoje = new Date().toISOString().slice(0, 10);
+  const vendasHojeLista = vendas.filter((venda) =>
+    venda.finalizada_em.startsWith(hoje)
+  );
+  const porOperador = new Map<string, ErpPdvRelatorioAgrupado>();
+  const porProduto = new Map<string, ErpPdvRelatorioAgrupado>();
+  const porFormaPagamento = new Map<string, ErpPdvRelatorioAgrupado>();
+
+  vendas.forEach((venda) => {
+    adicionarAgrupamento(
+      porOperador,
+      venda.operador || "sem_operador",
+      venda.operador || "Sem operador",
+      venda
+    );
+    adicionarAgrupamento(
+      porFormaPagamento,
+      venda.forma_pagamento || "sem_pagamento",
+      venda.forma_pagamento || "Sem pagamento",
+      venda
+    );
+
+    venda.itens.forEach((item) => {
+      adicionarAgrupamento(
+        porProduto,
+        item.produto_id || item.descricao,
+        item.descricao,
+        {
+          ...venda,
+          total: item.total,
+          lucro_bruto: item.lucro_bruto,
+          quantidade_itens: item.quantidade,
+        },
+        item.quantidade
+      );
+    });
+  });
+
+  const faturamento = vendas.reduce((total, venda) => total + venda.total, 0);
+  const lucroBruto = vendas.reduce(
+    (total, venda) => total + venda.lucro_bruto,
+    0
+  );
+  const quantidadeItens = vendas.reduce(
+    (total, venda) => total + venda.quantidade_itens,
+    0
+  );
+  const faturamentoHoje = vendasHojeLista.reduce(
+    (total, venda) => total + venda.total,
+    0
+  );
+  const lucroHoje = vendasHojeLista.reduce(
+    (total, venda) => total + venda.lucro_bruto,
+    0
+  );
+
+  return {
+    data: {
+      vendas,
+      totalVendas: vendas.length,
+      faturamento,
+      lucroBruto,
+      ticketMedio: vendas.length > 0 ? faturamento / vendas.length : 0,
+      quantidadeItens,
+      vendasHoje: vendasHojeLista.length,
+      faturamentoHoje,
+      lucroHoje,
+      estoqueCritico: produtosData.filter(
+        (produto) =>
+          produto.ativo &&
+          produto.estoque_minimo > 0 &&
+          produto.estoque_atual <= produto.estoque_minimo
+      ),
+      porOperador: Array.from(porOperador.values()).sort(
+        (a, b) => b.faturamento - a.faturamento
+      ),
+      porProduto: Array.from(porProduto.values()).sort(
+        (a, b) => b.faturamento - a.faturamento
+      ),
+      maisVendidos: Array.from(porProduto.values())
+        .sort((a, b) => b.quantidadeItens - a.quantidadeItens)
+        .slice(0, 8),
+      porFormaPagamento: Array.from(porFormaPagamento.values()).sort(
+        (a, b) => b.faturamento - a.faturamento
+      ),
+    } as ErpPdvRelatorioResumo,
     error: null,
   };
 }
