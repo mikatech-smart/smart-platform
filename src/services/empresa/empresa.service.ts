@@ -159,6 +159,25 @@ type CrmTarefaConfig = {
   concluidoEm?: string;
 };
 
+type CrmAutomacaoEvento =
+  | "novo_lead"
+  | "mudanca_etapa"
+  | "tarefa_vencida";
+
+type CrmAutomacaoAcao =
+  | "registrar_historico"
+  | "preparar_whatsapp"
+  | "preparar_email";
+
+type CrmAutomacaoConfig = {
+  id: string;
+  evento: CrmAutomacaoEvento;
+  titulo: string;
+  mensagem: string;
+  acao: CrmAutomacaoAcao;
+  ativa: boolean;
+};
+
 type CrmClienteConfig = {
   id: string;
   nome: string;
@@ -178,7 +197,37 @@ type CrmClienteConfig = {
 
 type CrmConfig = {
   clientes: CrmClienteConfig[];
+  automacoes: CrmAutomacaoConfig[];
 };
+
+const crmAutomacoesPadrao: CrmAutomacaoConfig[] = [
+  {
+    id: "automacao-novo-lead",
+    evento: "novo_lead",
+    titulo: "Boas-vindas ao novo lead",
+    mensagem:
+      "Lead recebido no CRM. Proxima acao sugerida: iniciar atendimento.",
+    acao: "registrar_historico",
+    ativa: true,
+  },
+  {
+    id: "automacao-mudanca-etapa",
+    evento: "mudanca_etapa",
+    titulo: "Acompanhamento de pipeline",
+    mensagem: "Lead movimentado no pipeline. Revisar proximos passos.",
+    acao: "registrar_historico",
+    ativa: true,
+  },
+  {
+    id: "automacao-tarefa-vencida",
+    evento: "tarefa_vencida",
+    titulo: "Tarefa vencida",
+    mensagem:
+      "Existe tarefa pendente vencida. Priorize o contato com este lead.",
+    acao: "registrar_historico",
+    ativa: true,
+  },
+];
 
 function normalizarContatoLead(valor?: string) {
   return String(valor || "").trim();
@@ -336,9 +385,91 @@ function normalizarCrmTarefas(valor: unknown): CrmTarefaConfig[] {
   );
 }
 
+function normalizarCrmAutomacaoEvento(valor: unknown): CrmAutomacaoEvento {
+  return valor === "mudanca_etapa" || valor === "tarefa_vencida"
+    ? valor
+    : "novo_lead";
+}
+
+function normalizarCrmAutomacaoAcao(valor: unknown): CrmAutomacaoAcao {
+  return valor === "preparar_whatsapp" || valor === "preparar_email"
+    ? valor
+    : "registrar_historico";
+}
+
+function normalizarCrmAutomacoes(valor: unknown): CrmAutomacaoConfig[] {
+  if (!Array.isArray(valor)) {
+    return crmAutomacoesPadrao.map((automacao) => ({ ...automacao }));
+  }
+
+  const automacoes = valor
+    .slice(0, 20)
+    .map((item, indice) => {
+      const automacao =
+        item && typeof item === "object" && !Array.isArray(item)
+          ? (item as Record<string, unknown>)
+          : {};
+      const evento = normalizarCrmAutomacaoEvento(automacao.evento);
+      const automacaoPadrao = crmAutomacoesPadrao.find(
+        (padrao) => padrao.evento === evento
+      );
+
+      return {
+        id:
+          typeof automacao.id === "string" && automacao.id.trim()
+            ? automacao.id
+            : `automacao-${indice + 1}`,
+        evento,
+        titulo:
+          typeof automacao.titulo === "string" && automacao.titulo.trim()
+            ? automacao.titulo
+            : automacaoPadrao?.titulo || "Automacao CRM",
+        mensagem:
+          typeof automacao.mensagem === "string" &&
+          automacao.mensagem.trim()
+            ? automacao.mensagem
+            : automacaoPadrao?.mensagem || "Automacao registrada no CRM.",
+        acao: normalizarCrmAutomacaoAcao(automacao.acao),
+        ativa:
+          typeof automacao.ativa === "boolean"
+            ? automacao.ativa
+            : automacaoPadrao?.ativa ?? true,
+      };
+    })
+    .filter((automacao) => automacao.titulo.trim());
+
+  return crmAutomacoesPadrao.map((automacaoPadrao) => {
+    const automacaoSalva = automacoes.find(
+      (automacao) => automacao.evento === automacaoPadrao.evento
+    );
+
+    return automacaoSalva || { ...automacaoPadrao };
+  });
+}
+
+function criarCrmInteracoesAutomacao(
+  automacoes: CrmAutomacaoConfig[],
+  evento: CrmAutomacaoEvento,
+  contexto: string
+): CrmInteracaoConfig[] {
+  const agora = new Date().toISOString();
+
+  return automacoes
+    .filter((automacao) => automacao.ativa && automacao.evento === evento)
+    .map((automacao, indice) => ({
+      id: `interacao-automacao-${Date.now()}-${indice}`,
+      texto: `[Automacao: ${automacao.titulo}] ${automacao.mensagem} ${contexto}`.trim(),
+      origem: "sistema" as CrmInteracaoOrigem,
+      dataHora: agora,
+    }));
+}
+
 function normalizarCrmConfig(valor: unknown): CrmConfig {
   if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
-    return { clientes: [] };
+    return {
+      clientes: [],
+      automacoes: crmAutomacoesPadrao.map((automacao) => ({ ...automacao })),
+    };
   }
 
   const config = valor as Record<string, unknown>;
@@ -392,7 +523,10 @@ function normalizarCrmConfig(valor: unknown): CrmConfig {
       })
     : [];
 
-  return { clientes };
+  return {
+    clientes,
+    automacoes: normalizarCrmAutomacoes(config.automacoes),
+  };
 }
 
 function mesclarTextoObservacao(atual: string, novo: string) {
@@ -519,6 +653,14 @@ export async function registrarLeadNoCrm(payload: CrmLeadPayload) {
     origem: payload.origem,
     dataHora: agora,
   };
+  const interacoesNovoLead = [
+    interacaoLead,
+    ...criarCrmInteracoesAutomacao(
+      crmConfig.automacoes,
+      "novo_lead",
+      `Origem: ${payload.origem}.`
+    ),
+  ];
   const leadBase: CrmClienteConfig = {
     id: `lead-${Date.now()}`,
     nome: normalizarContatoLead(payload.nome) || "Lead sem nome",
@@ -532,7 +674,7 @@ export async function registrarLeadNoCrm(payload: CrmLeadPayload) {
     criadoEm: agora,
     atualizadoEm: agora,
     movimentadoEm: agora,
-    interacoes: [interacaoLead],
+    interacoes: interacoesNovoLead,
     tarefas: [],
   };
   const clientes =
@@ -557,7 +699,10 @@ export async function registrarLeadNoCrm(payload: CrmLeadPayload) {
                 atualizadoEm: agora,
                 movimentadoEm:
                   cliente.movimentadoEm || leadBase.movimentadoEm,
-                interacoes: [...cliente.interacoes, interacaoLead].slice(-100),
+                interacoes: [
+                  ...cliente.interacoes,
+                  ...interacoesNovoLead,
+                ].slice(-100),
               }
             : cliente
         )

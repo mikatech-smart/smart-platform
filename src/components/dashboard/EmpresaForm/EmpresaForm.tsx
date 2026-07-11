@@ -664,6 +664,25 @@ type CrmTarefaRascunho = {
   prioridade: CrmTarefaPrioridade;
 };
 
+type CrmAutomacaoEvento =
+  | "novo_lead"
+  | "mudanca_etapa"
+  | "tarefa_vencida";
+
+type CrmAutomacaoAcao =
+  | "registrar_historico"
+  | "preparar_whatsapp"
+  | "preparar_email";
+
+type CrmAutomacaoConfig = {
+  id: string;
+  evento: CrmAutomacaoEvento;
+  titulo: string;
+  mensagem: string;
+  acao: CrmAutomacaoAcao;
+  ativa: boolean;
+};
+
 type CrmClienteConfig = {
   id: string;
   nome: string;
@@ -691,6 +710,7 @@ type CrmClienteCampoEditavel =
 
 type CrmConfig = {
   clientes: CrmClienteConfig[];
+  automacoes: CrmAutomacaoConfig[];
 };
 
 const cardapioCategoriaPadrao: CardapioCategoriaConfig = {
@@ -839,6 +859,37 @@ const crmTarefaPrioridades: Array<{
   },
 ];
 
+const crmAutomacaoEventos: Array<{
+  id: CrmAutomacaoEvento;
+  nome: string;
+  descricao: string;
+}> = [
+  {
+    id: "novo_lead",
+    nome: "Novo lead",
+    descricao: "Executada quando um lead e criado no CRM.",
+  },
+  {
+    id: "mudanca_etapa",
+    nome: "Mudanca de etapa do pipeline",
+    descricao: "Executada quando o lead muda de coluna.",
+  },
+  {
+    id: "tarefa_vencida",
+    nome: "Tarefa vencida",
+    descricao: "Executada ao verificar tarefas pendentes vencidas.",
+  },
+];
+
+const crmAutomacaoAcoes: Array<{
+  id: CrmAutomacaoAcao;
+  nome: string;
+}> = [
+  { id: "registrar_historico", nome: "Registrar no historico" },
+  { id: "preparar_whatsapp", nome: "Preparar WhatsApp futuro" },
+  { id: "preparar_email", nome: "Preparar e-mail futuro" },
+];
+
 const crmClientePadrao: CrmClienteConfig = {
   id: "cliente-1",
   nome: "",
@@ -856,8 +907,38 @@ const crmClientePadrao: CrmClienteConfig = {
   tarefas: [],
 };
 
+const crmAutomacoesPadrao: CrmAutomacaoConfig[] = [
+  {
+    id: "automacao-novo-lead",
+    evento: "novo_lead",
+    titulo: "Boas-vindas ao novo lead",
+    mensagem:
+      "Lead recebido no CRM. Proxima acao sugerida: iniciar atendimento.",
+    acao: "registrar_historico",
+    ativa: true,
+  },
+  {
+    id: "automacao-mudanca-etapa",
+    evento: "mudanca_etapa",
+    titulo: "Acompanhamento de pipeline",
+    mensagem: "Lead movimentado no pipeline. Revisar proximos passos.",
+    acao: "registrar_historico",
+    ativa: true,
+  },
+  {
+    id: "automacao-tarefa-vencida",
+    evento: "tarefa_vencida",
+    titulo: "Tarefa vencida",
+    mensagem:
+      "Existe tarefa pendente vencida. Priorize o contato com este lead.",
+    acao: "registrar_historico",
+    ativa: true,
+  },
+];
+
 const crmConfigPadrao: CrmConfig = {
   clientes: [{ ...crmClientePadrao }],
+  automacoes: crmAutomacoesPadrao.map((automacao) => ({ ...automacao })),
 };
 
 const landingPageHeroPadrao: LandingPageHeroConfig = {
@@ -1752,6 +1833,69 @@ function normalizarCrmTarefas(valor: unknown): CrmTarefaConfig[] {
   );
 }
 
+function normalizarCrmAutomacaoEvento(valor: unknown): CrmAutomacaoEvento {
+  return valor === "mudanca_etapa" || valor === "tarefa_vencida"
+    ? valor
+    : "novo_lead";
+}
+
+function normalizarCrmAutomacaoAcao(valor: unknown): CrmAutomacaoAcao {
+  return valor === "preparar_whatsapp" || valor === "preparar_email"
+    ? valor
+    : "registrar_historico";
+}
+
+function normalizarCrmAutomacoes(valor: unknown): CrmAutomacaoConfig[] {
+  if (!Array.isArray(valor)) {
+    return crmAutomacoesPadrao.map((automacao) => ({ ...automacao }));
+  }
+
+  const automacoes = valor
+    .slice(0, 20)
+    .map((item, indice) => {
+      const automacao =
+        item && typeof item === "object" && !Array.isArray(item)
+          ? (item as Record<string, unknown>)
+          : {};
+      const evento = normalizarCrmAutomacaoEvento(automacao.evento);
+      const automacaoPadrao = crmAutomacoesPadrao.find(
+        (padrao) => padrao.evento === evento
+      );
+
+      return {
+        id:
+          lerCampoTexto(automacao, "id") ||
+          criarCardapioId("automacao", indice),
+        evento,
+        titulo:
+          lerCampoTexto(automacao, "titulo") ||
+          automacaoPadrao?.titulo ||
+          "Automacao CRM",
+        mensagem:
+          lerCampoTexto(automacao, "mensagem") ||
+          automacaoPadrao?.mensagem ||
+          "Automacao registrada no CRM.",
+        acao: normalizarCrmAutomacaoAcao(automacao.acao),
+        ativa:
+          typeof automacao.ativa === "boolean"
+            ? automacao.ativa
+            : automacaoPadrao?.ativa ?? true,
+      };
+    })
+    .filter((automacao) => automacao.titulo);
+
+  return crmAutomacaoEventos.map((evento) => {
+    const automacaoSalva = automacoes.find(
+      (automacao) => automacao.evento === evento.id
+    );
+    const automacaoPadrao =
+      crmAutomacoesPadrao.find((automacao) => automacao.evento === evento.id) ||
+      crmAutomacoesPadrao[0];
+
+    return automacaoSalva || { ...automacaoPadrao };
+  });
+}
+
 function obterCrmPipelineEtapaNome(etapaId: CrmPipelineEtapa) {
   return (
     crmPipelineEtapas.find((etapa) => etapa.id === etapaId)?.nome ||
@@ -1770,6 +1914,20 @@ function obterCrmTarefaPrioridade(prioridadeId: CrmTarefaPrioridade) {
   return (
     crmTarefaPrioridades.find((prioridade) => prioridade.id === prioridadeId) ||
     crmTarefaPrioridades[0]
+  );
+}
+
+function obterCrmAutomacaoEvento(eventoId: CrmAutomacaoEvento) {
+  return (
+    crmAutomacaoEventos.find((evento) => evento.id === eventoId) ||
+    crmAutomacaoEventos[0]
+  );
+}
+
+function obterCrmAutomacaoAcao(acaoId: CrmAutomacaoAcao) {
+  return (
+    crmAutomacaoAcoes.find((acao) => acao.id === acaoId) ||
+    crmAutomacaoAcoes[0]
   );
 }
 
@@ -1800,6 +1958,9 @@ function normalizarCrmConfig(valor: unknown): CrmConfig {
   if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
     return {
       clientes: crmConfigPadrao.clientes.map((cliente) => ({ ...cliente })),
+      automacoes: crmConfigPadrao.automacoes.map((automacao) => ({
+        ...automacao,
+      })),
     };
   }
 
@@ -1843,6 +2004,7 @@ function normalizarCrmConfig(valor: unknown): CrmConfig {
       clientes.length > 0
         ? clientes
         : crmConfigPadrao.clientes.map((cliente) => ({ ...cliente })),
+    automacoes: normalizarCrmAutomacoes(config.automacoes),
   };
 }
 
@@ -4571,6 +4733,10 @@ export default function EmpresaForm({
     useState<CrmClienteConfig[]>(() =>
       crmConfigPadrao.clientes.map((cliente) => ({ ...cliente }))
     );
+  const [crmAutomacoes, setCrmAutomacoes] =
+    useState<CrmAutomacaoConfig[]>(() =>
+      crmConfigPadrao.automacoes.map((automacao) => ({ ...automacao }))
+    );
   const [crmInteracoesRascunho, setCrmInteracoesRascunho] = useState<
     Record<string, string>
   >({});
@@ -4762,6 +4928,7 @@ export default function EmpresaForm({
     setWifiMarketingConfig(wifiMarketingConfigCarregado);
     setFidelidadeConfig(fidelidadeConfigCarregado);
     setCrmClientes(crmConfigCarregado.clientes);
+    setCrmAutomacoes(crmConfigCarregado.automacoes);
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
 
@@ -5747,6 +5914,7 @@ export default function EmpresaForm({
   function montarCrmConfig(): CrmConfig {
     return {
       clientes: crmClientes,
+      automacoes: crmAutomacoes,
     };
   }
 
@@ -5767,10 +5935,50 @@ export default function EmpresaForm({
     );
   }
 
+  function atualizarCrmAutomacao(
+    automacaoId: string,
+    campo: keyof CrmAutomacaoConfig,
+    valor: string | boolean
+  ) {
+    setCrmAutomacoes((automacoesAtuais) =>
+      automacoesAtuais.map((automacaoAtual) =>
+        automacaoAtual.id === automacaoId
+          ? {
+              ...automacaoAtual,
+              [campo]:
+                campo === "evento"
+                  ? normalizarCrmAutomacaoEvento(valor)
+                  : campo === "acao"
+                    ? normalizarCrmAutomacaoAcao(valor)
+                    : valor,
+            }
+          : automacaoAtual
+      )
+    );
+  }
+
+  function criarCrmInteracoesAutomacao(
+    evento: CrmAutomacaoEvento,
+    contexto: string
+  ): CrmInteracaoConfig[] {
+    const agora = new Date().toISOString();
+
+    return crmAutomacoes
+      .filter((automacao) => automacao.ativa && automacao.evento === evento)
+      .map((automacao, indice) => ({
+        id: `interacao-automacao-${Date.now()}-${indice}`,
+        texto: `[Automacao: ${automacao.titulo}] ${automacao.mensagem} ${contexto}`.trim(),
+        origem: "sistema" as CrmInteracaoOrigem,
+        dataHora: agora,
+      }));
+  }
+
   function moverCrmClienteParaEtapa(
     clienteId: string,
     etapaPipeline: CrmPipelineEtapa
   ) {
+    const agora = new Date().toISOString();
+
     setCrmClientes((clientesAtuais) =>
       clientesAtuais.map((clienteAtual) =>
         clienteAtual.id === clienteId &&
@@ -5778,7 +5986,7 @@ export default function EmpresaForm({
           ? {
               ...clienteAtual,
               etapaPipeline,
-              movimentadoEm: new Date().toISOString(),
+              movimentadoEm: agora,
               interacoes: [
                 ...clienteAtual.interacoes,
                 {
@@ -5787,8 +5995,12 @@ export default function EmpresaForm({
                     etapaPipeline
                   )}.`,
                   origem: "sistema" as CrmInteracaoOrigem,
-                  dataHora: new Date().toISOString(),
+                  dataHora: agora,
                 },
+                ...criarCrmInteracoesAutomacao(
+                  "mudanca_etapa",
+                  `Nova etapa: ${obterCrmPipelineEtapaNome(etapaPipeline)}.`
+                ),
               ].slice(-100),
             }
           : clienteAtual
@@ -5983,6 +6195,78 @@ export default function EmpresaForm({
     );
   }
 
+  function verificarCrmTarefasVencidas() {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const tarefasVencidasPorCliente = new Map<string, CrmTarefaConfig[]>();
+
+    crmClientes.forEach((clienteAtual) => {
+      const tarefasVencidas = clienteAtual.tarefas.filter((tarefa) => {
+        if (tarefa.status === "concluida" || !tarefa.vencimento) return false;
+
+        const vencimento = new Date(`${tarefa.vencimento}T00:00:00`);
+
+        if (Number.isNaN(vencimento.getTime()) || vencimento >= hoje) {
+          return false;
+        }
+
+        const jaRegistrada = clienteAtual.interacoes.some((interacao) =>
+          interacao.texto.includes(`Tarefa vencida: ${tarefa.titulo}.`)
+        );
+
+        return !jaRegistrada;
+      });
+
+      if (tarefasVencidas.length > 0) {
+        tarefasVencidasPorCliente.set(clienteAtual.id, tarefasVencidas);
+      }
+    });
+
+    const totalRegistrado = Array.from(tarefasVencidasPorCliente.values()).reduce(
+      (total, tarefas) => total + tarefas.length,
+      0
+    );
+
+    setCrmClientes((clientesAtuais) =>
+      clientesAtuais.map((clienteAtual) => {
+        const tarefasVencidas =
+          tarefasVencidasPorCliente.get(clienteAtual.id) || [];
+
+        if (tarefasVencidas.length === 0) return clienteAtual;
+
+        const agora = new Date().toISOString();
+
+        return {
+          ...clienteAtual,
+          atualizadoEm: agora,
+          interacoes: [
+            ...clienteAtual.interacoes,
+            ...tarefasVencidas.flatMap((tarefa) => [
+              {
+                id: `interacao-tarefa-vencida-${Date.now()}-${tarefa.id}`,
+                texto: `Tarefa vencida: ${tarefa.titulo}.`,
+                origem: "sistema" as CrmInteracaoOrigem,
+                dataHora: agora,
+              },
+              ...criarCrmInteracoesAutomacao(
+                "tarefa_vencida",
+                `Tarefa: ${tarefa.titulo}. Vencimento: ${formatarDataVencimentoCrm(
+                  tarefa.vencimento
+                )}.`
+              ),
+            ]),
+          ].slice(-100),
+        };
+      })
+    );
+
+    alert(
+      totalRegistrado > 0
+        ? `${totalRegistrado} tarefa(s) vencida(s) registrada(s) no historico.`
+        : "Nenhuma nova tarefa vencida encontrada."
+    );
+  }
+
   function adicionarCrmCliente() {
     setCrmClientes((clientesAtuais) => {
       if (clientesAtuais.length >= 500) return clientesAtuais;
@@ -6003,6 +6287,10 @@ export default function EmpresaForm({
               origem: "manual",
               dataHora: agora,
             },
+            ...criarCrmInteracoesAutomacao(
+              "novo_lead",
+              "Lead criado manualmente."
+            ),
           ],
         },
       ];
@@ -7953,6 +8241,136 @@ export default function EmpresaForm({
               disabled={!recursosContratados.crm}
               className="grid gap-5 disabled:opacity-60"
             >
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+                      Automacoes
+                    </p>
+
+                    <h4 className="mt-2 text-lg font-bold text-slate-900">
+                      Regras basicas do CRM
+                    </h4>
+
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                      Configure acoes internas para novos leads, mudancas de
+                      etapa e tarefas vencidas. Nesta sprint, as automacoes
+                      registram no historico e deixam integracoes futuras
+                      preparadas.
+                    </p>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={verificarCrmTarefasVencidas}
+                  >
+                    Verificar tarefas vencidas
+                  </Button>
+                </div>
+
+                <div className="mt-4 grid gap-4">
+                  {crmAutomacoes.map((automacao) => {
+                    const evento = obterCrmAutomacaoEvento(automacao.evento);
+
+                    return (
+                      <div
+                        key={automacao.id}
+                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                      >
+                        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-slate-900">
+                              {evento.nome}
+                            </p>
+                            <p className="mt-1 text-xs leading-5 text-slate-500">
+                              {evento.descricao}
+                            </p>
+                          </div>
+
+                          <label className="inline-flex items-center gap-2 text-sm font-bold text-slate-700">
+                            <input
+                              type="checkbox"
+                              checked={automacao.ativa}
+                              onChange={(e) =>
+                                atualizarCrmAutomacao(
+                                  automacao.id,
+                                  "ativa",
+                                  e.target.checked
+                                )
+                              }
+                            />
+                            Ativa
+                          </label>
+                        </div>
+
+                        <div className="mt-4 grid gap-4 md:grid-cols-2">
+                          <Input
+                            label="Titulo"
+                            value={automacao.titulo}
+                            onChange={(e) =>
+                              atualizarCrmAutomacao(
+                                automacao.id,
+                                "titulo",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Nome da automacao"
+                          />
+
+                          <label className="block text-sm font-medium text-slate-700">
+                            Acao preparada
+                            <select
+                              value={automacao.acao}
+                              onChange={(e) =>
+                                atualizarCrmAutomacao(
+                                  automacao.id,
+                                  "acao",
+                                  e.target.value
+                                )
+                              }
+                              className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-4 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                            >
+                              {crmAutomacaoAcoes.map((acao) => (
+                                <option key={acao.id} value={acao.id}>
+                                  {acao.nome}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+
+                          <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-slate-700">
+                              Mensagem registrada
+                            </label>
+                            <textarea
+                              value={automacao.mensagem}
+                              onChange={(e) =>
+                                atualizarCrmAutomacao(
+                                  automacao.id,
+                                  "mensagem",
+                                  e.target.value
+                                )
+                              }
+                              rows={2}
+                              className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                              placeholder="Mensagem usada no historico quando a automacao executar."
+                            />
+                          </div>
+
+                          <div className="md:col-span-2 rounded-xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm text-slate-600">
+                            Execucao atual:{" "}
+                            {obterCrmAutomacaoAcao(automacao.acao).nome}. Envio
+                            real por WhatsApp ou e-mail fica preparado para
+                            futuras integracoes.
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
                 <div className="min-w-0">
                   <p className="text-sm font-bold uppercase tracking-wide text-green-700">
