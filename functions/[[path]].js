@@ -223,6 +223,10 @@ function getRequestRoute(pathname) {
     return { kind: "landing", slug: parts[1] };
   }
 
+  if (parts.length === 2 && parts[0] === "cardapio") {
+    return { kind: "cardapio", slug: parts[1] };
+  }
+
   return null;
 }
 
@@ -232,8 +236,7 @@ async function getEmpresa(env, slug) {
   }
 
   const params = new URLSearchParams({
-    select:
-      "nome,slug,descricao,categoria,telefone,whatsapp,email,instagram,tiktok,youtube,kwai,facebook,site,endereco,logo,banner,landing_page_config,cor_principal,cor_botoes,cor_fundo_pagina,cor_fundo_hero",
+    select: "*",
     slug: `eq.${slug}`,
     limit: "1",
   });
@@ -295,6 +298,25 @@ function isLandingPagePublicada(empresa) {
   const publicada = config?.versaoPublicada || config;
 
   return Boolean(publicada?.publicada);
+}
+
+function isCardapioPublicado(empresa) {
+  if (empresa?.recursos_contratados?.cardapio_digital !== true) {
+    return false;
+  }
+
+  const produtos = empresa?.cardapio_config?.produtos;
+
+  if (!Array.isArray(produtos)) return false;
+
+  return produtos.some((produto) =>
+    [
+      produto?.nome,
+      produto?.descricao,
+      produto?.preco,
+      produto?.imagemUrl,
+    ].some((valor) => String(valor || "").trim())
+  );
 }
 
 function buildRobotsTxt() {
@@ -422,11 +444,15 @@ function buildMetadata(route, empresa) {
   const title =
     (route.kind === "landing" &&
       (landingSeo.titulo || landingHero.titulo || empresa?.nome)) ||
+    (route.kind === "cardapio" &&
+      `Cardapio de ${empresa?.nome || DEFAULT_TITLE}`) ||
     empresa?.nome ||
     DEFAULT_TITLE;
   const description = truncate(
     (route.kind === "landing" &&
       (landingSeo.descricao || empresa?.descricao || landingHero.subtitulo)) ||
+      (route.kind === "cardapio" &&
+        (empresa?.descricao || empresa?.categoria || "Cardapio Digital")) ||
       empresa?.descricao ||
       empresa?.categoria ||
       DEFAULT_DESCRIPTION
@@ -465,10 +491,14 @@ function buildMetadata(route, empresa) {
   const robots =
     route.kind === "landing" && !isLandingPagePublicada(empresa)
       ? "noindex,nofollow"
+      : route.kind === "cardapio" && !isCardapioPublicado(empresa)
+        ? "noindex,nofollow"
       : "index,follow";
   const url =
     route.kind === "landing"
       ? normalizeCanonicalUrl(`/landing/${route.slug}`)
+      : route.kind === "cardapio"
+        ? normalizeCanonicalUrl(`/cardapio/${route.slug}`)
       : normalizeCanonicalUrl(`/${route.slug}`);
 
   const manifestUrl = `${PUBLIC_APP_URL}/manifest.webmanifest?${new URLSearchParams({
@@ -511,6 +541,8 @@ function buildManifest(metadata) {
   const startPath =
     metadata.route.kind === "landing"
       ? `/landing/${metadata.route.slug}`
+      : metadata.route.kind === "cardapio"
+        ? `/cardapio/${metadata.route.slug}`
       : `/${metadata.route.slug}`;
 
   return {
@@ -636,8 +668,11 @@ export async function onRequestGet(context) {
 
   if (url.pathname === "/manifest.webmanifest") {
     const slug = url.searchParams.get("slug") || "";
+    const kindParam = url.searchParams.get("kind");
     const kind =
-      url.searchParams.get("kind") === "landing" ? "landing" : "public";
+      kindParam === "landing" || kindParam === "cardapio"
+        ? kindParam
+        : "public";
     const empresa = slug ? await getEmpresa(context.env, slug) : null;
     const route = { kind, slug };
     const metadata = buildMetadata(route, empresa);

@@ -80,7 +80,7 @@ export function normalizeCanonicalUrl(value?: string | null) {
   }
 }
 
-export function getManifestUrl(slug: string, kind: "public" | "landing") {
+export function getManifestUrl(slug: string, kind: "public" | "landing" | "cardapio") {
   const params = new URLSearchParams({
     slug,
     kind,

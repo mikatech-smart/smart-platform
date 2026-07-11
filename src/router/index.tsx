@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import PublicProfile from "../pages/connect/PublicProfile/PublicProfile";
 import PublicEmpresaPage from "../pages/PublicEmpresaPage/PublicEmpresaPage";
 import PublicLandingPage from "../pages/PublicLandingPage/PublicLandingPage";
+import PublicCardapioPage from "../pages/PublicCardapioPage/PublicCardapioPage";
 
 import Dashboard from "../pages/dashboard/Dashboard";
 import Empresas from "../pages/dashboard/Empresas";
@@ -28,6 +29,11 @@ export default function AppRouter() {
         <Route
           path="/landing/:slug"
           element={<PublicLandingPage />}
+        />
+
+        <Route
+          path="/cardapio/:slug"
+          element={<PublicCardapioPage />}
         />
 
         {/* Dashboard */}

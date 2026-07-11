@@ -30,6 +30,9 @@ type AparenciaEmpresa = Empresa & {
   gradiente_inicio?: string | null;
   gradiente_fim?: string | null;
   gradiente_direcao?: string | null;
+  recursos_contratados?: {
+    cardapio_digital?: boolean;
+  } | null;
 };
 
 const diasSemana = [
@@ -269,6 +272,8 @@ export default function PublicEmpresaPage() {
   );
   const googleMapsUrl = criarGoogleMapsUrl(empresa.endereco);
   const estiloAparencia = criarEstiloAparencia(empresa);
+  const cardapioDigitalContratado =
+    (empresa as AparenciaEmpresa).recursos_contratados?.cardapio_digital === true;
 
   return (
     <main className="public-empresa-page" style={estiloAparencia}>
@@ -313,6 +318,19 @@ export default function PublicEmpresaPage() {
             pixNome={empresa.pix_nome}
             pixChave={empresa.pix_chave || empresa.pix}
           />
+
+          {cardapioDigitalContratado && (
+            <section className="public-empresa-section public-empresa-info-card">
+              <span>Cardapio Digital</span>
+              <p>Consulte categorias, produtos e disponibilidade atualizada.</p>
+              <a
+                className="public-empresa-map-link"
+                href={`/cardapio/${empresa.slug}`}
+              >
+                Ver cardapio
+              </a>
+            </section>
+          )}
 
           {empresa.endereco && (
             <section className="public-empresa-section public-empresa-address-card">
