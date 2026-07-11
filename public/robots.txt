@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api
+Disallow: /dashboard
+Disallow: /login
+Disallow: /painel
+Disallow: /connect
+Disallow: /manifest.webmanifest
+
+Sitemap: https://smart.mikaon.com.br/sitemap.xml
