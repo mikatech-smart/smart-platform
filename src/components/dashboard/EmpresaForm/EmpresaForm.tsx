@@ -60,6 +60,7 @@ type AbaEmpresa =
   | "catalogo"
   | "agendamento"
   | "wifiMarketing"
+  | "fidelidade"
   | "contato"
   | "endereco"
   | "redes"
@@ -96,6 +97,7 @@ const abasEmpresa: Array<{
   { id: "catalogo", label: "Catalogo" },
   { id: "agendamento", label: "Agendamento" },
   { id: "wifiMarketing", label: "Wi-Fi Marketing" },
+  { id: "fidelidade", label: "Fidelidade" },
   { id: "contato", label: "Contato" },
   { id: "endereco", label: "Endereço" },
   { id: "redes", label: "Redes Sociais" },
@@ -112,6 +114,7 @@ type RecursoEmpresaId =
   | "catalogo"
   | "agendamento"
   | "wifi_marketing"
+  | "fidelidade"
   | "wifi"
   | "google_reviews"
   | "nfc"
@@ -150,6 +153,7 @@ const recursosPadrao: RecursosContratados = {
   catalogo: false,
   agendamento: false,
   wifi_marketing: false,
+  fidelidade: false,
   wifi: false,
   google_reviews: false,
   nfc: true,
@@ -208,6 +212,12 @@ const recursosEmpresa: Array<{
     id: "wifi_marketing",
     nome: "Wi-Fi Marketing",
     descricao: "Campanhas exibidas para clientes conectados ou em captacao.",
+    statusInativo: "Em breve",
+  },
+  {
+    id: "fidelidade",
+    nome: "Programa de Fidelidade",
+    descricao: "Estrutura para campanhas de pontos, carimbos e recompensas.",
     statusInativo: "Em breve",
   },
   {
@@ -585,6 +595,15 @@ type WifiMarketingConfig = {
   ativo: boolean;
 };
 
+type FidelidadeConfig = {
+  titulo: string;
+  descricao: string;
+  recompensa: string;
+  quantidade: string;
+  tipoAcumulo: "pontos" | "carimbos";
+  ativo: boolean;
+};
+
 const cardapioCategoriaPadrao: CardapioCategoriaConfig = {
   id: "categoria-1",
   nome: "",
@@ -649,6 +668,15 @@ const wifiMarketingConfigPadrao: WifiMarketingConfig = {
   imagemUrl: "",
   botaoTexto: "",
   botaoLink: "",
+  ativo: false,
+};
+
+const fidelidadeConfigPadrao: FidelidadeConfig = {
+  titulo: "",
+  descricao: "",
+  recompensa: "",
+  quantidade: "",
+  tipoAcumulo: "carimbos",
   ativo: false,
 };
 
@@ -1398,6 +1426,27 @@ function normalizarWifiMarketingConfig(valor: unknown): WifiMarketingConfig {
     imagemUrl: lerCampoTexto(config, "imagemUrl"),
     botaoTexto: lerCampoTexto(config, "botaoTexto"),
     botaoLink: lerCampoTexto(config, "botaoLink"),
+    ativo: typeof config.ativo === "boolean" ? config.ativo : false,
+  };
+}
+
+function normalizarFidelidadeConfig(valor: unknown): FidelidadeConfig {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return { ...fidelidadeConfigPadrao };
+  }
+
+  const config = valor as Record<string, unknown>;
+  const tipoAcumulo = lerCampoTexto(config, "tipoAcumulo");
+
+  return {
+    titulo: lerCampoTexto(config, "titulo"),
+    descricao: lerCampoTexto(config, "descricao"),
+    recompensa: lerCampoTexto(config, "recompensa"),
+    quantidade:
+      lerCampoTexto(config, "quantidade") ||
+      lerCampoTexto(config, "quantidadePontos") ||
+      lerCampoTexto(config, "quantidadeCarimbos"),
+    tipoAcumulo: tipoAcumulo === "pontos" ? "pontos" : "carimbos",
     ativo: typeof config.ativo === "boolean" ? config.ativo : false,
   };
 }
@@ -4121,6 +4170,8 @@ export default function EmpresaForm({
     );
   const [wifiMarketingConfig, setWifiMarketingConfig] =
     useState<WifiMarketingConfig>(() => ({ ...wifiMarketingConfigPadrao }));
+  const [fidelidadeConfig, setFidelidadeConfig] =
+    useState<FidelidadeConfig>(() => ({ ...fidelidadeConfigPadrao }));
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -4242,6 +4293,7 @@ export default function EmpresaForm({
       catalogo_config?: unknown;
       agendamento_config?: unknown;
       wifi_marketing_config?: unknown;
+      fidelidade_config?: unknown;
     };
     const landingPageConfig = normalizarLandingPageConfig(
       dadosComPlano.landing_page_config
@@ -4257,6 +4309,9 @@ export default function EmpresaForm({
     );
     const wifiMarketingConfigCarregado = normalizarWifiMarketingConfig(
       dadosComPlano.wifi_marketing_config
+    );
+    const fidelidadeConfigCarregado = normalizarFidelidadeConfig(
+      dadosComPlano.fidelidade_config
     );
 
     setNome(data.nome || "");
@@ -4296,6 +4351,7 @@ export default function EmpresaForm({
     setCatalogoProdutos(catalogoConfig.produtos);
     setAgendamentoServicos(agendamentoConfig.servicos);
     setWifiMarketingConfig(wifiMarketingConfigCarregado);
+    setFidelidadeConfig(fidelidadeConfigCarregado);
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
 
@@ -5262,6 +5318,22 @@ export default function EmpresaForm({
     }));
   }
 
+  function montarFidelidadeConfig(): FidelidadeConfig {
+    return {
+      ...fidelidadeConfig,
+    };
+  }
+
+  function atualizarFidelidadeConfig(
+    campo: keyof FidelidadeConfig,
+    valor: string | boolean
+  ) {
+    setFidelidadeConfig((configAtual) => ({
+      ...configAtual,
+      [campo]: valor,
+    }));
+  }
+
   async function publicarLandingPageAlteracoes() {
     if (!empresaId) {
       alert("Empresa ainda nao foi carregada. Tente novamente.");
@@ -5370,6 +5442,7 @@ export default function EmpresaForm({
     const catalogoConfig = montarCatalogoConfig();
     const agendamentoConfig = montarAgendamentoConfig();
     const wifiMarketingPayload = montarWifiMarketingConfig();
+    const fidelidadePayload = montarFidelidadeConfig();
 
     if (whatsappLocal && whatsappLocal.length < 10) {
       alert("Informe um WhatsApp válido com DDD.");
@@ -5427,6 +5500,7 @@ export default function EmpresaForm({
       catalogo_config: catalogoConfig,
       agendamento_config: agendamentoConfig,
       wifi_marketing_config: wifiMarketingPayload,
+      fidelidade_config: fidelidadePayload,
     };
 
     if (suportaCorFundoHero) {
@@ -7002,6 +7076,148 @@ export default function EmpresaForm({
                   {!wifiMarketingConfig.ativo && (
                     <span className="w-fit rounded-full bg-slate-200 px-3 py-1 text-xs font-bold text-slate-700">
                       Inativa
+                    </span>
+                  )}
+                </div>
+              </div>
+            </fieldset>
+          </div>
+        </Card>
+      )}
+
+      {abaAtiva === "fidelidade" && (
+        <Card
+          title="Programa de Fidelidade"
+          subtitle="Estrutura inicial para campanhas de pontos, carimbos e recompensas."
+        >
+          <div className="space-y-5">
+            <div
+              className={`rounded-2xl border p-4 ${
+                recursosContratados.fidelidade
+                  ? "border-green-200 bg-green-50"
+                  : "border-amber-200 bg-amber-50"
+              }`}
+            >
+              <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div className="min-w-0">
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+                      recursosContratados.fidelidade
+                        ? "bg-green-700 text-white"
+                        : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {recursosContratados.fidelidade
+                      ? "Ativo"
+                      : "Nao contratado"}
+                  </span>
+
+                  <h3 className="mt-3 text-xl font-bold text-slate-900">
+                    Campanha de fidelidade
+                  </h3>
+
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                    Cadastre a regra base do programa para campanhas futuras de
+                    pontos, carimbos, beneficios e recompensas para clientes.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <fieldset
+              disabled={!recursosContratados.fidelidade}
+              className="grid gap-5 disabled:opacity-60"
+            >
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+                      Configuracao
+                    </p>
+
+                    <h4 className="mt-2 text-lg font-bold text-slate-900">
+                      Regras do programa
+                    </h4>
+                  </div>
+
+                  <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={fidelidadeConfig.ativo}
+                      onChange={(e) =>
+                        atualizarFidelidadeConfig("ativo", e.target.checked)
+                      }
+                    />
+                    Programa ativo
+                  </label>
+                </div>
+
+                <div className="mt-4 grid gap-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Input
+                      label="Titulo da campanha"
+                      value={fidelidadeConfig.titulo}
+                      onChange={(e) =>
+                        atualizarFidelidadeConfig("titulo", e.target.value)
+                      }
+                      placeholder="Ex.: Clube de Vantagens"
+                    />
+
+                    <Input
+                      label="Recompensa"
+                      value={fidelidadeConfig.recompensa}
+                      onChange={(e) =>
+                        atualizarFidelidadeConfig("recompensa", e.target.value)
+                      }
+                      placeholder="Ex.: Ganhe um brinde exclusivo"
+                    />
+
+                    <Input
+                      label="Quantidade de pontos/carimbos"
+                      value={fidelidadeConfig.quantidade}
+                      onChange={(e) =>
+                        atualizarFidelidadeConfig("quantidade", e.target.value)
+                      }
+                      placeholder="Ex.: 10"
+                    />
+
+                    <label className="block font-medium text-slate-700">
+                      Tipo de acumulador
+                      <select
+                        value={fidelidadeConfig.tipoAcumulo}
+                        onChange={(e) =>
+                          atualizarFidelidadeConfig(
+                            "tipoAcumulo",
+                            e.target.value
+                          )
+                        }
+                        className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-4 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                      >
+                        <option value="carimbos">Carimbos</option>
+                        <option value="pontos">Pontos</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <div>
+                    <label className="block font-medium text-slate-700">
+                      Descricao da campanha
+                    </label>
+
+                    <textarea
+                      value={fidelidadeConfig.descricao}
+                      onChange={(e) =>
+                        atualizarFidelidadeConfig("descricao", e.target.value)
+                      }
+                      placeholder="Explique como o cliente acumula pontos ou carimbos e como resgata a recompensa."
+                      rows={4}
+                      className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                    />
+                  </div>
+
+                  {!fidelidadeConfig.ativo && (
+                    <span className="w-fit rounded-full bg-slate-200 px-3 py-1 text-xs font-bold text-slate-700">
+                      Inativo
                     </span>
                   )}
                 </div>

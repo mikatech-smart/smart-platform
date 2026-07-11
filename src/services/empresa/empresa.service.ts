@@ -10,6 +10,7 @@ const recursosContratadosPadrao = {
   catalogo: false,
   agendamento: false,
   wifi_marketing: false,
+  fidelidade: false,
   wifi: false,
   google_reviews: false,
   nfc: true,
@@ -59,6 +60,15 @@ function erroColunaWifiMarketingConfig(error: { message?: string; code?: string 
     mensagem.includes("wifi_marketing_config") ||
     (error.code === "PGRST204" && mensagem.includes("wifi_marketing")) ||
     (error.code === "PGRST204" && mensagem.includes("wifi marketing"))
+  );
+}
+
+function erroColunaFidelidadeConfig(error: { message?: string; code?: string }) {
+  const mensagem = error.message?.toLowerCase() || "";
+
+  return (
+    mensagem.includes("fidelidade_config") ||
+    (error.code === "PGRST204" && mensagem.includes("fidelidade"))
   );
 }
 
@@ -325,6 +335,39 @@ export async function atualizarEmpresa(
   });
 
   if (error) {
+    if (erroColunaFidelidadeConfig(error)) {
+      if ("fidelidade_config" in dados) {
+        const { fidelidade_config: _fidelidadeConfig, ...dadosSemFidelidade } =
+          dados as Record<string, unknown>;
+        const { data: dataSemFidelidade, error: errorSemFidelidade } =
+          await supabase
+            .from("empresas")
+            .update(dadosSemFidelidade)
+            .eq("id", id)
+            .select();
+
+        if (!errorSemFidelidade && dataSemFidelidade?.length) {
+          console.warn(
+            "fidelidade_config ainda nao existe no Supabase; demais dados foram salvos sem o Programa de Fidelidade."
+          );
+
+          return {
+            data: dataSemFidelidade[0],
+            error: null,
+          };
+        }
+      }
+
+      return {
+        data: null,
+        error: {
+          ...error,
+          message:
+            "A coluna fidelidade_config ainda nao existe na tabela empresas. Crie a coluna JSONB para salvar o Programa de Fidelidade.",
+        },
+      };
+    }
+
     if (erroColunaWifiMarketingConfig(error)) {
       if ("wifi_marketing_config" in dados) {
         const {

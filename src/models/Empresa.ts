@@ -40,6 +40,7 @@ export interface Empresa {
   catalogo_config?: unknown;
   agendamento_config?: unknown;
   wifi_marketing_config?: unknown;
+  fidelidade_config?: unknown;
 
   logo: string;
 
