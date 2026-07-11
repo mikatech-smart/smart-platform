@@ -12,6 +12,9 @@ const DEFAULT_PWA_ICON_512 = `${PUBLIC_APP_URL}/android-chrome-512x512.png?v=${A
 const DEFAULT_THEME_COLOR = "#064e3b";
 const DEFAULT_BACKGROUND_COLOR = "#ffffff";
 const SITEMAP_MAX_URLS = 50000;
+const HTML_CACHE_CONTROL = "no-cache";
+const REVALIDATE_CACHE_CONTROL = "public, max-age=0, must-revalidate";
+const LONG_CACHE_CONTROL = "public, max-age=31536000, immutable";
 const PERFORMANCE_RESOURCE_ORIGINS = [
   "https://zujfoqjmuzvdqilaxlhb.supabase.co",
   "https://www.google.com",
@@ -123,6 +126,21 @@ function applySecurityHeaders(headers) {
   );
 
   return headers;
+}
+
+function applyCacheControl(headers, value) {
+  headers.set("Cache-Control", value);
+
+  return headers;
+}
+
+function isLongCacheAsset(pathname = "", contentType = "") {
+  return (
+    pathname.startsWith("/assets/") ||
+    /\.(?:avif|css|gif|ico|jpe?g|js|mjs|png|svg|webp|woff2?)$/i.test(pathname) ||
+    /^(?:font|image)\//i.test(contentType) ||
+    /(?:javascript|text\/css)/i.test(contentType)
+  );
 }
 
 function absoluteImage(value = "") {
@@ -584,7 +602,7 @@ export async function onRequestGet(context) {
       headers: applySecurityHeaders(
         new Headers({
           "content-type": "text/plain; charset=utf-8",
-          "cache-control": "public, max-age=300",
+          "cache-control": REVALIDATE_CACHE_CONTROL,
         })
       ),
     });
@@ -597,7 +615,7 @@ export async function onRequestGet(context) {
       headers: applySecurityHeaders(
         new Headers({
           "content-type": "application/xml; charset=utf-8",
-          "cache-control": "public, max-age=300",
+          "cache-control": REVALIDATE_CACHE_CONTROL,
         })
       ),
     });
@@ -615,7 +633,7 @@ export async function onRequestGet(context) {
       headers: applySecurityHeaders(
         new Headers({
           "content-type": "application/manifest+json; charset=utf-8",
-          "cache-control": "public, max-age=300",
+          "cache-control": REVALIDATE_CACHE_CONTROL,
         })
       ),
     });
@@ -628,7 +646,20 @@ export async function onRequestGet(context) {
 
   if (!route || !contentType.includes("text/html")) {
     if (!contentType.includes("text/html")) {
-      return response;
+      if (!isLongCacheAsset(url.pathname, contentType)) {
+        return response;
+      }
+
+      const headers = new Headers(response.headers);
+
+      applyCacheControl(headers, LONG_CACHE_CONTROL);
+      applySecurityHeaders(headers);
+
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+      });
     }
 
     const html = injectBaseRobotsMetadata(await response.text(), {
@@ -638,6 +669,7 @@ export async function onRequestGet(context) {
     const headers = new Headers(response.headers);
 
     headers.set("content-type", "text/html; charset=utf-8");
+    applyCacheControl(headers, HTML_CACHE_CONTROL);
     applySecurityHeaders(headers);
 
     return new Response(html, {
@@ -656,6 +688,7 @@ export async function onRequestGet(context) {
   const headers = new Headers(response.headers);
 
   headers.set("content-type", "text/html; charset=utf-8");
+  applyCacheControl(headers, HTML_CACHE_CONTROL);
   applySecurityHeaders(headers);
 
   return new Response(html, {
