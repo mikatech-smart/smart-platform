@@ -1,6 +1,9 @@
 import { useRef, useState } from "react";
 
-import { uploadImagem } from "../../../services/storage/storage.service";
+import {
+  excluirImagem,
+  uploadImagem,
+} from "../../../services/storage/storage.service";
 import type { UploadImagemProps } from "./UploadImagem.types";
 import "./UploadImagem.css";
 
@@ -117,20 +120,44 @@ export default function UploadImagem({
   }
 
   async function removerImagem() {
-    setPreviewLocal("");
-    setImagemRemovida(true);
-
     if (inputRef.current) {
       inputRef.current.value = "";
     }
 
-    if (!onUpload) return;
+    if (!onUpload) {
+      setPreviewLocal("");
+      setImagemRemovida(true);
+      return;
+    }
+
+    const imagemAtual = imagem || previewLocal || "";
 
     try {
       setEnviando(true);
+
       await onUpload("");
+
+      if (imagemAtual) {
+        const { error } = await excluirImagem(imagemAtual);
+
+        if (error) throw error;
+      }
+
+      setPreviewLocal("");
+      setImagemRemovida(true);
     } catch (error) {
       const mensagemErro = obterMensagemErroSupabase(error);
+
+      if (imagemAtual) {
+        setPreviewLocal(imagemAtual);
+        setImagemRemovida(false);
+
+        try {
+          await onUpload(imagemAtual);
+        } catch (rollbackError) {
+          console.error("Erro ao restaurar imagem apos falha:", rollbackError);
+        }
+      }
 
       console.error("Erro ao remover imagem:", error);
       alert(`Erro ao remover imagem: ${mensagemErro}`);
@@ -195,9 +222,11 @@ export default function UploadImagem({
       try {
         setEnviando(true);
 
-        const extensao = arquivo.name.split(".").pop();
+        const extensao = (
+          arquivo.name.split(".").pop() || "arquivo"
+        ).toLowerCase();
 
-        const caminho = `${pasta}/${Date.now()}.${extensao}`;
+        const caminho = `${pasta}/arquivo.${extensao}`;
         const urlPublica = await uploadImagem(caminho, arquivo);
         const urlPreview = adicionarVersaoImagem(urlPublica);
 
