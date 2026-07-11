@@ -23,6 +23,10 @@ import {
   PublicLandingPageContent,
   type EmpresaLanding,
 } from "../../../pages/PublicLandingPage/PublicLandingPage";
+import {
+  obterResumoStorageEmpresas,
+  type StorageResumo,
+} from "../../../services/storage/storage.service";
 import { BrandConfig } from "../../../config/brand";
 
 import "../../../pages/PublicEmpresaPage/PublicEmpresaPage.css";
@@ -301,6 +305,7 @@ type LandingPageSecaoId =
   | "servicos"
   | "galeria"
   | "depoimentos"
+  | "videos"
   | "audios"
   | "produtosDigitais"
   | "contato"
@@ -335,6 +340,13 @@ type LandingPageDepoimentoConfig = {
   nome: string;
   cargoEmpresa: string;
   texto: string;
+};
+
+type LandingPageVideoConfig = {
+  titulo: string;
+  descricao: string;
+  url: string;
+  visivel: boolean;
 };
 
 type LandingPageAudioConfig = {
@@ -398,6 +410,7 @@ type LandingPageSecaoConteudoId =
   | "servicos"
   | "galeria"
   | "depoimentos"
+  | "videos"
   | "audios"
   | "produtosDigitais"
   | "contato"
@@ -410,6 +423,7 @@ type LandingPageConfig = {
   servicos: LandingPageServicoConfig[];
   galeria: LandingPageGaleriaImagemConfig[];
   depoimentos: LandingPageDepoimentoConfig[];
+  videos: LandingPageVideoConfig[];
   audios: LandingPageAudioConfig[];
   produtosDigitais: LandingPageProdutoDigitalConfig[];
   categoriasProdutosDigitais: string[];
@@ -442,6 +456,7 @@ type LandingPageSectionProps = {
   servicos: LandingPageServicoConfig[];
   galeria: LandingPageGaleriaImagemConfig[];
   depoimentos: LandingPageDepoimentoConfig[];
+  videos: LandingPageVideoConfig[];
   audios: LandingPageAudioConfig[];
   produtosDigitais: LandingPageProdutoDigitalConfig[];
   categoriasProdutosDigitais: string[];
@@ -474,6 +489,14 @@ type LandingPageSectionProps = {
   ) => void;
   onDepoimentoAdd: () => void;
   onDepoimentoRemove: (indice: number) => void;
+  onVideoChange: (
+    indice: number,
+    campo: keyof LandingPageVideoConfig,
+    valor: string | boolean
+  ) => void;
+  onVideoAdd: () => void;
+  onVideoRemove: (indice: number) => void;
+  onVideoMove: (indice: number, direcao: "up" | "down") => void;
   onAudioChange: (
     indice: number,
     campo: keyof LandingPageAudioConfig,
@@ -1252,6 +1275,15 @@ const landingPageAudiosPadrao: LandingPageAudioConfig[] = [
   },
 ];
 
+const landingPageVideosPadrao: LandingPageVideoConfig[] = [
+  {
+    titulo: "",
+    descricao: "",
+    url: "",
+    visivel: true,
+  },
+];
+
 const landingPageProdutosDigitaisPadrao: LandingPageProdutoDigitalConfig[] = [
   {
     titulo: "",
@@ -1339,6 +1371,7 @@ const landingPageOrdemSecoesPadrao: LandingPageSecaoConteudoId[] = [
   "servicos",
   "galeria",
   "depoimentos",
+  "videos",
   "audios",
   "produtosDigitais",
   "contato",
@@ -1354,6 +1387,7 @@ const landingPageSecoesOrdenaveis: Array<{
   { id: "servicos", nome: "Servicos" },
   { id: "galeria", nome: "Galeria" },
   { id: "depoimentos", nome: "Depoimentos" },
+  { id: "videos", nome: "Videos" },
   { id: "audios", nome: "Audios" },
   { id: "produtosDigitais", nome: "Produtos Digitais" },
   { id: "contato", nome: "Contato" },
@@ -1369,6 +1403,7 @@ const landingPageVisibilidadeSecoesPadrao: Record<
   servicos: true,
   galeria: true,
   depoimentos: true,
+  videos: true,
   audios: true,
   produtosDigitais: true,
   contato: true,
@@ -1652,6 +1687,7 @@ function criarLandingPageConfigPadrao(): LandingPageConfig {
     depoimentos: landingPageDepoimentosPadrao.map((depoimento) => ({
       ...depoimento,
     })),
+    videos: landingPageVideosPadrao.map((video) => ({ ...video })),
     audios: landingPageAudiosPadrao.map((audio) => ({ ...audio })),
     produtosDigitais: landingPageProdutosDigitaisPadrao.map((produto) => ({
       ...produto,
@@ -2416,6 +2452,100 @@ function normalizarListaLanding<T extends Record<string, string>>(
   return itens.length > 0 ? itens : padrao.map((item) => ({ ...item }));
 }
 
+function criarYouTubeEmbedUrl(url: string) {
+  const urlLimpa = url.trim();
+
+  if (!urlLimpa) return "";
+
+  try {
+    const urlYoutube = new URL(urlLimpa);
+    const host = urlYoutube.hostname.replace(/^www\./, "").toLowerCase();
+    const isYoutube =
+      host === "youtube.com" ||
+      host === "m.youtube.com" ||
+      host === "youtu.be";
+
+    if (!isYoutube) return "";
+
+    const playlist = urlYoutube.searchParams.get("list") || "";
+
+    if (urlYoutube.pathname === "/playlist" && playlist) {
+      return `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(
+        playlist
+      )}`;
+    }
+
+    let videoId = "";
+
+    if (host === "youtu.be") {
+      videoId = urlYoutube.pathname.split("/").filter(Boolean)[0] || "";
+    } else if (urlYoutube.pathname === "/watch") {
+      videoId = urlYoutube.searchParams.get("v") || "";
+    } else if (urlYoutube.pathname.startsWith("/embed/")) {
+      videoId = urlYoutube.pathname.split("/").filter(Boolean)[1] || "";
+    } else if (urlYoutube.pathname.startsWith("/shorts/")) {
+      videoId = urlYoutube.pathname.split("/").filter(Boolean)[1] || "";
+    }
+
+    if (videoId) {
+      return `https://www.youtube.com/embed/${encodeURIComponent(videoId)}`;
+    }
+
+    if (playlist) {
+      return `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(
+        playlist
+      )}`;
+    }
+  } catch {
+    return "";
+  }
+
+  return "";
+}
+
+function formatarBytesStorage(bytes: number) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+
+  const unidades = ["B", "KB", "MB", "GB", "TB"];
+  let valor = bytes;
+  let indiceUnidade = 0;
+
+  while (valor >= 1024 && indiceUnidade < unidades.length - 1) {
+    valor /= 1024;
+    indiceUnidade += 1;
+  }
+
+  return `${valor.toLocaleString("pt-BR", {
+    maximumFractionDigits: indiceUnidade === 0 ? 0 : 1,
+  })} ${unidades[indiceUnidade]}`;
+}
+
+function normalizarVideosLanding(valor: unknown): LandingPageVideoConfig[] {
+  if (!Array.isArray(valor)) {
+    return landingPageVideosPadrao.map((video) => ({ ...video }));
+  }
+
+  const videos = valor.slice(0, 8).map((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      return { ...landingPageVideosPadrao[0] };
+    }
+
+    const video = item as Record<string, unknown>;
+
+    return {
+      titulo: lerCampoTexto(video, "titulo"),
+      descricao: lerCampoTexto(video, "descricao"),
+      url: lerCampoTexto(video, "url"),
+      visivel:
+        typeof video.visivel === "boolean" ? video.visivel : true,
+    };
+  });
+
+  return videos.length > 0
+    ? videos
+    : landingPageVideosPadrao.map((video) => ({ ...video }));
+}
+
 function normalizarAudiosLanding(valor: unknown): LandingPageAudioConfig[] {
   if (!Array.isArray(valor)) {
     return landingPageAudiosPadrao.map((audio) => ({ ...audio }));
@@ -2581,6 +2711,7 @@ function criarLandingPagePublicavel(config: LandingPagePublicavelConfig) {
     servicos: config.servicos.map((servico) => ({ ...servico })),
     galeria: config.galeria.map((imagem) => ({ ...imagem })),
     depoimentos: config.depoimentos.map((depoimento) => ({ ...depoimento })),
+    videos: config.videos.map((video) => ({ ...video })),
     audios: config.audios.map((audio) => ({ ...audio })),
     produtosDigitais: config.produtosDigitais.map((produto) => ({
       ...produto,
@@ -2635,6 +2766,7 @@ function normalizarLandingPagePublicavelConfig(
       fallback.depoimentos,
       ["nome", "cargoEmpresa", "texto"]
     ),
+    videos: normalizarVideosLanding(config.videos),
     audios: normalizarAudiosLanding(config.audios),
     produtosDigitais: normalizarProdutosDigitaisLanding(
       config.produtosDigitais
@@ -2710,6 +2842,7 @@ function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
       landingPageDepoimentosPadrao,
       ["nome", "cargoEmpresa", "texto"]
     ),
+    videos: normalizarVideosLanding(configRecebida.videos),
     audios: normalizarAudiosLanding(configRecebida.audios),
     produtosDigitais: normalizarProdutosDigitaisLanding(
       configRecebida.produtosDigitais
@@ -3304,6 +3437,173 @@ function LandingDepoimentosSection({
           Adicionar depoimento
         </button>
       </fieldset>
+    </div>
+  );
+}
+
+function LandingVideosSection({
+  landingPageContratada,
+  videos,
+  onVideoChange,
+  onVideoAdd,
+  onVideoRemove,
+  onVideoMove,
+}: LandingPageSectionProps) {
+  const camposDesabilitados = !landingPageContratada;
+  const limiteVideos = 8;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+            Videos
+          </p>
+
+          <h4 className="mt-2 text-lg font-bold text-slate-900">
+            Videos do YouTube na Landing Page
+          </h4>
+
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Cadastre um video principal e videos adicionais usando apenas links do YouTube. Upload de video permanece fora do padrao oficial.
+          </p>
+        </div>
+
+        {!landingPageContratada && (
+          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
+            Nao contratado
+          </span>
+        )}
+      </div>
+
+      <fieldset
+        disabled={camposDesabilitados}
+        className="mt-5 grid gap-4 disabled:opacity-60"
+      >
+        {videos.map((video, indice) => {
+          const urlVideo = video.url.trim();
+          const embedUrl = criarYouTubeEmbedUrl(urlVideo);
+          const urlInvalida = Boolean(urlVideo && !embedUrl);
+
+          return (
+            <div
+              key={`video-${indice}`}
+              className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+            >
+              <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <h5 className="font-bold text-slate-900">
+                    {indice === 0 ? "Video principal" : `Video adicional ${indice}`}
+                  </h5>
+
+                  <label className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={video.visivel}
+                      onChange={(e) =>
+                        onVideoChange(indice, "visivel", e.target.checked)
+                      }
+                    />
+                    Exibir video
+                  </label>
+                </div>
+
+                <div className="grid gap-2 sm:flex sm:shrink-0">
+                  <button
+                    type="button"
+                    disabled={camposDesabilitados || indice === 0}
+                    onClick={() => onVideoMove(indice, "up")}
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Subir
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={camposDesabilitados || indice === videos.length - 1}
+                    onClick={() => onVideoMove(indice, "down")}
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Descer
+                  </button>
+
+                  {videos.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => onVideoRemove(indice)}
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600"
+                    >
+                      Remover
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Input
+                    label="Titulo"
+                    value={video.titulo}
+                    onChange={(e) =>
+                      onVideoChange(indice, "titulo", e.target.value)
+                    }
+                    placeholder="Nome do video ou da playlist"
+                  />
+
+                  <Input
+                    label="Descricao (opcional)"
+                    value={video.descricao}
+                    onChange={(e) =>
+                      onVideoChange(indice, "descricao", e.target.value)
+                    }
+                    placeholder="Contexto curto para o visitante"
+                  />
+                </div>
+
+                <Input
+                  label="Link do YouTube"
+                  value={video.url}
+                  onChange={(e) =>
+                    onVideoChange(indice, "url", e.target.value)
+                  }
+                  placeholder="https://www.youtube.com/watch?v=..."
+                />
+
+                {urlInvalida && (
+                  <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+                    Informe um link valido do YouTube ou de uma playlist do YouTube.
+                  </p>
+                )}
+
+                {embedUrl && (
+                  <div className="overflow-hidden rounded-2xl border border-slate-200 bg-black">
+                    <iframe
+                      title={video.titulo || `Video ${indice + 1}`}
+                      src={embedUrl}
+                      className="aspect-video w-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        <button
+          type="button"
+          onClick={onVideoAdd}
+          disabled={camposDesabilitados || videos.length >= limiteVideos}
+          className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Adicionar video
+        </button>
+      </fieldset>
+
+      <p className="mt-4 rounded-xl bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
+        Padrao oficial: imagens, PDFs, documentos e audios usam upload; videos usam somente link do YouTube.
+      </p>
     </div>
   );
 }
@@ -4546,6 +4846,13 @@ const landingPageSections: LandingPageSecaoConfig[] = [
     Component: LandingDepoimentosSection,
   },
   {
+    id: "videos",
+    nome: "Videos",
+    descricao: "Videos do YouTube com preview incorporado.",
+    ordem: 52,
+    Component: LandingVideosSection,
+  },
+  {
     id: "audios",
     nome: "Audios",
     descricao: "Player de audios para materiais, demonstracoes e aulas.",
@@ -5034,6 +5341,10 @@ export default function EmpresaForm({
     useState<LandingPageDepoimentoConfig[]>(() =>
       landingPageDepoimentosPadrao.map((depoimento) => ({ ...depoimento }))
     );
+  const [landingPageVideos, setLandingPageVideos] =
+    useState<LandingPageVideoConfig[]>(() =>
+      landingPageVideosPadrao.map((video) => ({ ...video }))
+    );
   const [landingPageAudios, setLandingPageAudios] =
     useState<LandingPageAudioConfig[]>(() =>
       landingPageAudiosPadrao.map((audio) => ({ ...audio }))
@@ -5076,6 +5387,9 @@ export default function EmpresaForm({
     landingPageVersaoHistoricoVisualizada,
     setLandingPageVersaoHistoricoVisualizada,
   ] = useState<LandingPagePublicavelConfig | null>(null);
+  const [storageResumo, setStorageResumo] = useState<StorageResumo | null>(null);
+  const [storageCarregando, setStorageCarregando] = useState(false);
+  const [storageErro, setStorageErro] = useState("");
   const [cardapioCategorias, setCardapioCategorias] =
     useState<CardapioCategoriaConfig[]>(() =>
       cardapioConfigPadrao.categorias.map((categoria) => ({ ...categoria }))
@@ -5301,6 +5615,7 @@ export default function EmpresaForm({
     setLandingPageServicos(landingPageConfig.servicos);
     setLandingPageGaleria(landingPageConfig.galeria);
     setLandingPageDepoimentos(landingPageConfig.depoimentos);
+    setLandingPageVideos(landingPageConfig.videos);
     setLandingPageAudios(landingPageConfig.audios);
     setLandingPageProdutosDigitais(landingPageConfig.produtosDigitais);
     setLandingPageCategoriasProdutosDigitais(
@@ -5404,6 +5719,33 @@ export default function EmpresaForm({
       logo: data.logo || "",
     });
   }
+
+  async function carregarResumoStorage() {
+    try {
+      setStorageCarregando(true);
+      setStorageErro("");
+
+      const resumo = await obterResumoStorageEmpresas();
+      setStorageResumo(resumo);
+    } catch (error) {
+      const mensagem =
+        error instanceof Error
+          ? error.message
+          : "Nao foi possivel carregar o resumo de Storage.";
+
+      setStorageErro(mensagem);
+    } finally {
+      setStorageCarregando(false);
+    }
+  }
+
+  useEffect(() => {
+    if (modoCliente || abaAtiva !== "plano" || storageResumo || storageCarregando) {
+      return;
+    }
+
+    carregarResumoStorage();
+  }, [abaAtiva, modoCliente, storageResumo, storageCarregando]);
 
   function montarEnderecoCompleto(
     ruaAtual = rua,
@@ -5641,6 +5983,58 @@ export default function EmpresaForm({
       return depoimentosAtuais.filter(
         (_, indiceAtual) => indiceAtual !== indice
       );
+    });
+  }
+
+  function atualizarLandingPageVideo(
+    indice: number,
+    campo: keyof LandingPageVideoConfig,
+    valor: string | boolean
+  ) {
+    setLandingPageVideos((videosAtuais) =>
+      videosAtuais.map((video, indiceAtual) =>
+        indiceAtual === indice
+          ? {
+              ...video,
+              [campo]: valor,
+            }
+          : video
+      )
+    );
+  }
+
+  function adicionarLandingPageVideo() {
+    setLandingPageVideos((videosAtuais) => {
+      if (videosAtuais.length >= 8) return videosAtuais;
+
+      return [
+        ...videosAtuais,
+        { ...landingPageVideosPadrao[0] },
+      ];
+    });
+  }
+
+  function removerLandingPageVideo(indice: number) {
+    setLandingPageVideos((videosAtuais) => {
+      if (videosAtuais.length <= 1) return videosAtuais;
+
+      return videosAtuais.filter((_, indiceAtual) => indiceAtual !== indice);
+    });
+  }
+
+  function moverLandingPageVideo(indice: number, direcao: "up" | "down") {
+    setLandingPageVideos((videosAtuais) => {
+      const novoIndice = direcao === "up" ? indice - 1 : indice + 1;
+
+      if (novoIndice < 0 || novoIndice >= videosAtuais.length) {
+        return videosAtuais;
+      }
+
+      const videosOrdenados = [...videosAtuais];
+      const [videoMovido] = videosOrdenados.splice(indice, 1);
+      videosOrdenados.splice(novoIndice, 0, videoMovido);
+
+      return videosOrdenados;
     });
   }
 
@@ -5912,6 +6306,7 @@ export default function EmpresaForm({
       servicos: landingPageServicos.slice(0, 6),
       galeria: landingPageGaleria.slice(0, 6),
       depoimentos: landingPageDepoimentos.slice(0, 6),
+      videos: landingPageVideos.slice(0, 8),
       audios: landingPageAudios.slice(0, 10),
       produtosDigitais: landingPageProdutosDigitais.slice(0, 20),
       categoriasProdutosDigitais: landingPageCategoriasProdutosDigitais,
@@ -5946,6 +6341,7 @@ export default function EmpresaForm({
     setLandingPageServicos(config.servicos);
     setLandingPageGaleria(config.galeria);
     setLandingPageDepoimentos(config.depoimentos);
+    setLandingPageVideos(config.videos);
     setLandingPageAudios(config.audios);
     setLandingPageProdutosDigitais(config.produtosDigitais);
     setLandingPageCategoriasProdutosDigitais(config.categoriasProdutosDigitais);
@@ -7765,6 +8161,107 @@ export default function EmpresaForm({
                   );
                 })}
               </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div className="min-w-0">
+                  <h3 className="font-bold text-slate-800">
+                    Monitoramento de Storage
+                  </h3>
+
+                  <p className="mt-1 text-sm leading-6 text-slate-500">
+                    Leitura basica do bucket empresas para acompanhar arquivos, espaco usado e consumo por empresa quando a estrutura de pastas permite identificar.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={carregarResumoStorage}
+                  disabled={storageCarregando}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50 md:w-auto"
+                >
+                  {storageCarregando ? "Atualizando..." : "Atualizar"}
+                </button>
+              </div>
+
+              {storageErro && (
+                <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">
+                  Nao foi possivel ler o Storage agora: {storageErro}
+                </p>
+              )}
+
+              {storageResumo ? (
+                <div className="mt-4 grid gap-4">
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                        Espaco utilizado
+                      </span>
+                      <strong className="mt-2 block text-2xl text-slate-900">
+                        {formatarBytesStorage(storageResumo.bytes)}
+                      </strong>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                        Arquivos
+                      </span>
+                      <strong className="mt-2 block text-2xl text-slate-900">
+                        {storageResumo.arquivos}
+                      </strong>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                        Empresas/pastas
+                      </span>
+                      <strong className="mt-2 block text-2xl text-slate-900">
+                        {storageResumo.porEmpresa.length}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {storageResumo.porEmpresa.length > 0 && (
+                    <div className="rounded-2xl border border-slate-200">
+                      <div className="border-b border-slate-200 px-4 py-3">
+                        <h4 className="font-bold text-slate-800">
+                          Consumo por empresa
+                        </h4>
+                      </div>
+
+                      <div className="divide-y divide-slate-200">
+                        {storageResumo.porEmpresa.slice(0, 8).map((empresa) => (
+                          <div
+                            key={empresa.empresa}
+                            className="grid gap-2 px-4 py-3 text-sm md:grid-cols-[minmax(0,1fr)_120px_120px]"
+                          >
+                            <span className="truncate font-semibold text-slate-700">
+                              {empresa.empresa}
+                            </span>
+                            <span className="text-slate-500">
+                              {empresa.arquivos} arquivo(s)
+                            </span>
+                            <span className="font-semibold text-slate-700">
+                              {formatarBytesStorage(empresa.bytes)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
+                    {storageResumo.avisoPlanoGratuito}
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-4 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-500">
+                  {storageCarregando
+                    ? "Carregando resumo de Storage..."
+                    : "Abra ou atualize este painel para consultar o Storage."}
+                </p>
+              )}
             </div>
           </div>
         </Card>
@@ -10388,6 +10885,7 @@ export default function EmpresaForm({
                               servicos={landingPageServicos}
                               galeria={landingPageGaleria}
                               depoimentos={landingPageDepoimentos}
+                              videos={landingPageVideos}
                               audios={landingPageAudios}
                               produtosDigitais={landingPageProdutosDigitais}
                               categoriasProdutosDigitais={
@@ -10426,6 +10924,10 @@ export default function EmpresaForm({
                               onDepoimentoRemove={
                                 removerLandingPageDepoimento
                               }
+                              onVideoChange={atualizarLandingPageVideo}
+                              onVideoAdd={adicionarLandingPageVideo}
+                              onVideoRemove={removerLandingPageVideo}
+                              onVideoMove={moverLandingPageVideo}
                               onAudioChange={atualizarLandingPageAudio}
                               onAudioAdd={adicionarLandingPageAudio}
                               onAudioRemove={removerLandingPageAudio}

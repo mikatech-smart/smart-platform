@@ -55,6 +55,13 @@ type LandingPageDepoimentoConfig = {
   texto: string;
 };
 
+type LandingPageVideoConfig = {
+  titulo: string;
+  descricao: string;
+  url: string;
+  visivel: boolean;
+};
+
 type LandingPageAudioConfig = {
   titulo: string;
   descricao: string;
@@ -116,6 +123,7 @@ type LandingPageSecaoConteudoId =
   | "servicos"
   | "galeria"
   | "depoimentos"
+  | "videos"
   | "audios"
   | "produtosDigitais"
   | "contato"
@@ -128,6 +136,7 @@ export type LandingPageConfig = {
   servicos: LandingPageServicoConfig[];
   galeria: LandingPageGaleriaImagemConfig[];
   depoimentos: LandingPageDepoimentoConfig[];
+  videos: LandingPageVideoConfig[];
   audios: LandingPageAudioConfig[];
   produtosDigitais: LandingPageProdutoDigitalConfig[];
   categoriasProdutosDigitais: string[];
@@ -204,6 +213,14 @@ const landingPageConfigPadrao: LandingPageConfig = {
       texto: "",
     },
   ],
+  videos: [
+    {
+      titulo: "",
+      descricao: "",
+      url: "",
+      visivel: true,
+    },
+  ],
   audios: [
     {
       titulo: "",
@@ -255,6 +272,7 @@ const landingPageConfigPadrao: LandingPageConfig = {
     "servicos",
     "galeria",
     "depoimentos",
+    "videos",
     "audios",
     "produtosDigitais",
     "contato",
@@ -266,6 +284,7 @@ const landingPageConfigPadrao: LandingPageConfig = {
     servicos: true,
     galeria: true,
     depoimentos: true,
+    videos: true,
     audios: true,
     produtosDigitais: true,
     contato: true,
@@ -353,6 +372,83 @@ function normalizarLista<T extends Record<string, string>>(
     .map((item) => normalizarObjeto(item, padrao[0], campos));
 
   return itens.length > 0 ? itens : padrao.map((item) => ({ ...item }));
+}
+
+function criarYouTubeEmbedUrl(url: string) {
+  const urlLimpa = url.trim();
+
+  if (!urlLimpa) return "";
+
+  try {
+    const urlYoutube = new URL(urlLimpa);
+    const host = urlYoutube.hostname.replace(/^www\./, "").toLowerCase();
+    const isYoutube =
+      host === "youtube.com" ||
+      host === "m.youtube.com" ||
+      host === "youtu.be";
+
+    if (!isYoutube) return "";
+
+    const playlist = urlYoutube.searchParams.get("list") || "";
+
+    if (urlYoutube.pathname === "/playlist" && playlist) {
+      return `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(
+        playlist
+      )}`;
+    }
+
+    let videoId = "";
+
+    if (host === "youtu.be") {
+      videoId = urlYoutube.pathname.split("/").filter(Boolean)[0] || "";
+    } else if (urlYoutube.pathname === "/watch") {
+      videoId = urlYoutube.searchParams.get("v") || "";
+    } else if (urlYoutube.pathname.startsWith("/embed/")) {
+      videoId = urlYoutube.pathname.split("/").filter(Boolean)[1] || "";
+    } else if (urlYoutube.pathname.startsWith("/shorts/")) {
+      videoId = urlYoutube.pathname.split("/").filter(Boolean)[1] || "";
+    }
+
+    if (videoId) {
+      return `https://www.youtube.com/embed/${encodeURIComponent(videoId)}`;
+    }
+
+    if (playlist) {
+      return `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(
+        playlist
+      )}`;
+    }
+  } catch {
+    return "";
+  }
+
+  return "";
+}
+
+function normalizarVideos(valor: unknown): LandingPageVideoConfig[] {
+  const padrao = landingPageConfigPadrao.videos;
+
+  if (!Array.isArray(valor)) {
+    return padrao.map((video) => ({ ...video }));
+  }
+
+  const videos = valor.slice(0, 8).map((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      return { ...padrao[0] };
+    }
+
+    const video = item as Record<string, unknown>;
+
+    return {
+      titulo: texto(video.titulo),
+      descricao: texto(video.descricao),
+      url: texto(video.url),
+      visivel:
+        typeof video.visivel === "boolean" ? video.visivel : true,
+    };
+  });
+
+  return videos.length > 0 ? videos : padrao.map((video) => ({ ...video }));
 }
 
 function normalizarFormularioContato(
@@ -522,6 +618,7 @@ function criarLandingPagePublicavel(config: LandingPagePublicavelConfig) {
     servicos: config.servicos.map((servico) => ({ ...servico })),
     galeria: config.galeria.map((imagem) => ({ ...imagem })),
     depoimentos: config.depoimentos.map((depoimento) => ({ ...depoimento })),
+    videos: config.videos.map((video) => ({ ...video })),
     audios: config.audios.map((audio) => ({ ...audio })),
     produtosDigitais: config.produtosDigitais.map((produto) => ({
       ...produto,
@@ -573,6 +670,7 @@ function normalizarLandingPagePublicavelConfig(
       "cargoEmpresa",
       "texto",
     ]),
+    videos: normalizarVideos(config.videos),
     audios: normalizarAudios(config.audios),
     produtosDigitais: normalizarProdutosDigitais(config.produtosDigitais),
     categoriasProdutosDigitais: normalizarCategoriasProdutosDigitais(
@@ -641,6 +739,7 @@ function normalizarLandingPageConfig(valor: unknown): LandingPageConfig {
       landingPageConfigPadrao.depoimentos,
       ["nome", "cargoEmpresa", "texto"]
     ),
+    videos: normalizarVideos(config.videos),
     audios: normalizarAudios(config.audios),
     produtosDigitais: normalizarProdutosDigitais(config.produtosDigitais),
     categoriasProdutosDigitais: normalizarCategoriasProdutosDigitais(
@@ -850,6 +949,17 @@ export function PublicLandingPageContent({
   const depoimentos = landingPage.depoimentos.filter((depoimento) =>
     temTexto(depoimento.nome, depoimento.cargoEmpresa, depoimento.texto)
   );
+  const videos = landingPage.videos
+    .map((video) => ({
+      ...video,
+      embedUrl: criarYouTubeEmbedUrl(video.url),
+    }))
+    .filter(
+      (video) =>
+        video.visivel &&
+        video.embedUrl &&
+        temTexto(video.titulo, video.descricao, video.url)
+    );
   const audios = landingPage.audios.filter(
     (audio) => audio.visivel && audio.arquivoUrl.trim()
   );
@@ -908,6 +1018,7 @@ export function PublicLandingPageContent({
     (landingPage.visibilidadeSecoes.servicos && servicos.length > 0) ||
     (landingPage.visibilidadeSecoes.galeria && galeria.length > 0) ||
     (landingPage.visibilidadeSecoes.depoimentos && depoimentos.length > 0) ||
+    (landingPage.visibilidadeSecoes.videos && videos.length > 0) ||
     (landingPage.visibilidadeSecoes.audios && audios.length > 0) ||
     (landingPage.visibilidadeSecoes.produtosDigitais &&
       produtosDigitais.length > 0) ||
@@ -1115,6 +1226,44 @@ export function PublicLandingPageContent({
                     {depoimento.nome && <strong>{depoimento.nome}</strong>}
                     {depoimento.cargoEmpresa && <span>{depoimento.cargoEmpresa}</span>}
                   </footer>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null;
+      case "videos":
+        return videos.length > 0 ? (
+          <section className="public-landing-section" key="videos">
+            <div className="public-landing-section__heading">
+              <span>Videos</span>
+              <h2>Assista por aqui</h2>
+            </div>
+
+            <div className="public-landing-video-list">
+              {videos.map((video, indice) => (
+                <article
+                  className={
+                    indice === 0
+                      ? "public-landing-video-card public-landing-video-card--featured"
+                      : "public-landing-video-card"
+                  }
+                  key={`${video.url}-${indice}`}
+                >
+                  <div className="public-landing-video-card__frame">
+                    <iframe
+                      title={video.titulo || `Video ${indice + 1}`}
+                      src={video.embedUrl}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                    />
+                  </div>
+
+                  {(video.titulo || video.descricao) && (
+                    <div className="public-landing-video-card__body">
+                      {video.titulo && <h3>{video.titulo}</h3>}
+                      {video.descricao && <p>{video.descricao}</p>}
+                    </div>
+                  )}
                 </article>
               ))}
             </div>
