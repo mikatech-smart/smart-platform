@@ -500,6 +500,7 @@ type CardapioProdutoConfig = {
   categoriaId: string;
   nome: string;
   descricao: string;
+  observacoes: string;
   preco: string;
   imagemUrl: string;
   disponivel: boolean;
@@ -522,6 +523,7 @@ const cardapioProdutoPadrao: CardapioProdutoConfig = {
   categoriaId: "",
   nome: "",
   descricao: "",
+  observacoes: "",
   preco: "",
   imagemUrl: "",
   disponivel: true,
@@ -1135,6 +1137,7 @@ function normalizarCardapioConfig(valor: unknown): CardapioConfig {
           categoriaId: categoriaIds.has(categoriaId) ? categoriaId : "",
           nome: lerCampoTexto(produto, "nome"),
           descricao: lerCampoTexto(produto, "descricao"),
+          observacoes: lerCampoTexto(produto, "observacoes"),
           preco: lerCampoTexto(produto, "preco"),
           imagemUrl: lerCampoTexto(produto, "imagemUrl"),
           disponivel:
@@ -5757,6 +5760,26 @@ export default function EmpresaForm({
                             }
                             placeholder="Ingredientes, tamanho, observacoes ou diferenciais."
                             rows={4}
+                            className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block font-medium text-slate-700">
+                            Observacoes
+                          </label>
+
+                          <textarea
+                            value={produtoCardapio.observacoes}
+                            onChange={(e) =>
+                              atualizarCardapioProduto(
+                                indice,
+                                "observacoes",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Ex.: contem gluten, serve 2 pessoas, ponto da carne, adicionais ou restricoes."
+                            rows={3}
                             className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
                           />
                         </div>

@@ -26,6 +26,7 @@ type CardapioProdutoConfig = {
   categoriaId: string;
   nome: string;
   descricao: string;
+  observacoes: string;
   preco: string;
   imagemUrl: string;
   disponivel: boolean;
@@ -95,6 +96,7 @@ function normalizarCardapioConfig(valor: unknown): CardapioConfig {
             categoriaId: "",
             nome: "",
             descricao: "",
+            observacoes: "",
             preco: "",
             imagemUrl: "",
             disponivel: true,
@@ -109,6 +111,7 @@ function normalizarCardapioConfig(valor: unknown): CardapioConfig {
           categoriaId: categoriaIds.has(categoriaId) ? categoriaId : "",
           nome: texto(produto.nome),
           descricao: texto(produto.descricao),
+          observacoes: texto(produto.observacoes),
           preco: texto(produto.preco),
           imagemUrl: texto(produto.imagemUrl),
           disponivel:
@@ -223,9 +226,13 @@ export default function PublicCardapioPage() {
     categoriasVisiveis.map((categoria) => categoria.id)
   );
   const produtosPreenchidos = cardapio.produtos.filter((produto) =>
-    [produto.nome, produto.descricao, produto.preco, produto.imagemUrl].some(
-      (valor) => valor.trim()
-    )
+    [
+      produto.nome,
+      produto.descricao,
+      produto.observacoes,
+      produto.preco,
+      produto.imagemUrl,
+    ].some((valor) => valor.trim())
   );
   const produtosSemCategoria = produtosPreenchidos.filter(
     (produto) => !produto.categoriaId
@@ -326,8 +333,23 @@ export default function PublicCardapioPage() {
                         {!produto.disponivel && <span>Esgotado</span>}
                       </div>
 
-                      {produto.descricao && <p>{produto.descricao}</p>}
-                      {produto.preco && <strong>{produto.preco}</strong>}
+                      {produto.descricao && (
+                        <p className="public-cardapio-product__description">
+                          {produto.descricao}
+                        </p>
+                      )}
+
+                      {produto.observacoes && (
+                        <p className="public-cardapio-product__notes">
+                          <span>Obs.</span> {produto.observacoes}
+                        </p>
+                      )}
+
+                      {produto.preco && (
+                        <strong className="public-cardapio-product__price">
+                          {produto.preco}
+                        </strong>
+                      )}
                     </div>
                   </article>
                 ))}
@@ -360,8 +382,23 @@ export default function PublicCardapioPage() {
                       {!produto.disponivel && <span>Esgotado</span>}
                     </div>
 
-                    {produto.descricao && <p>{produto.descricao}</p>}
-                    {produto.preco && <strong>{produto.preco}</strong>}
+                    {produto.descricao && (
+                      <p className="public-cardapio-product__description">
+                        {produto.descricao}
+                      </p>
+                    )}
+
+                    {produto.observacoes && (
+                      <p className="public-cardapio-product__notes">
+                        <span>Obs.</span> {produto.observacoes}
+                      </p>
+                    )}
+
+                    {produto.preco && (
+                      <strong className="public-cardapio-product__price">
+                        {produto.preco}
+                      </strong>
+                    )}
                   </div>
                 </article>
               ))}

@@ -313,6 +313,7 @@ function isCardapioPublicado(empresa) {
     [
       produto?.nome,
       produto?.descricao,
+      produto?.observacoes,
       produto?.preco,
       produto?.imagemUrl,
     ].some((valor) => String(valor || "").trim())
