@@ -93,7 +93,22 @@ function erroColunaIaConfig(error: { message?: string; code?: string }) {
   );
 }
 
+function erroColunaErpPdvConfig(error: { message?: string; code?: string }) {
+  const mensagem = error.message?.toLowerCase() || "";
+
+  return (
+    mensagem.includes("erp_pdv_config") ||
+    (error.code === "PGRST204" && mensagem.includes("erp_pdv")) ||
+    (error.code === "PGRST204" && mensagem.includes("erp pdv"))
+  );
+}
+
 const colunasConfigOpcionais = [
+  {
+    campo: "erp_pdv_config",
+    erro: erroColunaErpPdvConfig,
+    nome: "ERP/PDV",
+  },
   {
     campo: "ia_config",
     erro: erroColunaIaConfig,

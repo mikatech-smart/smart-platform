@@ -892,6 +892,25 @@ type ErpPdvCupomNaoFiscal = {
   total: number;
 };
 
+type ErpPdvModoImpressao = "direta" | "navegador" | "pdf" | "whatsapp";
+
+type ErpPdvPerfilImpressao =
+  | "escpos_generico"
+  | "impressora_sistema"
+  | "navegador";
+
+type ErpPdvImpressaoConfig = {
+  modo: ErpPdvModoImpressao;
+  nomeImpressora: string;
+  marca: string;
+  modelo: string;
+  largura: ErpPdvCupomLayout;
+  impressaoAutomatica: boolean;
+  numeroVias: number;
+  perfil: ErpPdvPerfilImpressao;
+  conectorLocalPreparado: boolean;
+};
+
 const erpPdvFormasPagamento: Array<{
   id: ErpPdvFormaPagamento;
   label: string;
@@ -902,6 +921,67 @@ const erpPdvFormasPagamento: Array<{
   { id: "credito", label: "Cartao de Credito" },
   { id: "outros", label: "Outros" },
 ];
+
+const erpPdvModosImpressao: Array<{
+  id: ErpPdvModoImpressao;
+  label: string;
+  descricao: string;
+}> = [
+  {
+    id: "navegador",
+    label: "Navegador",
+    descricao: "Usa a impressao padrao do navegador.",
+  },
+  {
+    id: "pdf",
+    label: "PDF",
+    descricao: "Abre o dialogo para salvar como PDF.",
+  },
+  {
+    id: "whatsapp",
+    label: "WhatsApp",
+    descricao: "Compartilha o resumo textual do cupom.",
+  },
+  {
+    id: "direta",
+    label: "Impressao direta",
+    descricao: "Preparado para o futuro Conector de Impressao local.",
+  },
+];
+
+const erpPdvPerfisImpressao: Array<{
+  id: ErpPdvPerfilImpressao;
+  label: string;
+  descricao: string;
+}> = [
+  {
+    id: "navegador",
+    label: "Navegador",
+    descricao: "Compatibilidade atual para qualquer impressora instalada.",
+  },
+  {
+    id: "impressora_sistema",
+    label: "Impressora do sistema",
+    descricao: "Preparado para escolher impressoras instaladas no computador.",
+  },
+  {
+    id: "escpos_generico",
+    label: "Generico ESC/POS",
+    descricao: "Base para impressoras termicas 58 mm e 80 mm.",
+  },
+];
+
+const erpPdvImpressaoConfigPadrao: ErpPdvImpressaoConfig = {
+  modo: "navegador",
+  nomeImpressora: "",
+  marca: "",
+  modelo: "",
+  largura: "80mm",
+  impressaoAutomatica: false,
+  numeroVias: 1,
+  perfil: "navegador",
+  conectorLocalPreparado: true,
+};
 
 const erpPdvProdutoFormPadrao: ErpPdvProdutoForm = {
   id: "",
@@ -2535,6 +2615,48 @@ function normalizarCrmConfig(valor: unknown): CrmConfig {
         ? clientes
         : crmConfigPadrao.clientes.map((cliente) => ({ ...cliente })),
     automacoes: normalizarCrmAutomacoes(config.automacoes),
+  };
+}
+
+function normalizarErpPdvConfig(valor: unknown): ErpPdvImpressaoConfig {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return { ...erpPdvImpressaoConfigPadrao };
+  }
+
+  const config = valor as Partial<ErpPdvImpressaoConfig>;
+  const modosValidos: ErpPdvModoImpressao[] = [
+    "direta",
+    "navegador",
+    "pdf",
+    "whatsapp",
+  ];
+  const perfisValidos: ErpPdvPerfilImpressao[] = [
+    "escpos_generico",
+    "impressora_sistema",
+    "navegador",
+  ];
+  const largurasValidas: ErpPdvCupomLayout[] = ["58mm", "80mm", "a4"];
+  const numeroVias = Number(config.numeroVias || 1);
+
+  return {
+    modo: modosValidos.includes(config.modo as ErpPdvModoImpressao)
+      ? (config.modo as ErpPdvModoImpressao)
+      : erpPdvImpressaoConfigPadrao.modo,
+    nomeImpressora: String(config.nomeImpressora || ""),
+    marca: String(config.marca || ""),
+    modelo: String(config.modelo || ""),
+    largura: largurasValidas.includes(config.largura as ErpPdvCupomLayout)
+      ? (config.largura as ErpPdvCupomLayout)
+      : erpPdvImpressaoConfigPadrao.largura,
+    impressaoAutomatica: Boolean(config.impressaoAutomatica),
+    numeroVias:
+      Number.isFinite(numeroVias) && numeroVias > 0
+        ? Math.min(Math.round(numeroVias), 5)
+        : erpPdvImpressaoConfigPadrao.numeroVias,
+    perfil: perfisValidos.includes(config.perfil as ErpPdvPerfilImpressao)
+      ? (config.perfil as ErpPdvPerfilImpressao)
+      : erpPdvImpressaoConfigPadrao.perfil,
+    conectorLocalPreparado: true,
   };
 }
 
@@ -5628,6 +5750,10 @@ export default function EmpresaForm({
     useState<ErpPdvCupomNaoFiscal | null>(null);
   const [erpPdvCupomLayout, setErpPdvCupomLayout] =
     useState<ErpPdvCupomLayout>("80mm");
+  const [erpPdvImpressaoConfig, setErpPdvImpressaoConfig] =
+    useState<ErpPdvImpressaoConfig>(() => ({
+      ...erpPdvImpressaoConfigPadrao,
+    }));
   const [erpPdvBusca, setErpPdvBusca] = useState("");
   const [erpPdvOrdenacao, setErpPdvOrdenacao] =
     useState<ErpPdvOrdenacaoProdutos>("nome");
@@ -5890,6 +6016,7 @@ export default function EmpresaForm({
       fidelidade_config?: unknown;
       ia_config?: unknown;
       crm_config?: unknown;
+      erp_pdv_config?: unknown;
     };
     const landingPageConfig = normalizarLandingPageConfig(
       dadosComPlano.landing_page_config
@@ -5911,6 +6038,9 @@ export default function EmpresaForm({
     );
     const iaConfigCarregado = normalizarIaConfig(dadosComPlano.ia_config);
     const crmConfigCarregado = normalizarCrmConfig(dadosComPlano.crm_config);
+    const erpPdvConfigCarregado = normalizarErpPdvConfig(
+      dadosComPlano.erp_pdv_config
+    );
 
     setNome(data.nome || "");
     setTipoGerenciamento(data.tipo || "mikatech");
@@ -5918,6 +6048,8 @@ export default function EmpresaForm({
     setRecursosContratados(
       normalizarRecursos(dadosComPlano.recursos_contratados)
     );
+    setErpPdvImpressaoConfig(erpPdvConfigCarregado);
+    setErpPdvCupomLayout(erpPdvConfigCarregado.largura);
     setLandingPagePlaceholderAberto(false);
     setLandingPagePublicada(landingPageConfig.publicada);
     setLandingPageSecaoAtiva("templates");
@@ -6727,6 +6859,34 @@ export default function EmpresaForm({
     }));
   }
 
+  function atualizarErpPdvImpressaoConfig(
+    campo: keyof ErpPdvImpressaoConfig,
+    valor: string | boolean | number
+  ) {
+    setErpPdvImpressaoConfig((configAtual) => ({
+      ...configAtual,
+      [campo]: valor,
+    }));
+
+    if (campo === "largura") {
+      setErpPdvCupomLayout(valor as ErpPdvCupomLayout);
+    }
+  }
+
+  function montarErpPdvConfig(): ErpPdvImpressaoConfig {
+    return {
+      ...erpPdvImpressaoConfig,
+      nomeImpressora: erpPdvImpressaoConfig.nomeImpressora.trim(),
+      marca: erpPdvImpressaoConfig.marca.trim(),
+      modelo: erpPdvImpressaoConfig.modelo.trim(),
+      numeroVias: Math.min(
+        Math.max(Number(erpPdvImpressaoConfig.numeroVias) || 1, 1),
+        5
+      ),
+      conectorLocalPreparado: true,
+    };
+  }
+
   function limparErpPdvProdutoForm() {
     setErpPdvProdutoForm({ ...erpPdvProdutoFormPadrao });
   }
@@ -6988,8 +7148,11 @@ export default function EmpresaForm({
 </html>`;
   }
 
-  function imprimirCupomErpPdv(layout: ErpPdvCupomLayout) {
-    if (!erpPdvCupomNaoFiscal) return;
+  function imprimirCupomErpPdv(
+    layout: ErpPdvCupomLayout,
+    cupom = erpPdvCupomNaoFiscal
+  ) {
+    if (!cupom) return;
 
     const janela = window.open("", "_blank", "width=420,height=720");
     if (!janela) {
@@ -7001,12 +7164,11 @@ export default function EmpresaForm({
     }
 
     janela.document.open();
-    janela.document.write(
-      gerarHtmlCupomErpPdv(erpPdvCupomNaoFiscal, layout)
-    );
+    janela.document.write(gerarHtmlCupomErpPdv(cupom, layout));
     janela.document.close();
     janela.focus();
-    janela.print();
+    const vias = Math.min(Math.max(erpPdvImpressaoConfig.numeroVias || 1, 1), 5);
+    Array.from({ length: vias }).forEach(() => janela.print());
   }
 
   function compartilharCupomWhatsAppErpPdv() {
@@ -7016,6 +7178,34 @@ export default function EmpresaForm({
       gerarTextoCupomErpPdv(erpPdvCupomNaoFiscal)
     );
     window.open(`https://wa.me/?text=${texto}`, "_blank", "noopener,noreferrer");
+  }
+
+  function executarDestinoCupomConfiguradoErpPdv(cupom: ErpPdvCupomNaoFiscal) {
+    if (!erpPdvImpressaoConfig.impressaoAutomatica) return;
+
+    if (erpPdvImpressaoConfig.modo === "whatsapp") {
+      const texto = encodeURIComponent(gerarTextoCupomErpPdv(cupom));
+      window.open(
+        `https://wa.me/?text=${texto}`,
+        "_blank",
+        "noopener,noreferrer"
+      );
+      return;
+    }
+
+    if (
+      erpPdvImpressaoConfig.modo === "navegador" ||
+      erpPdvImpressaoConfig.modo === "pdf"
+    ) {
+      imprimirCupomErpPdv(erpPdvImpressaoConfig.largura, cupom);
+      return;
+    }
+
+    setErpPdvFeedback({
+      tipo: "info",
+      texto:
+        "Venda finalizada. Impressao direta aguardara o Conector de Impressao local.",
+    });
   }
 
   async function finalizarVendaErpPdv() {
@@ -7079,7 +7269,7 @@ export default function EmpresaForm({
         ...data.movimentacoes,
         ...movimentacoesAtuais,
       ]);
-      setErpPdvCupomNaoFiscal({
+      const cupomGerado: ErpPdvCupomNaoFiscal = {
         vendaNumero: data.numero,
         empresa: nome.trim() || "Empresa",
         cnpj: "Nao informado",
@@ -7089,13 +7279,16 @@ export default function EmpresaForm({
         pagamento: obterLabelFormaPagamentoErpPdv(data.forma_pagamento),
         itens: itensCupom,
         total: data.total,
-      });
+      };
+      setErpPdvCupomNaoFiscal(cupomGerado);
+      setErpPdvCupomLayout(erpPdvImpressaoConfig.largura);
       setErpPdvCarrinho([]);
       setErpPdvPdvBusca("");
       setErpPdvFeedback({
         tipo: "sucesso",
         texto: `Venda #${data.numero} finalizada. Cupom nao fiscal gerado.`,
       });
+      executarDestinoCupomConfiguradoErpPdv(cupomGerado);
     } catch (error) {
       setErpPdvFeedback({
         tipo: "erro",
@@ -7103,6 +7296,37 @@ export default function EmpresaForm({
           error instanceof Error
             ? error.message
             : "Nao foi possivel finalizar a venda.",
+      });
+    } finally {
+      setErpPdvSalvando(false);
+    }
+  }
+
+  async function salvarConfigImpressaoErpPdv() {
+    if (!empresaId) return;
+
+    try {
+      setErpPdvSalvando(true);
+      const config = montarErpPdvConfig();
+      const { error } = await atualizarEmpresa(empresaId, {
+        erp_pdv_config: config,
+      } as Parameters<typeof atualizarEmpresa>[1]);
+
+      if (error) throw error;
+
+      setErpPdvImpressaoConfig(config);
+      setErpPdvCupomLayout(config.largura);
+      setErpPdvFeedback({
+        tipo: "sucesso",
+        texto: "Configuracao de impressao salva.",
+      });
+    } catch (error) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel salvar a configuracao de impressao.",
       });
     } finally {
       setErpPdvSalvando(false);
@@ -8536,6 +8760,7 @@ export default function EmpresaForm({
     const fidelidadePayload = montarFidelidadeConfig();
     const iaPayload = montarIaConfig();
     const crmConfig = montarCrmConfig();
+    const erpPdvConfig = montarErpPdvConfig();
 
     if (whatsappLocal && whatsappLocal.length < 10) {
       alert("Informe um WhatsApp válido com DDD.");
@@ -8596,6 +8821,7 @@ export default function EmpresaForm({
       fidelidade_config: fidelidadePayload,
       ia_config: iaPayload,
       crm_config: crmConfig,
+      erp_pdv_config: erpPdvConfig,
     };
 
     if (suportaCorFundoHero) {
@@ -9283,6 +9509,182 @@ export default function EmpresaForm({
                 {erpPdvFeedback.texto}
               </div>
             )}
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+                    Impressao
+                  </p>
+
+                  <h4 className="mt-2 text-lg font-bold text-slate-900">
+                    Configuracao de cupons
+                  </h4>
+
+                  <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500">
+                    Defina o destino padrao do cupom. A impressao direta fica
+                    preparada para o futuro Conector de Impressao local; o
+                    navegador continua funcionando como compatibilidade atual.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={salvarConfigImpressaoErpPdv}
+                  disabled={!recursosContratados.erp_pdv || erpPdvSalvando}
+                  className="rounded-xl bg-green-700 px-4 py-3 text-sm font-bold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {erpPdvSalvando ? "Salvando..." : "Salvar impressao"}
+                </button>
+              </div>
+
+              <div className="mt-4 grid gap-4 lg:grid-cols-3">
+                <div>
+                  <label className="block font-medium text-slate-700">
+                    Destino padrao
+                  </label>
+
+                  <select
+                    value={erpPdvImpressaoConfig.modo}
+                    onChange={(e) =>
+                      atualizarErpPdvImpressaoConfig(
+                        "modo",
+                        e.target.value as ErpPdvModoImpressao
+                      )
+                    }
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                  >
+                    {erpPdvModosImpressao.map((modo) => (
+                      <option key={modo.id} value={modo.id}>
+                        {modo.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-2 text-xs font-semibold text-slate-500">
+                    {
+                      erpPdvModosImpressao.find(
+                        (modo) => modo.id === erpPdvImpressaoConfig.modo
+                      )?.descricao
+                    }
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block font-medium text-slate-700">
+                    Perfil
+                  </label>
+
+                  <select
+                    value={erpPdvImpressaoConfig.perfil}
+                    onChange={(e) =>
+                      atualizarErpPdvImpressaoConfig(
+                        "perfil",
+                        e.target.value as ErpPdvPerfilImpressao
+                      )
+                    }
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                  >
+                    {erpPdvPerfisImpressao.map((perfil) => (
+                      <option key={perfil.id} value={perfil.id}>
+                        {perfil.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-2 text-xs font-semibold text-slate-500">
+                    {
+                      erpPdvPerfisImpressao.find(
+                        (perfil) => perfil.id === erpPdvImpressaoConfig.perfil
+                      )?.descricao
+                    }
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block font-medium text-slate-700">
+                    Largura
+                  </label>
+
+                  <select
+                    value={erpPdvImpressaoConfig.largura}
+                    onChange={(e) =>
+                      atualizarErpPdvImpressaoConfig(
+                        "largura",
+                        e.target.value as ErpPdvCupomLayout
+                      )
+                    }
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                  >
+                    <option value="58mm">58 mm</option>
+                    <option value="80mm">80 mm</option>
+                    <option value="a4">A4</option>
+                  </select>
+                </div>
+
+                <Input
+                  label="Nome da impressora"
+                  value={erpPdvImpressaoConfig.nomeImpressora}
+                  onChange={(e) =>
+                    atualizarErpPdvImpressaoConfig(
+                      "nomeImpressora",
+                      e.target.value
+                    )
+                  }
+                  placeholder="Ex.: Caixa 01, Epson, Bematech"
+                />
+
+                <Input
+                  label="Marca"
+                  value={erpPdvImpressaoConfig.marca}
+                  onChange={(e) =>
+                    atualizarErpPdvImpressaoConfig("marca", e.target.value)
+                  }
+                  placeholder="Ex.: Epson, Elgin, Bematech"
+                />
+
+                <Input
+                  label="Modelo"
+                  value={erpPdvImpressaoConfig.modelo}
+                  onChange={(e) =>
+                    atualizarErpPdvImpressaoConfig("modelo", e.target.value)
+                  }
+                  placeholder="Ex.: TM-T20, i9, MP-4200"
+                />
+
+                <Input
+                  label="Numero de vias"
+                  value={String(erpPdvImpressaoConfig.numeroVias)}
+                  onChange={(e) =>
+                    atualizarErpPdvImpressaoConfig(
+                      "numeroVias",
+                      Math.min(Math.max(Number(e.target.value) || 1, 1), 5)
+                    )
+                  }
+                  placeholder="1"
+                />
+
+                <label className="flex min-h-[74px] items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={erpPdvImpressaoConfig.impressaoAutomatica}
+                    onChange={(e) =>
+                      atualizarErpPdvImpressaoConfig(
+                        "impressaoAutomatica",
+                        e.target.checked
+                      )
+                    }
+                  />
+                  Imprimir automaticamente apos finalizar venda
+                </label>
+
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  <p className="font-bold">Conector local</p>
+                  <p className="mt-1">
+                    Estrutura preparada. O instalador e a comunicacao direta
+                    com impressoras ficam para sprint futura.
+                  </p>
+                </div>
+              </div>
+            </div>
 
             <div className="rounded-2xl border border-slate-200 bg-slate-950 p-4 text-white">
               <div className="flex min-w-0 flex-col gap-4 xl:flex-row">

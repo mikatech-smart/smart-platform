@@ -42,6 +42,7 @@ export interface Empresa {
   wifi_marketing_config?: unknown;
   fidelidade_config?: unknown;
   crm_config?: unknown;
+  erp_pdv_config?: unknown;
 
   logo: string;
 
