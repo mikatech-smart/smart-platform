@@ -12,6 +12,10 @@ import {
   atualizarEmpresa,
 } from "../../../services/empresa/empresa.service";
 import {
+  buscarCepBrasilApi,
+  buscarCnpjBrasilApi,
+} from "../../../services/brasil/brasil.service";
+import {
   abrirErpPdvCaixa,
   buscarErpPdvCaixaAberto,
   buscarErpPdvClientes,
@@ -906,6 +910,7 @@ type ErpPdvCarrinhoItem = {
 type ErpPdvClienteForm = {
   nome: string;
   cpfCnpj: string;
+  cep: string;
   telefone: string;
   whatsapp: string;
   email: string;
@@ -917,6 +922,7 @@ type ErpPdvFornecedorForm = {
   razaoSocial: string;
   nomeFantasia: string;
   cpfCnpj: string;
+  cep: string;
   inscricaoEstadual: string;
   contato: string;
   telefone: string;
@@ -1135,6 +1141,7 @@ const erpPdvCaixaMovimentoFormPadrao: ErpPdvCaixaMovimentoForm = {
 const erpPdvClienteFormPadrao: ErpPdvClienteForm = {
   nome: "",
   cpfCnpj: "",
+  cep: "",
   telefone: "",
   whatsapp: "",
   email: "",
@@ -1146,6 +1153,7 @@ const erpPdvFornecedorFormPadrao: ErpPdvFornecedorForm = {
   razaoSocial: "",
   nomeFantasia: "",
   cpfCnpj: "",
+  cep: "",
   inscricaoEstadual: "",
   contato: "",
   telefone: "",
@@ -6169,6 +6177,7 @@ export default function EmpresaForm({
     useState("");
   const [erpPdvClienteForm, setErpPdvClienteForm] =
     useState<ErpPdvClienteForm>(() => ({ ...erpPdvClienteFormPadrao }));
+  const [erpPdvConsultaExterna, setErpPdvConsultaExterna] = useState("");
   const [erpPdvExibirCadastroCliente, setErpPdvExibirCadastroCliente] =
     useState(false);
   const [erpPdvPdvBusca, setErpPdvPdvBusca] = useState("");
@@ -6851,20 +6860,17 @@ export default function EmpresaForm({
         setBuscandoCep(true);
         setCepErro("");
 
-        const resposta = await fetch(
-          `https://viacep.com.br/ws/${cepNumerico}/json/`
-        );
-        const dados = await resposta.json();
+        const dados = await buscarCepBrasilApi(cepNumerico);
 
         if (dados.erro) {
         setCepErro("CEP não encontrado.");
           return;
         }
 
-        const novaRua = dados.logradouro || "";
+        const novaRua = dados.rua || "";
         const novoBairro = dados.bairro || "";
-        const novaCidade = dados.localidade || "";
-        const novoEstado = dados.uf || "";
+        const novaCidade = dados.cidade || "";
+        const novoEstado = dados.estado || "";
 
         setRua(novaRua);
         setBairro(novoBairro);
@@ -7915,6 +7921,65 @@ export default function EmpresaForm({
     }));
   }
 
+  async function buscarCnpjClienteErpPdv() {
+    try {
+      setErpPdvConsultaExterna("cliente-cnpj");
+      const dados = await buscarCnpjBrasilApi(erpPdvClienteForm.cpfCnpj);
+
+      setErpPdvClienteForm((formAtual) => ({
+        ...formAtual,
+        nome: dados.nomeFantasia || dados.razaoSocial || formAtual.nome,
+        cpfCnpj: dados.cnpj || formAtual.cpfCnpj,
+        cep: dados.cep || formAtual.cep,
+        telefone: formAtual.telefone || dados.telefone,
+        whatsapp: formAtual.whatsapp || dados.telefone,
+        email: formAtual.email || dados.email,
+        endereco: dados.endereco || formAtual.endereco,
+      }));
+      setErpPdvFeedback({
+        tipo: "sucesso",
+        texto: "Dados do CNPJ preenchidos. Confira antes de salvar.",
+      });
+    } catch (error) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel consultar este CNPJ.",
+      });
+    } finally {
+      setErpPdvConsultaExterna("");
+    }
+  }
+
+  async function buscarCepClienteErpPdv() {
+    try {
+      setErpPdvConsultaExterna("cliente-cep");
+      const dados = await buscarCepBrasilApi(erpPdvClienteForm.cep);
+
+      setErpPdvClienteForm((formAtual) => ({
+        ...formAtual,
+        cep: dados.cep,
+        endereco: dados.endereco || formAtual.endereco,
+      }));
+      setErpPdvFeedback({
+        tipo: "sucesso",
+        texto: "Endereco preenchido pelo CEP. Confira antes de salvar.",
+      });
+    } catch (error) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel consultar este CEP.",
+      });
+    } finally {
+      setErpPdvConsultaExterna("");
+    }
+  }
+
   function selecionarClienteVendaErpPdv(clienteErp: ErpPdvCliente) {
     setErpPdvClienteSelecionadoId(clienteErp.id);
     setErpPdvClienteBusca(clienteErp.nome);
@@ -8024,6 +8089,66 @@ export default function EmpresaForm({
       ...formAtual,
       [campo]: valor,
     }));
+  }
+
+  async function buscarCnpjFornecedorErpPdv() {
+    try {
+      setErpPdvConsultaExterna("fornecedor-cnpj");
+      const dados = await buscarCnpjBrasilApi(erpPdvFornecedorForm.cpfCnpj);
+
+      setErpPdvFornecedorForm((formAtual) => ({
+        ...formAtual,
+        razaoSocial: dados.razaoSocial || formAtual.razaoSocial,
+        nomeFantasia: dados.nomeFantasia || formAtual.nomeFantasia,
+        cpfCnpj: dados.cnpj || formAtual.cpfCnpj,
+        cep: dados.cep || formAtual.cep,
+        telefone: formAtual.telefone || dados.telefone,
+        whatsapp: formAtual.whatsapp || dados.telefone,
+        email: formAtual.email || dados.email,
+        endereco: dados.endereco || formAtual.endereco,
+      }));
+      setErpPdvFeedback({
+        tipo: "sucesso",
+        texto: "Dados do fornecedor preenchidos pelo CNPJ. Confira antes de salvar.",
+      });
+    } catch (error) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel consultar este CNPJ.",
+      });
+    } finally {
+      setErpPdvConsultaExterna("");
+    }
+  }
+
+  async function buscarCepFornecedorErpPdv() {
+    try {
+      setErpPdvConsultaExterna("fornecedor-cep");
+      const dados = await buscarCepBrasilApi(erpPdvFornecedorForm.cep);
+
+      setErpPdvFornecedorForm((formAtual) => ({
+        ...formAtual,
+        cep: dados.cep,
+        endereco: dados.endereco || formAtual.endereco,
+      }));
+      setErpPdvFeedback({
+        tipo: "sucesso",
+        texto: "Endereco do fornecedor preenchido pelo CEP. Confira antes de salvar.",
+      });
+    } catch (error) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel consultar este CEP.",
+      });
+    } finally {
+      setErpPdvConsultaExterna("");
+    }
   }
 
   async function salvarFornecedorErpPdv() {
@@ -11872,6 +11997,22 @@ export default function EmpresaForm({
                             }
                             placeholder="Documento"
                           />
+                          <div className="flex items-end">
+                            <button
+                              type="button"
+                              onClick={buscarCnpjClienteErpPdv}
+                              disabled={
+                                erpPdvConsultaExterna === "cliente-cnpj" ||
+                                erpPdvClienteForm.cpfCnpj.replace(/\D/g, "")
+                                  .length !== 14
+                              }
+                              className="w-full rounded-xl border border-green-300 bg-green-50 px-3 py-3 text-sm font-black text-green-700 transition hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {erpPdvConsultaExterna === "cliente-cnpj"
+                                ? "Buscando..."
+                                : "Buscar CNPJ"}
+                            </button>
+                          </div>
                           <Input
                             label="Telefone"
                             value={erpPdvClienteForm.telefone}
@@ -11902,6 +12043,30 @@ export default function EmpresaForm({
                             }
                             placeholder="cliente@email.com"
                           />
+                          <Input
+                            label="CEP"
+                            value={erpPdvClienteForm.cep}
+                            onChange={(e) =>
+                              atualizarClienteFormErpPdv("cep", e.target.value)
+                            }
+                            placeholder="00000000"
+                          />
+                          <div className="flex items-end">
+                            <button
+                              type="button"
+                              onClick={buscarCepClienteErpPdv}
+                              disabled={
+                                erpPdvConsultaExterna === "cliente-cep" ||
+                                erpPdvClienteForm.cep.replace(/\D/g, "")
+                                  .length !== 8
+                              }
+                              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm font-black text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {erpPdvConsultaExterna === "cliente-cep"
+                                ? "Buscando..."
+                                : "Buscar CEP"}
+                            </button>
+                          </div>
                           <Input
                             label="Endereco"
                             value={erpPdvClienteForm.endereco}
@@ -13140,6 +13305,22 @@ export default function EmpresaForm({
                         }
                         placeholder="Documento"
                       />
+                      <div className="flex items-end">
+                        <button
+                          type="button"
+                          onClick={buscarCnpjFornecedorErpPdv}
+                          disabled={
+                            erpPdvConsultaExterna === "fornecedor-cnpj" ||
+                            erpPdvFornecedorForm.cpfCnpj.replace(/\D/g, "")
+                              .length !== 14
+                          }
+                          className="w-full rounded-xl border border-green-300 bg-green-50 px-3 py-3 text-sm font-black text-green-700 transition hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {erpPdvConsultaExterna === "fornecedor-cnpj"
+                            ? "Buscando..."
+                            : "Buscar CNPJ"}
+                        </button>
+                      </div>
                       <Input
                         label="Inscricao Estadual"
                         value={erpPdvFornecedorForm.inscricaoEstadual}
@@ -13195,6 +13376,30 @@ export default function EmpresaForm({
                         }
                         placeholder="fornecedor@email.com"
                       />
+                      <Input
+                        label="CEP"
+                        value={erpPdvFornecedorForm.cep}
+                        onChange={(e) =>
+                          atualizarFornecedorFormErpPdv("cep", e.target.value)
+                        }
+                        placeholder="00000000"
+                      />
+                      <div className="flex items-end">
+                        <button
+                          type="button"
+                          onClick={buscarCepFornecedorErpPdv}
+                          disabled={
+                            erpPdvConsultaExterna === "fornecedor-cep" ||
+                            erpPdvFornecedorForm.cep.replace(/\D/g, "")
+                              .length !== 8
+                          }
+                          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm font-black text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {erpPdvConsultaExterna === "fornecedor-cep"
+                            ? "Buscando..."
+                            : "Buscar CEP"}
+                        </button>
+                      </div>
                     </div>
                     <Input
                       label="Endereco"
