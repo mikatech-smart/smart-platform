@@ -82,6 +82,16 @@ function erroColunaCrmConfig(error: { message?: string; code?: string }) {
   );
 }
 
+function erroColunaIaConfig(error: { message?: string; code?: string }) {
+  const mensagem = error.message?.toLowerCase() || "";
+
+  return (
+    mensagem.includes("ia_config") ||
+    (error.code === "PGRST204" && mensagem.includes("ia_config")) ||
+    (error.code === "PGRST204" && mensagem.includes("assistente"))
+  );
+}
+
 function erroEstruturaLeads(error: { message?: string; code?: string }) {
   const mensagem = error.message?.toLowerCase() || "";
 
@@ -901,6 +911,39 @@ export async function atualizarEmpresa(
   });
 
   if (error) {
+    if (erroColunaIaConfig(error)) {
+      if ("ia_config" in dados) {
+        const dadosSemIa = { ...(dados as Record<string, unknown>) };
+        delete dadosSemIa.ia_config;
+        const { data: dataSemIa, error: errorSemIa } =
+          await supabase
+            .from("empresas")
+            .update(dadosSemIa)
+            .eq("id", id)
+            .select();
+
+        if (!errorSemIa && dataSemIa?.length) {
+          console.warn(
+            "ia_config ainda nao existe no Supabase; demais dados foram salvos sem o Assistente de IA."
+          );
+
+          return {
+            data: dataSemIa[0],
+            error: null,
+          };
+        }
+      }
+
+      return {
+        data: null,
+        error: {
+          ...error,
+          message:
+            "A coluna ia_config ainda nao existe na tabela empresas. Crie a coluna JSONB para salvar o Assistente de IA.",
+        },
+      };
+    }
+
     if (erroColunaCrmConfig(error)) {
       if ("crm_config" in dados) {
         const dadosSemCrm = { ...(dados as Record<string, unknown>) };

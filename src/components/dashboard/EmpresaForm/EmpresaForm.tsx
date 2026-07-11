@@ -62,6 +62,7 @@ type AbaEmpresa =
   | "wifiMarketing"
   | "fidelidade"
   | "crm"
+  | "ia"
   | "contato"
   | "endereco"
   | "redes"
@@ -100,6 +101,7 @@ const abasEmpresa: Array<{
   { id: "wifiMarketing", label: "Wi-Fi Marketing" },
   { id: "fidelidade", label: "Fidelidade" },
   { id: "crm", label: "CRM" },
+  { id: "ia", label: "IA" },
   { id: "contato", label: "Contato" },
   { id: "endereco", label: "Endereço" },
   { id: "redes", label: "Redes Sociais" },
@@ -118,6 +120,7 @@ type RecursoEmpresaId =
   | "wifi_marketing"
   | "fidelidade"
   | "crm"
+  | "ia"
   | "wifi"
   | "google_reviews"
   | "nfc"
@@ -158,6 +161,7 @@ const recursosPadrao: RecursosContratados = {
   wifi_marketing: false,
   fidelidade: false,
   crm: false,
+  ia: false,
   wifi: false,
   google_reviews: false,
   nfc: true,
@@ -228,6 +232,12 @@ const recursosEmpresa: Array<{
     id: "crm",
     nome: "CRM",
     descricao: "Cadastro e organizacao de clientes, tags, status e observacoes.",
+    statusInativo: "Em breve",
+  },
+  {
+    id: "ia",
+    nome: "Assistente de IA",
+    descricao: "Estrutura inicial para assistente comercial inteligente.",
     statusInativo: "Em breve",
   },
   {
@@ -614,6 +624,19 @@ type FidelidadeConfig = {
   ativo: boolean;
 };
 
+type IaTomComunicacao =
+  | "profissional"
+  | "amigavel"
+  | "consultivo"
+  | "descontraido";
+
+type IaConfig = {
+  ativa: boolean;
+  nomeAssistente: string;
+  tomComunicacao: IaTomComunicacao;
+  instrucoesPersonalizadas: string;
+};
+
 type CrmClienteStatus = "prospect" | "ativo" | "inativo";
 
 type CrmPipelineEtapa =
@@ -787,6 +810,40 @@ const fidelidadeConfigPadrao: FidelidadeConfig = {
   quantidade: "",
   tipoAcumulo: "carimbos",
   ativo: false,
+};
+
+const iaTonsComunicacao: Array<{
+  id: IaTomComunicacao;
+  nome: string;
+  descricao: string;
+}> = [
+  {
+    id: "profissional",
+    nome: "Profissional",
+    descricao: "Clareza, objetividade e postura institucional.",
+  },
+  {
+    id: "amigavel",
+    nome: "Amigavel",
+    descricao: "Atendimento proximo, simples e acolhedor.",
+  },
+  {
+    id: "consultivo",
+    nome: "Consultivo",
+    descricao: "Foco em diagnostico, orientacao e proximos passos.",
+  },
+  {
+    id: "descontraido",
+    nome: "Descontraido",
+    descricao: "Tom leve para conversas mais informais.",
+  },
+];
+
+const iaConfigPadrao: IaConfig = {
+  ativa: false,
+  nomeAssistente: "Assistente MikaON",
+  tomComunicacao: "profissional",
+  instrucoesPersonalizadas: "",
 };
 
 const crmPipelineEtapas: Array<{
@@ -1709,6 +1766,34 @@ function normalizarFidelidadeConfig(valor: unknown): FidelidadeConfig {
       lerCampoTexto(config, "quantidadeCarimbos"),
     tipoAcumulo: tipoAcumulo === "pontos" ? "pontos" : "carimbos",
     ativo: typeof config.ativo === "boolean" ? config.ativo : false,
+  };
+}
+
+function normalizarIaTomComunicacao(valor: unknown): IaTomComunicacao {
+  return iaTonsComunicacao.some((tom) => tom.id === valor)
+    ? (valor as IaTomComunicacao)
+    : "profissional";
+}
+
+function normalizarIaConfig(valor: unknown): IaConfig {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return { ...iaConfigPadrao };
+  }
+
+  const config = valor as Record<string, unknown>;
+
+  return {
+    ativa: typeof config.ativa === "boolean" ? config.ativa : false,
+    nomeAssistente:
+      lerCampoTexto(config, "nomeAssistente") ||
+      lerCampoTexto(config, "nome_assistente") ||
+      iaConfigPadrao.nomeAssistente,
+    tomComunicacao: normalizarIaTomComunicacao(
+      config.tomComunicacao || config.tom_comunicacao
+    ),
+    instrucoesPersonalizadas:
+      lerCampoTexto(config, "instrucoesPersonalizadas") ||
+      lerCampoTexto(config, "instrucoes_personalizadas"),
   };
 }
 
@@ -4729,6 +4814,9 @@ export default function EmpresaForm({
     useState<WifiMarketingConfig>(() => ({ ...wifiMarketingConfigPadrao }));
   const [fidelidadeConfig, setFidelidadeConfig] =
     useState<FidelidadeConfig>(() => ({ ...fidelidadeConfigPadrao }));
+  const [iaConfig, setIaConfig] = useState<IaConfig>(() => ({
+    ...iaConfigPadrao,
+  }));
   const [crmClientes, setCrmClientes] =
     useState<CrmClienteConfig[]>(() =>
       crmConfigPadrao.clientes.map((cliente) => ({ ...cliente }))
@@ -4867,6 +4955,7 @@ export default function EmpresaForm({
       agendamento_config?: unknown;
       wifi_marketing_config?: unknown;
       fidelidade_config?: unknown;
+      ia_config?: unknown;
       crm_config?: unknown;
     };
     const landingPageConfig = normalizarLandingPageConfig(
@@ -4887,6 +4976,7 @@ export default function EmpresaForm({
     const fidelidadeConfigCarregado = normalizarFidelidadeConfig(
       dadosComPlano.fidelidade_config
     );
+    const iaConfigCarregado = normalizarIaConfig(dadosComPlano.ia_config);
     const crmConfigCarregado = normalizarCrmConfig(dadosComPlano.crm_config);
 
     setNome(data.nome || "");
@@ -4927,6 +5017,7 @@ export default function EmpresaForm({
     setAgendamentoServicos(agendamentoConfig.servicos);
     setWifiMarketingConfig(wifiMarketingConfigCarregado);
     setFidelidadeConfig(fidelidadeConfigCarregado);
+    setIaConfig(iaConfigCarregado);
     setCrmClientes(crmConfigCarregado.clientes);
     setCrmAutomacoes(crmConfigCarregado.automacoes);
     setCategoria(data.categoria || "");
@@ -5911,6 +6002,22 @@ export default function EmpresaForm({
     }));
   }
 
+  function montarIaConfig(): IaConfig {
+    return {
+      ...iaConfig,
+    };
+  }
+
+  function atualizarIaConfig(campo: keyof IaConfig, valor: string | boolean) {
+    setIaConfig((configAtual) => ({
+      ...configAtual,
+      [campo]:
+        campo === "tomComunicacao"
+          ? normalizarIaTomComunicacao(valor)
+          : valor,
+    }));
+  }
+
   function montarCrmConfig(): CrmConfig {
     return {
       clientes: crmClientes,
@@ -6414,6 +6521,7 @@ export default function EmpresaForm({
     const agendamentoConfig = montarAgendamentoConfig();
     const wifiMarketingPayload = montarWifiMarketingConfig();
     const fidelidadePayload = montarFidelidadeConfig();
+    const iaPayload = montarIaConfig();
     const crmConfig = montarCrmConfig();
 
     if (whatsappLocal && whatsappLocal.length < 10) {
@@ -6473,6 +6581,7 @@ export default function EmpresaForm({
       agendamento_config: agendamentoConfig,
       wifi_marketing_config: wifiMarketingPayload,
       fidelidade_config: fidelidadePayload,
+      ia_config: iaPayload,
       crm_config: crmConfig,
     };
 
@@ -8952,6 +9061,147 @@ export default function EmpresaForm({
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            </fieldset>
+          </div>
+        </Card>
+      )}
+
+      {abaAtiva === "ia" && (
+        <Card
+          title="IA"
+          subtitle="Estrutura inicial do Assistente Comercial da MikaON."
+        >
+          <div className="space-y-5">
+            <div
+              className={`rounded-2xl border p-4 ${
+                recursosContratados.ia
+                  ? "border-green-200 bg-green-50"
+                  : "border-amber-200 bg-amber-50"
+              }`}
+            >
+              <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div className="min-w-0">
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+                      recursosContratados.ia
+                        ? "bg-green-700 text-white"
+                        : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {recursosContratados.ia ? "Ativo" : "Nao contratado"}
+                  </span>
+
+                  <h3 className="mt-3 text-xl font-bold text-slate-900">
+                    Assistente Comercial
+                  </h3>
+
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                    Configure a identidade e o comportamento inicial do
+                    assistente. Nesta sprint, a estrutura e salva em
+                    ia_config, sem chamadas para APIs externas.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <fieldset
+              disabled={!recursosContratados.ia}
+              className="grid gap-5 disabled:opacity-60"
+            >
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+                      Configuracao
+                    </p>
+
+                    <h4 className="mt-2 text-lg font-bold text-slate-900">
+                      Assistente da empresa
+                    </h4>
+                  </div>
+
+                  <label className="inline-flex items-center gap-2 text-sm font-bold text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={iaConfig.ativa}
+                      onChange={(e) =>
+                        atualizarIaConfig("ativa", e.target.checked)
+                      }
+                    />
+                    Ativar IA
+                  </label>
+                </div>
+
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <Input
+                    label="Nome do assistente"
+                    value={iaConfig.nomeAssistente}
+                    onChange={(e) =>
+                      atualizarIaConfig("nomeAssistente", e.target.value)
+                    }
+                    placeholder="Ex.: Assistente MikaON"
+                  />
+
+                  <label className="block text-sm font-medium text-slate-700">
+                    Tom de comunicacao
+                    <select
+                      value={iaConfig.tomComunicacao}
+                      onChange={(e) =>
+                        atualizarIaConfig("tomComunicacao", e.target.value)
+                      }
+                      className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-4 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                    >
+                      {iaTonsComunicacao.map((tom) => (
+                        <option key={tom.id} value={tom.id}>
+                          {tom.nome}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <div className="md:col-span-2 grid gap-3 md:grid-cols-4">
+                    {iaTonsComunicacao.map((tom) => (
+                      <div
+                        key={tom.id}
+                        className={`rounded-xl border p-3 text-sm ${
+                          iaConfig.tomComunicacao === tom.id
+                            ? "border-green-300 bg-green-50 text-green-900"
+                            : "border-slate-200 bg-slate-50 text-slate-600"
+                        }`}
+                      >
+                        <p className="font-bold">{tom.nome}</p>
+                        <p className="mt-1 text-xs leading-5">
+                          {tom.descricao}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-slate-700">
+                      Instrucoes personalizadas
+                    </label>
+                    <textarea
+                      value={iaConfig.instrucoesPersonalizadas}
+                      onChange={(e) =>
+                        atualizarIaConfig(
+                          "instrucoesPersonalizadas",
+                          e.target.value
+                        )
+                      }
+                      rows={6}
+                      className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                      placeholder="Ex.: Priorize respostas curtas, pergunte o melhor horario de contato e direcione interessados para o WhatsApp."
+                    />
+                  </div>
+
+                  <div className="md:col-span-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                    Estrutura preparada para futuras integracoes com provedores
+                    de IA, CRM, WhatsApp e e-mail. Nenhum conteudo e gerado
+                    automaticamente nesta sprint.
+                  </div>
                 </div>
               </div>
             </fieldset>
