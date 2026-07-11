@@ -659,6 +659,12 @@ type IaBaseConhecimentoConfig = {
   informacoesImportantes: string;
 };
 
+type IaPromptMestreConfig = {
+  conteudo: string;
+  geradoEm: string;
+  versao: string;
+};
+
 type IaFaqRascunho = {
   pergunta: string;
   resposta: string;
@@ -671,6 +677,7 @@ type IaConfig = {
   instrucoesPersonalizadas: string;
   contexto: IaContextoConfig;
   baseConhecimento: IaBaseConhecimentoConfig;
+  promptMestre: IaPromptMestreConfig;
 };
 
 type IaConfigCampoEditavel =
@@ -952,6 +959,12 @@ const iaBaseConhecimentoPadrao: IaBaseConhecimentoConfig = {
   informacoesImportantes: "",
 };
 
+const iaPromptMestrePadrao: IaPromptMestreConfig = {
+  conteudo: "",
+  geradoEm: "",
+  versao: "1.0",
+};
+
 const iaConfigPadrao: IaConfig = {
   ativa: false,
   nomeAssistente: "Assistente MikaON",
@@ -965,6 +978,9 @@ const iaConfigPadrao: IaConfig = {
     perguntasFrequentes: [],
     politicasEmpresa: "",
     informacoesImportantes: "",
+  },
+  promptMestre: {
+    ...iaPromptMestrePadrao,
   },
 };
 
@@ -2002,6 +2018,27 @@ function normalizarIaBaseConhecimento(valor: unknown): IaBaseConhecimentoConfig 
   };
 }
 
+function normalizarIaPromptMestre(valor: unknown): IaPromptMestreConfig {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return { ...iaPromptMestrePadrao };
+  }
+
+  const promptMestre = valor as Record<string, unknown>;
+
+  return {
+    conteudo:
+      lerCampoTexto(promptMestre, "conteudo") ||
+      lerCampoTexto(promptMestre, "prompt") ||
+      lerCampoTexto(promptMestre, "texto"),
+    geradoEm:
+      lerCampoTexto(promptMestre, "geradoEm") ||
+      lerCampoTexto(promptMestre, "gerado_em") ||
+      lerCampoTexto(promptMestre, "atualizadoEm"),
+    versao:
+      lerCampoTexto(promptMestre, "versao") || iaPromptMestrePadrao.versao,
+  };
+}
+
 function normalizarIaConfig(valor: unknown): IaConfig {
   if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
     return {
@@ -2015,6 +2052,9 @@ function normalizarIaConfig(valor: unknown): IaConfig {
         perguntasFrequentes: [
           ...iaConfigPadrao.baseConhecimento.perguntasFrequentes,
         ],
+      },
+      promptMestre: {
+        ...iaConfigPadrao.promptMestre,
       },
     };
   }
@@ -2036,6 +2076,9 @@ function normalizarIaConfig(valor: unknown): IaConfig {
     contexto: normalizarIaContexto(config.contexto),
     baseConhecimento: normalizarIaBaseConhecimento(
       config.baseConhecimento || config.base_conhecimento
+    ),
+    promptMestre: normalizarIaPromptMestre(
+      config.promptMestre || config.prompt_mestre
     ),
   };
 }
@@ -5069,6 +5112,9 @@ export default function EmpresaForm({
         ...iaConfigPadrao.baseConhecimento.perguntasFrequentes,
       ],
     },
+    promptMestre: {
+      ...iaConfigPadrao.promptMestre,
+    },
   }));
   const [iaFaqRascunho, setIaFaqRascunho] = useState<IaFaqRascunho>({
     pergunta: "",
@@ -6261,10 +6307,12 @@ export default function EmpresaForm({
 
   function montarIaConfig(): IaConfig {
     const contexto = criarIaContextoUnificado();
+    const promptMestre = gerarIaPromptMestre(contexto);
 
     return {
       ...iaConfig,
       contexto,
+      promptMestre,
     };
   }
 
@@ -6373,6 +6421,92 @@ export default function EmpresaForm({
           ),
       },
     }));
+  }
+
+  function gerarIaPromptMestre(contexto: IaContextoConfig): IaPromptMestreConfig {
+    const tomSelecionado =
+      iaTonsComunicacao.find((tom) => tom.id === iaConfig.tomComunicacao) ||
+      iaTonsComunicacao[0];
+    const baseConhecimento = iaConfig.baseConhecimento;
+    const perguntasFrequentes = baseConhecimento.perguntasFrequentes
+      .filter(
+        (perguntaFrequente) =>
+          perguntaFrequente.pergunta.trim() ||
+          perguntaFrequente.resposta.trim()
+      )
+      .slice(0, 50);
+    const fontesAtivas = iaContextoFontes
+      .filter((fonte) => contexto.fontes[fonte.id])
+      .map((fonte) => fonte.nome)
+      .join(", ");
+    const linhasFaq =
+      perguntasFrequentes.length > 0
+        ? perguntasFrequentes
+            .map(
+              (perguntaFrequente, indice) =>
+                `${indice + 1}. Pergunta: ${
+                  perguntaFrequente.pergunta || "Nao informada"
+                }\n   Resposta: ${
+                  perguntaFrequente.resposta || "Nao informada"
+                }`
+            )
+            .join("\n")
+        : "Nenhuma pergunta frequente cadastrada.";
+    const conteudo = [
+      "# Prompt Mestre do Assistente de IA",
+      "",
+      "## Identidade",
+      `Voce e ${iaConfig.nomeAssistente || iaConfigPadrao.nomeAssistente}, assistente comercial da empresa ${nome || "Nao informada"}.`,
+      `Plataforma: ${BrandConfig.platformName}.`,
+      "",
+      "## Objetivo",
+      "Atender clientes com clareza, usar os dados da empresa como fonte principal e orientar o proximo passo comercial sem inventar informacoes.",
+      "",
+      "## Tom de comunicacao",
+      `${tomSelecionado.nome}: ${tomSelecionado.descricao}`,
+      "",
+      "## Regras de atendimento",
+      "- Responda em portugues do Brasil.",
+      "- Seja objetivo, educado e util.",
+      "- Quando faltar informacao, diga que precisa confirmar com a empresa.",
+      "- Nao prometa prazos, valores ou condicoes que nao estejam no contexto.",
+      "- Direcione oportunidades para os canais de contato configurados.",
+      "",
+      "## Instrucoes personalizadas",
+      iaConfig.instrucoesPersonalizadas.trim() ||
+        "Nenhuma instrucao personalizada cadastrada.",
+      "",
+      "## Fontes ativas do contexto",
+      fontesAtivas || "Nenhuma fonte selecionada.",
+      "",
+      "## Resumo do contexto",
+      contexto.resumo || "Nenhum resumo disponivel.",
+      "",
+      "## Base de conhecimento",
+      "",
+      "### Perguntas frequentes",
+      linhasFaq,
+      "",
+      "### Politicas da empresa",
+      baseConhecimento.politicasEmpresa.trim() ||
+        "Nenhuma politica cadastrada.",
+      "",
+      "### Informacoes importantes",
+      baseConhecimento.informacoesImportantes.trim() ||
+        "Nenhuma informacao importante cadastrada.",
+      "",
+      "## Contexto estruturado",
+      JSON.stringify(contexto.dados, null, 2),
+      "",
+      "## Orientacao para integracao futura",
+      "Use este prompt como mensagem de sistema ou contexto principal ao integrar um provedor de IA. Nao ha chamada externa nesta versao.",
+    ].join("\n");
+
+    return {
+      conteudo,
+      geradoEm: new Date().toISOString(),
+      versao: "1.0",
+    };
   }
 
   function criarIaContextoUnificado(): IaContextoConfig {
@@ -7328,6 +7462,7 @@ export default function EmpresaForm({
   const landingPagePublicadaEfetiva = landingPageVersaoPublicada.publicada;
   const landingPagePreviewConfig = montarLandingPageConfig();
   const iaContextoPreview = criarIaContextoUnificado();
+  const iaPromptMestrePreview = gerarIaPromptMestre(iaContextoPreview);
   const pastaUploadLanding = `landing-page/${slugPublico || empresaId || "rascunho"}`;
   const empresaLandingPreview: EmpresaLanding = {
     id: empresaId || "preview",
@@ -9950,6 +10085,63 @@ export default function EmpresaForm({
                         className="mt-3 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-xs text-slate-700 outline-none"
                       />
                     </div>
+                  </div>
+
+                  <div className="md:col-span-2 rounded-2xl border border-green-200 bg-green-50 p-4">
+                    <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-green-900">
+                          Prompt Mestre
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-green-800">
+                          Gerado automaticamente com configuracoes da IA,
+                          contexto da empresa e base de conhecimento.
+                        </p>
+                      </div>
+
+                      <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-green-700">
+                        v{iaPromptMestrePreview.versao}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                      <div className="rounded-xl bg-white p-3">
+                        <p className="text-xs font-bold uppercase text-green-700">
+                          Caracteres
+                        </p>
+                        <p className="mt-1 text-lg font-bold text-slate-900">
+                          {iaPromptMestrePreview.conteudo.length}
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl bg-white p-3">
+                        <p className="text-xs font-bold uppercase text-green-700">
+                          FAQs
+                        </p>
+                        <p className="mt-1 text-lg font-bold text-slate-900">
+                          {
+                            iaConfig.baseConhecimento.perguntasFrequentes
+                              .length
+                          }
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl bg-white p-3">
+                        <p className="text-xs font-bold uppercase text-green-700">
+                          Fontes
+                        </p>
+                        <p className="mt-1 text-lg font-bold text-slate-900">
+                          {Object.keys(iaContextoPreview.dados).length}
+                        </p>
+                      </div>
+                    </div>
+
+                    <textarea
+                      value={iaPromptMestrePreview.conteudo}
+                      readOnly
+                      rows={18}
+                      className="mt-4 w-full resize-none rounded-xl border border-green-200 bg-white px-4 py-3 font-mono text-xs text-slate-700 outline-none"
+                    />
                   </div>
 
                   <div className="md:col-span-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-600">
