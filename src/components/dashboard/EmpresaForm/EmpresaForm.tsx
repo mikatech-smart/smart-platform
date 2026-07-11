@@ -623,6 +623,25 @@ type CrmPipelineEtapa =
   | "fechado"
   | "perdido";
 
+type CrmInteracaoOrigem =
+  | "manual"
+  | "sistema"
+  | "whatsapp"
+  | "telefone"
+  | "email"
+  | "reuniao"
+  | "landing_page"
+  | "catalogo"
+  | "agendamento"
+  | "fidelidade";
+
+type CrmInteracaoConfig = {
+  id: string;
+  texto: string;
+  origem: CrmInteracaoOrigem;
+  dataHora: string;
+};
+
 type CrmClienteConfig = {
   id: string;
   nome: string;
@@ -636,7 +655,16 @@ type CrmClienteConfig = {
   criadoEm?: string;
   atualizadoEm?: string;
   movimentadoEm?: string;
+  interacoes: CrmInteracaoConfig[];
 };
+
+type CrmClienteCampoEditavel =
+  | "nome"
+  | "telefone"
+  | "email"
+  | "observacoes"
+  | "tags"
+  | "status";
 
 type CrmConfig = {
   clientes: CrmClienteConfig[];
@@ -750,6 +778,22 @@ const crmPipelineEtapas: Array<{
   },
 ];
 
+const crmInteracaoOrigens: Array<{
+  id: CrmInteracaoOrigem;
+  nome: string;
+}> = [
+  { id: "manual", nome: "Anotacao manual" },
+  { id: "whatsapp", nome: "WhatsApp" },
+  { id: "telefone", nome: "Telefone" },
+  { id: "email", nome: "E-mail" },
+  { id: "reuniao", nome: "Reuniao" },
+  { id: "landing_page", nome: "Landing Page" },
+  { id: "catalogo", nome: "Catalogo" },
+  { id: "agendamento", nome: "Agendamento" },
+  { id: "fidelidade", nome: "Fidelidade" },
+  { id: "sistema", nome: "Sistema" },
+];
+
 const crmClientePadrao: CrmClienteConfig = {
   id: "cliente-1",
   nome: "",
@@ -763,6 +807,7 @@ const crmClientePadrao: CrmClienteConfig = {
   criadoEm: "",
   atualizadoEm: "",
   movimentadoEm: "",
+  interacoes: [],
 };
 
 const crmConfigPadrao: CrmConfig = {
@@ -1569,6 +1614,60 @@ function normalizarCrmPipelineEtapa(valor: unknown): CrmPipelineEtapa {
     : "novo_lead";
 }
 
+function normalizarCrmInteracaoOrigem(valor: unknown): CrmInteracaoOrigem {
+  return crmInteracaoOrigens.some((origem) => origem.id === valor)
+    ? (valor as CrmInteracaoOrigem)
+    : "manual";
+}
+
+function normalizarCrmInteracoes(valor: unknown): CrmInteracaoConfig[] {
+  if (!Array.isArray(valor)) return [];
+
+  return valor
+    .slice(0, 100)
+    .map((item, indice) => {
+      const interacao =
+        item && typeof item === "object" && !Array.isArray(item)
+          ? (item as Record<string, unknown>)
+          : {};
+
+      return {
+        id:
+          lerCampoTexto(interacao, "id") ||
+          criarCardapioId("interacao", indice),
+        texto:
+          lerCampoTexto(interacao, "texto") ||
+          lerCampoTexto(interacao, "anotacao") ||
+          lerCampoTexto(interacao, "descricao"),
+        origem: normalizarCrmInteracaoOrigem(interacao.origem),
+        dataHora:
+          lerCampoTexto(interacao, "dataHora") ||
+          lerCampoTexto(interacao, "criadoEm"),
+      };
+    })
+    .filter((interacao) => interacao.texto)
+    .sort((a, b) => {
+      const dataA = new Date(a.dataHora).getTime();
+      const dataB = new Date(b.dataHora).getTime();
+
+      return (Number.isNaN(dataA) ? 0 : dataA) - (Number.isNaN(dataB) ? 0 : dataB);
+    });
+}
+
+function obterCrmPipelineEtapaNome(etapaId: CrmPipelineEtapa) {
+  return (
+    crmPipelineEtapas.find((etapa) => etapa.id === etapaId)?.nome ||
+    "Novo Lead"
+  );
+}
+
+function obterCrmInteracaoOrigemNome(origemId: CrmInteracaoOrigem) {
+  return (
+    crmInteracaoOrigens.find((origem) => origem.id === origemId)?.nome ||
+    "Anotacao manual"
+  );
+}
+
 function formatarDataMovimentacaoCrm(valor?: string) {
   if (!valor) return "Sem movimentacao registrada";
 
@@ -1618,6 +1717,7 @@ function normalizarCrmConfig(valor: unknown): CrmConfig {
           criadoEm: lerCampoTexto(cliente, "criadoEm"),
           atualizadoEm: lerCampoTexto(cliente, "atualizadoEm"),
           movimentadoEm: lerCampoTexto(cliente, "movimentadoEm"),
+          interacoes: normalizarCrmInteracoes(cliente.interacoes),
         };
       })
     : crmConfigPadrao.clientes.map((cliente) => ({ ...cliente }));
@@ -4355,6 +4455,11 @@ export default function EmpresaForm({
     useState<CrmClienteConfig[]>(() =>
       crmConfigPadrao.clientes.map((cliente) => ({ ...cliente }))
     );
+  const [crmInteracoesRascunho, setCrmInteracoesRascunho] = useState<
+    Record<string, string>
+  >({});
+  const [crmInteracoesOrigemRascunho, setCrmInteracoesOrigemRascunho] =
+    useState<Record<string, CrmInteracaoOrigem>>({});
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -5528,7 +5633,7 @@ export default function EmpresaForm({
 
   function atualizarCrmCliente(
     indice: number,
-    campo: keyof CrmClienteConfig,
+    campo: CrmClienteCampoEditavel,
     valor: string | string[]
   ) {
     setCrmClientes((clientesAtuais) =>
@@ -5549,15 +5654,67 @@ export default function EmpresaForm({
   ) {
     setCrmClientes((clientesAtuais) =>
       clientesAtuais.map((clienteAtual) =>
-        clienteAtual.id === clienteId
+        clienteAtual.id === clienteId &&
+        clienteAtual.etapaPipeline !== etapaPipeline
           ? {
               ...clienteAtual,
               etapaPipeline,
               movimentadoEm: new Date().toISOString(),
+              interacoes: [
+                ...clienteAtual.interacoes,
+                {
+                  id: `interacao-${Date.now()}`,
+                  texto: `Lead movido para ${obterCrmPipelineEtapaNome(
+                    etapaPipeline
+                  )}.`,
+                  origem: "sistema" as CrmInteracaoOrigem,
+                  dataHora: new Date().toISOString(),
+                },
+              ].slice(-100),
             }
           : clienteAtual
       )
     );
+  }
+
+  function adicionarCrmInteracao(clienteId: string) {
+    const texto = (crmInteracoesRascunho[clienteId] || "").trim();
+
+    if (!texto) {
+      alert("Informe a anotacao antes de adicionar ao historico.");
+      return;
+    }
+
+    const origem = crmInteracoesOrigemRascunho[clienteId] || "manual";
+    const agora = new Date().toISOString();
+
+    setCrmClientes((clientesAtuais) =>
+      clientesAtuais.map((clienteAtual) =>
+        clienteAtual.id === clienteId
+          ? {
+              ...clienteAtual,
+              atualizadoEm: agora,
+              interacoes: [
+                ...clienteAtual.interacoes,
+                {
+                  id: `interacao-${Date.now()}`,
+                  texto,
+                  origem,
+                  dataHora: agora,
+                },
+              ].slice(-100),
+            }
+          : clienteAtual
+      )
+    );
+    setCrmInteracoesRascunho((rascunhosAtuais) => ({
+      ...rascunhosAtuais,
+      [clienteId]: "",
+    }));
+    setCrmInteracoesOrigemRascunho((origensAtuais) => ({
+      ...origensAtuais,
+      [clienteId]: "manual",
+    }));
   }
 
   function adicionarCrmCliente() {
@@ -5573,6 +5730,14 @@ export default function EmpresaForm({
           criadoEm: agora,
           atualizadoEm: agora,
           movimentadoEm: agora,
+          interacoes: [
+            {
+              id: `interacao-${Date.now()}`,
+              texto: "Lead criado manualmente no CRM.",
+              origem: "manual",
+              dataHora: agora,
+            },
+          ],
         },
       ];
     });
@@ -7793,6 +7958,115 @@ export default function EmpresaForm({
                             rows={3}
                             className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
                           />
+                        </div>
+
+                        <div className="md:col-span-2 rounded-2xl border border-slate-200 bg-white p-4">
+                          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold text-slate-900">
+                                Historico de interacoes
+                              </p>
+                              <p className="mt-1 text-xs text-slate-500">
+                                Registre contatos, retornos e observacoes em
+                                ordem cronologica.
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 grid gap-3">
+                            <textarea
+                              value={crmInteracoesRascunho[clienteCrm.id] || ""}
+                              onChange={(e) =>
+                                setCrmInteracoesRascunho(
+                                  (rascunhosAtuais) => ({
+                                    ...rascunhosAtuais,
+                                    [clienteCrm.id]: e.target.value,
+                                  })
+                                )
+                              }
+                              placeholder="Ex.: Cliente pediu retorno amanha com proposta revisada."
+                              rows={3}
+                              className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                            />
+
+                            <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                              <label className="block text-sm font-medium text-slate-700">
+                                Origem da interacao
+                                <select
+                                  value={
+                                    crmInteracoesOrigemRascunho[
+                                      clienteCrm.id
+                                    ] || "manual"
+                                  }
+                                  onChange={(e) =>
+                                    setCrmInteracoesOrigemRascunho(
+                                      (origensAtuais) => ({
+                                        ...origensAtuais,
+                                        [clienteCrm.id]: e.target
+                                          .value as CrmInteracaoOrigem,
+                                      })
+                                    )
+                                  }
+                                  className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-4 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                                >
+                                  {crmInteracaoOrigens
+                                    .filter(
+                                      (origem) => origem.id !== "sistema"
+                                    )
+                                    .map((origem) => (
+                                      <option
+                                        key={origem.id}
+                                        value={origem.id}
+                                      >
+                                        {origem.nome}
+                                      </option>
+                                    ))}
+                                </select>
+                              </label>
+
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() =>
+                                  adicionarCrmInteracao(clienteCrm.id)
+                                }
+                              >
+                                Adicionar anotacao
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 grid gap-3">
+                            {clienteCrm.interacoes.length > 0 ? (
+                              clienteCrm.interacoes.map((interacao) => (
+                                <article
+                                  key={interacao.id}
+                                  className="rounded-xl border border-slate-200 bg-slate-50 p-3"
+                                >
+                                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                                    <span className="rounded-full bg-green-100 px-2.5 py-1 font-bold text-green-700">
+                                      {obterCrmInteracaoOrigemNome(
+                                        interacao.origem
+                                      )}
+                                    </span>
+                                    <span className="font-medium text-slate-500">
+                                      {formatarDataMovimentacaoCrm(
+                                        interacao.dataHora
+                                      )}
+                                    </span>
+                                  </div>
+
+                                  <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-700">
+                                    {interacao.texto}
+                                  </p>
+                                </article>
+                              ))
+                            ) : (
+                              <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-4 text-center text-sm text-slate-500">
+                                Nenhuma interacao registrada para este lead.
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>

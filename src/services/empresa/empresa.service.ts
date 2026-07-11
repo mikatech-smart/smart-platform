@@ -128,6 +128,22 @@ type CrmPipelineEtapa =
   | "fechado"
   | "perdido";
 
+type CrmInteracaoOrigem =
+  | CrmLeadOrigem
+  | "manual"
+  | "sistema"
+  | "whatsapp"
+  | "telefone"
+  | "email"
+  | "reuniao";
+
+type CrmInteracaoConfig = {
+  id: string;
+  texto: string;
+  origem: CrmInteracaoOrigem;
+  dataHora: string;
+};
+
 type CrmClienteConfig = {
   id: string;
   nome: string;
@@ -141,6 +157,7 @@ type CrmClienteConfig = {
   criadoEm?: string;
   atualizadoEm?: string;
   movimentadoEm?: string;
+  interacoes: CrmInteracaoConfig[];
 };
 
 type CrmConfig = {
@@ -181,6 +198,61 @@ function normalizarCrmPipelineEtapa(valor: unknown): CrmPipelineEtapa {
   return etapas.includes(valor as CrmPipelineEtapa)
     ? (valor as CrmPipelineEtapa)
     : "novo_lead";
+}
+
+function normalizarCrmInteracoes(valor: unknown): CrmInteracaoConfig[] {
+  if (!Array.isArray(valor)) return [];
+
+  return valor
+    .slice(0, 100)
+    .map((item, indice) => {
+      const interacao =
+        item && typeof item === "object" && !Array.isArray(item)
+          ? (item as Record<string, unknown>)
+          : {};
+      const origem: CrmInteracaoOrigem =
+        interacao.origem === "landing_page" ||
+        interacao.origem === "catalogo" ||
+        interacao.origem === "agendamento" ||
+        interacao.origem === "fidelidade" ||
+        interacao.origem === "sistema" ||
+        interacao.origem === "whatsapp" ||
+        interacao.origem === "telefone" ||
+        interacao.origem === "email" ||
+        interacao.origem === "reuniao"
+          ? interacao.origem
+          : "manual";
+
+      return {
+        id:
+          typeof interacao.id === "string" && interacao.id.trim()
+            ? interacao.id
+            : `interacao-${indice + 1}`,
+        texto:
+          typeof interacao.texto === "string"
+            ? interacao.texto
+            : typeof interacao.anotacao === "string"
+              ? interacao.anotacao
+              : "",
+        origem,
+        dataHora:
+          typeof interacao.dataHora === "string"
+            ? interacao.dataHora
+            : typeof interacao.criadoEm === "string"
+              ? interacao.criadoEm
+              : "",
+      };
+    })
+    .filter((interacao) => interacao.texto.trim())
+    .sort((a, b) => {
+      const dataA = new Date(a.dataHora).getTime();
+      const dataB = new Date(b.dataHora).getTime();
+
+      return (
+        (Number.isNaN(dataA) ? 0 : dataA) -
+        (Number.isNaN(dataB) ? 0 : dataB)
+      );
+    });
 }
 
 function normalizarCrmConfig(valor: unknown): CrmConfig {
@@ -233,6 +305,7 @@ function normalizarCrmConfig(valor: unknown): CrmConfig {
             typeof cliente.movimentadoEm === "string"
               ? cliente.movimentadoEm
               : "",
+          interacoes: normalizarCrmInteracoes(cliente.interacoes),
         };
       })
     : [];
@@ -355,6 +428,15 @@ export async function registrarLeadNoCrm(payload: CrmLeadPayload) {
     );
   });
   const tags = normalizarTagsLead([payload.origem, ...(payload.tags || [])]);
+  const textoInteracao = normalizarContatoLead(payload.observacoes)
+    ? `Novo contato recebido: ${normalizarContatoLead(payload.observacoes)}`
+    : `Novo contato recebido por ${payload.origem}.`;
+  const interacaoLead: CrmInteracaoConfig = {
+    id: `interacao-${Date.now()}`,
+    texto: textoInteracao,
+    origem: payload.origem,
+    dataHora: agora,
+  };
   const leadBase: CrmClienteConfig = {
     id: `lead-${Date.now()}`,
     nome: normalizarContatoLead(payload.nome) || "Lead sem nome",
@@ -368,6 +450,7 @@ export async function registrarLeadNoCrm(payload: CrmLeadPayload) {
     criadoEm: agora,
     atualizadoEm: agora,
     movimentadoEm: agora,
+    interacoes: [interacaoLead],
   };
   const clientes =
     indiceExistente >= 0
@@ -391,6 +474,7 @@ export async function registrarLeadNoCrm(payload: CrmLeadPayload) {
                 atualizadoEm: agora,
                 movimentadoEm:
                   cliente.movimentadoEm || leadBase.movimentadoEm,
+                interacoes: [...cliente.interacoes, interacaoLead].slice(-100),
               }
             : cliente
         )
