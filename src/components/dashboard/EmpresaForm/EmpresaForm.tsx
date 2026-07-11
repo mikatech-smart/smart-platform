@@ -864,6 +864,11 @@ type ErpPdvMovimentacaoForm = {
 
 type ErpPdvMovimentacaoFiltroTipo = ErpPdvMovimentacaoTipo | "todos";
 
+type ErpPdvCarrinhoItem = {
+  produtoId: string;
+  quantidade: number;
+};
+
 const erpPdvProdutoFormPadrao: ErpPdvProdutoForm = {
   id: "",
   nome: "",
@@ -5578,6 +5583,10 @@ export default function EmpresaForm({
   const [erpPdvMovimentacoes, setErpPdvMovimentacoes] = useState<
     ErpPdvMovimentacao[]
   >([]);
+  const [erpPdvPdvBusca, setErpPdvPdvBusca] = useState("");
+  const [erpPdvCarrinho, setErpPdvCarrinho] = useState<ErpPdvCarrinhoItem[]>(
+    []
+  );
   const [erpPdvBusca, setErpPdvBusca] = useState("");
   const [erpPdvOrdenacao, setErpPdvOrdenacao] =
     useState<ErpPdvOrdenacaoProdutos>("nome");
@@ -5705,6 +5714,55 @@ export default function EmpresaForm({
     });
   const erpPdvProdutosPorId = new Map(
     erpPdvProdutos.map((produto) => [produto.id, produto])
+  );
+  const erpPdvPdvTermoBusca = erpPdvPdvBusca.trim().toLowerCase();
+  const erpPdvPdvProdutosEncontrados = erpPdvPdvTermoBusca
+    ? erpPdvProdutos
+        .filter((produto) => {
+          if (!produto.ativo) return false;
+
+          return [
+            produto.nome,
+            produto.sku,
+            produto.codigo_barras,
+          ].some((valor) =>
+            valor.toLowerCase().includes(erpPdvPdvTermoBusca)
+          );
+        })
+        .slice(0, 8)
+    : erpPdvProdutos.filter((produto) => produto.ativo).slice(0, 8);
+  const erpPdvCarrinhoDetalhado = erpPdvCarrinho
+    .map((item) => {
+      const produto = erpPdvProdutosPorId.get(item.produtoId);
+
+      if (!produto) return null;
+
+      const quantidade = Number.isFinite(item.quantidade)
+        ? Math.max(0, item.quantidade)
+        : 0;
+
+      return {
+        produto,
+        quantidade,
+        subtotal: produto.preco_venda * quantidade,
+      };
+    })
+    .filter(
+      (
+        item
+      ): item is {
+        produto: ErpPdvProduto;
+        quantidade: number;
+        subtotal: number;
+      } => Boolean(item)
+    );
+  const erpPdvCarrinhoTotal = erpPdvCarrinhoDetalhado.reduce(
+    (total, item) => total + item.subtotal,
+    0
+  );
+  const erpPdvCarrinhoQuantidadeItens = erpPdvCarrinhoDetalhado.reduce(
+    (total, item) => total + item.quantidade,
+    0
   );
   const erpPdvProdutoMovimentacaoSelecionado = erpPdvProdutosPorId.get(
     erpPdvMovimentacaoForm.produtoId
@@ -6637,6 +6695,116 @@ export default function EmpresaForm({
     setErpPdvFeedback({
       tipo: "info",
       texto: "Produto carregado para edicao.",
+    });
+  }
+
+  function adicionarProdutoAoCarrinhoErpPdv(produto: ErpPdvProduto) {
+    if (!produto.ativo) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "Produto inativo nao pode ser adicionado ao carrinho.",
+      });
+      return;
+    }
+
+    if (produto.estoque_atual <= 0) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "Produto sem estoque disponivel para o PDV.",
+      });
+      return;
+    }
+
+    setErpPdvCarrinho((itensAtuais) => {
+      const itemAtual = itensAtuais.find(
+        (item) => item.produtoId === produto.id
+      );
+
+      if (itemAtual) {
+        return itensAtuais.map((item) =>
+          item.produtoId === produto.id
+            ? {
+                ...item,
+                quantidade: Math.min(item.quantidade + 1, produto.estoque_atual),
+              }
+            : item
+        );
+      }
+
+      return [
+        ...itensAtuais,
+        {
+          produtoId: produto.id,
+          quantidade: 1,
+        },
+      ];
+    });
+    setErpPdvPdvBusca("");
+    setErpPdvFeedback({
+      tipo: "sucesso",
+      texto: "Produto adicionado ao carrinho.",
+    });
+  }
+
+  function adicionarProdutoDaBuscaErpPdv() {
+    const produtoEncontrado = erpPdvPdvProdutosEncontrados[0];
+
+    if (!produtoEncontrado) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "Nenhum produto encontrado para adicionar ao carrinho.",
+      });
+      return;
+    }
+
+    adicionarProdutoAoCarrinhoErpPdv(produtoEncontrado);
+  }
+
+  function atualizarQuantidadeCarrinhoErpPdv(
+    produto: ErpPdvProduto,
+    valor: string
+  ) {
+    const quantidade = parseNumeroErpPdv(valor);
+
+    if (quantidade <= 0) {
+      setErpPdvCarrinho((itensAtuais) =>
+        itensAtuais.filter((item) => item.produtoId !== produto.id)
+      );
+      return;
+    }
+
+    setErpPdvCarrinho((itensAtuais) =>
+      itensAtuais.map((item) =>
+        item.produtoId === produto.id
+          ? {
+              ...item,
+              quantidade: Math.min(quantidade, produto.estoque_atual),
+            }
+          : item
+      )
+    );
+  }
+
+  function removerItemCarrinhoErpPdv(produtoId: string) {
+    setErpPdvCarrinho((itensAtuais) =>
+      itensAtuais.filter((item) => item.produtoId !== produtoId)
+    );
+  }
+
+  function limparCarrinhoErpPdv() {
+    setErpPdvCarrinho([]);
+    setErpPdvFeedback({
+      tipo: "info",
+      texto: "Carrinho limpo.",
+    });
+  }
+
+  function cancelarVendaErpPdv() {
+    setErpPdvCarrinho([]);
+    setErpPdvPdvBusca("");
+    setErpPdvFeedback({
+      tipo: "info",
+      texto: "Venda cancelada antes da finalizacao. Nenhum registro foi gravado.",
     });
   }
 
@@ -8814,6 +8982,263 @@ export default function EmpresaForm({
                 {erpPdvFeedback.texto}
               </div>
             )}
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-950 p-4 text-white">
+              <div className="flex min-w-0 flex-col gap-4 xl:flex-row">
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-sm font-bold uppercase tracking-wide text-green-300">
+                        Frente de caixa
+                      </p>
+
+                      <h4 className="mt-2 text-2xl font-black">
+                        PDV rapido
+                      </h4>
+                    </div>
+
+                    <span className="rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-green-100">
+                      Carrinho local - venda ainda nao gravada
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
+                    <Input
+                      label="Buscar por nome, SKU ou codigo de barras"
+                      value={erpPdvPdvBusca}
+                      onChange={(e) => setErpPdvPdvBusca(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          adicionarProdutoDaBuscaErpPdv();
+                        }
+                      }}
+                      placeholder="Digite ou leia o codigo de barras"
+                      className="border-white/20 bg-white text-slate-900"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={adicionarProdutoDaBuscaErpPdv}
+                      disabled={
+                        !recursosContratados.erp_pdv ||
+                        erpPdvPdvProdutosEncontrados.length === 0
+                      }
+                      className="mt-7 rounded-2xl bg-green-500 px-6 py-4 text-base font-black text-slate-950 transition hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Adicionar
+                    </button>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    {erpPdvPdvProdutosEncontrados.length > 0 ? (
+                      erpPdvPdvProdutosEncontrados.map((produto) => (
+                        <button
+                          type="button"
+                          key={produto.id}
+                          onClick={() => adicionarProdutoAoCarrinhoErpPdv(produto)}
+                          disabled={
+                            !recursosContratados.erp_pdv ||
+                            produto.estoque_atual <= 0
+                          }
+                          className="min-h-32 rounded-2xl border border-white/10 bg-white/10 p-3 text-left transition hover:border-green-300 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <div className="flex gap-3">
+                            <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-white/10">
+                              {produto.imagem_url ? (
+                                <img
+                                  src={produto.imagem_url}
+                                  alt={produto.nome}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-xs font-bold text-slate-300">
+                                  Foto
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="min-w-0">
+                              <p className="line-clamp-2 text-sm font-black">
+                                {produto.nome}
+                              </p>
+                              <p className="mt-1 text-xs text-slate-300">
+                                SKU: {produto.sku || "nao informado"}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-3 flex items-center justify-between gap-2 text-sm">
+                            <span className="font-black text-green-200">
+                              R${" "}
+                              {produto.preco_venda.toLocaleString("pt-BR", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
+                            </span>
+                            <span className="rounded-full bg-white/10 px-2 py-1 text-xs font-bold text-slate-200">
+                              Est.: {formatarNumeroErpPdv(produto.estoque_atual)}
+                            </span>
+                          </div>
+                        </button>
+                      ))
+                    ) : (
+                      <p className="rounded-2xl bg-white/10 px-4 py-4 text-sm font-semibold text-slate-300 md:col-span-2 xl:col-span-4">
+                        Nenhum produto ativo encontrado para o termo informado.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex min-w-0 flex-col rounded-2xl bg-white p-4 text-slate-900 xl:w-[420px]">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+                        Carrinho
+                      </p>
+                      <h4 className="mt-2 text-xl font-black">
+                        {erpPdvCarrinhoQuantidadeItens} item(ns)
+                      </h4>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={limparCarrinhoErpPdv}
+                      disabled={erpPdvCarrinho.length === 0}
+                      className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Limpar
+                    </button>
+                  </div>
+
+                  <div className="mt-4 max-h-[520px] flex-1 space-y-3 overflow-y-auto pr-1">
+                    {erpPdvCarrinhoDetalhado.length > 0 ? (
+                      erpPdvCarrinhoDetalhado.map((item) => (
+                        <div
+                          key={item.produto.id}
+                          className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
+                        >
+                          <div className="flex gap-3">
+                            <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                              {item.produto.imagem_url ? (
+                                <img
+                                  src={item.produto.imagem_url}
+                                  alt={item.produto.nome}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-xs font-bold text-slate-400">
+                                  Foto
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <div className="flex gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <p className="line-clamp-2 font-black text-slate-900">
+                                    {item.produto.nome}
+                                  </p>
+                                  <p className="mt-1 text-sm font-semibold text-slate-500">
+                                    Unit.: R${" "}
+                                    {item.produto.preco_venda.toLocaleString(
+                                      "pt-BR",
+                                      {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                      }
+                                    )}
+                                  </p>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    removerItemCarrinhoErpPdv(item.produto.id)
+                                  }
+                                  className="h-10 rounded-xl border border-slate-200 px-3 text-sm font-black text-red-600 transition hover:border-red-300 hover:bg-red-50"
+                                >
+                                  Remover
+                                </button>
+                              </div>
+
+                              <div className="mt-3 grid grid-cols-[1fr_1fr] items-end gap-3">
+                                <div>
+                                  <label className="block text-xs font-bold text-slate-600">
+                                    Qtd.
+                                  </label>
+                                  <input
+                                    value={formatarNumeroErpPdv(item.quantidade)}
+                                    onChange={(e) =>
+                                      atualizarQuantidadeCarrinhoErpPdv(
+                                        item.produto,
+                                        e.target.value
+                                      )
+                                    }
+                                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-lg font-black outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                                  />
+                                </div>
+
+                                <div className="text-right">
+                                  <p className="text-xs font-bold text-slate-500">
+                                    Subtotal
+                                  </p>
+                                  <p className="text-lg font-black text-slate-950">
+                                    R${" "}
+                                    {item.subtotal.toLocaleString("pt-BR", {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm font-semibold text-slate-500">
+                        Carrinho vazio. Busque ou toque em um produto para iniciar.
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-4 rounded-2xl bg-slate-950 p-4 text-white">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm font-bold text-slate-300">
+                        Total geral
+                      </span>
+                      <span className="text-3xl font-black text-green-300">
+                        R${" "}
+                        {erpPdvCarrinhoTotal.toLocaleString("pt-BR", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={cancelarVendaErpPdv}
+                        disabled={erpPdvCarrinho.length === 0}
+                        className="rounded-xl border border-white/20 px-4 py-4 text-sm font-black text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Cancelar venda
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled
+                        className="rounded-xl bg-slate-700 px-4 py-4 text-sm font-black text-slate-300 opacity-70"
+                      >
+                        Finalizar em breve
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <fieldset
               disabled={!recursosContratados.erp_pdv || erpPdvSalvando}
