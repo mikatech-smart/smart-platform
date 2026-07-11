@@ -121,6 +121,13 @@ export type CrmLeadPayload = {
   status?: "prospect" | "ativo" | "inativo";
 };
 
+type CrmPipelineEtapa =
+  | "novo_lead"
+  | "em_atendimento"
+  | "proposta"
+  | "fechado"
+  | "perdido";
+
 type CrmClienteConfig = {
   id: string;
   nome: string;
@@ -129,9 +136,11 @@ type CrmClienteConfig = {
   observacoes: string;
   tags: string[];
   status: "prospect" | "ativo" | "inativo";
+  etapaPipeline: CrmPipelineEtapa;
   origem?: string;
   criadoEm?: string;
   atualizadoEm?: string;
+  movimentadoEm?: string;
 };
 
 type CrmConfig = {
@@ -158,6 +167,20 @@ function normalizarTagsLead(tags?: string[]) {
         .filter(Boolean)
     )
   ).slice(0, 20);
+}
+
+function normalizarCrmPipelineEtapa(valor: unknown): CrmPipelineEtapa {
+  const etapas: CrmPipelineEtapa[] = [
+    "novo_lead",
+    "em_atendimento",
+    "proposta",
+    "fechado",
+    "perdido",
+  ];
+
+  return etapas.includes(valor as CrmPipelineEtapa)
+    ? (valor as CrmPipelineEtapa)
+    : "novo_lead";
 }
 
 function normalizarCrmConfig(valor: unknown): CrmConfig {
@@ -197,11 +220,18 @@ function normalizarCrmConfig(valor: unknown): CrmConfig {
               : "",
           tags,
           status,
+          etapaPipeline: normalizarCrmPipelineEtapa(
+            cliente.etapaPipeline || cliente.pipeline
+          ),
           origem: typeof cliente.origem === "string" ? cliente.origem : "",
           criadoEm: typeof cliente.criadoEm === "string" ? cliente.criadoEm : "",
           atualizadoEm:
             typeof cliente.atualizadoEm === "string"
               ? cliente.atualizadoEm
+              : "",
+          movimentadoEm:
+            typeof cliente.movimentadoEm === "string"
+              ? cliente.movimentadoEm
               : "",
         };
       })
@@ -333,9 +363,11 @@ export async function registrarLeadNoCrm(payload: CrmLeadPayload) {
     observacoes: normalizarContatoLead(payload.observacoes),
     tags,
     status: payload.status || "prospect",
+    etapaPipeline: "novo_lead",
     origem: payload.origem,
     criadoEm: agora,
     atualizadoEm: agora,
+    movimentadoEm: agora,
   };
   const clientes =
     indiceExistente >= 0
@@ -352,9 +384,13 @@ export async function registrarLeadNoCrm(payload: CrmLeadPayload) {
                 ),
                 tags: normalizarTagsLead([...cliente.tags, ...leadBase.tags]),
                 status: cliente.status || leadBase.status,
+                etapaPipeline:
+                  cliente.etapaPipeline || leadBase.etapaPipeline,
                 origem: mesclarOrigemLead(cliente.origem, payload.origem),
                 criadoEm: cliente.criadoEm || leadBase.criadoEm,
                 atualizadoEm: agora,
+                movimentadoEm:
+                  cliente.movimentadoEm || leadBase.movimentadoEm,
               }
             : cliente
         )

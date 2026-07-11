@@ -616,6 +616,13 @@ type FidelidadeConfig = {
 
 type CrmClienteStatus = "prospect" | "ativo" | "inativo";
 
+type CrmPipelineEtapa =
+  | "novo_lead"
+  | "em_atendimento"
+  | "proposta"
+  | "fechado"
+  | "perdido";
+
 type CrmClienteConfig = {
   id: string;
   nome: string;
@@ -624,9 +631,11 @@ type CrmClienteConfig = {
   observacoes: string;
   tags: string[];
   status: CrmClienteStatus;
+  etapaPipeline: CrmPipelineEtapa;
   origem?: string;
   criadoEm?: string;
   atualizadoEm?: string;
+  movimentadoEm?: string;
 };
 
 type CrmConfig = {
@@ -709,6 +718,38 @@ const fidelidadeConfigPadrao: FidelidadeConfig = {
   ativo: false,
 };
 
+const crmPipelineEtapas: Array<{
+  id: CrmPipelineEtapa;
+  nome: string;
+  descricao: string;
+}> = [
+  {
+    id: "novo_lead",
+    nome: "Novo Lead",
+    descricao: "Contatos recem-chegados ao CRM.",
+  },
+  {
+    id: "em_atendimento",
+    nome: "Em Atendimento",
+    descricao: "Leads em conversa ativa.",
+  },
+  {
+    id: "proposta",
+    nome: "Proposta",
+    descricao: "Oportunidades com proposta enviada.",
+  },
+  {
+    id: "fechado",
+    nome: "Fechado",
+    descricao: "Clientes convertidos.",
+  },
+  {
+    id: "perdido",
+    nome: "Perdido",
+    descricao: "Oportunidades encerradas.",
+  },
+];
+
 const crmClientePadrao: CrmClienteConfig = {
   id: "cliente-1",
   nome: "",
@@ -717,9 +758,11 @@ const crmClientePadrao: CrmClienteConfig = {
   observacoes: "",
   tags: [],
   status: "prospect",
+  etapaPipeline: "novo_lead",
   origem: "manual",
   criadoEm: "",
   atualizadoEm: "",
+  movimentadoEm: "",
 };
 
 const crmConfigPadrao: CrmConfig = {
@@ -1520,6 +1563,25 @@ function normalizarCrmStatus(valor: unknown): CrmClienteStatus {
   return valor === "ativo" || valor === "inativo" ? valor : "prospect";
 }
 
+function normalizarCrmPipelineEtapa(valor: unknown): CrmPipelineEtapa {
+  return crmPipelineEtapas.some((etapa) => etapa.id === valor)
+    ? (valor as CrmPipelineEtapa)
+    : "novo_lead";
+}
+
+function formatarDataMovimentacaoCrm(valor?: string) {
+  if (!valor) return "Sem movimentacao registrada";
+
+  const data = new Date(valor);
+
+  if (Number.isNaN(data.getTime())) return "Data nao informada";
+
+  return data.toLocaleString("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+}
+
 function normalizarCrmConfig(valor: unknown): CrmConfig {
   if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
     return {
@@ -1549,9 +1611,13 @@ function normalizarCrmConfig(valor: unknown): CrmConfig {
           observacoes: lerCampoTexto(cliente, "observacoes"),
           tags: normalizarTagsCrm(cliente.tags),
           status: normalizarCrmStatus(cliente.status),
+          etapaPipeline: normalizarCrmPipelineEtapa(
+            cliente.etapaPipeline || cliente.pipeline
+          ),
           origem: lerCampoTexto(cliente, "origem") || "manual",
           criadoEm: lerCampoTexto(cliente, "criadoEm"),
           atualizadoEm: lerCampoTexto(cliente, "atualizadoEm"),
+          movimentadoEm: lerCampoTexto(cliente, "movimentadoEm"),
         };
       })
     : crmConfigPadrao.clientes.map((cliente) => ({ ...cliente }));
@@ -5477,15 +5543,36 @@ export default function EmpresaForm({
     );
   }
 
+  function moverCrmClienteParaEtapa(
+    clienteId: string,
+    etapaPipeline: CrmPipelineEtapa
+  ) {
+    setCrmClientes((clientesAtuais) =>
+      clientesAtuais.map((clienteAtual) =>
+        clienteAtual.id === clienteId
+          ? {
+              ...clienteAtual,
+              etapaPipeline,
+              movimentadoEm: new Date().toISOString(),
+            }
+          : clienteAtual
+      )
+    );
+  }
+
   function adicionarCrmCliente() {
     setCrmClientes((clientesAtuais) => {
       if (clientesAtuais.length >= 500) return clientesAtuais;
+      const agora = new Date().toISOString();
 
       return [
         ...clientesAtuais,
         {
           ...crmClientePadrao,
           id: `cliente-${Date.now()}`,
+          criadoEm: agora,
+          atualizadoEm: agora,
+          movimentadoEm: agora,
         },
       ];
     });
@@ -7436,6 +7523,110 @@ export default function EmpresaForm({
               className="grid gap-5 disabled:opacity-60"
             >
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+                    Pipeline
+                  </p>
+
+                  <h4 className="mt-2 text-lg font-bold text-slate-900">
+                    Funil comercial
+                  </h4>
+
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                    Mova leads entre as colunas para acompanhar o atendimento e
+                    registrar automaticamente a data da ultima movimentacao.
+                  </p>
+                </div>
+
+                <div className="mt-4 grid gap-4 xl:grid-cols-5">
+                  {crmPipelineEtapas.map((etapa) => {
+                    const clientesDaEtapa = crmClientes.filter(
+                      (clienteCrm) =>
+                        normalizarCrmPipelineEtapa(
+                          clienteCrm.etapaPipeline
+                        ) === etapa.id
+                    );
+
+                    return (
+                      <div
+                        key={etapa.id}
+                        className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h5 className="text-sm font-bold text-slate-900">
+                              {etapa.nome}
+                            </h5>
+                            <p className="mt-1 text-xs leading-5 text-slate-500">
+                              {etapa.descricao}
+                            </p>
+                          </div>
+
+                          <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-green-100 px-2 text-xs font-bold text-green-700">
+                            {clientesDaEtapa.length}
+                          </span>
+                        </div>
+
+                        <div className="mt-3 grid gap-3">
+                          {clientesDaEtapa.map((clienteCrm) => (
+                            <article
+                              key={`${etapa.id}-${clienteCrm.id}`}
+                              className="rounded-xl border border-slate-200 bg-white p-3"
+                            >
+                              <h6 className="text-sm font-bold text-slate-900">
+                                {clienteCrm.nome || "Lead sem nome"}
+                              </h6>
+
+                              <p className="mt-1 text-xs text-slate-500">
+                                {clienteCrm.telefone ||
+                                  clienteCrm.email ||
+                                  "Contato nao informado"}
+                              </p>
+
+                              <label className="mt-3 block text-xs font-bold text-slate-600">
+                                Mover para
+                                <select
+                                  value={normalizarCrmPipelineEtapa(
+                                    clienteCrm.etapaPipeline
+                                  )}
+                                  onChange={(e) =>
+                                    moverCrmClienteParaEtapa(
+                                      clienteCrm.id,
+                                      e.target.value as CrmPipelineEtapa
+                                    )
+                                  }
+                                  className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                                >
+                                  {crmPipelineEtapas.map((opcao) => (
+                                    <option key={opcao.id} value={opcao.id}>
+                                      {opcao.nome}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+
+                              <p className="mt-2 text-xs text-slate-500">
+                                Movimentacao:{" "}
+                                {formatarDataMovimentacaoCrm(
+                                  clienteCrm.movimentadoEm
+                                )}
+                              </p>
+                            </article>
+                          ))}
+
+                          {clientesDaEtapa.length === 0 && (
+                            <p className="rounded-xl border border-dashed border-slate-300 px-3 py-4 text-center text-xs text-slate-500">
+                              Nenhum lead nesta etapa.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
                 <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className="text-sm font-bold uppercase tracking-wide text-green-700">
@@ -7537,6 +7728,37 @@ export default function EmpresaForm({
                             <option value="inativo">Inativo</option>
                           </select>
                         </label>
+
+                        <label className="block font-medium text-slate-700">
+                          Etapa do pipeline
+                          <select
+                            value={normalizarCrmPipelineEtapa(
+                              clienteCrm.etapaPipeline
+                            )}
+                            onChange={(e) =>
+                              moverCrmClienteParaEtapa(
+                                clienteCrm.id,
+                                e.target.value as CrmPipelineEtapa
+                              )
+                            }
+                            className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-4 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                          >
+                            {crmPipelineEtapas.map((etapa) => (
+                              <option key={etapa.id} value={etapa.id}>
+                                {etapa.nome}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+
+                        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+                          <span className="block text-xs font-bold uppercase tracking-wide text-slate-500">
+                            Ultima movimentacao
+                          </span>
+                          {formatarDataMovimentacaoCrm(
+                            clienteCrm.movimentadoEm
+                          )}
+                        </div>
 
                         <div className="md:col-span-2">
                           <Input
