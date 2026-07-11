@@ -1,4 +1,10 @@
-import { useEffect, useMemo, type CSSProperties, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  type CSSProperties,
+  type FormEvent,
+  useState,
+} from "react";
 import { Link, useParams } from "react-router-dom";
 
 import type { Empresa } from "../../models/Empresa";
@@ -145,25 +151,45 @@ function criarSeoAgendamento(empresa: EmpresaAgendamento) {
   };
 }
 
-function criarLinkAgendamento(empresa: EmpresaAgendamento, servico: AgendamentoServicoConfig) {
+function obterTelefoneWhatsApp(empresa: EmpresaAgendamento) {
   const telefone = (empresa.whatsapp || empresa.telefone || "")
     .replace(/\D/g, "")
     .replace(/^0+/, "");
-  const telefoneComPais = telefone
+
+  return telefone
     ? telefone.startsWith("55")
       ? telefone
       : `55${telefone}`
     : "";
+}
+
+function criarLinkAgendamento(
+  empresa: EmpresaAgendamento,
+  servico: AgendamentoServicoConfig,
+  dadosCliente: {
+    nome: string;
+    telefone: string;
+    data: string;
+    horario: string;
+  }
+) {
+  const telefoneComPais = obterTelefoneWhatsApp(empresa);
 
   if (!telefoneComPais) return "";
 
   const mensagem = [
-    `Ola, gostaria de agendar ${servico.nome || "um servico"} com ${empresa.nome}.`,
+    `Ola, gostaria de solicitar um agendamento com ${empresa.nome}.`,
+    `Servico: ${servico.nome || "Servico"}.`,
     servico.duracaoMinutos ? `Duracao: ${servico.duracaoMinutos} minutos.` : "",
     servico.valor ? `Valor informado: ${servico.valor}.` : "",
+    `Nome: ${dadosCliente.nome}.`,
+    `Telefone: ${dadosCliente.telefone}.`,
+    `Data desejada: ${dadosCliente.data}.`,
+    `Horario desejado: ${dadosCliente.horario}.`,
+    "Aguardo confirmacao de disponibilidade.",
   ]
     .filter(Boolean)
-    .join(" ");
+    .join("\n");
 
   return `https://wa.me/${telefoneComPais}?text=${encodeURIComponent(mensagem)}`;
 }
@@ -172,6 +198,12 @@ export default function PublicAgendamentoPage() {
   const { slug } = useParams();
   const [empresa, setEmpresa] = useState<EmpresaAgendamento | null>(null);
   const [carregando, setCarregando] = useState(true);
+  const [servicoSelecionadoId, setServicoSelecionadoId] = useState("");
+  const [nomeCliente, setNomeCliente] = useState("");
+  const [telefoneCliente, setTelefoneCliente] = useState("");
+  const [dataDesejada, setDataDesejada] = useState("");
+  const [horarioDesejado, setHorarioDesejado] = useState("");
+  const [erroSolicitacao, setErroSolicitacao] = useState("");
 
   useEffect(() => {
     async function carregarAgendamento() {
@@ -203,18 +235,81 @@ export default function PublicAgendamentoPage() {
     () => normalizarAgendamentoConfig(empresa?.agendamento_config),
     [empresa?.agendamento_config]
   );
-  const servicosAtivos = agendamento.servicos.filter(
-    (servico) =>
-      servico.ativo &&
-      [
-        servico.nome,
-        servico.descricao,
-        servico.duracaoMinutos,
-        servico.valor,
-      ].some((valor) => valor.trim())
+  const servicosAtivos = useMemo(
+    () =>
+      agendamento.servicos.filter(
+        (servico) =>
+          servico.ativo &&
+          [
+            servico.nome,
+            servico.descricao,
+            servico.duracaoMinutos,
+            servico.valor,
+          ].some((valor) => valor.trim())
+      ),
+    [agendamento.servicos]
   );
   const agendamentoContratado =
     empresa?.recursos_contratados?.agendamento === true;
+  const servicoSelecionado =
+    servicosAtivos.find((servico) => servico.id === servicoSelecionadoId) ||
+    servicosAtivos[0];
+
+  useEffect(() => {
+    if (!servicoSelecionadoId && servicosAtivos[0]) {
+      setServicoSelecionadoId(servicosAtivos[0].id);
+    }
+  }, [servicoSelecionadoId, servicosAtivos]);
+
+  function selecionarServicoParaSolicitacao(servicoId: string) {
+    setServicoSelecionadoId(servicoId);
+    setErroSolicitacao("");
+
+    window.setTimeout(() => {
+      document.getElementById("solicitar-agendamento")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 0);
+  }
+
+  function enviarSolicitacaoAgendamento(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!empresa || !servicoSelecionado) return;
+
+    if (!obterTelefoneWhatsApp(empresa)) {
+      setErroSolicitacao(
+        "Esta empresa ainda nao possui WhatsApp ou telefone para receber solicitacoes."
+      );
+      return;
+    }
+
+    if (
+      !nomeCliente.trim() ||
+      !telefoneCliente.trim() ||
+      !dataDesejada ||
+      !horarioDesejado
+    ) {
+      setErroSolicitacao("Preencha nome, telefone, data e horario desejados.");
+      return;
+    }
+
+    const link = criarLinkAgendamento(empresa, servicoSelecionado, {
+      nome: nomeCliente.trim(),
+      telefone: telefoneCliente.trim(),
+      data: dataDesejada,
+      horario: horarioDesejado,
+    });
+
+    if (!link) {
+      setErroSolicitacao("Nao foi possivel gerar a mensagem para WhatsApp.");
+      return;
+    }
+
+    setErroSolicitacao("");
+    window.open(link, "_blank", "noopener,noreferrer");
+  }
 
   if (carregando) {
     return (
@@ -266,11 +361,95 @@ export default function PublicAgendamentoPage() {
         </div>
       </header>
 
-      <section className="public-agendamento-content" aria-label="Servicos para agendamento">
-        {servicosAtivos.map((servico, indice) => {
-          const linkAgendamento = criarLinkAgendamento(empresa, servico);
+      <section
+        className="public-agendamento-request"
+        id="solicitar-agendamento"
+        aria-label="Solicitar agendamento"
+      >
+        <div>
+          <p>Solicitacao de horario</p>
+          <h2>Solicitar Agendamento</h2>
+          <span>
+            Informe seus dados e envie a solicitacao pelo WhatsApp. O horario
+            sera confirmado pela equipe.
+          </span>
+        </div>
 
-          return (
+        <form onSubmit={enviarSolicitacaoAgendamento}>
+          <label>
+            <span>Servico</span>
+            <select
+              value={servicoSelecionado?.id || ""}
+              onChange={(event) => {
+                setServicoSelecionadoId(event.target.value);
+                setErroSolicitacao("");
+              }}
+              required
+            >
+              {servicosAtivos.map((servico) => (
+                <option key={servico.id} value={servico.id}>
+                  {servico.nome || "Servico"}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            <span>Nome</span>
+            <input
+              type="text"
+              value={nomeCliente}
+              onChange={(event) => setNomeCliente(event.target.value)}
+              placeholder="Seu nome"
+              required
+            />
+          </label>
+
+          <label>
+            <span>Telefone</span>
+            <input
+              type="tel"
+              value={telefoneCliente}
+              onChange={(event) => setTelefoneCliente(event.target.value)}
+              placeholder="(00) 00000-0000"
+              required
+            />
+          </label>
+
+          <div className="public-agendamento-request__row">
+            <label>
+              <span>Data desejada</span>
+              <input
+                type="date"
+                value={dataDesejada}
+                onChange={(event) => setDataDesejada(event.target.value)}
+                required
+              />
+            </label>
+
+            <label>
+              <span>Horario desejado</span>
+              <input
+                type="time"
+                value={horarioDesejado}
+                onChange={(event) => setHorarioDesejado(event.target.value)}
+                required
+              />
+            </label>
+          </div>
+
+          {erroSolicitacao && (
+            <p className="public-agendamento-request__error">
+              {erroSolicitacao}
+            </p>
+          )}
+
+          <button type="submit">Solicitar Agendamento</button>
+        </form>
+      </section>
+
+      <section className="public-agendamento-content" aria-label="Servicos para agendamento">
+        {servicosAtivos.map((servico, indice) => (
             <article className="public-agendamento-service" key={servico.id}>
               <div className="public-agendamento-service__index">
                 {String(indice + 1).padStart(2, "0")}
@@ -296,20 +475,16 @@ export default function PublicAgendamentoPage() {
                   )}
                 </dl>
 
-                {linkAgendamento && (
-                  <a
+                <button
                     className="public-agendamento-service__button"
-                    href={linkAgendamento}
-                    target="_blank"
-                    rel="noreferrer"
+                    type="button"
+                    onClick={() => selecionarServicoParaSolicitacao(servico.id)}
                   >
-                    Agendar
-                  </a>
-                )}
+                    Solicitar Agendamento
+                  </button>
               </div>
             </article>
-          );
-        })}
+          ))}
       </section>
     </main>
   );
