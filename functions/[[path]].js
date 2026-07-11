@@ -270,21 +270,34 @@ async function getEmpresasParaSitemap(env) {
     return [];
   }
 
-  const params = new URLSearchParams({
-    select: "slug,ativo,landing_page_config,recursos_contratados,cardapio_config,catalogo_config,agendamento_config",
-    ativo: "eq.true",
-    order: "slug.asc",
-    limit: "10000",
-  });
-  const response = await fetch(
-    `${env.VITE_SUPABASE_URL}/rest/v1/empresas?${params.toString()}`,
-    {
-      headers: {
-        apikey: env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        Authorization: `Bearer ${env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-      },
-    }
-  );
+  async function buscarEmpresas(select) {
+    const params = new URLSearchParams({
+      select,
+      ativo: "eq.true",
+      order: "slug.asc",
+      limit: "10000",
+    });
+
+    return fetch(
+      `${env.VITE_SUPABASE_URL}/rest/v1/empresas?${params.toString()}`,
+      {
+        headers: {
+          apikey: env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+      }
+    );
+  }
+
+  const selectComAgendamento =
+    "slug,ativo,landing_page_config,recursos_contratados,cardapio_config,catalogo_config,agendamento_config";
+  const selectLegado =
+    "slug,ativo,landing_page_config,recursos_contratados,cardapio_config,catalogo_config";
+  let response = await buscarEmpresas(selectComAgendamento);
+
+  if (!response.ok) {
+    response = await buscarEmpresas(selectLegado);
+  }
 
   if (!response.ok) return [];
 
