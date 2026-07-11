@@ -49,6 +49,33 @@ export type ErpPdvProdutoPayload = {
   ativo: boolean;
 };
 
+export type ErpPdvMovimentacaoTipo = "entrada" | "saida" | "ajuste" | "venda";
+
+export type ErpPdvMovimentacao = {
+  id: string;
+  empresa_id: string;
+  produto_id: string;
+  tipo: ErpPdvMovimentacaoTipo;
+  quantidade: number;
+  estoque_anterior: number;
+  estoque_posterior: number;
+  origem: string;
+  motivo: string;
+  observacao: string;
+  usuario_responsavel: string;
+  created_at: string;
+};
+
+export type ErpPdvMovimentacaoPayload = {
+  empresaId: string;
+  produtoId: string;
+  tipo: "entrada" | "saida" | "ajuste";
+  quantidade: number;
+  motivo: string;
+  observacao: string;
+  usuarioResponsavel: string;
+};
+
 type ErpPdvProdutoRow = {
   id: string;
   empresa_id: string;
@@ -71,6 +98,21 @@ type ErpPdvEstoqueRow = {
   produto_id: string;
   quantidade_atual: number | string;
   estoque_minimo: number | string;
+};
+
+type ErpPdvMovimentacaoRow = {
+  id: string;
+  empresa_id: string;
+  produto_id: string;
+  tipo: ErpPdvMovimentacaoTipo;
+  quantidade: number | string;
+  estoque_anterior: number | string;
+  estoque_posterior: number | string;
+  origem?: string;
+  motivo?: string;
+  observacao?: string;
+  usuario_responsavel?: string;
+  created_at: string;
 };
 
 function toNumber(valor: number | string | null | undefined) {
@@ -102,6 +144,25 @@ function normalizarProduto(
     ativo: row.ativo,
     estoque_atual: toNumber(estoque?.quantidade_atual),
     estoque_minimo: toNumber(estoque?.estoque_minimo),
+  };
+}
+
+function normalizarMovimentacao(
+  row: ErpPdvMovimentacaoRow
+): ErpPdvMovimentacao {
+  return {
+    id: row.id,
+    empresa_id: row.empresa_id,
+    produto_id: row.produto_id,
+    tipo: row.tipo,
+    quantidade: toNumber(row.quantidade),
+    estoque_anterior: toNumber(row.estoque_anterior),
+    estoque_posterior: toNumber(row.estoque_posterior),
+    origem: row.origem || "manual",
+    motivo: row.motivo || "",
+    observacao: row.observacao || "",
+    usuario_responsavel: row.usuario_responsavel || "",
+    created_at: row.created_at,
   };
 }
 
@@ -266,6 +327,152 @@ export async function salvarErpPdvProduto(payload: ErpPdvProdutoPayload) {
       estoque_atual: payload.estoqueAtual,
       estoque_minimo: payload.estoqueMinimo,
     },
+    error: null,
+  };
+}
+
+export async function listarErpPdvMovimentacoes(empresaId: string) {
+  const { data, error } = await supabase
+    .from("erp_pdv_movimentacoes")
+    .select(
+      `
+        id,
+        empresa_id,
+        produto_id,
+        tipo,
+        quantidade,
+        estoque_anterior,
+        estoque_posterior,
+        origem,
+        motivo,
+        observacao,
+        usuario_responsavel,
+        created_at
+      `
+    )
+    .eq("empresa_id", empresaId)
+    .order("created_at", { ascending: false })
+    .limit(300);
+
+  return {
+    data: ((data || []) as ErpPdvMovimentacaoRow[]).map(
+      normalizarMovimentacao
+    ),
+    error,
+  };
+}
+
+export async function registrarErpPdvMovimentacao(
+  payload: ErpPdvMovimentacaoPayload
+) {
+  const quantidade = toNumber(payload.quantidade);
+
+  if (quantidade <= 0) {
+    return {
+      data: null,
+      error: new Error("Informe uma quantidade maior que zero."),
+    };
+  }
+
+  const { data: estoqueData, error: estoqueError } = await supabase
+    .from("erp_pdv_estoques")
+    .select("produto_id, quantidade_atual, estoque_minimo")
+    .eq("empresa_id", payload.empresaId)
+    .eq("produto_id", payload.produtoId)
+    .maybeSingle();
+
+  if (estoqueError) {
+    return {
+      data: null,
+      error: estoqueError,
+    };
+  }
+
+  const estoqueAnterior = toNumber(
+    (estoqueData as ErpPdvEstoqueRow | null)?.quantidade_atual
+  );
+  const estoqueMinimo = toNumber(
+    (estoqueData as ErpPdvEstoqueRow | null)?.estoque_minimo
+  );
+  const estoquePosterior =
+    payload.tipo === "entrada"
+      ? estoqueAnterior + quantidade
+      : payload.tipo === "saida"
+      ? estoqueAnterior - quantidade
+      : quantidade;
+
+  if (estoquePosterior < 0) {
+    return {
+      data: null,
+      error: new Error("A saida informada deixaria o estoque negativo."),
+    };
+  }
+
+  const agora = new Date().toISOString();
+  const { error: estoqueUpdateError } = await supabase
+    .from("erp_pdv_estoques")
+    .upsert(
+      {
+        empresa_id: payload.empresaId,
+        produto_id: payload.produtoId,
+        quantidade_atual: estoquePosterior,
+        estoque_minimo: estoqueMinimo,
+        updated_at: agora,
+        ultima_movimentacao_em: agora,
+      },
+      {
+        onConflict: "produto_id",
+      }
+    );
+
+  if (estoqueUpdateError) {
+    return {
+      data: null,
+      error: estoqueUpdateError,
+    };
+  }
+
+  const { data: movimentacaoData, error: movimentacaoError } = await supabase
+    .from("erp_pdv_movimentacoes")
+    .insert({
+      empresa_id: payload.empresaId,
+      produto_id: payload.produtoId,
+      tipo: payload.tipo,
+      quantidade,
+      estoque_anterior: estoqueAnterior,
+      estoque_posterior: estoquePosterior,
+      origem: "manual",
+      motivo: payload.motivo.trim(),
+      observacao: payload.observacao.trim(),
+      usuario_responsavel: payload.usuarioResponsavel.trim(),
+    })
+    .select(
+      `
+        id,
+        empresa_id,
+        produto_id,
+        tipo,
+        quantidade,
+        estoque_anterior,
+        estoque_posterior,
+        origem,
+        motivo,
+        observacao,
+        usuario_responsavel,
+        created_at
+      `
+    )
+    .single();
+
+  if (movimentacaoError || !movimentacaoData) {
+    return {
+      data: null,
+      error: movimentacaoError,
+    };
+  }
+
+  return {
+    data: normalizarMovimentacao(movimentacaoData as ErpPdvMovimentacaoRow),
     error: null,
   };
 }

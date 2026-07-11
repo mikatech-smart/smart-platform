@@ -12,10 +12,15 @@ import {
 } from "../../../services/empresa/empresa.service";
 import {
   criarErpPdvCategoria,
+  listarErpPdvMovimentacoes,
   listarErpPdvCategorias,
   listarErpPdvProdutos,
+  registrarErpPdvMovimentacao,
   salvarErpPdvProduto,
   type ErpPdvCategoria,
+  type ErpPdvMovimentacao,
+  type ErpPdvMovimentacaoPayload,
+  type ErpPdvMovimentacaoTipo,
   type ErpPdvProduto,
   type ErpPdvProdutoPayload,
 } from "../../../services/erpPdv/erpPdv.service";
@@ -848,6 +853,17 @@ type ErpPdvProdutoForm = {
 
 type ErpPdvOrdenacaoProdutos = "nome" | "estoque" | "preco";
 
+type ErpPdvMovimentacaoForm = {
+  produtoId: string;
+  tipo: "entrada" | "saida" | "ajuste";
+  quantidade: string;
+  motivo: string;
+  observacao: string;
+  usuarioResponsavel: string;
+};
+
+type ErpPdvMovimentacaoFiltroTipo = ErpPdvMovimentacaoTipo | "todos";
+
 const erpPdvProdutoFormPadrao: ErpPdvProdutoForm = {
   id: "",
   nome: "",
@@ -865,6 +881,15 @@ const erpPdvProdutoFormPadrao: ErpPdvProdutoForm = {
   observacoes: "",
   imagemUrl: "",
   ativo: true,
+};
+
+const erpPdvMovimentacaoFormPadrao: ErpPdvMovimentacaoForm = {
+  produtoId: "",
+  tipo: "entrada",
+  quantidade: "",
+  motivo: "",
+  observacao: "",
+  usuarioResponsavel: "",
 };
 
 const cardapioCategoriaPadrao: CardapioCategoriaConfig = {
@@ -5550,12 +5575,26 @@ export default function EmpresaForm({
     []
   );
   const [erpPdvProdutos, setErpPdvProdutos] = useState<ErpPdvProduto[]>([]);
+  const [erpPdvMovimentacoes, setErpPdvMovimentacoes] = useState<
+    ErpPdvMovimentacao[]
+  >([]);
   const [erpPdvBusca, setErpPdvBusca] = useState("");
   const [erpPdvOrdenacao, setErpPdvOrdenacao] =
     useState<ErpPdvOrdenacaoProdutos>("nome");
+  const [erpPdvMovimentacaoProdutoFiltro, setErpPdvMovimentacaoProdutoFiltro] =
+    useState("todos");
+  const [erpPdvMovimentacaoTipoFiltro, setErpPdvMovimentacaoTipoFiltro] =
+    useState<ErpPdvMovimentacaoFiltroTipo>("todos");
+  const [erpPdvMovimentacaoInicio, setErpPdvMovimentacaoInicio] =
+    useState("");
+  const [erpPdvMovimentacaoFim, setErpPdvMovimentacaoFim] = useState("");
   const [erpPdvCategoriaNome, setErpPdvCategoriaNome] = useState("");
   const [erpPdvProdutoForm, setErpPdvProdutoForm] =
     useState<ErpPdvProdutoForm>(() => ({ ...erpPdvProdutoFormPadrao }));
+  const [erpPdvMovimentacaoForm, setErpPdvMovimentacaoForm] =
+    useState<ErpPdvMovimentacaoForm>(() => ({
+      ...erpPdvMovimentacaoFormPadrao,
+    }));
   const [erpPdvCarregando, setErpPdvCarregando] = useState(false);
   const [erpPdvSalvando, setErpPdvSalvando] = useState(false);
   const [erpPdvFeedback, setErpPdvFeedback] = useState<{
@@ -5664,6 +5703,43 @@ export default function EmpresaForm({
 
       return produtoA.nome.localeCompare(produtoB.nome);
     });
+  const erpPdvProdutosPorId = new Map(
+    erpPdvProdutos.map((produto) => [produto.id, produto])
+  );
+  const erpPdvProdutoMovimentacaoSelecionado = erpPdvProdutosPorId.get(
+    erpPdvMovimentacaoForm.produtoId
+  );
+  const erpPdvMovimentacoesFiltradas = erpPdvMovimentacoes.filter(
+    (movimentacao) => {
+      if (
+        erpPdvMovimentacaoProdutoFiltro !== "todos" &&
+        movimentacao.produto_id !== erpPdvMovimentacaoProdutoFiltro
+      ) {
+        return false;
+      }
+
+      if (
+        erpPdvMovimentacaoTipoFiltro !== "todos" &&
+        movimentacao.tipo !== erpPdvMovimentacaoTipoFiltro
+      ) {
+        return false;
+      }
+
+      const dataMovimentacao = new Date(movimentacao.created_at);
+
+      if (erpPdvMovimentacaoInicio) {
+        const inicio = new Date(`${erpPdvMovimentacaoInicio}T00:00:00`);
+        if (dataMovimentacao < inicio) return false;
+      }
+
+      if (erpPdvMovimentacaoFim) {
+        const fim = new Date(`${erpPdvMovimentacaoFim}T23:59:59`);
+        if (dataMovimentacao > fim) return false;
+      }
+
+      return true;
+    }
+  );
   const erpPdvPilotoMikatech = slugPublico === "mikatech";
 
   useEffect(() => {
@@ -5886,16 +5962,23 @@ export default function EmpresaForm({
       setErpPdvCarregando(true);
       setErpPdvFeedback(null);
 
-      const [categoriasResultado, produtosResultado] = await Promise.all([
+      const [
+        categoriasResultado,
+        produtosResultado,
+        movimentacoesResultado,
+      ] = await Promise.all([
         listarErpPdvCategorias(empresaIdAtual),
         listarErpPdvProdutos(empresaIdAtual),
+        listarErpPdvMovimentacoes(empresaIdAtual),
       ]);
 
       if (categoriasResultado.error) throw categoriasResultado.error;
       if (produtosResultado.error) throw produtosResultado.error;
+      if (movimentacoesResultado.error) throw movimentacoesResultado.error;
 
       setErpPdvCategorias(categoriasResultado.data);
       setErpPdvProdutos(produtosResultado.data);
+      setErpPdvMovimentacoes(movimentacoesResultado.data);
     } catch (error) {
       const mensagem =
         error instanceof Error
@@ -6535,6 +6618,16 @@ export default function EmpresaForm({
     }));
   }
 
+  function atualizarErpPdvMovimentacaoForm(
+    campo: keyof ErpPdvMovimentacaoForm,
+    valor: string
+  ) {
+    setErpPdvMovimentacaoForm((formAtual) => ({
+      ...formAtual,
+      [campo]: valor,
+    }));
+  }
+
   function limparErpPdvProdutoForm() {
     setErpPdvProdutoForm({ ...erpPdvProdutoFormPadrao });
   }
@@ -6655,6 +6748,88 @@ export default function EmpresaForm({
           error instanceof Error
             ? error.message
             : "Nao foi possivel salvar o produto.",
+      });
+    } finally {
+      setErpPdvSalvando(false);
+    }
+  }
+
+  async function registrarMovimentacaoErpPdv() {
+    if (!empresaId) return;
+
+    const quantidade = parseNumeroErpPdv(erpPdvMovimentacaoForm.quantidade);
+
+    if (!erpPdvMovimentacaoForm.produtoId) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "Selecione o produto da movimentacao.",
+      });
+      return;
+    }
+
+    if (quantidade <= 0) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "Informe uma quantidade maior que zero.",
+      });
+      return;
+    }
+
+    if (!erpPdvMovimentacaoForm.motivo.trim()) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "Informe o motivo da movimentacao.",
+      });
+      return;
+    }
+
+    const payload: ErpPdvMovimentacaoPayload = {
+      empresaId,
+      produtoId: erpPdvMovimentacaoForm.produtoId,
+      tipo: erpPdvMovimentacaoForm.tipo,
+      quantidade,
+      motivo: erpPdvMovimentacaoForm.motivo,
+      observacao: erpPdvMovimentacaoForm.observacao,
+      usuarioResponsavel: erpPdvMovimentacaoForm.usuarioResponsavel,
+    };
+
+    try {
+      setErpPdvSalvando(true);
+
+      const { data, error } = await registrarErpPdvMovimentacao(payload);
+
+      if (error) throw error;
+      if (!data) throw new Error("Movimentacao nao retornada pelo Supabase.");
+
+      setErpPdvProdutos((produtosAtuais) =>
+        produtosAtuais.map((produto) =>
+          produto.id === data.produto_id
+            ? {
+                ...produto,
+                estoque_atual: data.estoque_posterior,
+              }
+            : produto
+        )
+      );
+      setErpPdvMovimentacoes((movimentacoesAtuais) => [
+        data,
+        ...movimentacoesAtuais,
+      ]);
+      setErpPdvMovimentacaoForm((formAtual) => ({
+        ...erpPdvMovimentacaoFormPadrao,
+        usuarioResponsavel: formAtual.usuarioResponsavel,
+      }));
+      setErpPdvFeedback({
+        tipo: "sucesso",
+        texto: "Movimentacao registrada e estoque atualizado.",
+      });
+    } catch (error) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel registrar a movimentacao.",
       });
     } finally {
       setErpPdvSalvando(false);
@@ -9010,6 +9185,339 @@ export default function EmpresaForm({
                 ) : (
                   <p className="rounded-xl bg-slate-50 px-3 py-3 text-sm text-slate-500">
                     Nenhum produto encontrado para a busca atual.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+                    Estoque
+                  </p>
+
+                  <h4 className="mt-2 text-lg font-bold text-slate-900">
+                    Movimentacao operacional
+                  </h4>
+                </div>
+
+                {erpPdvProdutoMovimentacaoSelecionado && (
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                    Estoque atual:{" "}
+                    {formatarNumeroErpPdv(
+                      erpPdvProdutoMovimentacaoSelecionado.estoque_atual
+                    )}
+                  </span>
+                )}
+              </div>
+
+              <fieldset
+                disabled={!recursosContratados.erp_pdv || erpPdvSalvando}
+                className="mt-4 grid gap-4 disabled:opacity-60 lg:grid-cols-3"
+              >
+                <div>
+                  <label className="block font-medium text-slate-700">
+                    Produto
+                  </label>
+
+                  <select
+                    value={erpPdvMovimentacaoForm.produtoId}
+                    onChange={(e) =>
+                      atualizarErpPdvMovimentacaoForm(
+                        "produtoId",
+                        e.target.value
+                      )
+                    }
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                  >
+                    <option value="">Selecione um produto</option>
+                    {erpPdvProdutos.map((produto) => (
+                      <option key={produto.id} value={produto.id}>
+                        {produto.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-medium text-slate-700">
+                    Tipo
+                  </label>
+
+                  <select
+                    value={erpPdvMovimentacaoForm.tipo}
+                    onChange={(e) =>
+                      atualizarErpPdvMovimentacaoForm(
+                        "tipo",
+                        e.target.value as ErpPdvMovimentacaoForm["tipo"]
+                      )
+                    }
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                  >
+                    <option value="entrada">Entrada de mercadorias</option>
+                    <option value="saida">Saida manual</option>
+                    <option value="ajuste">Ajuste de estoque</option>
+                  </select>
+                </div>
+
+                <Input
+                  label={
+                    erpPdvMovimentacaoForm.tipo === "ajuste"
+                      ? "Novo estoque"
+                      : "Quantidade"
+                  }
+                  value={erpPdvMovimentacaoForm.quantidade}
+                  onChange={(e) =>
+                    atualizarErpPdvMovimentacaoForm(
+                      "quantidade",
+                      e.target.value
+                    )
+                  }
+                  placeholder={
+                    erpPdvMovimentacaoForm.tipo === "ajuste"
+                      ? "Estoque final"
+                      : "0"
+                  }
+                />
+
+                <Input
+                  label="Motivo"
+                  value={erpPdvMovimentacaoForm.motivo}
+                  onChange={(e) =>
+                    atualizarErpPdvMovimentacaoForm("motivo", e.target.value)
+                  }
+                  placeholder="Ex.: Compra, perda, inventario"
+                />
+
+                <Input
+                  label="Usuario responsavel"
+                  value={erpPdvMovimentacaoForm.usuarioResponsavel}
+                  onChange={(e) =>
+                    atualizarErpPdvMovimentacaoForm(
+                      "usuarioResponsavel",
+                      e.target.value
+                    )
+                  }
+                  placeholder="Nome do operador"
+                />
+
+                <div className="lg:col-span-3">
+                  <label className="block font-medium text-slate-700">
+                    Observacoes
+                  </label>
+
+                  <textarea
+                    value={erpPdvMovimentacaoForm.observacao}
+                    onChange={(e) =>
+                      atualizarErpPdvMovimentacaoForm(
+                        "observacao",
+                        e.target.value
+                      )
+                    }
+                    placeholder="Detalhes da nota, fornecedor, inventario ou justificativa interna."
+                    rows={3}
+                    className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                  />
+                </div>
+              </fieldset>
+
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs font-semibold text-slate-500">
+                  Em ajustes, a quantidade informada passa a ser o estoque final
+                  do produto.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={registrarMovimentacaoErpPdv}
+                  disabled={
+                    !recursosContratados.erp_pdv ||
+                    erpPdvSalvando ||
+                    !erpPdvMovimentacaoForm.produtoId ||
+                    !erpPdvMovimentacaoForm.quantidade.trim()
+                  }
+                  className="rounded-xl bg-green-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {erpPdvSalvando
+                    ? "Registrando..."
+                    : "Registrar movimentacao"}
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+                    Historico
+                  </p>
+
+                  <h4 className="mt-2 text-lg font-bold text-slate-900">
+                    Movimentacoes de estoque
+                  </h4>
+                </div>
+
+                <span className="text-sm font-semibold text-slate-500">
+                  {erpPdvMovimentacoesFiltradas.length} registro(s)
+                </span>
+              </div>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-4">
+                <div>
+                  <label className="block font-medium text-slate-700">
+                    Produto
+                  </label>
+
+                  <select
+                    value={erpPdvMovimentacaoProdutoFiltro}
+                    onChange={(e) =>
+                      setErpPdvMovimentacaoProdutoFiltro(e.target.value)
+                    }
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                  >
+                    <option value="todos">Todos</option>
+                    {erpPdvProdutos.map((produto) => (
+                      <option key={produto.id} value={produto.id}>
+                        {produto.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-medium text-slate-700">
+                    Tipo
+                  </label>
+
+                  <select
+                    value={erpPdvMovimentacaoTipoFiltro}
+                    onChange={(e) =>
+                      setErpPdvMovimentacaoTipoFiltro(
+                        e.target.value as ErpPdvMovimentacaoFiltroTipo
+                      )
+                    }
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                  >
+                    <option value="todos">Todos</option>
+                    <option value="entrada">Entrada</option>
+                    <option value="saida">Saida</option>
+                    <option value="ajuste">Ajuste</option>
+                    <option value="venda">Venda</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-medium text-slate-700">
+                    Inicio
+                  </label>
+
+                  <input
+                    type="date"
+                    value={erpPdvMovimentacaoInicio}
+                    onChange={(e) =>
+                      setErpPdvMovimentacaoInicio(e.target.value)
+                    }
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-medium text-slate-700">
+                    Fim
+                  </label>
+
+                  <input
+                    type="date"
+                    value={erpPdvMovimentacaoFim}
+                    onChange={(e) => setErpPdvMovimentacaoFim(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-3">
+                {erpPdvMovimentacoesFiltradas.length > 0 ? (
+                  erpPdvMovimentacoesFiltradas.map((movimentacao) => {
+                    const produtoMovimentado = erpPdvProdutosPorId.get(
+                      movimentacao.produto_id
+                    );
+                    const tipoMovimentacao =
+                      movimentacao.tipo === "entrada"
+                        ? "Entrada"
+                        : movimentacao.tipo === "saida"
+                        ? "Saida"
+                        : movimentacao.tipo === "ajuste"
+                        ? "Ajuste"
+                        : "Venda";
+
+                    return (
+                      <div
+                        key={movimentacao.id}
+                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                      >
+                        <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                          <div className="min-w-0">
+                            <h5 className="font-bold text-slate-900">
+                              {produtoMovimentado?.nome || "Produto removido"}
+                            </h5>
+
+                            <p className="mt-1 text-sm text-slate-500">
+                              {new Date(
+                                movimentacao.created_at
+                              ).toLocaleString("pt-BR")}{" "}
+                              por{" "}
+                              {movimentacao.usuario_responsavel ||
+                                "usuario nao informado"}
+                            </p>
+                          </div>
+
+                          <span
+                            className={`w-fit rounded-full px-3 py-1 text-xs font-bold ${
+                              movimentacao.tipo === "entrada"
+                                ? "bg-green-100 text-green-700"
+                                : movimentacao.tipo === "saida"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-amber-100 text-amber-700"
+                            }`}
+                          >
+                            {tipoMovimentacao}
+                          </span>
+                        </div>
+
+                        <div className="mt-3 grid gap-2 text-sm text-slate-600 md:grid-cols-4">
+                          <span>
+                            Quantidade:{" "}
+                            {formatarNumeroErpPdv(movimentacao.quantidade)}
+                          </span>
+                          <span>
+                            Anterior:{" "}
+                            {formatarNumeroErpPdv(
+                              movimentacao.estoque_anterior
+                            )}
+                          </span>
+                          <span>
+                            Atual:{" "}
+                            {formatarNumeroErpPdv(
+                              movimentacao.estoque_posterior
+                            )}
+                          </span>
+                          <span>
+                            Motivo: {movimentacao.motivo || "Nao informado"}
+                          </span>
+                        </div>
+
+                        {movimentacao.observacao && (
+                          <p className="mt-3 rounded-xl bg-white px-3 py-2 text-sm text-slate-600">
+                            {movimentacao.observacao}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="rounded-xl bg-slate-50 px-3 py-3 text-sm text-slate-500">
+                    Nenhuma movimentacao encontrada para os filtros atuais.
                   </p>
                 )}
               </div>
