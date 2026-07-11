@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { MessageCircle } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 
 import type { Empresa } from "../../models/Empresa";
@@ -12,6 +13,7 @@ import {
   normalizeSeoDescription,
 } from "../../utils/seo";
 
+import "../PublicModulePage/PublicModulePage.css";
 import "./PublicCatalogoPage.css";
 
 type CatalogoCategoriaConfig = {
@@ -452,6 +454,7 @@ export default function PublicCatalogoPage() {
                           target="_blank"
                           rel="noreferrer"
                         >
+                          <MessageCircle aria-hidden="true" size={16} strokeWidth={2.4} />
                           Solicitar Orcamento
                         </a>
                       )}
@@ -487,6 +490,7 @@ export default function PublicCatalogoPage() {
                         target="_blank"
                         rel="noreferrer"
                       >
+                        <MessageCircle aria-hidden="true" size={16} strokeWidth={2.4} />
                         Solicitar Orcamento
                       </a>
                     )}

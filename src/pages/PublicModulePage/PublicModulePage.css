@@ -1,0 +1,216 @@
+.public-cardapio,
+.public-catalogo,
+.public-agendamento {
+  --module-radius-lg: 24px;
+  --module-radius-md: 18px;
+  --module-radius-sm: 14px;
+  --module-shadow-soft: 0 16px 42px rgba(15, 23, 42, 0.08);
+  --module-shadow-strong: 0 22px 60px rgba(15, 23, 42, 0.12);
+  --module-focus-size: 3px;
+  overflow-x: hidden;
+}
+
+.public-cardapio *,
+.public-catalogo *,
+.public-agendamento * {
+  box-sizing: border-box;
+}
+
+.public-cardapio-message,
+.public-catalogo-message,
+.public-agendamento-message,
+.public-cardapio-hero,
+.public-catalogo-hero,
+.public-agendamento-hero,
+.public-cardapio-tools,
+.public-catalogo-tools,
+.public-agendamento-request,
+.public-cardapio-section,
+.public-catalogo-section,
+.public-agendamento-service,
+.public-cardapio-empty,
+.public-catalogo-empty {
+  border-radius: var(--module-radius-lg);
+}
+
+.public-cardapio-message,
+.public-catalogo-message,
+.public-agendamento-message,
+.public-cardapio-hero,
+.public-catalogo-hero,
+.public-agendamento-hero {
+  box-shadow: var(--module-shadow-strong);
+}
+
+.public-cardapio-tools,
+.public-catalogo-tools,
+.public-agendamento-request,
+.public-cardapio-section,
+.public-catalogo-section,
+.public-agendamento-service {
+  box-shadow: var(--module-shadow-soft);
+}
+
+.public-cardapio-brand,
+.public-catalogo-brand,
+.public-agendamento-brand {
+  min-height: 44px;
+}
+
+.public-cardapio-brand img,
+.public-catalogo-brand img,
+.public-agendamento-brand img,
+.public-cardapio-message img,
+.public-catalogo-message img,
+.public-agendamento-message img {
+  flex: 0 0 auto;
+}
+
+.public-cardapio-search input,
+.public-catalogo-search input,
+.public-agendamento-request input,
+.public-agendamento-request select {
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.public-cardapio-filters button,
+.public-catalogo-filters button,
+.public-agendamento-request button,
+.public-agendamento-service__button,
+.public-catalogo-product__quote,
+.public-cardapio-message a,
+.public-catalogo-message a,
+.public-agendamento-message a {
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.public-agendamento-request button,
+.public-agendamento-service__button,
+.public-catalogo-product__quote {
+  gap: 8px;
+}
+
+.public-agendamento-request button svg,
+.public-agendamento-service__button svg,
+.public-catalogo-product__quote svg {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+}
+
+.public-cardapio-filters button:hover,
+.public-catalogo-filters button:hover,
+.public-agendamento-request button:hover,
+.public-agendamento-service__button:hover,
+.public-catalogo-product__quote:hover,
+.public-cardapio-message a:hover,
+.public-catalogo-message a:hover,
+.public-agendamento-message a:hover {
+  transform: translateY(-1px);
+}
+
+.public-cardapio-filters button:focus-visible,
+.public-catalogo-filters button:focus-visible,
+.public-agendamento-request button:focus-visible,
+.public-agendamento-service__button:focus-visible,
+.public-catalogo-product__quote:focus-visible,
+.public-cardapio-message a:focus-visible,
+.public-catalogo-message a:focus-visible,
+.public-agendamento-message a:focus-visible,
+.public-cardapio-brand:focus-visible,
+.public-catalogo-brand:focus-visible,
+.public-agendamento-brand:focus-visible {
+  outline-width: var(--module-focus-size);
+  outline-style: solid;
+  outline-offset: 2px;
+}
+
+.public-cardapio-filters button.is-active,
+.public-catalogo-filters button.is-active,
+.public-agendamento-request button,
+.public-agendamento-service__button,
+.public-catalogo-product__quote {
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+}
+
+.public-cardapio-product,
+.public-catalogo-product,
+.public-agendamento-service,
+.public-agendamento-request {
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.public-cardapio-product:hover,
+.public-catalogo-product:hover,
+.public-agendamento-service:hover {
+  transform: translateY(-1px);
+}
+
+.public-cardapio-product h3,
+.public-catalogo-product h3,
+.public-agendamento-service h2,
+.public-cardapio-section__heading h2,
+.public-catalogo-section__heading h2,
+.public-agendamento-request h2 {
+  overflow-wrap: anywhere;
+}
+
+.public-cardapio-product__price,
+.public-catalogo-product strong,
+.public-agendamento-service dd {
+  line-height: 1.2;
+}
+
+.public-cardapio-empty,
+.public-catalogo-empty,
+.public-cardapio-message,
+.public-catalogo-message,
+.public-agendamento-message {
+  text-wrap: balance;
+}
+
+@media (max-width: 520px) {
+  .public-cardapio,
+  .public-catalogo,
+  .public-agendamento {
+    padding: 14px;
+  }
+
+  .public-cardapio-hero,
+  .public-catalogo-hero,
+  .public-agendamento-hero,
+  .public-cardapio-tools,
+  .public-catalogo-tools,
+  .public-agendamento-request,
+  .public-cardapio-section,
+  .public-catalogo-section,
+  .public-agendamento-service {
+    border-radius: 20px;
+  }
+
+  .public-cardapio-hero h1,
+  .public-catalogo-hero h1,
+  .public-agendamento-hero h1 {
+    font-size: clamp(2rem, 16vw, 3rem);
+  }
+
+  .public-cardapio-filters,
+  .public-catalogo-filters {
+    margin-inline: -4px;
+    padding-inline: 4px;
+  }
+
+  .public-agendamento-request button,
+  .public-agendamento-service__button,
+  .public-catalogo-product__quote,
+  .public-cardapio-message a,
+  .public-catalogo-message a,
+  .public-agendamento-message a {
+    width: 100%;
+  }
+}

@@ -12,6 +12,7 @@ import {
   normalizeSeoDescription,
 } from "../../utils/seo";
 
+import "../PublicModulePage/PublicModulePage.css";
 import "./PublicCardapioPage.css";
 
 type CardapioCategoriaConfig = {

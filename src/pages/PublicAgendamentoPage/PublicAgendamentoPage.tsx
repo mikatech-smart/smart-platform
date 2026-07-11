@@ -5,6 +5,7 @@ import {
   type FormEvent,
   useState,
 } from "react";
+import { CalendarCheck, Send } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 
 import type { Empresa } from "../../models/Empresa";
@@ -18,6 +19,7 @@ import {
   normalizeSeoDescription,
 } from "../../utils/seo";
 
+import "../PublicModulePage/PublicModulePage.css";
 import "./PublicAgendamentoPage.css";
 
 type AgendamentoServicoConfig = {
@@ -444,7 +446,10 @@ export default function PublicAgendamentoPage() {
             </p>
           )}
 
-          <button type="submit">Solicitar Agendamento</button>
+          <button type="submit">
+            <Send aria-hidden="true" size={16} strokeWidth={2.4} />
+            Solicitar Agendamento
+          </button>
         </form>
       </section>
 
@@ -480,6 +485,7 @@ export default function PublicAgendamentoPage() {
                     type="button"
                     onClick={() => selecionarServicoParaSolicitacao(servico.id)}
                   >
+                    <CalendarCheck aria-hidden="true" size={16} strokeWidth={2.4} />
                     Solicitar Agendamento
                   </button>
               </div>
