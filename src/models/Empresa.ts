@@ -39,6 +39,7 @@ export interface Empresa {
   cardapio_config?: unknown;
   catalogo_config?: unknown;
   agendamento_config?: unknown;
+  wifi_marketing_config?: unknown;
 
   logo: string;
 

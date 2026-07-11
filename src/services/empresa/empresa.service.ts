@@ -9,6 +9,7 @@ const recursosContratadosPadrao = {
   cardapio_digital: false,
   catalogo: false,
   agendamento: false,
+  wifi_marketing: false,
   wifi: false,
   google_reviews: false,
   nfc: true,
@@ -48,6 +49,16 @@ function erroColunaAgendamentoConfig(error: { message?: string; code?: string })
   return (
     mensagem.includes("agendamento_config") ||
     (error.code === "PGRST204" && mensagem.includes("agendamento"))
+  );
+}
+
+function erroColunaWifiMarketingConfig(error: { message?: string; code?: string }) {
+  const mensagem = error.message?.toLowerCase() || "";
+
+  return (
+    mensagem.includes("wifi_marketing_config") ||
+    (error.code === "PGRST204" && mensagem.includes("wifi_marketing")) ||
+    (error.code === "PGRST204" && mensagem.includes("wifi marketing"))
   );
 }
 
@@ -314,6 +325,43 @@ export async function atualizarEmpresa(
   });
 
   if (error) {
+    if (erroColunaWifiMarketingConfig(error)) {
+      if ("wifi_marketing_config" in dados) {
+        const {
+          wifi_marketing_config: _wifiMarketingConfig,
+          ...dadosSemWifiMarketing
+        } = dados as Record<string, unknown>;
+        const {
+          data: dataSemWifiMarketing,
+          error: errorSemWifiMarketing,
+        } = await supabase
+          .from("empresas")
+          .update(dadosSemWifiMarketing)
+          .eq("id", id)
+          .select();
+
+        if (!errorSemWifiMarketing && dataSemWifiMarketing?.length) {
+          console.warn(
+            "wifi_marketing_config ainda nao existe no Supabase; demais dados foram salvos sem o Wi-Fi Marketing."
+          );
+
+          return {
+            data: dataSemWifiMarketing[0],
+            error: null,
+          };
+        }
+      }
+
+      return {
+        data: null,
+        error: {
+          ...error,
+          message:
+            "A coluna wifi_marketing_config ainda nao existe na tabela empresas. Crie a coluna JSONB para salvar o Wi-Fi Marketing.",
+        },
+      };
+    }
+
     if (erroColunaAgendamentoConfig(error)) {
       if ("agendamento_config" in dados) {
         const {

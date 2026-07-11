@@ -59,6 +59,7 @@ type AbaEmpresa =
   | "cardapio"
   | "catalogo"
   | "agendamento"
+  | "wifiMarketing"
   | "contato"
   | "endereco"
   | "redes"
@@ -94,6 +95,7 @@ const abasEmpresa: Array<{
   { id: "cardapio", label: "Cardapio Digital" },
   { id: "catalogo", label: "Catalogo" },
   { id: "agendamento", label: "Agendamento" },
+  { id: "wifiMarketing", label: "Wi-Fi Marketing" },
   { id: "contato", label: "Contato" },
   { id: "endereco", label: "Endereço" },
   { id: "redes", label: "Redes Sociais" },
@@ -109,6 +111,7 @@ type RecursoEmpresaId =
   | "cardapio_digital"
   | "catalogo"
   | "agendamento"
+  | "wifi_marketing"
   | "wifi"
   | "google_reviews"
   | "nfc"
@@ -146,6 +149,7 @@ const recursosPadrao: RecursosContratados = {
   cardapio_digital: false,
   catalogo: false,
   agendamento: false,
+  wifi_marketing: false,
   wifi: false,
   google_reviews: false,
   nfc: true,
@@ -198,6 +202,12 @@ const recursosEmpresa: Array<{
     id: "agendamento",
     nome: "Agendamento",
     descricao: "Estrutura para servicos, duracao e reserva de horarios.",
+    statusInativo: "Em breve",
+  },
+  {
+    id: "wifi_marketing",
+    nome: "Wi-Fi Marketing",
+    descricao: "Campanhas exibidas para clientes conectados ou em captacao.",
     statusInativo: "Em breve",
   },
   {
@@ -566,6 +576,15 @@ type AgendamentoConfig = {
   servicos: AgendamentoServicoConfig[];
 };
 
+type WifiMarketingConfig = {
+  titulo: string;
+  mensagem: string;
+  imagemUrl: string;
+  botaoTexto: string;
+  botaoLink: string;
+  ativo: boolean;
+};
+
 const cardapioCategoriaPadrao: CardapioCategoriaConfig = {
   id: "categoria-1",
   nome: "",
@@ -622,6 +641,15 @@ const agendamentoServicoPadrao: AgendamentoServicoConfig = {
 
 const agendamentoConfigPadrao: AgendamentoConfig = {
   servicos: [{ ...agendamentoServicoPadrao }],
+};
+
+const wifiMarketingConfigPadrao: WifiMarketingConfig = {
+  titulo: "",
+  mensagem: "",
+  imagemUrl: "",
+  botaoTexto: "",
+  botaoLink: "",
+  ativo: false,
 };
 
 const landingPageHeroPadrao: LandingPageHeroConfig = {
@@ -1354,6 +1382,23 @@ function normalizarAgendamentoConfig(valor: unknown): AgendamentoConfig {
       servicos.length > 0
         ? servicos
         : agendamentoConfigPadrao.servicos.map((servico) => ({ ...servico })),
+  };
+}
+
+function normalizarWifiMarketingConfig(valor: unknown): WifiMarketingConfig {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return { ...wifiMarketingConfigPadrao };
+  }
+
+  const config = valor as Record<string, unknown>;
+
+  return {
+    titulo: lerCampoTexto(config, "titulo"),
+    mensagem: lerCampoTexto(config, "mensagem"),
+    imagemUrl: lerCampoTexto(config, "imagemUrl"),
+    botaoTexto: lerCampoTexto(config, "botaoTexto"),
+    botaoLink: lerCampoTexto(config, "botaoLink"),
+    ativo: typeof config.ativo === "boolean" ? config.ativo : false,
   };
 }
 
@@ -4074,6 +4119,8 @@ export default function EmpresaForm({
     useState<AgendamentoServicoConfig[]>(() =>
       agendamentoConfigPadrao.servicos.map((servico) => ({ ...servico }))
     );
+  const [wifiMarketingConfig, setWifiMarketingConfig] =
+    useState<WifiMarketingConfig>(() => ({ ...wifiMarketingConfigPadrao }));
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
 
@@ -4194,6 +4241,7 @@ export default function EmpresaForm({
       cardapio_config?: unknown;
       catalogo_config?: unknown;
       agendamento_config?: unknown;
+      wifi_marketing_config?: unknown;
     };
     const landingPageConfig = normalizarLandingPageConfig(
       dadosComPlano.landing_page_config
@@ -4206,6 +4254,9 @@ export default function EmpresaForm({
     );
     const agendamentoConfig = normalizarAgendamentoConfig(
       dadosComPlano.agendamento_config
+    );
+    const wifiMarketingConfigCarregado = normalizarWifiMarketingConfig(
+      dadosComPlano.wifi_marketing_config
     );
 
     setNome(data.nome || "");
@@ -4244,6 +4295,7 @@ export default function EmpresaForm({
     setCatalogoCategorias(catalogoConfig.categorias);
     setCatalogoProdutos(catalogoConfig.produtos);
     setAgendamentoServicos(agendamentoConfig.servicos);
+    setWifiMarketingConfig(wifiMarketingConfigCarregado);
     setCategoria(data.categoria || "");
     setDescricao(data.descricao || "");
 
@@ -5194,6 +5246,22 @@ export default function EmpresaForm({
     });
   }
 
+  function montarWifiMarketingConfig(): WifiMarketingConfig {
+    return {
+      ...wifiMarketingConfig,
+    };
+  }
+
+  function atualizarWifiMarketingConfig(
+    campo: keyof WifiMarketingConfig,
+    valor: string | boolean
+  ) {
+    setWifiMarketingConfig((configAtual) => ({
+      ...configAtual,
+      [campo]: valor,
+    }));
+  }
+
   async function publicarLandingPageAlteracoes() {
     if (!empresaId) {
       alert("Empresa ainda nao foi carregada. Tente novamente.");
@@ -5301,6 +5369,7 @@ export default function EmpresaForm({
     const cardapioConfig = montarCardapioConfig();
     const catalogoConfig = montarCatalogoConfig();
     const agendamentoConfig = montarAgendamentoConfig();
+    const wifiMarketingPayload = montarWifiMarketingConfig();
 
     if (whatsappLocal && whatsappLocal.length < 10) {
       alert("Informe um WhatsApp válido com DDD.");
@@ -5357,6 +5426,7 @@ export default function EmpresaForm({
       cardapio_config: cardapioConfig,
       catalogo_config: catalogoConfig,
       agendamento_config: agendamentoConfig,
+      wifi_marketing_config: wifiMarketingPayload,
     };
 
     if (suportaCorFundoHero) {
@@ -6782,6 +6852,158 @@ export default function EmpresaForm({
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            </fieldset>
+          </div>
+        </Card>
+      )}
+
+      {abaAtiva === "wifiMarketing" && (
+        <Card
+          title="Wi-Fi Marketing"
+          subtitle="Estrutura inicial para campanhas exibidas em experiencias conectadas ao Wi-Fi."
+        >
+          <div className="space-y-5">
+            <div
+              className={`rounded-2xl border p-4 ${
+                recursosContratados.wifi_marketing
+                  ? "border-green-200 bg-green-50"
+                  : "border-amber-200 bg-amber-50"
+              }`}
+            >
+              <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div className="min-w-0">
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+                      recursosContratados.wifi_marketing
+                        ? "bg-green-700 text-white"
+                        : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {recursosContratados.wifi_marketing
+                      ? "Ativo"
+                      : "Nao contratado"}
+                  </span>
+
+                  <h3 className="mt-3 text-xl font-bold text-slate-900">
+                    Campanha de Wi-Fi Marketing
+                  </h3>
+
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                    Configure a chamada que podera ser usada em telas de
+                    captacao, pos-login do Wi-Fi ou experiencias futuras de
+                    relacionamento com clientes.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <fieldset
+              disabled={!recursosContratados.wifi_marketing}
+              className="grid gap-5 disabled:opacity-60"
+            >
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold uppercase tracking-wide text-green-700">
+                      Campanha
+                    </p>
+
+                    <h4 className="mt-2 text-lg font-bold text-slate-900">
+                      Conteudo promocional
+                    </h4>
+                  </div>
+
+                  <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={wifiMarketingConfig.ativo}
+                      onChange={(e) =>
+                        atualizarWifiMarketingConfig("ativo", e.target.checked)
+                      }
+                    />
+                    Campanha ativa
+                  </label>
+                </div>
+
+                <div className="mt-4 grid gap-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Input
+                      label="Titulo"
+                      value={wifiMarketingConfig.titulo}
+                      onChange={(e) =>
+                        atualizarWifiMarketingConfig("titulo", e.target.value)
+                      }
+                      placeholder="Ex.: Bem-vindo ao nosso Wi-Fi"
+                    />
+
+                    <Input
+                      label="Texto do botao"
+                      value={wifiMarketingConfig.botaoTexto}
+                      onChange={(e) =>
+                        atualizarWifiMarketingConfig(
+                          "botaoTexto",
+                          e.target.value
+                        )
+                      }
+                      placeholder="Ex.: Conhecer oferta"
+                    />
+
+                    <div className="md:col-span-2">
+                      <Input
+                        label="Link de destino"
+                        value={wifiMarketingConfig.botaoLink}
+                        onChange={(e) =>
+                          atualizarWifiMarketingConfig(
+                            "botaoLink",
+                            e.target.value
+                          )
+                        }
+                        placeholder="https://..."
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-medium text-slate-700">
+                      Mensagem
+                    </label>
+
+                    <textarea
+                      value={wifiMarketingConfig.mensagem}
+                      onChange={(e) =>
+                        atualizarWifiMarketingConfig("mensagem", e.target.value)
+                      }
+                      placeholder="Texto curto para apresentar a campanha ao cliente conectado."
+                      rows={4}
+                      className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                    />
+                  </div>
+
+                  <UploadImagem
+                    titulo="Imagem da campanha"
+                    imagem={wifiMarketingConfig.imagemUrl}
+                    accept="image/*"
+                    formatosPermitidos="PNG, JPG, JPEG ou WEBP ate 5 MB"
+                    tamanhoMaximoMb={5}
+                    pasta={`wifi-marketing/${slugPublico || empresaId || "rascunho"}/campanha`}
+                    onUpload={async (url) =>
+                      atualizarWifiMarketingConfig("imagemUrl", url)
+                    }
+                  />
+
+                  {wifiMarketingConfig.imagemUrl.trim() && (
+                    <p className="break-all text-xs text-slate-500">
+                      URL atual da imagem: {wifiMarketingConfig.imagemUrl}
+                    </p>
+                  )}
+
+                  {!wifiMarketingConfig.ativo && (
+                    <span className="w-fit rounded-full bg-slate-200 px-3 py-1 text-xs font-bold text-slate-700">
+                      Inativa
+                    </span>
+                  )}
                 </div>
               </div>
             </fieldset>
