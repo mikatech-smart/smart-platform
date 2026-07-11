@@ -1,6 +1,7 @@
 .public-cardapio,
 .public-catalogo,
-.public-agendamento {
+.public-agendamento,
+.public-wifi {
   --module-radius-lg: 24px;
   --module-radius-md: 18px;
   --module-radius-sm: 14px;
@@ -12,19 +13,23 @@
 
 .public-cardapio *,
 .public-catalogo *,
-.public-agendamento * {
+.public-agendamento *,
+.public-wifi * {
   box-sizing: border-box;
 }
 
 .public-cardapio-message,
 .public-catalogo-message,
 .public-agendamento-message,
+.public-wifi-message,
 .public-cardapio-hero,
 .public-catalogo-hero,
 .public-agendamento-hero,
+.public-wifi-hero,
 .public-cardapio-tools,
 .public-catalogo-tools,
 .public-agendamento-request,
+.public-wifi-campaign,
 .public-cardapio-section,
 .public-catalogo-section,
 .public-agendamento-service,
@@ -36,15 +41,18 @@
 .public-cardapio-message,
 .public-catalogo-message,
 .public-agendamento-message,
+.public-wifi-message,
 .public-cardapio-hero,
 .public-catalogo-hero,
-.public-agendamento-hero {
+.public-agendamento-hero,
+.public-wifi-hero {
   box-shadow: var(--module-shadow-strong);
 }
 
 .public-cardapio-tools,
 .public-catalogo-tools,
 .public-agendamento-request,
+.public-wifi-campaign,
 .public-cardapio-section,
 .public-catalogo-section,
 .public-agendamento-service {
@@ -53,16 +61,19 @@
 
 .public-cardapio-brand,
 .public-catalogo-brand,
-.public-agendamento-brand {
+.public-agendamento-brand,
+.public-wifi-brand {
   min-height: 44px;
 }
 
 .public-cardapio-brand img,
 .public-catalogo-brand img,
 .public-agendamento-brand img,
+.public-wifi-brand img,
 .public-cardapio-message img,
 .public-catalogo-message img,
-.public-agendamento-message img {
+.public-agendamento-message img,
+.public-wifi-message img {
   flex: 0 0 auto;
 }
 
@@ -77,10 +88,12 @@
 .public-catalogo-filters button,
 .public-agendamento-request button,
 .public-agendamento-service__button,
+.public-wifi-campaign__button,
 .public-catalogo-product__quote,
 .public-cardapio-message a,
 .public-catalogo-message a,
-.public-agendamento-message a {
+.public-agendamento-message a,
+.public-wifi-message a {
   transition:
     transform 160ms ease,
     box-shadow 160ms ease,
@@ -91,12 +104,14 @@
 
 .public-agendamento-request button,
 .public-agendamento-service__button,
+.public-wifi-campaign__button,
 .public-catalogo-product__quote {
   gap: 8px;
 }
 
 .public-agendamento-request button svg,
 .public-agendamento-service__button svg,
+.public-wifi-campaign__button svg,
 .public-catalogo-product__quote svg {
   width: 1rem;
   height: 1rem;
@@ -107,10 +122,12 @@
 .public-catalogo-filters button:hover,
 .public-agendamento-request button:hover,
 .public-agendamento-service__button:hover,
+.public-wifi-campaign__button:hover,
 .public-catalogo-product__quote:hover,
 .public-cardapio-message a:hover,
 .public-catalogo-message a:hover,
-.public-agendamento-message a:hover {
+.public-agendamento-message a:hover,
+.public-wifi-message a:hover {
   transform: translateY(-1px);
 }
 
@@ -118,13 +135,16 @@
 .public-catalogo-filters button:focus-visible,
 .public-agendamento-request button:focus-visible,
 .public-agendamento-service__button:focus-visible,
+.public-wifi-campaign__button:focus-visible,
 .public-catalogo-product__quote:focus-visible,
 .public-cardapio-message a:focus-visible,
 .public-catalogo-message a:focus-visible,
 .public-agendamento-message a:focus-visible,
+.public-wifi-message a:focus-visible,
 .public-cardapio-brand:focus-visible,
 .public-catalogo-brand:focus-visible,
-.public-agendamento-brand:focus-visible {
+.public-agendamento-brand:focus-visible,
+.public-wifi-brand:focus-visible {
   outline-width: var(--module-focus-size);
   outline-style: solid;
   outline-offset: 2px;
@@ -134,6 +154,7 @@
 .public-catalogo-filters button.is-active,
 .public-agendamento-request button,
 .public-agendamento-service__button,
+.public-wifi-campaign__button,
 .public-catalogo-product__quote {
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
 }
@@ -141,7 +162,8 @@
 .public-cardapio-product,
 .public-catalogo-product,
 .public-agendamento-service,
-.public-agendamento-request {
+.public-agendamento-request,
+.public-wifi-campaign {
   transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
@@ -154,6 +176,7 @@
 .public-cardapio-product h3,
 .public-catalogo-product h3,
 .public-agendamento-service h2,
+.public-wifi-campaign__content h2,
 .public-cardapio-section__heading h2,
 .public-catalogo-section__heading h2,
 .public-agendamento-request h2 {
@@ -170,23 +193,27 @@
 .public-catalogo-empty,
 .public-cardapio-message,
 .public-catalogo-message,
-.public-agendamento-message {
+.public-agendamento-message,
+.public-wifi-message {
   text-wrap: balance;
 }
 
 @media (max-width: 520px) {
   .public-cardapio,
   .public-catalogo,
-  .public-agendamento {
+  .public-agendamento,
+  .public-wifi {
     padding: 14px;
   }
 
   .public-cardapio-hero,
   .public-catalogo-hero,
   .public-agendamento-hero,
+  .public-wifi-hero,
   .public-cardapio-tools,
   .public-catalogo-tools,
   .public-agendamento-request,
+  .public-wifi-campaign,
   .public-cardapio-section,
   .public-catalogo-section,
   .public-agendamento-service {
@@ -195,7 +222,8 @@
 
   .public-cardapio-hero h1,
   .public-catalogo-hero h1,
-  .public-agendamento-hero h1 {
+  .public-agendamento-hero h1,
+  .public-wifi-hero h1 {
     font-size: clamp(2rem, 16vw, 3rem);
   }
 
@@ -207,10 +235,12 @@
 
   .public-agendamento-request button,
   .public-agendamento-service__button,
+  .public-wifi-campaign__button,
   .public-catalogo-product__quote,
   .public-cardapio-message a,
   .public-catalogo-message a,
-  .public-agendamento-message a {
+  .public-agendamento-message a,
+  .public-wifi-message a {
     width: 100%;
   }
 }

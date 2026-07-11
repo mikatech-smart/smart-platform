@@ -34,6 +34,7 @@ type AparenciaEmpresa = Empresa & {
     cardapio_digital?: boolean;
     catalogo?: boolean;
     agendamento?: boolean;
+    wifi_marketing?: boolean;
   } | null;
 };
 
@@ -280,6 +281,8 @@ export default function PublicEmpresaPage() {
     (empresa as AparenciaEmpresa).recursos_contratados?.catalogo === true;
   const agendamentoContratado =
     (empresa as AparenciaEmpresa).recursos_contratados?.agendamento === true;
+  const wifiMarketingContratado =
+    (empresa as AparenciaEmpresa).recursos_contratados?.wifi_marketing === true;
 
   return (
     <main className="public-empresa-page" style={estiloAparencia}>
@@ -360,6 +363,19 @@ export default function PublicEmpresaPage() {
                 href={`/agendamento/${empresa.slug}`}
               >
                 Agendar
+              </a>
+            </section>
+          )}
+
+          {wifiMarketingContratado && (
+            <section className="public-empresa-section public-empresa-info-card">
+              <span>Wi-Fi Marketing</span>
+              <p>Confira campanhas, ofertas ou comunicados da empresa.</p>
+              <a
+                className="public-empresa-map-link"
+                href={`/wifi/${empresa.slug}`}
+              >
+                Wi-Fi Marketing
               </a>
             </section>
           )}

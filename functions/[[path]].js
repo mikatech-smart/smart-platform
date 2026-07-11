@@ -235,6 +235,10 @@ function getRequestRoute(pathname) {
     return { kind: "agendamento", slug: parts[1] };
   }
 
+  if (parts.length === 2 && parts[0] === "wifi") {
+    return { kind: "wifi", slug: parts[1] };
+  }
+
   return null;
 }
 
@@ -289,11 +293,17 @@ async function getEmpresasParaSitemap(env) {
     );
   }
 
+  const selectCompleto =
+    "slug,ativo,landing_page_config,recursos_contratados,cardapio_config,catalogo_config,agendamento_config,wifi_marketing_config";
   const selectComAgendamento =
     "slug,ativo,landing_page_config,recursos_contratados,cardapio_config,catalogo_config,agendamento_config";
   const selectLegado =
     "slug,ativo,landing_page_config,recursos_contratados,cardapio_config,catalogo_config";
-  let response = await buscarEmpresas(selectComAgendamento);
+  let response = await buscarEmpresas(selectCompleto);
+
+  if (!response.ok) {
+    response = await buscarEmpresas(selectComAgendamento);
+  }
 
   if (!response.ok) {
     response = await buscarEmpresas(selectLegado);
@@ -389,6 +399,29 @@ function isAgendamentoPublicado(empresa) {
   });
 }
 
+function isWifiMarketingPublicado(empresa) {
+  if (empresa?.recursos_contratados?.wifi_marketing !== true) {
+    return false;
+  }
+
+  const config = empresa?.wifi_marketing_config;
+
+  if (!config || typeof config !== "object") return false;
+
+  const ativo = typeof config.ativo === "boolean" ? config.ativo : false;
+
+  return (
+    ativo &&
+    [
+      config.titulo,
+      config.mensagem,
+      config.imagemUrl,
+      config.botaoTexto,
+      config.botaoLink,
+    ].some((valor) => String(valor || "").trim())
+  );
+}
+
 function buildRobotsTxt() {
   return [
     "User-agent: *",
@@ -430,6 +463,10 @@ function buildSitemapXml(empresas = []) {
 
     if (isAgendamentoPublicado(empresa)) {
       urls.push(`${PUBLIC_APP_URL}/agendamento/${encodeURIComponent(slug)}`);
+    }
+
+    if (isWifiMarketingPublicado(empresa)) {
+      urls.push(`${PUBLIC_APP_URL}/wifi/${encodeURIComponent(slug)}`);
     }
 
     if (urls.length >= SITEMAP_MAX_URLS) break;
@@ -523,6 +560,7 @@ function buildMetadata(route, empresa) {
   const landing = route.kind === "landing" ? getLandingConfig(empresa) : {};
   const landingSeo = landing.seo || {};
   const landingHero = landing.hero || {};
+  const wifiMarketing = route.kind === "wifi" ? empresa?.wifi_marketing_config || {} : {};
   const title =
     (route.kind === "landing" &&
       (landingSeo.titulo || landingHero.titulo || empresa?.nome)) ||
@@ -532,6 +570,10 @@ function buildMetadata(route, empresa) {
       `Catalogo de ${empresa?.nome || DEFAULT_TITLE}`) ||
     (route.kind === "agendamento" &&
       `Agendamento de ${empresa?.nome || DEFAULT_TITLE}`) ||
+    (route.kind === "wifi" &&
+      (wifiMarketing.titulo
+        ? `${wifiMarketing.titulo} | ${empresa?.nome || DEFAULT_TITLE}`
+        : `Wi-Fi Marketing de ${empresa?.nome || DEFAULT_TITLE}`)) ||
     empresa?.nome ||
     DEFAULT_TITLE;
   const description = truncate(
@@ -543,6 +585,11 @@ function buildMetadata(route, empresa) {
         (empresa?.descricao || empresa?.categoria || "Catalogo")) ||
       (route.kind === "agendamento" &&
         (empresa?.descricao || empresa?.categoria || "Agendamento")) ||
+      (route.kind === "wifi" &&
+        (empresa?.wifi_marketing_config?.mensagem ||
+          empresa?.descricao ||
+          empresa?.categoria ||
+          "Wi-Fi Marketing")) ||
       empresa?.descricao ||
       empresa?.categoria ||
       DEFAULT_DESCRIPTION
@@ -554,6 +601,10 @@ function buildMetadata(route, empresa) {
     empresa?.descricao,
     empresa?.endereco,
     empresa?.site,
+    route.kind === "wifi" ? "wifi marketing" : "",
+    route.kind === "wifi" ? "campanha" : "",
+    wifiMarketing.titulo,
+    wifiMarketing.mensagem,
     landingHero.titulo,
     landingHero.subtitulo,
     landing?.sobre?.titulo,
@@ -565,6 +616,8 @@ function buildMetadata(route, empresa) {
         empresa?.banner ||
         landingHero.imagemDestaque ||
         empresa?.logo)) ||
+      (route.kind === "wifi" &&
+        (wifiMarketing.imagemUrl || empresa?.banner || empresa?.logo)) ||
       empresa?.banner ||
       empresa?.logo ||
       ""
@@ -587,6 +640,8 @@ function buildMetadata(route, empresa) {
         ? "noindex,nofollow"
       : route.kind === "agendamento" && !isAgendamentoPublicado(empresa)
         ? "noindex,nofollow"
+      : route.kind === "wifi" && !isWifiMarketingPublicado(empresa)
+        ? "noindex,nofollow"
       : "index,follow";
   const url =
     route.kind === "landing"
@@ -597,6 +652,8 @@ function buildMetadata(route, empresa) {
         ? normalizeCanonicalUrl(`/catalogo/${route.slug}`)
       : route.kind === "agendamento"
         ? normalizeCanonicalUrl(`/agendamento/${route.slug}`)
+      : route.kind === "wifi"
+        ? normalizeCanonicalUrl(`/wifi/${route.slug}`)
       : normalizeCanonicalUrl(`/${route.slug}`);
 
   const manifestUrl = `${PUBLIC_APP_URL}/manifest.webmanifest?${new URLSearchParams({
@@ -645,6 +702,8 @@ function buildManifest(metadata) {
         ? `/catalogo/${metadata.route.slug}`
       : metadata.route.kind === "agendamento"
         ? `/agendamento/${metadata.route.slug}`
+      : metadata.route.kind === "wifi"
+        ? `/wifi/${metadata.route.slug}`
       : `/${metadata.route.slug}`;
 
   return {
@@ -775,7 +834,8 @@ export async function onRequestGet(context) {
       kindParam === "landing" ||
       kindParam === "cardapio" ||
       kindParam === "catalogo" ||
-      kindParam === "agendamento"
+      kindParam === "agendamento" ||
+      kindParam === "wifi"
         ? kindParam
         : "public";
     const empresa = slug ? await getEmpresa(context.env, slug) : null;

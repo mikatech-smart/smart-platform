@@ -6,6 +6,7 @@ import PublicLandingPage from "../pages/PublicLandingPage/PublicLandingPage";
 import PublicCardapioPage from "../pages/PublicCardapioPage/PublicCardapioPage";
 import PublicCatalogoPage from "../pages/PublicCatalogoPage/PublicCatalogoPage";
 import PublicAgendamentoPage from "../pages/PublicAgendamentoPage/PublicAgendamentoPage";
+import PublicWifiMarketingPage from "../pages/PublicWifiMarketingPage/PublicWifiMarketingPage";
 
 import Dashboard from "../pages/dashboard/Dashboard";
 import Empresas from "../pages/dashboard/Empresas";
@@ -46,6 +47,11 @@ export default function AppRouter() {
         <Route
           path="/agendamento/:slug"
           element={<PublicAgendamentoPage />}
+        />
+
+        <Route
+          path="/wifi/:slug"
+          element={<PublicWifiMarketingPage />}
         />
 
         {/* Dashboard */}
