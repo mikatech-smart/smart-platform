@@ -11,6 +11,7 @@ import { useParams } from "react-router-dom";
 import type { Empresa } from "../../models/Empresa";
 import {
   buscarLandingPagePorSlug,
+  registrarLeadNoCrm,
   salvarLeadLandingPage,
 } from "../../services/empresa/empresa.service";
 import {
@@ -973,8 +974,21 @@ export function PublicLandingPageContent({
       origem: "landing_page",
       data_hora: new Date().toISOString(),
     });
+    const { error: erroCrm } = await registrarLeadNoCrm({
+      empresaId: empresa.id,
+      nome: valores.nome,
+      telefone: valores.telefone || valores.whatsapp,
+      email: valores.email,
+      observacoes: valores.mensagem,
+      origem: "landing_page",
+      tags: ["landing page", "formulario"],
+    });
 
     setLeadEnviando(false);
+
+    if (erroCrm) {
+      console.warn("Nao foi possivel registrar o lead no CRM:", erroCrm);
+    }
 
     if (error) {
       setLeadMensagem({

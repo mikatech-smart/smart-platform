@@ -1,9 +1,18 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type FormEvent,
+} from "react";
 import { Gift, Stamp } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 
 import type { Empresa } from "../../models/Empresa";
-import { buscarEmpresaPorSlug } from "../../services/empresa/empresa.service";
+import {
+  buscarEmpresaPorSlug,
+  registrarLeadNoCrm,
+} from "../../services/empresa/empresa.service";
 import {
   applySeoMetadata,
   createBusinessJsonLd,
@@ -161,6 +170,14 @@ export default function PublicFidelidadePage() {
   const { slug } = useParams();
   const [empresa, setEmpresa] = useState<EmpresaFidelidade | null>(null);
   const [carregando, setCarregando] = useState(true);
+  const [nomeCliente, setNomeCliente] = useState("");
+  const [telefoneCliente, setTelefoneCliente] = useState("");
+  const [emailCliente, setEmailCliente] = useState("");
+  const [cadastroEnviando, setCadastroEnviando] = useState(false);
+  const [cadastroMensagem, setCadastroMensagem] = useState<{
+    tipo: "sucesso" | "erro";
+    texto: string;
+  } | null>(null);
 
   useEffect(() => {
     async function carregarFidelidade() {
@@ -200,6 +217,61 @@ export default function PublicFidelidadePage() {
 
     applySeoMetadata(criarSeoFidelidade(empresa, fidelidade, programaPublicado));
   }, [empresa, fidelidade, programaPublicado]);
+
+  async function cadastrarNoPrograma(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!empresa || cadastroEnviando) return;
+
+    if (!nomeCliente.trim() || !telefoneCliente.trim()) {
+      setCadastroMensagem({
+        tipo: "erro",
+        texto: "Preencha nome e telefone para participar.",
+      });
+      return;
+    }
+
+    setCadastroEnviando(true);
+    setCadastroMensagem(null);
+
+    const { error } = await registrarLeadNoCrm({
+      empresaId: empresa.id,
+      nome: nomeCliente.trim(),
+      telefone: telefoneCliente.trim(),
+      email: emailCliente.trim(),
+      observacoes: [
+        "Cadastro no Programa de Fidelidade.",
+        fidelidade.titulo ? `Campanha: ${fidelidade.titulo}.` : "",
+        fidelidade.quantidade
+          ? `Meta: ${fidelidade.quantidade} ${tipoAcumulo}.`
+          : "",
+        fidelidade.recompensa ? `Recompensa: ${fidelidade.recompensa}.` : "",
+      ]
+        .filter(Boolean)
+        .join(" "),
+      origem: "fidelidade",
+      tags: ["fidelidade", tipoAcumulo],
+    });
+
+    setCadastroEnviando(false);
+
+    if (error) {
+      console.warn("Nao foi possivel registrar o lead de Fidelidade no CRM:", error);
+      setCadastroMensagem({
+        tipo: "erro",
+        texto: "Nao foi possivel concluir o cadastro agora. Tente novamente em instantes.",
+      });
+      return;
+    }
+
+    setNomeCliente("");
+    setTelefoneCliente("");
+    setEmailCliente("");
+    setCadastroMensagem({
+      tipo: "sucesso",
+      texto: "Cadastro realizado com sucesso.",
+    });
+  }
 
   if (carregando) {
     return (
@@ -288,6 +360,66 @@ export default function PublicFidelidadePage() {
             )}
           </dl>
         </div>
+      </section>
+
+      <section
+        className="public-fidelidade-signup"
+        aria-label="Cadastro no programa de fidelidade"
+      >
+        <div>
+          <p>Participar</p>
+          <h2>Cadastre-se no programa</h2>
+          <span>
+            Informe seus dados para a empresa registrar seu interesse e acompanhar
+            sua participacao.
+          </span>
+        </div>
+
+        <form onSubmit={cadastrarNoPrograma}>
+          <label>
+            <span>Nome</span>
+            <input
+              type="text"
+              value={nomeCliente}
+              onChange={(event) => setNomeCliente(event.target.value)}
+              placeholder="Seu nome"
+              required
+            />
+          </label>
+
+          <label>
+            <span>Telefone</span>
+            <input
+              type="tel"
+              value={telefoneCliente}
+              onChange={(event) => setTelefoneCliente(event.target.value)}
+              placeholder="(00) 00000-0000"
+              required
+            />
+          </label>
+
+          <label>
+            <span>E-mail</span>
+            <input
+              type="email"
+              value={emailCliente}
+              onChange={(event) => setEmailCliente(event.target.value)}
+              placeholder="voce@email.com"
+            />
+          </label>
+
+          {cadastroMensagem && (
+            <p
+              className={`public-fidelidade-signup__feedback public-fidelidade-signup__feedback--${cadastroMensagem.tipo}`}
+            >
+              {cadastroMensagem.texto}
+            </p>
+          )}
+
+          <button type="submit" disabled={cadastroEnviando}>
+            {cadastroEnviando ? "Enviando..." : "Participar"}
+          </button>
+        </form>
       </section>
     </main>
   );

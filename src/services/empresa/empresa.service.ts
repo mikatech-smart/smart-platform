@@ -104,6 +104,132 @@ export type LandingPageLeadPayload = {
   data_hora: string;
 };
 
+export type CrmLeadOrigem =
+  | "landing_page"
+  | "catalogo"
+  | "agendamento"
+  | "fidelidade";
+
+export type CrmLeadPayload = {
+  empresaId: string;
+  nome: string;
+  telefone?: string;
+  email?: string;
+  observacoes?: string;
+  origem: CrmLeadOrigem;
+  tags?: string[];
+  status?: "prospect" | "ativo" | "inativo";
+};
+
+type CrmClienteConfig = {
+  id: string;
+  nome: string;
+  telefone: string;
+  email: string;
+  observacoes: string;
+  tags: string[];
+  status: "prospect" | "ativo" | "inativo";
+  origem?: string;
+  criadoEm?: string;
+  atualizadoEm?: string;
+};
+
+type CrmConfig = {
+  clientes: CrmClienteConfig[];
+};
+
+function normalizarContatoLead(valor?: string) {
+  return String(valor || "").trim();
+}
+
+function normalizarTelefoneLead(valor?: string) {
+  return normalizarContatoLead(valor).replace(/\D/g, "");
+}
+
+function normalizarEmailLead(valor?: string) {
+  return normalizarContatoLead(valor).toLowerCase();
+}
+
+function normalizarTagsLead(tags?: string[]) {
+  return Array.from(
+    new Set(
+      (tags || [])
+        .map((tag) => normalizarContatoLead(tag))
+        .filter(Boolean)
+    )
+  ).slice(0, 20);
+}
+
+function normalizarCrmConfig(valor: unknown): CrmConfig {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return { clientes: [] };
+  }
+
+  const config = valor as Record<string, unknown>;
+  const clientes = Array.isArray(config.clientes)
+    ? config.clientes.slice(0, 500).map((item, indice) => {
+        const cliente =
+          item && typeof item === "object" && !Array.isArray(item)
+            ? (item as Record<string, unknown>)
+            : {};
+        const tags = Array.isArray(cliente.tags)
+          ? cliente.tags
+              .map((tag) => (typeof tag === "string" ? tag.trim() : ""))
+              .filter(Boolean)
+          : [];
+        const status: CrmClienteConfig["status"] =
+          cliente.status === "ativo" || cliente.status === "inativo"
+            ? cliente.status
+            : "prospect";
+
+        return {
+          id:
+            typeof cliente.id === "string" && cliente.id.trim()
+              ? cliente.id
+              : `cliente-${indice + 1}`,
+          nome: typeof cliente.nome === "string" ? cliente.nome : "",
+          telefone:
+            typeof cliente.telefone === "string" ? cliente.telefone : "",
+          email: typeof cliente.email === "string" ? cliente.email : "",
+          observacoes:
+            typeof cliente.observacoes === "string"
+              ? cliente.observacoes
+              : "",
+          tags,
+          status,
+          origem: typeof cliente.origem === "string" ? cliente.origem : "",
+          criadoEm: typeof cliente.criadoEm === "string" ? cliente.criadoEm : "",
+          atualizadoEm:
+            typeof cliente.atualizadoEm === "string"
+              ? cliente.atualizadoEm
+              : "",
+        };
+      })
+    : [];
+
+  return { clientes };
+}
+
+function mesclarTextoObservacao(atual: string, novo: string) {
+  const observacaoAtual = normalizarContatoLead(atual);
+  const novaObservacao = normalizarContatoLead(novo);
+
+  if (!novaObservacao) return observacaoAtual;
+  if (!observacaoAtual) return novaObservacao;
+  if (observacaoAtual.includes(novaObservacao)) return observacaoAtual;
+
+  return `${observacaoAtual}\n${novaObservacao}`;
+}
+
+function mesclarOrigemLead(atual: string | undefined, origem: CrmLeadOrigem) {
+  const origens = normalizarTagsLead([
+    ...(atual || "").split(","),
+    origem,
+  ]);
+
+  return origens.join(", ");
+}
+
 export async function buscarEmpresaPorSlug(slug: string) {
   const { data, error } = await supabase
     .from("empresas")
@@ -159,6 +285,88 @@ export async function salvarLeadLandingPage(dados: LandingPageLeadPayload) {
     data,
     error: null,
   };
+}
+
+export async function registrarLeadNoCrm(payload: CrmLeadPayload) {
+  const empresaId = normalizarContatoLead(payload.empresaId);
+
+  if (!empresaId) {
+    return {
+      data: null,
+      error: {
+        message: "Empresa nao informada para registrar o lead no CRM.",
+      },
+    };
+  }
+
+  const { data: empresa, error: erroEmpresa } = await buscarEmpresaPorId(empresaId);
+
+  if (erroEmpresa || !empresa) {
+    return {
+      data: null,
+      error:
+        erroEmpresa || {
+          message: "Empresa nao encontrada para registrar o lead no CRM.",
+        },
+    };
+  }
+
+  const agora = new Date().toISOString();
+  const crmConfig = normalizarCrmConfig((empresa as Empresa).crm_config);
+  const telefoneNormalizado = normalizarTelefoneLead(payload.telefone);
+  const emailNormalizado = normalizarEmailLead(payload.email);
+  const indiceExistente = crmConfig.clientes.findIndex((cliente) => {
+    const telefoneCliente = normalizarTelefoneLead(cliente.telefone);
+    const emailCliente = normalizarEmailLead(cliente.email);
+
+    return Boolean(
+      (telefoneNormalizado && telefoneCliente === telefoneNormalizado) ||
+        (emailNormalizado && emailCliente === emailNormalizado)
+    );
+  });
+  const tags = normalizarTagsLead([payload.origem, ...(payload.tags || [])]);
+  const leadBase: CrmClienteConfig = {
+    id: `lead-${Date.now()}`,
+    nome: normalizarContatoLead(payload.nome) || "Lead sem nome",
+    telefone: normalizarContatoLead(payload.telefone),
+    email: normalizarContatoLead(payload.email),
+    observacoes: normalizarContatoLead(payload.observacoes),
+    tags,
+    status: payload.status || "prospect",
+    origem: payload.origem,
+    criadoEm: agora,
+    atualizadoEm: agora,
+  };
+  const clientes =
+    indiceExistente >= 0
+      ? crmConfig.clientes.map((cliente, indice) =>
+          indice === indiceExistente
+            ? {
+                ...cliente,
+                nome: cliente.nome || leadBase.nome,
+                telefone: cliente.telefone || leadBase.telefone,
+                email: cliente.email || leadBase.email,
+                observacoes: mesclarTextoObservacao(
+                  cliente.observacoes,
+                  leadBase.observacoes
+                ),
+                tags: normalizarTagsLead([...cliente.tags, ...leadBase.tags]),
+                status: cliente.status || leadBase.status,
+                origem: mesclarOrigemLead(cliente.origem, payload.origem),
+                criadoEm: cliente.criadoEm || leadBase.criadoEm,
+                atualizadoEm: agora,
+              }
+            : cliente
+        )
+      : [leadBase, ...crmConfig.clientes].slice(0, 500);
+  const crmConfigAtualizado: CrmConfig = {
+    ...crmConfig,
+    clientes,
+  };
+
+  return atualizarEmpresa(empresaId, {
+    crm_config: crmConfigAtualizado,
+  } as Partial<Empresa>);
 }
 
 export async function buscarEmpresaPorId(id: string) {

@@ -624,6 +624,9 @@ type CrmClienteConfig = {
   observacoes: string;
   tags: string[];
   status: CrmClienteStatus;
+  origem?: string;
+  criadoEm?: string;
+  atualizadoEm?: string;
 };
 
 type CrmConfig = {
@@ -714,6 +717,9 @@ const crmClientePadrao: CrmClienteConfig = {
   observacoes: "",
   tags: [],
   status: "prospect",
+  origem: "manual",
+  criadoEm: "",
+  atualizadoEm: "",
 };
 
 const crmConfigPadrao: CrmConfig = {
@@ -1543,6 +1549,9 @@ function normalizarCrmConfig(valor: unknown): CrmConfig {
           observacoes: lerCampoTexto(cliente, "observacoes"),
           tags: normalizarTagsCrm(cliente.tags),
           status: normalizarCrmStatus(cliente.status),
+          origem: lerCampoTexto(cliente, "origem") || "manual",
+          criadoEm: lerCampoTexto(cliente, "criadoEm"),
+          atualizadoEm: lerCampoTexto(cliente, "atualizadoEm"),
         };
       })
     : crmConfigPadrao.clientes.map((cliente) => ({ ...cliente }));
@@ -7461,6 +7470,11 @@ export default function EmpresaForm({
                           <p className="mt-1 text-xs text-slate-500">
                             Dados preparados para futura evolucao do CRM.
                           </p>
+                          {clienteCrm.origem && (
+                            <span className="mt-2 inline-flex rounded-full bg-slate-200 px-3 py-1 text-xs font-bold text-slate-700">
+                              Origem: {clienteCrm.origem}
+                            </span>
+                          )}
                         </div>
 
                         <Button

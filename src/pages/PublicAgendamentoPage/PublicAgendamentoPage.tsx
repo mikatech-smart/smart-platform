@@ -9,7 +9,10 @@ import { CalendarCheck, Send } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 
 import type { Empresa } from "../../models/Empresa";
-import { buscarEmpresaPorSlug } from "../../services/empresa/empresa.service";
+import {
+  buscarEmpresaPorSlug,
+  registrarLeadNoCrm,
+} from "../../services/empresa/empresa.service";
 import {
   applySeoMetadata,
   createBusinessJsonLd,
@@ -275,7 +278,7 @@ export default function PublicAgendamentoPage() {
     }, 0);
   }
 
-  function enviarSolicitacaoAgendamento(event: FormEvent<HTMLFormElement>) {
+  async function enviarSolicitacaoAgendamento(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!empresa || !servicoSelecionado) return;
@@ -307,6 +310,32 @@ export default function PublicAgendamentoPage() {
     if (!link) {
       setErroSolicitacao("Nao foi possivel gerar a mensagem para WhatsApp.");
       return;
+    }
+
+    const { error } = await registrarLeadNoCrm({
+      empresaId: empresa.id,
+      nome: nomeCliente.trim(),
+      telefone: telefoneCliente.trim(),
+      observacoes: [
+        "Solicitacao de agendamento.",
+        `Servico: ${servicoSelecionado.nome || "Servico"}.`,
+        servicoSelecionado.duracaoMinutos
+          ? `Duracao: ${servicoSelecionado.duracaoMinutos} minutos.`
+          : "",
+        servicoSelecionado.valor
+          ? `Valor informado: ${servicoSelecionado.valor}.`
+          : "",
+        `Data desejada: ${dataDesejada}.`,
+        `Horario desejado: ${horarioDesejado}.`,
+      ]
+        .filter(Boolean)
+        .join(" "),
+      origem: "agendamento",
+      tags: ["agendamento", servicoSelecionado.nome],
+    });
+
+    if (error) {
+      console.warn("Nao foi possivel registrar o lead do Agendamento no CRM:", error);
     }
 
     setErroSolicitacao("");

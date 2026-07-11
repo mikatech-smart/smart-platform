@@ -3,7 +3,10 @@ import { MessageCircle } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 
 import type { Empresa } from "../../models/Empresa";
-import { buscarEmpresaPorSlug } from "../../services/empresa/empresa.service";
+import {
+  buscarEmpresaPorSlug,
+  registrarLeadNoCrm,
+} from "../../services/empresa/empresa.service";
 import {
   applySeoMetadata,
   createBusinessJsonLd,
@@ -295,6 +298,28 @@ export default function PublicCatalogoPage() {
     return `https://wa.me/${whatsappComPais}?text=${encodeURIComponent(mensagem)}`;
   }
 
+  async function registrarSolicitacaoCatalogo(produto: CatalogoProdutoConfig) {
+    if (!empresa) return;
+
+    const { error } = await registrarLeadNoCrm({
+      empresaId: empresa.id,
+      nome: "Lead do Catalogo",
+      observacoes: [
+        `Solicitacao de orcamento pelo Catalogo.`,
+        produto.nome ? `Produto: ${produto.nome}.` : "",
+        produto.preco ? `Preco informado: ${produto.preco}.` : "",
+      ]
+        .filter(Boolean)
+        .join(" "),
+      origem: "catalogo",
+      tags: ["catalogo", "orcamento", produto.nome],
+    });
+
+    if (error) {
+      console.warn("Nao foi possivel registrar o lead do Catalogo no CRM:", error);
+    }
+  }
+
   function rolarParaCategoria(categoriaId: string) {
     setCategoriaSelecionada(categoriaId);
 
@@ -453,6 +478,7 @@ export default function PublicCatalogoPage() {
                           href={criarLinkOrcamento(produto)}
                           target="_blank"
                           rel="noreferrer"
+                          onClick={() => registrarSolicitacaoCatalogo(produto)}
                         >
                           <MessageCircle aria-hidden="true" size={16} strokeWidth={2.4} />
                           Solicitar Orcamento
@@ -489,6 +515,7 @@ export default function PublicCatalogoPage() {
                         href={criarLinkOrcamento(produto)}
                         target="_blank"
                         rel="noreferrer"
+                        onClick={() => registrarSolicitacaoCatalogo(produto)}
                       >
                         <MessageCircle aria-hidden="true" size={16} strokeWidth={2.4} />
                         Solicitar Orcamento
