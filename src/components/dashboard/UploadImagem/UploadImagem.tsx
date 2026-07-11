@@ -55,7 +55,7 @@ export default function UploadImagem({
   const isBanner = !isAudio && titulo.toLowerCase().includes("banner");
   const isProductImage =
     !isAudio &&
-    ["produto", "capa", "cardapio"].some((termo) =>
+    ["produto", "capa", "cardapio", "compartilhamento"].some((termo) =>
       titulo.toLowerCase().includes(termo)
     );
   const placeholder = isBanner

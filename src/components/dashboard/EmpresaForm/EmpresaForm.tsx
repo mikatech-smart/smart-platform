@@ -2755,6 +2755,7 @@ function LandingCtaSection({
 
 function LandingSeoSection({
   landingPageContratada,
+  pastaUploadLanding,
   seo,
   onSeoChange,
 }: LandingPageSectionProps) {
@@ -2816,14 +2817,24 @@ function LandingSeoSection({
           placeholder="servico, cidade, categoria"
         />
 
-        <Input
-          label="Imagem de compartilhamento (URL)"
-          value={seo.imagemCompartilhamento}
-          onChange={(e) =>
-            onSeoChange("imagemCompartilhamento", e.target.value)
+        <UploadImagem
+          titulo="Imagem de compartilhamento"
+          imagem={seo.imagemCompartilhamento}
+          accept="image/*"
+          formatosPermitidos="PNG, JPG, JPEG ou WEBP ate 5 MB"
+          tamanhoMaximoMb={5}
+          pasta={`${pastaUploadLanding}/seo/compartilhamento`}
+          onUpload={async (url) =>
+            onSeoChange("imagemCompartilhamento", url)
           }
-          placeholder="https://exemplo.com/imagem.jpg"
         />
+
+        {seo.imagemCompartilhamento.trim() && (
+          <p className="break-all text-xs font-semibold text-slate-500">
+            URL atual da imagem de compartilhamento:{" "}
+            {seo.imagemCompartilhamento}
+          </p>
+        )}
 
         <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
           <h5 className="font-bold text-slate-900">
