@@ -1873,3 +1873,413 @@
   background: #cbd5e1;
   box-shadow: none;
 }
+
+/* Sprint 173 - Carrinho compacto e fechamento visivel */
+.public-pdv-step {
+  gap: 4px;
+  padding: 10px 12px;
+}
+
+.public-pdv-section-title {
+  align-items: baseline;
+  margin-bottom: 0;
+}
+
+.public-pdv-section-title h2 {
+  font-size: 12px;
+  margin: 0;
+}
+
+.public-pdv-section-title small {
+  font-size: 11px;
+}
+
+.public-pdv-step-client {
+  gap: 6px;
+}
+
+.public-pdv-step-client .public-pdv-inline,
+.public-pdv-step-client select {
+  min-height: 38px;
+}
+
+.public-pdv-step-client input,
+.public-pdv-step-client select {
+  min-height: 38px;
+  padding: 8px 10px;
+}
+
+.public-pdv-step-product {
+  gap: 4px;
+}
+
+.public-pdv-scan-row {
+  align-items: stretch;
+  gap: 6px;
+}
+
+.public-pdv-scan-row label {
+  gap: 4px;
+}
+
+.public-pdv-scan-row label input,
+.public-pdv-step-product .public-pdv-scan-row input[placeholder] {
+  height: 38px;
+  min-height: 38px;
+}
+
+.public-pdv-step-product .public-pdv-scan-row input[placeholder] {
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  font-size: 15px;
+  line-height: 1.2;
+  padding: 8px 12px;
+}
+
+.public-pdv-search-results {
+  gap: 6px;
+  max-height: 116px;
+}
+
+.public-pdv-search-results button {
+  grid-template-columns: 40px minmax(0, 1fr);
+  min-height: 64px;
+  padding: 7px;
+}
+
+.public-pdv-search-results img,
+.public-pdv-product-placeholder {
+  height: 40px;
+  width: 40px;
+}
+
+.public-pdv-search-results span {
+  font-size: 13px;
+}
+
+.public-pdv-search-results small,
+.public-pdv-search-results strong {
+  font-size: 11px;
+}
+
+.public-pdv-operation-feedback {
+  font-size: 12px;
+  min-height: 34px;
+  padding: 7px 9px;
+}
+
+.public-pdv-step-cart .public-pdv-cart-lines {
+  display: grid;
+  gap: 6px;
+  max-height: min(40vh, 420px);
+  padding-right: 2px;
+}
+
+.public-pdv-step-cart .public-pdv-cart-item {
+  align-items: center;
+  border: 1px solid #dbe4f0;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 28px minmax(0, 1.5fr) auto auto auto;
+  min-height: 38px;
+  padding: 4px 6px;
+}
+
+.public-pdv-cart-item img,
+.public-pdv-cart-placeholder {
+  border-radius: 6px;
+  height: 24px;
+  width: 24px;
+}
+
+.public-pdv-cart-placeholder {
+  align-items: center;
+  background: #e2e8f0;
+  color: #64748b;
+  display: flex;
+  font-size: 8px;
+  font-weight: 900;
+  justify-content: center;
+  line-height: 1.1;
+  padding: 2px;
+  text-align: center;
+}
+
+.public-pdv-cart-item-main,
+.public-pdv-cart-item-main strong {
+  min-width: 0;
+}
+
+.public-pdv-cart-item-main strong {
+  display: block;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.public-pdv-cart-item-meta {
+  align-items: flex-end;
+  display: grid;
+  gap: 1px;
+  justify-items: end;
+  min-width: 68px;
+}
+
+.public-pdv-cart-item-meta span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.public-pdv-cart-item-meta strong {
+  color: #0f172a;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.public-pdv-qty-controls {
+  align-items: center;
+  gap: 4px;
+  grid-auto-flow: column;
+}
+
+.public-pdv-qty-controls button,
+.public-pdv-cart-remove {
+  align-items: center;
+  border-radius: 7px;
+  display: inline-flex;
+  font-size: 14px;
+  height: 28px;
+  justify-content: center;
+  min-height: 28px;
+  min-width: 28px;
+  padding: 0;
+}
+
+.public-pdv-qty-controls input {
+  font-size: 12px;
+  font-weight: 900;
+  height: 28px;
+  min-height: 28px;
+  padding: 4px 6px;
+  text-align: center;
+  width: 38px;
+}
+
+.public-pdv-cart-remove {
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  color: #be123c;
+}
+
+.public-pdv-checkout {
+  gap: 8px;
+  grid-template-rows: auto auto auto;
+  padding: 10px 12px 12px;
+}
+
+.public-pdv-checkout h2 {
+  margin-bottom: 6px;
+}
+
+.public-pdv-checkout-summary,
+.public-pdv-checkout-payment {
+  display: grid;
+  gap: 6px;
+}
+
+.public-pdv-checkout .public-pdv-cart-summary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.public-pdv-checkout .public-pdv-cart-summary > div {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 1px;
+  min-height: 0;
+}
+
+.public-pdv-checkout .public-pdv-cart-summary span {
+  font-size: 11px;
+}
+
+.public-pdv-checkout .public-pdv-cart-summary strong {
+  font-size: 18px;
+}
+
+.public-pdv-checkout .public-pdv-cart-total-row {
+  align-items: center;
+  flex-direction: row;
+  gap: 8px;
+  grid-column: 1 / -1;
+  justify-content: space-between;
+  padding: 8px 10px;
+}
+
+.public-pdv-checkout .public-pdv-cart-total-row strong {
+  font-size: clamp(22px, 2vw, 30px);
+  line-height: 1;
+}
+
+.public-pdv-checkout .public-pdv-payment-buttons {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.public-pdv-checkout .public-pdv-payment-buttons button {
+  min-height: 32px;
+  padding: 6px 8px;
+}
+
+.public-pdv-payment-grid {
+  gap: 6px;
+  margin-top: 0;
+  max-height: none;
+  overflow: visible;
+}
+
+.public-pdv-payment-entry {
+  gap: 5px;
+  padding: 6px;
+}
+
+.public-pdv-payment-entry > label,
+.public-pdv-installments {
+  font-size: 10px;
+}
+
+.public-pdv-payment-entry input,
+.public-pdv-payment-entry select,
+.public-pdv-voucher-select input,
+.public-pdv-voucher-select select {
+  min-height: 32px;
+  padding: 6px 8px;
+}
+
+.public-pdv-cash-change {
+  gap: 2px;
+  padding: 6px 8px;
+}
+
+.public-pdv-cash-change span {
+  font-size: 11px;
+}
+
+.public-pdv-cash-change strong {
+  font-size: 14px;
+}
+
+.public-pdv-payment-balance {
+  gap: 2px;
+  margin-top: 0;
+  padding: 8px 10px;
+}
+
+.public-pdv-payment-balance span {
+  font-size: 11px;
+}
+
+.public-pdv-payment-balance strong {
+  font-size: 14px;
+}
+
+.public-pdv-checkout .public-pdv-finalize {
+  min-height: 44px;
+  position: relative;
+  z-index: 1;
+}
+
+@media (min-width: 901px) {
+  .public-pdv-payment-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1366px) and (min-width: 901px) {
+  .public-pdv-step {
+    padding: 8px 10px;
+  }
+
+  .public-pdv-search-results {
+    max-height: 104px;
+  }
+
+  .public-pdv-step-cart .public-pdv-cart-lines {
+    max-height: min(36vh, 340px);
+  }
+
+  .public-pdv-step-cart .public-pdv-cart-item {
+    gap: 6px;
+    grid-template-columns: 24px minmax(0, 1.2fr) auto auto auto;
+    min-height: 34px;
+    padding: 4px 5px;
+  }
+
+  .public-pdv-cart-item img,
+  .public-pdv-cart-placeholder {
+    height: 20px;
+    width: 20px;
+  }
+
+  .public-pdv-cart-item-main strong,
+  .public-pdv-cart-item-meta strong {
+    font-size: 11px;
+  }
+
+  .public-pdv-cart-item-meta span,
+  .public-pdv-checkout .public-pdv-cart-summary span {
+    font-size: 10px;
+  }
+
+  .public-pdv-checkout .public-pdv-cart-summary strong {
+    font-size: 14px;
+  }
+
+  .public-pdv-checkout .public-pdv-cart-total-row strong {
+    font-size: 22px;
+  }
+
+  .public-pdv-checkout .public-pdv-finalize {
+    min-height: 42px;
+  }
+}
+
+@media (max-width: 900px) {
+  .public-pdv-step {
+    padding: 10px;
+  }
+
+  .public-pdv-step-cart .public-pdv-cart-lines {
+    max-height: 42vh;
+  }
+
+  .public-pdv-step-cart .public-pdv-cart-item {
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+  }
+
+  .public-pdv-cart-item-meta {
+    justify-items: start;
+    min-width: 0;
+  }
+
+  .public-pdv-qty-controls {
+    grid-column: 2;
+    justify-content: start;
+  }
+
+  .public-pdv-cart-remove {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+
+  .public-pdv-payment-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .public-pdv-checkout {
+    overflow: visible;
+  }
+}

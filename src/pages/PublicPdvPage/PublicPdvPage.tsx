@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { BrandConfig } from "../../config/brand";
@@ -1417,10 +1417,12 @@ export default function PublicPdvPage() {
                       ) : (
                         <div className="public-pdv-cart-placeholder">Sem foto</div>
                       )}
-                      <div>
-                        <strong>{item.produto.nome}</strong>
-                        <small>Unitario: R$ {moeda(item.preco)}</small>
-                        <small>Subtotal: R$ {moeda(item.subtotal)}</small>
+                      <div className="public-pdv-cart-item-main">
+                        <strong title={item.produto.nome}>{item.produto.nome}</strong>
+                      </div>
+                      <div className="public-pdv-cart-item-meta">
+                        <span>{item.quantidade} un.</span>
+                        <strong>R$ {moeda(item.subtotal)}</strong>
                       </div>
                       <div className="public-pdv-qty-controls">
                         <button type="button" onClick={() => alterarQuantidadeProduto(item.produto.id, item.quantidade - 1)}>
@@ -1435,14 +1437,17 @@ export default function PublicPdvPage() {
                         </button>
                       </div>
                       <button
+                        className="public-pdv-cart-remove"
                         type="button"
+                        aria-label={`Remover ${item.produto.nome}`}
+                        title={`Remover ${item.produto.nome}`}
                         onClick={() =>
                           setCarrinho((itens) =>
                             itens.filter((linha) => linha.produtoId !== item.produto.id)
                           )
                         }
                       >
-                        Remover
+                        x
                       </button>
                     </div>
                   ))
@@ -1561,7 +1566,7 @@ export default function PublicPdvPage() {
               disabled={!podeFinalizarVenda}
               onClick={finalizarVenda}
             >
-              Finalizar venda
+              Concluir pagamento
             </button>
           </aside>
         </section>
