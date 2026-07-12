@@ -44,6 +44,11 @@ type CarrinhoItem = {
 
 type PagamentosVenda = Partial<Record<ErpPdvFormaPagamento, string>>;
 
+type FeedbackOperacao = {
+  tipo: "sucesso" | "erro" | "info";
+  texto: string;
+};
+
 type VendaSuspensa = {
   id: string;
   criadaEm: string;
@@ -158,6 +163,8 @@ export default function PublicPdvPage() {
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [feedback, setFeedback] = useState("");
+  const [feedbackOperacao, setFeedbackOperacao] = useState<FeedbackOperacao | null>(null);
+  const [resultadoSelecionadoIndex, setResultadoSelecionadoIndex] = useState(0);
   const [vendasSuspensas, setVendasSuspensas] = useState<VendaSuspensa[]>([]);
   const [modoCompacto, setModoCompacto] = useState(false);
   const [menuAberto, setMenuAberto] = useState(false);
@@ -198,6 +205,8 @@ export default function PublicPdvPage() {
       )
       .slice(0, 12);
   }, [busca, produtos]);
+
+  const resultadoSelecionado = produtosEncontrados[resultadoSelecionadoIndex] || null;
 
   const carrinhoDetalhado = carrinho
     .map((item) => {
@@ -340,6 +349,32 @@ export default function PublicPdvPage() {
     }
   }, [vendasSuspensasKey]);
 
+  useEffect(() => {
+    setResultadoSelecionadoIndex(0);
+  }, [busca, produtosEncontrados.length]);
+
+  useEffect(() => {
+    if (!feedbackOperacao) return;
+    const timer = window.setTimeout(() => setFeedbackOperacao(null), 2600);
+    return () => window.clearTimeout(timer);
+  }, [feedbackOperacao]);
+
+  useEffect(() => {
+    if (!empresaId) return;
+
+    const timer = window.setTimeout(async () => {
+      try {
+        const resultado = await buscarErpPdvClientes(empresaId, clienteBusca);
+        if (resultado.error) throw resultado.error;
+        setClientes(resultado.data);
+      } catch {
+        setFeedbackOperacao({ tipo: "erro", texto: "Nao foi possivel atualizar a busca de clientes." });
+      }
+    }, 280);
+
+    return () => window.clearTimeout(timer);
+  }, [clienteBusca, empresaId]);
+
   function obterLabelPerfil(usuario: ErpPdvUsuario) {
     return perfisUsuario[usuario.perfil] || usuario.perfil;
   }
@@ -418,6 +453,7 @@ export default function PublicPdvPage() {
     setCarrinho([]);
     resetarPagamentoVenda();
     setFeedback("Venda cancelada antes da finalizacao.");
+    setFeedbackOperacao({ tipo: "info", texto: "Venda limpa. Pronto para o proximo atendimento." });
   }
 
   function suspenderVendaAtual() {
@@ -563,11 +599,15 @@ export default function PublicPdvPage() {
   function adicionarProdutoPorBusca() {
     const termo = busca.trim();
     const produtoExato = encontrarProdutoPorLeitura(termo);
-    const produto = produtoExato || produtosEncontrados[0];
+    const produto = produtoExato || resultadoSelecionado || produtosEncontrados[0];
 
     if (!produto) {
-      setFeedback(termo ? `Produto ou codigo nao encontrado: ${termo}` : "Informe um produto ou codigo para adicionar.");
+      setFeedbackOperacao({
+        tipo: "erro",
+        texto: termo ? `Produto ou codigo nao encontrado: ${termo}` : "Informe um produto ou codigo para adicionar.",
+      });
       setBusca("");
+      setResultadoSelecionadoIndex(0);
       window.setTimeout(() => buscaRef.current?.focus(), 0);
       return;
     }
@@ -591,11 +631,15 @@ export default function PublicPdvPage() {
   function adicionarProduto(produto: ErpPdvProduto, quantidade = 1) {
     if (!tabelaAtualLiberada) {
       setFeedback("Operador sem tabela de preco liberada para venda.");
+      setFeedbackOperacao({ tipo: "erro", texto: "Tabela de preco nao liberada para este operador." });
+      window.setTimeout(() => buscaRef.current?.focus(), 0);
       return;
     }
 
     if (produto.estoque_atual <= 0) {
       setFeedback("Produto esgotado.");
+      setFeedbackOperacao({ tipo: "erro", texto: "Produto esgotado." });
+      window.setTimeout(() => buscaRef.current?.focus(), 0);
       return;
     }
 
@@ -611,7 +655,9 @@ export default function PublicPdvPage() {
       return [...itens, { produtoId: produto.id, quantidade: Math.min(quantidade, produto.estoque_atual) }];
     });
     setBusca("");
+    setResultadoSelecionadoIndex(0);
     setQuantidadeRapida("1");
+    setFeedbackOperacao({ tipo: "sucesso", texto: `${produto.nome} adicionado ao carrinho.` });
     emitirFeedbackProduto(produto);
     window.setTimeout(() => buscaRef.current?.focus(), 0);
   }
@@ -664,16 +710,6 @@ export default function PublicPdvPage() {
     }
   }
 
-  async function buscarClientes() {
-    if (!empresaId) return;
-    const resultado = await buscarErpPdvClientes(empresaId, clienteBusca);
-    if (resultado.error) {
-      setFeedback(resultado.error.message);
-      return;
-    }
-    setClientes(resultado.data);
-  }
-
   function atualizarValorPagamento(forma: ErpPdvFormaPagamento, valor: string) {
     setPagamentosVenda((atuais) => ({ ...atuais, [forma]: valor }));
   }
@@ -710,21 +746,25 @@ export default function PublicPdvPage() {
     if (!empresaId || !caixa || !operador.trim()) return;
     if (!tabelaAtualLiberada) {
       setFeedback("Operador sem tabela de preco liberada para venda.");
+      setFeedbackOperacao({ tipo: "erro", texto: "Operador sem tabela de preco liberada." });
       return;
     }
 
     if (formasPagamentoSelecionadas.includes("vale_troca") && !valeSelecionado) {
       setFeedback("Selecione um vale-troca ativo.");
+      setFeedbackOperacao({ tipo: "erro", texto: "Selecione um vale-troca ativo." });
       return;
     }
 
     if (valorRestantePagamento > 0.009) {
       setFeedback(`Falta pagar R$ ${moeda(valorRestantePagamento)}.`);
+      setFeedbackOperacao({ tipo: "erro", texto: `Falta pagar R$ ${moeda(valorRestantePagamento)}.` });
       return;
     }
 
     if (excessoPagamento > 0.009 && trocoPagamento <= 0) {
       setFeedback("Pagamento acima do total somente gera troco quando houver dinheiro.");
+      setFeedbackOperacao({ tipo: "erro", texto: "Excesso sem dinheiro nao gera troco." });
       return;
     }
 
@@ -800,8 +840,14 @@ export default function PublicPdvPage() {
       const resumo = await calcularErpPdvResumoCaixa(caixa);
       if (!resumo.error) setResumoCaixa(resumo.data);
       setFeedback("Venda finalizada.");
+      setFeedbackOperacao({ tipo: "sucesso", texto: "Pagamento concluido. Venda finalizada." });
+      window.setTimeout(() => buscaRef.current?.focus(), 0);
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "Nao foi possivel finalizar.");
+      setFeedbackOperacao({
+        tipo: "erro",
+        texto: error instanceof Error ? error.message : "Nao foi possivel finalizar.",
+      });
     } finally {
       setSalvando(false);
     }
@@ -907,6 +953,12 @@ export default function PublicPdvPage() {
       }
 
       if (evento.key === "Escape") {
+        if (alvo === buscaRef.current && busca.trim()) {
+          evento.preventDefault();
+          setBusca("");
+          setResultadoSelecionadoIndex(0);
+          return;
+        }
         if (atalhosAberto) {
           evento.preventDefault();
           setAtalhosAberto(false);
@@ -929,21 +981,48 @@ export default function PublicPdvPage() {
         return;
       }
 
-      if (evento.key === "Enter" && alvo === buscaRef.current) {
-        evento.preventDefault();
-        adicionarProdutoPorBusca();
+      if (alvo === buscaRef.current) {
+        if (evento.key === "ArrowDown" && produtosEncontrados.length > 0) {
+          evento.preventDefault();
+          setResultadoSelecionadoIndex((atual) => (atual + 1) % produtosEncontrados.length);
+          return;
+        }
+
+        if (evento.key === "ArrowUp" && produtosEncontrados.length > 0) {
+          evento.preventDefault();
+          setResultadoSelecionadoIndex((atual) =>
+            atual <= 0 ? produtosEncontrados.length - 1 : atual - 1
+          );
+          return;
+        }
+
+        if (evento.key === "Enter") {
+          evento.preventDefault();
+          adicionarProdutoPorBusca();
+        }
       }
     }
 
     window.addEventListener("keydown", aoPressionarTecla);
     return () => window.removeEventListener("keydown", aoPressionarTecla);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [atalhosAberto, menuAberto, produtosEncontrados, podeFinalizarVenda, carrinhoDetalhado.length, usuarioAtual, telaCheiaVisual]);
+  }, [
+    atalhosAberto,
+    busca,
+    menuAberto,
+    produtosEncontrados,
+    podeFinalizarVenda,
+    resultadoSelecionadoIndex,
+    carrinhoDetalhado.length,
+    usuarioAtual,
+    telaCheiaVisual,
+  ]);
 
   useEffect(() => {
     if (operadorModalAberto || !usuarioAtual || !podeVender) return;
-    window.setTimeout(() => buscaRef.current?.focus(), 0);
-  }, [operadorModalAberto, usuarioAtual?.id, podeVender]);
+    const timer = window.setTimeout(() => buscaRef.current?.focus(), 120);
+    return () => window.clearTimeout(timer);
+  }, [operadorModalAberto, usuarioAtual?.id, podeVender, produtos.length]);
 
   if (carregando) {
     return <main className="public-pdv public-pdv--center">Carregando PDV...</main>;
@@ -1237,7 +1316,6 @@ export default function PublicPdvPage() {
                   onChange={(e) => setClienteBusca(e.target.value)}
                   placeholder="Nome, CPF/CNPJ ou telefone"
                 />
-                <button onClick={buscarClientes}>Buscar</button>
               </div>
               <select
                 value={clienteSelecionado?.id || ""}
@@ -1272,15 +1350,33 @@ export default function PublicPdvPage() {
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
                   placeholder="Nome, SKU, codigo ou GTIN"
+                  aria-label="Buscar produto por nome, SKU, codigo ou GTIN"
+                  aria-activedescendant={resultadoSelecionado ? `produto-resultado-${resultadoSelecionado.id}` : undefined}
+                  aria-controls="pdv-produtos-resultados"
+                  aria-expanded={Boolean(busca.trim())}
                 />
               </div>
               {busca.trim() && (
-                <div className="public-pdv-product-list public-pdv-search-results">
+                <div
+                  id="pdv-produtos-resultados"
+                  className="public-pdv-product-list public-pdv-search-results"
+                  role="listbox"
+                >
                   {produtosEncontrados.length ? (
-                    produtosEncontrados.map((produto) => (
+                    produtosEncontrados.map((produto, index) => (
                       <button
                         key={produto.id}
-                        className={produtoAdicionadoId === produto.id ? "public-pdv-product-added" : ""}
+                        id={`produto-resultado-${produto.id}`}
+                        type="button"
+                        role="option"
+                        aria-selected={index === resultadoSelecionadoIndex}
+                        className={[
+                          produtoAdicionadoId === produto.id ? "public-pdv-product-added" : "",
+                          index === resultadoSelecionadoIndex ? "public-pdv-product-selected" : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
+                        onMouseEnter={() => setResultadoSelecionadoIndex(index)}
                         onClick={() => adicionarProduto(produto)}
                       >
                         {produto.imagem_url ? (
@@ -1297,6 +1393,12 @@ export default function PublicPdvPage() {
                   ) : (
                     <div className="public-pdv-no-results">Nenhum produto encontrado.</div>
                   )}
+                </div>
+              )}
+
+              {feedbackOperacao && (
+                <div className={`public-pdv-operation-feedback public-pdv-operation-feedback--${feedbackOperacao.tipo}`}>
+                  {feedbackOperacao.texto}
                 </div>
               )}
             </section>

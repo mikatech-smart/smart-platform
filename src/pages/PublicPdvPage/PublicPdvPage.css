@@ -1785,3 +1785,91 @@
     font-size: 16px;
   }
 }
+
+/* Sprint 172 - PDV Premium */
+.public-pdv-step-client .public-pdv-inline {
+  grid-template-columns: 1fr;
+}
+
+.public-pdv-step-client input,
+.public-pdv-step-client select,
+.public-pdv-step-product input,
+.public-pdv-payment-entry input,
+.public-pdv-payment-entry select,
+.public-pdv-checkout button {
+  font-family: inherit;
+}
+
+.public-pdv-step-product .public-pdv-scan-row input[placeholder] {
+  border: 2px solid #0f172a;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  font-weight: 900;
+}
+
+.public-pdv-step-product .public-pdv-scan-row input[placeholder]:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.14);
+}
+
+.public-pdv-search-results button {
+  border: 1px solid #e2e8f0;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.public-pdv-search-results button:hover,
+.public-pdv-search-results button.public-pdv-product-selected {
+  border-color: #2563eb;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.16);
+  transform: translateY(-1px);
+}
+
+.public-pdv-search-results button.public-pdv-product-selected {
+  background: #eff6ff;
+}
+
+.public-pdv-search-results button.public-pdv-product-added {
+  border-color: #16a34a;
+  background: #f0fdf4;
+}
+
+.public-pdv-operation-feedback {
+  align-items: center;
+  border-radius: 8px;
+  display: flex;
+  font-size: 13px;
+  font-weight: 900;
+  min-height: 38px;
+  padding: 8px 10px;
+}
+
+.public-pdv-operation-feedback--sucesso {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.public-pdv-operation-feedback--erro {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.public-pdv-operation-feedback--info {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.public-pdv-checkout .public-pdv-finalize {
+  background: linear-gradient(135deg, #16a34a, #047857);
+  border: 0;
+  box-shadow: 0 16px 34px rgba(4, 120, 87, 0.28);
+  letter-spacing: 0;
+}
+
+.public-pdv-checkout .public-pdv-finalize:not(:disabled):hover {
+  box-shadow: 0 20px 42px rgba(4, 120, 87, 0.34);
+  transform: translateY(-1px);
+}
+
+.public-pdv-checkout .public-pdv-finalize:disabled {
+  background: #cbd5e1;
+  box-shadow: none;
+}
