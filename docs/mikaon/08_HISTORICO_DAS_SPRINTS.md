@@ -1,0 +1,376 @@
+# HISTÓRICO OFICIAL DAS SPRINTS
+
+> Documento oficial de rastreabilidade do MikaON.
+>
+> Este documento registra a evolução funcional do sistema.
+> Toda Sprint concluída deverá ser adicionada aqui.
+
+---
+
+# Objetivo
+
+Registrar cronologicamente todas as Sprints do MikaON.
+
+Este histórico servirá para:
+
+- auditoria;
+- manutenção;
+- onboarding de novos desenvolvedores;
+- rastreamento de decisões;
+- consulta rápida da evolução do sistema.
+
+---
+
+# Padrão de Registro
+
+Cada Sprint deverá conter:
+
+- Número
+- Objetivo
+- Módulo
+- Principais implementações
+- Arquivos alterados
+- Migration (quando houver)
+- Build
+- Testes
+- Commit
+- Resultado
+
+---
+
+# Sprint 163
+
+## Objetivo
+
+Preparar a estrutura operacional inicial do novo PDV.
+
+## Implementações
+
+- Base do operador.
+- Estrutura inicial de permissões.
+- Preparação da abertura operacional.
+
+## Status
+
+Concluída.
+
+---
+
+# Sprint 164
+
+## Objetivo
+
+Criar a seleção obrigatória do operador antes da abertura do PDV.
+
+## Implementações
+
+- Modal obrigatório.
+- Persistência do operador.
+- Carregamento de permissões.
+- Cabeçalho operacional.
+- Troca de operador.
+
+Commit:
+
+d37bced
+
+Status:
+
+Concluída.
+
+---
+
+# Sprint 165
+
+## Objetivo
+
+Transformar o PDV em modo operacional.
+
+## Implementações
+
+- Modo Caixa.
+- Atalhos.
+- Menu secundário.
+- Tela cheia.
+- Navegação por teclado.
+
+Commit:
+
+734c8f8
+
+Status:
+
+Concluída.
+
+---
+
+# Sprint 166
+
+## Objetivo
+
+Aprimorar velocidade da operação.
+
+## Implementações
+
+- Carrinho fixo.
+- Quantidade rápida.
+- Suspender venda.
+- Retomar venda.
+- Venda compacta.
+
+Commit:
+
+1b2e2f9
+
+Status:
+
+Concluída.
+
+---
+
+# Sprint 167
+
+## Objetivo
+
+Criar assistente inteligente de cadastro de produtos.
+
+## Implementações
+
+- Cadastro por etapas.
+- Código de barras.
+- XML.
+- Câmera.
+- Busca inteligente.
+- Sugestões automáticas.
+
+Commit:
+
+d3555b1
+
+Status:
+
+Concluída.
+
+---
+
+# Sprint 168
+
+## Objetivo
+
+Simplificar definitivamente a interface do PDV.
+
+## Implementações
+
+- Fluxo reorganizado.
+- Menu recolhível.
+- Permissões por operador.
+- Interface focada na venda.
+
+Commit:
+
+96a5b37
+
+Status:
+
+Concluída.
+
+---
+
+# Sprint 169
+
+## Objetivo
+
+Profissionalizar a frente de caixa.
+
+## Implementações
+
+- Novo cabeçalho.
+- Busca em destaque.
+- Carrinho maior.
+- Pagamentos compactos.
+- Sem rolagem da página.
+
+Commit:
+
+05283ff
+
+Status:
+
+Concluída.
+
+---
+
+# Sprint 170
+
+## Objetivo
+
+Adequar o fluxo natural de venda.
+
+## Implementações
+
+Fluxo:
+
+Cliente
+
+↓
+
+Produto
+
+↓
+
+Carrinho
+
+↓
+
+Pagamento
+
+↓
+
+Finalização
+
+Também foram removidos:
+
+- produtos sugeridos;
+- tabela de preço da tela principal.
+
+Commit:
+
+b99a29e
+
+Status:
+
+Concluída.
+
+---
+
+# Sprint 171
+
+## Objetivo
+
+Profissionalizar o fechamento financeiro.
+
+## Implementações
+
+- Troco automático.
+- Pagamento misto.
+- Parcelamento.
+- Bloqueios inteligentes.
+
+Commit:
+
+7d8b78d
+
+Status:
+
+Concluída.
+
+---
+
+# Sprint 172
+
+## Objetivo
+
+Melhorar experiência operacional.
+
+## Implementações
+
+- Pesquisa automática.
+- Foco automático.
+- Navegação por teclado.
+- Feedback visual.
+
+Commit:
+
+c1c6be5
+
+Status:
+
+Concluída.
+
+---
+
+# Sprint 173
+
+## Objetivo
+
+Refinar ergonomia do PDV.
+
+## Implementações
+
+- Ajustes visuais.
+- Compactação da interface.
+- Melhor distribuição dos elementos.
+- Continuidade da simplificação operacional.
+
+Status:
+
+Concluída.
+
+---
+
+# Sprint 174
+
+## Objetivo
+
+Compactar definitivamente o carrinho e melhorar o cupom.
+
+## Implementações
+
+- Carrinho em linha única.
+- Envio por WhatsApp.
+- Modal de atalhos funcional.
+- Ajustes visuais.
+
+Commit:
+
+9297b10
+
+Status:
+
+Concluída.
+
+---
+
+# Próximas Sprints
+
+A partir deste ponto todas as novas Sprints deverão ser registradas neste documento imediatamente após validação.
+
+Modelo:
+
+---
+
+# Sprint XXX
+
+## Objetivo
+
+...
+
+## Implementações
+
+...
+
+## Arquivos alterados
+
+...
+
+## Commit
+
+...
+
+## Resultado
+
+...
+
+## Status
+
+Concluída.
+
+---
+
+# Observações
+
+Este documento nunca deverá ser resumido.
+
+Ele representa a linha do tempo oficial do MikaON.
+
+Nenhuma Sprint poderá ser perdida.

@@ -1,0 +1,393 @@
+# DECISÕES TÉCNICAS DO MIKAON
+
+> Documento oficial das decisões técnicas e arquiteturais do projeto.
+>
+> Este documento registra o motivo das principais decisões tomadas durante o desenvolvimento.
+> Antes de alterar qualquer comportamento importante do sistema, este documento deverá ser consultado.
+
+---
+
+# Objetivo
+
+Preservar o conhecimento arquitetural do MikaON.
+
+Registrar não apenas **o que foi decidido**, mas principalmente **por que foi decidido**.
+
+Isso evita retrabalho, regressões e decisões conflitantes no futuro.
+
+---
+
+# Como utilizar este documento
+
+Cada decisão deverá conter:
+
+- Identificador
+- Data
+- Sprint
+- Contexto
+- Decisão
+- Justificativa
+- Impacto
+
+---
+
+# DEC-001
+
+## Assunto
+
+Documentação oficial dentro do repositório.
+
+## Contexto
+
+As conversas com IA possuem limite de contexto e podem ser perdidas com troca de plano, nova conversa ou mudança de ferramenta.
+
+## Decisão
+
+Toda a memória permanente do MikaON ficará na pasta:
+
+docs/mikaon
+
+## Justificativa
+
+O conhecimento pertence ao projeto e não à conversa.
+
+## Impacto
+
+Todas as futuras Sprints deverão começar pela leitura da documentação oficial.
+
+---
+
+# DEC-002
+
+## Assunto
+
+Arquitetura modular.
+
+## Decisão
+
+O sistema será dividido em módulos independentes.
+
+## Justificativa
+
+Facilita manutenção.
+
+Permite crescimento.
+
+Reduz acoplamento.
+
+---
+
+# DEC-003
+
+## Assunto
+
+Base de dados única.
+
+## Decisão
+
+ERP, CRM e PDV compartilharão os mesmos cadastros.
+
+## Justificativa
+
+Eliminar duplicidade.
+
+Garantir consistência.
+
+---
+
+# DEC-004
+
+## Assunto
+
+Cadastro único de produtos.
+
+## Decisão
+
+Todo produto existirá apenas uma vez.
+
+## Justificativa
+
+Evitar divergências entre módulos.
+
+---
+
+# DEC-005
+
+## Assunto
+
+Cadastro único de clientes.
+
+## Decisão
+
+Cliente compartilhado entre ERP, CRM, PDV e Financeiro.
+
+---
+
+# DEC-006
+
+## Assunto
+
+Fluxo operacional do PDV.
+
+## Decisão
+
+Fluxo oficial:
+
+Operador
+
+↓
+
+Cliente
+
+↓
+
+Produto
+
+↓
+
+Carrinho
+
+↓
+
+Pagamento
+
+↓
+
+Cupom
+
+↓
+
+Nova Venda
+
+## Justificativa
+
+Representa o fluxo natural de atendimento no balcão.
+
+---
+
+# DEC-007
+
+## Assunto
+
+PDV simplificado.
+
+## Decisão
+
+A frente de caixa não deverá conter funções administrativas.
+
+## Justificativa
+
+Maior produtividade.
+
+Menor curva de aprendizado.
+
+---
+
+# DEC-008
+
+## Assunto
+
+Pesquisa automática.
+
+## Decisão
+
+Eliminar botões "Buscar".
+
+## Justificativa
+
+Menos cliques.
+
+Maior velocidade.
+
+---
+
+# DEC-009
+
+## Assunto
+
+Operação por teclado.
+
+## Decisão
+
+Priorizar teclado em toda operação do PDV.
+
+## Justificativa
+
+Maior produtividade para operadores.
+
+---
+
+# DEC-010
+
+## Assunto
+
+Carrinho compacto.
+
+## Decisão
+
+Cada produto deverá ocupar apenas uma linha.
+
+## Justificativa
+
+Maior quantidade de itens visíveis.
+
+Menor rolagem.
+
+---
+
+# DEC-011
+
+## Assunto
+
+Pagamento misto.
+
+## Decisão
+
+Permitir múltiplas formas de pagamento na mesma venda.
+
+## Justificativa
+
+Necessidade operacional real da MiKATECH.
+
+---
+
+# DEC-012
+
+## Assunto
+
+Troco automático.
+
+## Decisão
+
+O sistema calculará automaticamente o troco em pagamentos em dinheiro.
+
+---
+
+# DEC-013
+
+## Assunto
+
+Parcelamento.
+
+## Decisão
+
+Cartão de crédito suportará de 1x a 12x.
+
+Preparado para TEF.
+
+---
+
+# DEC-014
+
+## Assunto
+
+Cupom.
+
+## Decisão
+
+Ao concluir a venda, abrir uma visualização do Cupom Não Fiscal.
+
+## Recursos obrigatórios
+
+- Imprimir
+- Salvar PDF
+- Enviar por WhatsApp
+- Fechar
+
+---
+
+# DEC-015
+
+## Assunto
+
+WhatsApp.
+
+## Decisão
+
+O cupom poderá ser enviado diretamente ao cliente.
+
+---
+
+# DEC-016
+
+## Assunto
+
+Permissões.
+
+## Decisão
+
+Toda permissão será validada na interface e na regra de negócio.
+
+Nunca apenas escondendo botões.
+
+---
+
+# DEC-017
+
+## Assunto
+
+Documentação obrigatória.
+
+## Decisão
+
+Toda decisão permanente deverá ser registrada na pasta docs/mikaon antes do encerramento da Sprint.
+
+---
+
+# DEC-018
+
+## Assunto
+
+Arquitetura antes de velocidade.
+
+## Decisão
+
+Nunca sacrificar arquitetura para entregar funcionalidades mais rapidamente.
+
+---
+
+# DEC-019
+
+## Assunto
+
+Experiência do usuário.
+
+## Decisão
+
+Sempre priorizar produtividade em vez de excesso de elementos visuais.
+
+---
+
+# DEC-020
+
+## Assunto
+
+Referências de mercado.
+
+## Decisão
+
+O MikaON utilizará como inspiração ERPs comerciais consolidados, porém com identidade visual própria.
+
+As referências servirão para ergonomia e produtividade, nunca para cópia de interface.
+
+---
+
+# Próximas decisões
+
+Toda decisão nova deverá ser adicionada ao final deste documento.
+
+Jamais apagar decisões antigas.
+
+Caso uma decisão seja substituída, marcar a anterior como:
+
+STATUS: SUPERADA
+
+e criar uma nova decisão explicando o motivo da mudança.
+
+---
+
+# Regra Final
+
+Este documento representa a memória arquitetural do MikaON.
+
+Nenhuma decisão importante poderá existir apenas em conversas, mensagens ou commits.
