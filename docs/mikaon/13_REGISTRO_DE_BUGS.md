@@ -186,7 +186,31 @@ Corrigido.
 
 Observação
 
-Regressão visual corrigida na Sprint 175 com restauração da linha compacta oficial do carrinho.
+Regressão visual consolidada nas Sprints 175 e 176 com linha compacta, itens agrupados no topo e sem expansão vertical.
+
+---
+
+## BUG-0005
+
+Sprint
+
+176
+
+Módulo
+
+PDV
+
+Descrição
+
+Total da venda em produção não refletia corretamente a multiplicação entre preço unitário e quantidade em todos os pontos da tela.
+
+Status
+
+Corrigido.
+
+Observação
+
+Correção aplicada com fonte única de cálculo para subtotal, total, restante e troco.
 
 ---
 

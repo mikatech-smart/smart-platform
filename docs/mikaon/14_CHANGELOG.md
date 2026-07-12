@@ -210,6 +210,21 @@ Maior densidade visual no PDV sem alterar as regras operacionais da venda.
 
 ---
 
+## Sprint 176
+
+Principais alterações
+
+- correção crítica do cálculo do carrinho;
+- unificação da regra de subtotal, total, restante e troco;
+- correção do valor da linha para preço unitário multiplicado pela quantidade;
+- eliminação da expansão vertical dos itens do carrinho.
+
+Impacto
+
+Venda matematicamente consistente e carrinho mais previsível para operação em produção.
+
+---
+
 # Alterações Arquiteturais
 
 Durante o desenvolvimento foi definida uma nova metodologia.

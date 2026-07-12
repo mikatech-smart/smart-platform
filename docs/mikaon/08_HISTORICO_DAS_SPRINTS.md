@@ -350,6 +350,25 @@ Concluída.
 
 ---
 
+# Sprint 176
+
+## Objetivo
+
+Corrigir cálculo incorreto do carrinho e eliminar a expansão vertical dos itens em produção.
+
+## Implementações
+
+- criação de uma fonte única de cálculo para subtotal, total, restante e troco;
+- correção do valor de cada linha para preço unitário × quantidade;
+- atualização imediata dos totais ao alterar quantidade ou remover item;
+- restauração da lista compacta com itens agrupados no topo.
+
+Status:
+
+Concluída.
+
+---
+
 # Próximas Sprints
 
 A partir deste ponto todas as novas Sprints deverão ser registradas neste documento imediatamente após validação.

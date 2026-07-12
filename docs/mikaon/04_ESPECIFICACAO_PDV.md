@@ -214,6 +214,10 @@ Exibir apenas:
 - Aumentar
 - Remover
 
+Regra permanente de cálculo:
+
+Valor da linha = preço unitário × quantidade.
+
 Não exibir:
 
 - Unitário
@@ -238,6 +242,10 @@ Visualizar entre 14 e 16 itens.
 Rolagem apenas dentro do carrinho.
 
 Nunca na página inteira.
+
+Os itens deverão permanecer agrupados no topo da lista.
+
+O contêiner pode ocupar a altura disponível, mas cada item nunca poderá se expandir verticalmente para preencher o espaço livre.
 
 ---
 

@@ -409,6 +409,38 @@ Toda alteração futura no carrinho deverá preservar:
 
 ---
 
+# DEC-022
+
+## Assunto
+
+Fonte única de cálculo da venda no PDV.
+
+## Data
+
+2026-07-12
+
+## Sprint
+
+176
+
+## Contexto
+
+Foi identificado em produção que o total da venda podia divergir da quantidade exibida no carrinho quando estados derivados eram reaproveitados em trechos diferentes da tela.
+
+## Decisão
+
+Subtotal, desconto, total, valor pago, restante e troco passam a ser calculados a partir de uma única função oficial de resumo da venda.
+
+## Justificativa
+
+Evita duplicação de fórmulas, reduz risco de regressão e garante sincronização imediata entre linha do carrinho, resumo financeiro e finalização da venda.
+
+## Impacto
+
+Toda alteração futura no PDV deverá reutilizar a mesma fonte de cálculo, sem recriar fórmulas isoladas em componentes visuais, pagamentos ou fechamento.
+
+---
+
 # Próximas decisões
 
 Toda decisão nova deverá ser adicionada ao final deste documento.

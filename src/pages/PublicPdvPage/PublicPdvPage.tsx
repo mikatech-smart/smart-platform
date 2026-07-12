@@ -42,6 +42,13 @@ type CarrinhoItem = {
   quantidade: number;
 };
 
+type CarrinhoDetalhadoItem = {
+  produto: ErpPdvProduto;
+  quantidade: number;
+  precoUnitario: number;
+  subtotal: number;
+};
+
 type PagamentosVenda = Partial<Record<ErpPdvFormaPagamento, string>>;
 
 type FeedbackOperacao = {
@@ -79,6 +86,21 @@ type CupomVisualizacao = {
 type AtalhoAjuda = {
   tecla: string;
   descricao: string;
+};
+
+type ResumoVenda = {
+  itens: CarrinhoDetalhadoItem[];
+  quantidadeItens: number;
+  subtotal: number;
+  desconto: number;
+  total: number;
+  valoresPagamento: Record<ErpPdvFormaPagamento, number>;
+  valorValeDisponivel: number;
+  valorValeInformado: number;
+  valorPago: number;
+  restante: number;
+  excesso: number;
+  troco: number;
 };
 
 type VendaSuspensa = {
@@ -364,6 +386,83 @@ function obterTabelasLiberadas(usuario: ErpPdvUsuario | null) {
   return tabelasPreco.filter((item) => pode(usuario, item.permissao));
 }
 
+function calcularResumoVenda(params: {
+  carrinho: CarrinhoItem[];
+  produtosPorId: Map<string, ErpPdvProduto>;
+  tabela: ErpPdvTabelaPreco;
+  tabelaAtualLiberada: boolean;
+  valeSelecionado: ErpPdvValeTroca | null;
+  formasPagamentoSelecionadas: ErpPdvFormaPagamento[];
+  pagamentosVenda: PagamentosVenda;
+}): ResumoVenda {
+  const {
+    carrinho,
+    produtosPorId,
+    tabela,
+    tabelaAtualLiberada,
+    valeSelecionado,
+    formasPagamentoSelecionadas,
+    pagamentosVenda,
+  } = params;
+
+  const itens = carrinho
+    .map((item) => {
+      const produto = produtosPorId.get(item.produtoId);
+      if (!produto) return null;
+      const precoUnitario = obterPreco(produto, tabelaAtualLiberada ? tabela : "varejo");
+      const quantidade = Math.max(0, numero(item.quantidade));
+      return {
+        produto,
+        quantidade,
+        precoUnitario,
+        subtotal: precoUnitario * quantidade,
+      };
+    })
+    .filter((item): item is CarrinhoDetalhadoItem => Boolean(item));
+
+  const quantidadeItens = itens.reduce((soma, item) => soma + item.quantidade, 0);
+  const subtotal = itens.reduce((soma, item) => soma + item.subtotal, 0);
+  const desconto = 0;
+  const total = Math.max(0, subtotal - desconto);
+  const valorValeDisponivel = valeSelecionado ? Math.min(total, valeSelecionado.saldo_restante) : 0;
+
+  const valoresPagamento = formasPagamento.reduce(
+    (acc, forma) => ({
+      ...acc,
+      [forma.id]: numero(String(pagamentosVenda[forma.id] || "").replace(",", ".")),
+    }),
+    {} as Record<ErpPdvFormaPagamento, number>
+  );
+
+  const valorValeInformado = formasPagamentoSelecionadas.includes("vale_troca")
+    ? Math.min(numero(String(pagamentosVenda.vale_troca || "").replace(",", ".")), valorValeDisponivel)
+    : 0;
+
+  const valorPago = formasPagamentoSelecionadas.reduce((soma, forma) => {
+    if (forma === "vale_troca") return soma + valorValeInformado;
+    return soma + valoresPagamento[forma];
+  }, 0);
+
+  const restante = Math.max(0, total - valorPago);
+  const excesso = Math.max(0, valorPago - total);
+  const troco = valoresPagamento.dinheiro > 0 ? excesso : 0;
+
+  return {
+    itens,
+    quantidadeItens,
+    subtotal,
+    desconto,
+    total,
+    valoresPagamento,
+    valorValeDisponivel,
+    valorValeInformado,
+    valorPago,
+    restante,
+    excesso,
+    troco,
+  };
+}
+
 export default function PublicPdvPage() {
   const { slug = "" } = useParams();
   const [empresa, setEmpresa] = useState<EmpresaPdv | null>(null);
@@ -447,39 +546,31 @@ export default function PublicPdvPage() {
   const cupomTexto = useMemo(() => (cupom ? gerarCupomTexto(cupom) : ""), [cupom]);
   const cupomHtml = useMemo(() => (cupom ? gerarCupomHtml(cupom) : ""), [cupom]);
 
-  const carrinhoDetalhado = carrinho
-    .map((item) => {
-      const produto = produtosPorId.get(item.produtoId);
-      if (!produto) return null;
-      const preco = obterPreco(produto, tabelaAtualLiberada ? tabela : "varejo");
-      return {
-        produto,
-        quantidade: item.quantidade,
-        preco,
-        subtotal: item.quantidade * preco,
-      };
-    })
-    .filter((item): item is NonNullable<typeof item> => Boolean(item));
-  const total = carrinhoDetalhado.reduce((soma, item) => soma + item.subtotal, 0);
-  const quantidadeItensCarrinho = carrinhoDetalhado.reduce((soma, item) => soma + item.quantidade, 0);
-  const valorVale = valeSelecionado ? Math.min(total, valeSelecionado.saldo_restante) : 0;
-  const valoresPagamento = formasPagamento.reduce(
-    (acc, forma) => ({
-      ...acc,
-      [forma.id]: numero(String(pagamentosVenda[forma.id] || "").replace(",", ".")),
-    }),
-    {} as Record<ErpPdvFormaPagamento, number>
+  const resumoVenda = useMemo(
+    () =>
+      calcularResumoVenda({
+        carrinho,
+        produtosPorId,
+        tabela,
+        tabelaAtualLiberada,
+        valeSelecionado,
+        formasPagamentoSelecionadas,
+        pagamentosVenda,
+      }),
+    [carrinho, formasPagamentoSelecionadas, pagamentosVenda, produtosPorId, tabela, tabelaAtualLiberada, valeSelecionado]
   );
-  const valorValeInformado = formasPagamentoSelecionadas.includes("vale_troca")
-    ? Math.min(numero(String(pagamentosVenda.vale_troca || "").replace(",", ".")), valorVale)
-    : 0;
-  const totalPago = formasPagamentoSelecionadas.reduce((soma, forma) => {
-    if (forma === "vale_troca") return soma + valorValeInformado;
-    return soma + valoresPagamento[forma];
-  }, 0);
-  const valorRestantePagamento = Math.max(0, total - totalPago);
-  const excessoPagamento = Math.max(0, totalPago - total);
-  const trocoPagamento = valoresPagamento.dinheiro > 0 ? excessoPagamento : 0;
+  const carrinhoDetalhado = resumoVenda.itens;
+  const quantidadeItensCarrinho = resumoVenda.quantidadeItens;
+  const subtotalVenda = resumoVenda.subtotal;
+  const descontoVenda = resumoVenda.desconto;
+  const total = resumoVenda.total;
+  const valoresPagamento = resumoVenda.valoresPagamento;
+  const valorVale = resumoVenda.valorValeDisponivel;
+  const valorValeInformado = resumoVenda.valorValeInformado;
+  const totalPago = resumoVenda.valorPago;
+  const valorRestantePagamento = resumoVenda.restante;
+  const excessoPagamento = resumoVenda.excesso;
+  const trocoPagamento = resumoVenda.troco;
   const pagamentoExatoOuComTroco = Math.abs(totalPago - total) < 0.01 || trocoPagamento > 0;
   const podeFinalizarPagamento = total > 0 && totalPago >= total && pagamentoExatoOuComTroco;
   const podeOperarCaixa = pode(usuarioAtual, "caixa_abrir_fechar");
@@ -1088,7 +1179,7 @@ export default function PublicPdvPage() {
           produtoId: item.produto.id,
           descricao: item.produto.nome,
           quantidade: item.quantidade,
-          precoUnitario: item.preco,
+          precoUnitario: item.precoUnitario,
         })),
       });
       if (resultado.error) throw resultado.error;
@@ -1724,11 +1815,11 @@ export default function PublicPdvPage() {
                 </div>
                 <div>
                   <span>Subtotal</span>
-                  <strong>R$ {moeda(total)}</strong>
+                  <strong>R$ {moeda(subtotalVenda)}</strong>
                 </div>
                 <div>
                   <span>Desconto</span>
-                  <strong>R$ {moeda(0)}</strong>
+                  <strong>R$ {moeda(descontoVenda)}</strong>
                 </div>
                 <div>
                   <span>Restante</span>
