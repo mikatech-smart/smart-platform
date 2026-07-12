@@ -883,13 +883,22 @@ export default function PublicPdvPage() {
       } ${modoCompacto ? "public-pdv--compact" : ""}`}
     >
       <header className="public-pdv-header public-pdv-header--clean">
-        <div>
-          <span>{BrandConfig.platformName} ERP/PDV</span>
-          <h1>{empresa.nome}</h1>
-          <div className="public-pdv-current-operator">
+        <div className="public-pdv-topbar">
+          <div>
+            <span>Empresa</span>
+            <strong>{empresa.nome}</strong>
+          </div>
+          <div>
+            <span>Operador</span>
             <strong>{usuarioAtual.nome}</strong>
-            <span>{obterLabelPerfil(usuarioAtual)}</span>
-            <span>{caixa ? "Caixa aberto" : "Caixa fechado"}</span>
+          </div>
+          <div>
+            <span>Caixa</span>
+            <strong>{caixa ? "Aberto" : "Fechado"}</strong>
+          </div>
+          <div>
+            <span>Status</span>
+            <strong>{obterLabelPerfil(usuarioAtual)}</strong>
           </div>
         </div>
         <div className="public-pdv-header-actions">
@@ -1246,13 +1255,18 @@ export default function PublicPdvPage() {
             </select>
 
             <label>Pagamento</label>
-            <select value={formaPagamento} onChange={(e) => setFormaPagamento(e.target.value as ErpPdvFormaPagamento)}>
+            <div className="public-pdv-payment-buttons">
               {formasPagamento.map((forma) => (
-                <option key={forma.id} value={forma.id}>
+                <button
+                  key={forma.id}
+                  type="button"
+                  className={formaPagamento === forma.id ? "public-pdv-payment-active" : ""}
+                  onClick={() => setFormaPagamento(forma.id)}
+                >
                   {forma.label}
-                </option>
+                </button>
               ))}
-            </select>
+            </div>
 
             {formaPagamento === "vale_troca" && (
               <>
