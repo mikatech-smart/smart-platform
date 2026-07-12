@@ -372,6 +372,43 @@ As referências servirão para ergonomia e produtividade, nunca para cópia de i
 
 ---
 
+# DEC-021
+
+## Assunto
+
+Linha compacta do carrinho do PDV.
+
+## Data
+
+2026-07-12
+
+## Sprint
+
+175
+
+## Contexto
+
+A Sprint 174 preservou corretamente o cupom, WhatsApp e atalhos, mas o carrinho sofreu regressão visual por acúmulo de estilos que ampliavam a altura da linha e permitiam comportamento expansivo nos controles.
+
+## Decisão
+
+Itens do carrinho do PDV não podem utilizar cards altos, botões expansivos, controles com largura total ou qualquer composição que quebre a linha única oficial.
+
+## Justificativa
+
+O PDV precisa manter alta densidade visual e previsibilidade para operações com muitos produtos, principalmente em 1366x768.
+
+## Impacto
+
+Toda alteração futura no carrinho deverá preservar:
+
+- uma única linha por item;
+- valor total alinhado à direita;
+- controles pequenos com largura fixa;
+- rolagem apenas dentro da lista do carrinho.
+
+---
+
 # Próximas decisões
 
 Toda decisão nova deverá ser adicionada ao final deste documento.

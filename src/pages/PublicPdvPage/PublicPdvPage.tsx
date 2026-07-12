@@ -1681,6 +1681,10 @@ export default function PublicPdvPage() {
                           -
                         </button>
                         <input
+                          aria-label={`Quantidade de ${item.produto.nome}`}
+                          className="public-pdv-qty-input"
+                          inputMode="numeric"
+                          title={`Quantidade de ${item.produto.nome}`}
                           value={item.quantidade}
                           onChange={(e) => alterarQuantidadeProduto(item.produto.id, numero(e.target.value))}
                         />
@@ -1699,7 +1703,7 @@ export default function PublicPdvPage() {
                           )
                         }
                       >
-                        x
+                        ×
                       </button>
                     </div>
                   ))

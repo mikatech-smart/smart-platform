@@ -182,11 +182,11 @@ Carrinho ficou maior do que o esperado após tentativa de compactação.
 
 Status
 
-Corrigido parcialmente.
+Corrigido.
 
 Observação
 
-A ergonomia continuará sendo refinada nas próximas Sprints.
+Regressão visual corrigida na Sprint 175 com restauração da linha compacta oficial do carrinho.
 
 ---
 

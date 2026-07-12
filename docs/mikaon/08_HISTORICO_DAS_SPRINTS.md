@@ -331,6 +331,25 @@ Concluída.
 
 ---
 
+# Sprint 175
+
+## Objetivo
+
+Corrigir a regressão visual do carrinho introduzida na Sprint 174.
+
+## Implementações
+
+- restauração da linha compacta do carrinho;
+- alinhamento estável entre nome, valor e controles;
+- remoção de comportamento visual expansivo dentro do item;
+- preservação do cupom, WhatsApp e ajuda de atalhos.
+
+Status:
+
+Concluída.
+
+---
+
 # Próximas Sprints
 
 A partir deste ponto todas as novas Sprints deverão ser registradas neste documento imediatamente após validação.

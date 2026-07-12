@@ -184,6 +184,15 @@ Modelo oficial:
 
 Produto................R$ 59,90   - 2 + ×
 
+Padrão visual validado na Sprint 175:
+
+- nome em uma única linha com reticências;
+- valor total da linha alinhado à direita;
+- controles pequenos e fixos no lado direito;
+- remoção apenas por `×`;
+- sem botões expansivos;
+- sem segunda linha de informações.
+
 Nunca utilizar:
 
 - cards altos

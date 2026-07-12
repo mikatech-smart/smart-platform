@@ -2442,54 +2442,98 @@
 
 /* Sprint 174 - alta densidade, WhatsApp e atalhos */
 .public-pdv-step-cart .public-pdv-cart-lines {
-  gap: 3px;
-  max-height: min(46vh, 520px);
+  flex: 1;
+  gap: 2px;
+  max-height: none;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .public-pdv-step-cart .public-pdv-cart-item {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
   gap: 6px;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  min-height: 28px;
+  grid-template-columns: minmax(0, 1fr) minmax(82px, max-content) auto auto;
+  min-height: 30px;
   padding: 2px 6px;
 }
 
 .public-pdv-cart-item-main strong {
+  display: block;
   font-size: 11px;
+  font-weight: 800;
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .public-pdv-cart-item-meta {
   align-items: center;
   display: flex;
-  min-width: 70px;
+  justify-content: flex-end;
+  min-width: 82px;
 }
 
 .public-pdv-cart-item-meta strong {
   font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .public-pdv-qty-controls {
+  align-items: center;
+  flex: 0 0 auto;
   gap: 3px;
+  grid-auto-columns: max-content;
+  grid-auto-flow: column;
+  justify-content: end;
 }
 
 .public-pdv-qty-controls button,
 .public-pdv-cart-remove {
   border-radius: 6px;
+  flex: 0 0 auto;
   font-size: 12px;
+  font-weight: 800;
   height: 24px;
+  line-height: 1;
   min-height: 24px;
   min-width: 24px;
+  padding: 0;
+  width: 24px;
 }
 
-.public-pdv-qty-controls input {
+.public-pdv-qty-controls input,
+.public-pdv-qty-input {
+  appearance: textfield;
+  border-radius: 6px;
   font-size: 11px;
   height: 24px;
   min-height: 24px;
-  padding: 2px 4px;
-  width: 30px;
+  line-height: 1;
+  padding: 0 2px;
+  width: 32px;
 }
 
 .public-pdv-cart-remove {
-  font-size: 13px;
+  font-size: 14px;
+}
+
+.public-pdv-qty-input::-webkit-outer-spin-button,
+.public-pdv-qty-input::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.public-pdv-empty-cart {
+  min-height: 56px;
+  padding: 8px;
 }
 
 .public-pdv-receipt-actions button {
@@ -2582,11 +2626,12 @@
 
 @media (max-width: 1366px) and (min-width: 901px) {
   .public-pdv-step-cart .public-pdv-cart-lines {
-    max-height: min(42vh, 420px);
+    gap: 2px;
   }
 
   .public-pdv-step-cart .public-pdv-cart-item {
-    min-height: 26px;
+    gap: 5px;
+    min-height: 28px;
     padding: 2px 5px;
   }
 
@@ -2594,16 +2639,35 @@
   .public-pdv-cart-item-meta strong {
     font-size: 10px;
   }
+
+  .public-pdv-qty-controls button,
+  .public-pdv-cart-remove,
+  .public-pdv-qty-controls input,
+  .public-pdv-qty-input {
+    height: 22px;
+    min-height: 22px;
+  }
+
+  .public-pdv-qty-controls button,
+  .public-pdv-cart-remove {
+    min-width: 22px;
+    width: 22px;
+  }
+
+  .public-pdv-qty-controls input,
+  .public-pdv-qty-input {
+    width: 30px;
+  }
 }
 
 @media (max-width: 900px) {
   .public-pdv-step-cart .public-pdv-cart-item {
-    grid-template-columns: minmax(0, 1fr) auto;
-    min-height: 30px;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    min-height: 34px;
   }
 
   .public-pdv-cart-item-meta {
-    justify-content: flex-start;
+    min-width: 70px;
   }
 
   .public-pdv-qty-controls {
@@ -2612,8 +2676,7 @@
   }
 
   .public-pdv-cart-remove {
-    grid-column: auto;
-    grid-row: auto;
+    align-self: center;
   }
 
   .public-pdv-receipt-actions {

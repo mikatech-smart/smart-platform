@@ -195,6 +195,21 @@ Fechamento da venda mais profissional.
 
 ---
 
+## Sprint 175
+
+Principais alterações
+
+- correção da regressão visual do carrinho;
+- restauração da linha única compacta por item;
+- alinhamento estável entre nome, valor e controles;
+- preservação integral do cupom, WhatsApp e atalhos.
+
+Impacto
+
+Maior densidade visual no PDV sem alterar as regras operacionais da venda.
+
+---
+
 # Alterações Arquiteturais
 
 Durante o desenvolvimento foi definida uma nova metodologia.
