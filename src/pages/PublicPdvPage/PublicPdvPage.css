@@ -1385,3 +1385,306 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Sprint 170 - Fluxo natural da venda */
+.public-pdv-hidden-control {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (min-width: 901px) {
+  .public-pdv--cashier {
+    height: 100vh;
+    overflow: hidden;
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+}
+
+.public-pdv-sale-layout,
+.public-pdv--cashier .public-pdv-sale-layout,
+.public-pdv--cashier.public-pdv--menu-open .public-pdv-sale-layout {
+  display: grid;
+  grid-template-columns: minmax(620px, 1.45fr) minmax(320px, 0.55fr);
+  gap: 8px;
+  min-height: 0;
+}
+
+.public-pdv-sale-flow {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.public-pdv-step {
+  min-width: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 8px;
+}
+
+.public-pdv-step-client {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.42fr);
+  gap: 8px;
+  align-items: end;
+}
+
+.public-pdv-step-client .public-pdv-section-title {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
+}
+
+.public-pdv-step-client select,
+.public-pdv-step-client input,
+.public-pdv-step-client button {
+  min-height: 36px;
+  border-radius: 8px;
+  padding: 7px 9px;
+}
+
+.public-pdv-step-product {
+  display: grid;
+  grid-template-rows: auto auto auto;
+  gap: 6px;
+}
+
+.public-pdv-step-product .public-pdv-section-title,
+.public-pdv-step-cart .public-pdv-section-title {
+  margin-bottom: 0;
+}
+
+.public-pdv-step-product .public-pdv-scan-row {
+  margin-bottom: 0;
+}
+
+.public-pdv-step-product .public-pdv-scan-row input[placeholder] {
+  min-height: 58px;
+  font-size: 21px;
+}
+
+.public-pdv-search-results {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-height: 168px;
+  min-height: 0 !important;
+  overflow: auto;
+}
+
+.public-pdv-search-results button {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  min-height: 86px;
+  gap: 4px 8px;
+  align-items: center;
+}
+
+.public-pdv-search-results img,
+.public-pdv-product-placeholder {
+  grid-row: 1 / 4;
+  width: 54px;
+  height: 54px;
+  border-radius: 7px;
+  object-fit: cover;
+}
+
+.public-pdv-product-placeholder {
+  display: grid;
+  place-items: center;
+  background: #e2e8f0;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.public-pdv-search-results span,
+.public-pdv-search-results small,
+.public-pdv-search-results strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.public-pdv-no-results {
+  grid-column: 1 / -1;
+  display: grid;
+  min-height: 64px;
+  place-items: center;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  color: #64748b;
+  font-weight: 900;
+}
+
+.public-pdv-step-cart {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.public-pdv-step-cart .public-pdv-cart-lines {
+  min-height: 0;
+  overflow: auto;
+}
+
+.public-pdv-step-cart .public-pdv-cart-item {
+  grid-template-columns: 62px minmax(0, 1fr) 132px 74px;
+}
+
+.public-pdv-checkout {
+  display: grid;
+  grid-template-rows: auto auto minmax(58px, auto);
+  align-content: start;
+  gap: 10px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.public-pdv-checkout h2 {
+  margin: 0 0 8px;
+  color: #047857;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.public-pdv-checkout .public-pdv-cart-summary {
+  grid-template-columns: 1fr;
+  gap: 7px;
+  margin-top: 0;
+}
+
+.public-pdv-checkout .public-pdv-cart-summary > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.public-pdv-checkout .public-pdv-cart-summary strong {
+  font-size: 22px;
+}
+
+.public-pdv-checkout .public-pdv-cart-total-row {
+  display: grid;
+  gap: 4px;
+  align-items: start;
+  justify-content: stretch;
+  padding: 14px;
+}
+
+.public-pdv-checkout .public-pdv-cart-total-row strong {
+  font-size: clamp(42px, 4.2vw, 64px);
+}
+
+.public-pdv-checkout .public-pdv-payment-buttons {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.public-pdv-checkout .public-pdv-payment-buttons button {
+  min-height: 44px;
+  font-size: 14px;
+}
+
+.public-pdv-voucher-select {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.public-pdv-checkout .public-pdv-finalize {
+  min-height: 70px;
+  margin-top: 0;
+  font-size: 22px;
+  text-transform: uppercase;
+}
+
+.public-pdv-status-strip {
+  display: none;
+}
+
+@media (min-width: 1600px) {
+  .public-pdv-sale-layout,
+  .public-pdv--cashier .public-pdv-sale-layout,
+  .public-pdv--cashier.public-pdv--menu-open .public-pdv-sale-layout {
+    grid-template-columns: minmax(820px, 1.55fr) minmax(360px, 0.45fr);
+  }
+
+  .public-pdv-search-results {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    max-height: 190px;
+  }
+}
+
+@media (max-width: 1366px) and (min-width: 901px) {
+  .public-pdv-sale-layout,
+  .public-pdv--cashier .public-pdv-sale-layout,
+  .public-pdv--cashier.public-pdv--menu-open .public-pdv-sale-layout {
+    grid-template-columns: minmax(690px, 1.48fr) minmax(285px, 0.52fr);
+  }
+
+  .public-pdv-search-results {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-height: 128px;
+  }
+
+  .public-pdv-step-cart .public-pdv-cart-item {
+    grid-template-columns: 52px minmax(0, 1fr) 116px 66px;
+  }
+
+  .public-pdv-checkout .public-pdv-cart-summary strong {
+    font-size: 18px;
+  }
+
+  .public-pdv-checkout .public-pdv-cart-total-row strong {
+    font-size: 42px;
+  }
+
+  .public-pdv-checkout .public-pdv-finalize {
+    min-height: 58px;
+  }
+}
+
+@media (max-width: 900px) {
+  .public-pdv-sale-layout,
+  .public-pdv--cashier .public-pdv-sale-layout,
+  .public-pdv--cashier.public-pdv--menu-open .public-pdv-sale-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .public-pdv-sale-flow,
+  .public-pdv-checkout {
+    overflow: visible;
+  }
+
+  .public-pdv-step-client {
+    grid-template-columns: 1fr;
+  }
+
+  .public-pdv-search-results {
+    grid-template-columns: 1fr;
+    max-height: 260px;
+  }
+
+  .public-pdv-checkout .public-pdv-payment-buttons {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .public-pdv-checkout .public-pdv-payment-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .public-pdv-step-cart .public-pdv-cart-item {
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+}
