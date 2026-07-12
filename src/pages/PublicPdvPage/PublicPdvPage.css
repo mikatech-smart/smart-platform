@@ -2488,8 +2488,18 @@
 .public-pdv-cart-item-meta {
   align-items: center;
   display: flex;
+  gap: 8px;
   justify-content: flex-end;
-  min-width: 82px;
+  min-width: 220px;
+  white-space: nowrap;
+}
+
+.public-pdv-cart-item-meta span {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .public-pdv-cart-item-meta strong {
@@ -2547,6 +2557,97 @@
 .public-pdv-empty-cart {
   min-height: 56px;
   padding: 8px;
+}
+
+.public-pdv-stock-layout {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(320px, 0.8fr) minmax(420px, 1.2fr);
+  min-height: 0;
+}
+
+.public-pdv-stock-products,
+.public-pdv-stock-editor {
+  min-height: 0;
+}
+
+.public-pdv-stock-product-list,
+.public-pdv-stock-history-list {
+  display: grid;
+  gap: 8px;
+  max-height: 62vh;
+  min-height: 0;
+  overflow: auto;
+}
+
+.public-pdv-stock-product-card,
+.public-pdv-stock-history-item {
+  align-content: start;
+  background: #f8fafc;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  color: #0f172a;
+  display: grid;
+  gap: 3px;
+  min-height: auto;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.public-pdv-stock-product-card--active {
+  border-color: #10b981;
+  background: #ecfdf5;
+}
+
+.public-pdv-stock-product-card strong,
+.public-pdv-stock-history-item strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.public-pdv-stock-product-card span,
+.public-pdv-stock-product-card small,
+.public-pdv-stock-history-item span,
+.public-pdv-stock-history-item small {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.public-pdv-stock-form {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.public-pdv-stock-form .public-pdv-stock-toggle,
+.public-pdv-stock-form textarea,
+.public-pdv-stock-movement,
+.public-pdv-stock-history {
+  grid-column: 1 / -1;
+}
+
+.public-pdv-stock-toggle {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  margin-top: 0;
+}
+
+.public-pdv-stock-toggle input {
+  width: auto;
+}
+
+.public-pdv-stock-editor {
+  display: grid;
+  gap: 12px;
+}
+
+.public-pdv-stock-movement,
+.public-pdv-stock-history {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 12px;
 }
 
 .public-pdv-receipt-actions button {
@@ -2653,6 +2754,15 @@
     font-size: 10px;
   }
 
+  .public-pdv-cart-item-meta {
+    gap: 6px;
+    min-width: 190px;
+  }
+
+  .public-pdv-cart-item-meta span {
+    font-size: 9px;
+  }
+
   .public-pdv-qty-controls button,
   .public-pdv-cart-remove,
   .public-pdv-qty-controls input,
@@ -2680,6 +2790,9 @@
   }
 
   .public-pdv-cart-item-meta {
+    flex-wrap: wrap;
+    gap: 2px 8px;
+    justify-content: flex-start;
     min-width: 70px;
   }
 
@@ -2701,6 +2814,11 @@
   }
 
   .public-pdv-shortcuts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .public-pdv-stock-layout,
+  .public-pdv-stock-form {
     grid-template-columns: 1fr;
   }
 }

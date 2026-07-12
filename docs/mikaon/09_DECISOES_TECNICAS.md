@@ -441,6 +441,38 @@ Toda alteração futura no PDV deverá reutilizar a mesma fonte de cálculo, sem
 
 ---
 
+# DEC-023
+
+## Assunto
+
+Preço unitário e total da linha no carrinho.
+
+## Data
+
+2026-07-12
+
+## Sprint
+
+177
+
+## Contexto
+
+Após a centralização do cálculo, o carrinho ainda precisava explicitar ao operador a diferença entre preço de uma unidade e total da quantidade.
+
+## Decisão
+
+O carrinho do PDV deverá exibir simultaneamente o valor unitário e o total da linha, mantendo a compactação visual.
+
+## Justificativa
+
+Isso reduz erro operacional, facilita conferência rápida e preserva a regra matemática oficial da venda.
+
+## Impacto
+
+O preço unitário nunca poderá ser confundido com o total da linha em futuras alterações de layout.
+
+---
+
 # Próximas decisões
 
 Toda decisão nova deverá ser adicionada ao final deste documento.

@@ -225,6 +225,20 @@ Venda matematicamente consistente e carrinho mais previsível para operação em
 
 ---
 
+## Sprint 177
+
+Principais alterações
+
+- valor unitário visível no carrinho junto ao total da linha;
+- criação do acesso operacional de Produtos/Estoque para o perfil de estoque;
+- correção do bloqueio de módulo não liberado para o estoquista.
+
+Impacto
+
+Maior clareza operacional no carrinho e liberação correta do fluxo de estoque sem ampliar permissões de venda.
+
+---
+
 # Alterações Arquiteturais
 
 Durante o desenvolvimento foi definida uma nova metodologia.

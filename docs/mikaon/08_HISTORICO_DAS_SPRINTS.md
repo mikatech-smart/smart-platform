@@ -369,6 +369,24 @@ Concluída.
 
 ---
 
+# Sprint 177
+
+## Objetivo
+
+Exibir valor unitário no carrinho e corrigir o acesso operacional do perfil de estoque.
+
+## Implementações
+
+- separação visual entre valor unitário e total da linha no carrinho;
+- criação de área operacional de Produtos/Estoque na rota pública do ERP/PDV;
+- correção do bloqueio “Nenhum módulo operacional liberado” para o perfil de estoque.
+
+Status:
+
+Concluída.
+
+---
+
 # Próximas Sprints
 
 A partir deste ponto todas as novas Sprints deverão ser registradas neste documento imediatamente após validação.

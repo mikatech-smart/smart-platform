@@ -159,6 +159,18 @@ Exemplos:
 - abrir caixa;
 - fechar caixa.
 
+Perfil de estoque:
+
+- pode acessar Produtos/Estoque;
+- pode cadastrar e editar produtos permitidos;
+- pode registrar entrada, saída e ajuste de estoque;
+- pode consultar saldo, mínimo e histórico;
+- não pode operar venda;
+- não pode abrir ou fechar caixa;
+- não pode conceder desconto;
+- não pode alterar permissões;
+- não pode acessar administração geral por esta rota operacional.
+
 ---
 
 # Auditoria

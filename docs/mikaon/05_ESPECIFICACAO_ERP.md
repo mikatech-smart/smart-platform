@@ -180,6 +180,16 @@ Movimentações previstas:
 
 Toda movimentação deverá gerar histórico.
 
+Perfil operacional de Estoque:
+
+- acessar módulo de Produtos/Estoque;
+- listar e pesquisar produtos;
+- cadastrar e editar produtos permitidos;
+- registrar entrada, saída e ajuste;
+- consultar estoque atual, mínimo e histórico.
+
+Esse perfil não realiza venda, não opera caixa e não acessa financeiro.
+
 ---
 
 # Compras

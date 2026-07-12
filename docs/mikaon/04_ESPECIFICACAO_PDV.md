@@ -208,6 +208,7 @@ Nunca utilizar:
 Exibir apenas:
 
 - Nome
+- Valor unitário
 - Valor da linha
 - Diminuir
 - Quantidade
@@ -217,6 +218,8 @@ Exibir apenas:
 Regra permanente de cálculo:
 
 Valor da linha = preço unitário × quantidade.
+
+O preço unitário e o total da linha são obrigatórios e devem ser exibidos como informações distintas.
 
 Não exibir:
 

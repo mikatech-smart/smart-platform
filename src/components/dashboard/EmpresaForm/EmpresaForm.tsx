@@ -9834,6 +9834,22 @@ export default function EmpresaForm({
       return;
     }
 
+    if (parseNumeroErpPdv(erpPdvProdutoForm.estoqueAtual) < 0) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "O estoque inicial nao pode ser negativo.",
+      });
+      return;
+    }
+
+    if (parseNumeroErpPdv(erpPdvProdutoForm.estoqueMinimo) < 0) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "O estoque minimo nao pode ser negativo.",
+      });
+      return;
+    }
+
     if (erpPdvProdutoFormIndicadores.abaixoDoCusto) {
       setErpPdvFeedback({
         tipo: "erro",
@@ -14483,12 +14499,12 @@ export default function EmpresaForm({
                   />
 
                   <Input
-                    label="SKU"
+                    label="Codigo interno (SKU)"
                     value={erpPdvProdutoForm.sku}
                     onChange={(e) =>
                       atualizarErpPdvProdutoForm("sku", e.target.value)
                     }
-                    placeholder="Ex.: BANNER-LONA-90X60"
+                    placeholder="Ex.: PROD-001"
                   />
 
                   <Input

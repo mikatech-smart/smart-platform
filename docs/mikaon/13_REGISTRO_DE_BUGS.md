@@ -214,6 +214,30 @@ Correção aplicada com fonte única de cálculo para subtotal, total, restante 
 
 ---
 
+## BUG-0006
+
+Sprint
+
+177
+
+Módulo
+
+ERP/PDV
+
+Descrição
+
+Perfil de estoque entrava na rota operacional com a mensagem “Nenhum módulo operacional liberado”, apesar de possuir permissão para produto e estoque.
+
+Status
+
+Corrigido.
+
+Observação
+
+O módulo operacional de Produtos/Estoque passou a ser reconhecido e exibido diretamente para o perfil de estoque.
+
+---
+
 ## BUG-0004
 
 Sprint

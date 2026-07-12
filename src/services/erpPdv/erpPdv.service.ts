@@ -1384,6 +1384,27 @@ export async function salvarErpPdvFornecedor(
 }
 
 export async function salvarErpPdvProduto(payload: ErpPdvProdutoPayload) {
+  if (!payload.nome.trim()) {
+    return {
+      data: null,
+      error: new Error("Informe o nome do produto."),
+    };
+  }
+
+  if (toNumber(payload.precoVenda) < 0) {
+    return {
+      data: null,
+      error: new Error("O preco de venda nao pode ser negativo."),
+    };
+  }
+
+  if (toNumber(payload.estoqueAtual) < 0 || toNumber(payload.estoqueMinimo) < 0) {
+    return {
+      data: null,
+      error: new Error("Estoque atual e estoque minimo nao podem ser negativos."),
+    };
+  }
+
   const produtoPayload = {
     empresa_id: payload.empresaId,
     categoria_id: payload.categoriaId || null,
@@ -1432,8 +1453,8 @@ export async function salvarErpPdvProduto(payload: ErpPdvProdutoPayload) {
       {
         empresa_id: payload.empresaId,
         produto_id: produto.id,
-        quantidade_atual: payload.estoqueAtual,
-        estoque_minimo: payload.estoqueMinimo,
+        quantidade_atual: Math.max(0, toNumber(payload.estoqueAtual)),
+        estoque_minimo: Math.max(0, toNumber(payload.estoqueMinimo)),
         updated_at: new Date().toISOString(),
       },
       {
@@ -1451,8 +1472,8 @@ export async function salvarErpPdvProduto(payload: ErpPdvProdutoPayload) {
   return {
     data: {
       ...normalizarProduto(produto),
-      estoque_atual: payload.estoqueAtual,
-      estoque_minimo: payload.estoqueMinimo,
+      estoque_atual: Math.max(0, toNumber(payload.estoqueAtual)),
+      estoque_minimo: Math.max(0, toNumber(payload.estoqueMinimo)),
     },
     error: null,
   };

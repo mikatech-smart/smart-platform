@@ -12,16 +12,24 @@ import {
   calcularErpPdvResumoCaixa,
   fecharErpPdvCaixa,
   finalizarErpPdvVenda,
+  listarErpPdvCategorias,
+  listarErpPdvMovimentacoes,
   listarErpPdvProdutos,
   listarErpPdvUsuarios,
   listarErpPdvValesTroca,
   registrarErpPdvDevolucao,
+  registrarErpPdvMovimentacao,
+  salvarErpPdvProduto,
   type ErpPdvCaixa,
   type ErpPdvCaixaResumo,
+  type ErpPdvCategoria,
   type ErpPdvCliente,
   type ErpPdvFormaPagamento,
+  type ErpPdvMovimentacao,
+  type ErpPdvMovimentacaoTipo,
   type ErpPdvPermissao,
   type ErpPdvProduto,
+  type ErpPdvProdutoPayload,
   type ErpPdvTabelaPreco,
   type ErpPdvUsuario,
   type ErpPdvValeTroca,
@@ -118,6 +126,26 @@ type VendaSuspensa = {
   parcelasCredito?: string;
   valeId: string;
   carrinho: CarrinhoItem[];
+};
+
+type EstoqueProdutoForm = {
+  id?: string;
+  nome: string;
+  categoriaId: string;
+  codigoInterno: string;
+  codigoBarras: string;
+  precoVenda: string;
+  estoqueAtual: string;
+  estoqueMinimo: string;
+  ativo: boolean;
+};
+
+type EstoqueMovimentacaoForm = {
+  produtoId: string;
+  tipo: Exclude<ErpPdvMovimentacaoTipo, "venda">;
+  quantidade: string;
+  motivo: string;
+  observacao: string;
 };
 
 const formasPagamento: Array<{ id: ErpPdvFormaPagamento; label: string }> = [
@@ -386,6 +414,43 @@ function obterTabelasLiberadas(usuario: ErpPdvUsuario | null) {
   return tabelasPreco.filter((item) => pode(usuario, item.permissao));
 }
 
+function criarProdutoEstoqueForm(produto?: ErpPdvProduto | null): EstoqueProdutoForm {
+  if (!produto) {
+    return {
+      nome: "",
+      categoriaId: "",
+      codigoInterno: "",
+      codigoBarras: "",
+      precoVenda: "",
+      estoqueAtual: "0",
+      estoqueMinimo: "0",
+      ativo: true,
+    };
+  }
+
+  return {
+    id: produto.id,
+    nome: produto.nome,
+    categoriaId: produto.categoria_id || "",
+    codigoInterno: produto.sku,
+    codigoBarras: produto.codigo_barras,
+    precoVenda: produto.preco_venda ? String(produto.preco_venda) : "",
+    estoqueAtual: String(produto.estoque_atual),
+    estoqueMinimo: String(produto.estoque_minimo),
+    ativo: produto.ativo,
+  };
+}
+
+function criarMovimentacaoEstoqueForm(produtoId = ""): EstoqueMovimentacaoForm {
+  return {
+    produtoId,
+    tipo: "entrada",
+    quantidade: "",
+    motivo: "",
+    observacao: "",
+  };
+}
+
 function calcularResumoVenda(params: {
   carrinho: CarrinhoItem[];
   produtosPorId: Map<string, ErpPdvProduto>;
@@ -468,8 +533,10 @@ export default function PublicPdvPage() {
   const [empresa, setEmpresa] = useState<EmpresaPdv | null>(null);
   const [produtos, setProdutos] = useState<ErpPdvProduto[]>([]);
   const [usuarios, setUsuarios] = useState<ErpPdvUsuario[]>([]);
+  const [categorias, setCategorias] = useState<ErpPdvCategoria[]>([]);
   const [clientes, setClientes] = useState<ErpPdvCliente[]>([]);
   const [vales, setVales] = useState<ErpPdvValeTroca[]>([]);
+  const [movimentacoes, setMovimentacoes] = useState<ErpPdvMovimentacao[]>([]);
   const [caixa, setCaixa] = useState<ErpPdvCaixa | null>(null);
   const [resumoCaixa, setResumoCaixa] = useState<ErpPdvCaixaResumo | null>(null);
   const [usuarioId, setUsuarioId] = useState("");
@@ -488,6 +555,11 @@ export default function PublicPdvPage() {
   const [clienteBusca, setClienteBusca] = useState("");
   const [clienteSelecionado, setClienteSelecionado] =
     useState<ErpPdvCliente | null>(null);
+  const [estoqueBusca, setEstoqueBusca] = useState("");
+  const [produtoEstoqueSelecionadoId, setProdutoEstoqueSelecionadoId] = useState("");
+  const [produtoEstoqueForm, setProdutoEstoqueForm] = useState<EstoqueProdutoForm>(criarProdutoEstoqueForm());
+  const [movimentacaoEstoqueForm, setMovimentacaoEstoqueForm] =
+    useState<EstoqueMovimentacaoForm>(criarMovimentacaoEstoqueForm());
   const [saldoInicial, setSaldoInicial] = useState("");
   const [valorFechamento, setValorFechamento] = useState("");
   const [cupom, setCupom] = useState<CupomVisualizacao | null>(null);
@@ -543,6 +615,15 @@ export default function PublicPdvPage() {
   }, [busca, produtos]);
 
   const resultadoSelecionado = produtosEncontrados[resultadoSelecionadoIndex] || null;
+  const produtosEstoqueFiltrados = useMemo(() => {
+    const termo = estoqueBusca.trim().toLowerCase();
+    if (!termo) return produtos;
+    return produtos.filter((produto) =>
+      [produto.nome, produto.sku, produto.codigo_barras].some((valor) =>
+        String(valor || "").toLowerCase().includes(termo)
+      )
+    );
+  }, [estoqueBusca, produtos]);
   const cupomTexto = useMemo(() => (cupom ? gerarCupomTexto(cupom) : ""), [cupom]);
   const cupomHtml = useMemo(() => (cupom ? gerarCupomHtml(cupom) : ""), [cupom]);
 
@@ -575,9 +656,11 @@ export default function PublicPdvPage() {
   const podeFinalizarPagamento = total > 0 && totalPago >= total && pagamentoExatoOuComTroco;
   const podeOperarCaixa = pode(usuarioAtual, "caixa_abrir_fechar");
   const podeVender = tabelaLiberada.length > 0;
+  const podeOperarEstoque = pode(usuarioAtual, "produto_salvar");
   const podeOperarTrocas =
     pode(usuarioAtual, "devolucao_realizar") && pode(usuarioAtual, "vale_troca_emitir");
-  const temModuloOperacional = podeOperarCaixa || podeVender || podeOperarTrocas;
+  const temModuloOperacional = podeOperarCaixa || podeVender || podeOperarTrocas || podeOperarEstoque;
+  const exibirModuloEstoque = podeOperarEstoque && (!podeVender || usuarioAtual?.modulo_inicial === "estoque");
   const podeFinalizarVenda =
     Boolean(caixa) && carrinhoDetalhado.length > 0 && operador.trim().length > 0 && podeFinalizarPagamento && !salvando;
   const podeSuspenderVenda = carrinhoDetalhado.length > 0 && operador.trim().length > 0;
@@ -613,28 +696,36 @@ export default function PublicPdvPage() {
       const [
         produtosResultado,
         usuariosResultado,
+        categoriasResultado,
         clientesResultado,
         valesResultado,
         caixaResultado,
+        movimentacoesResultado,
       ] = await Promise.all([
         listarErpPdvProdutos(empresaCarregada.id),
         listarErpPdvUsuarios(empresaCarregada.id),
+        listarErpPdvCategorias(empresaCarregada.id),
         buscarErpPdvClientes(empresaCarregada.id, ""),
         listarErpPdvValesTroca(empresaCarregada.id),
         buscarErpPdvCaixaAberto(empresaCarregada.id),
+        listarErpPdvMovimentacoes(empresaCarregada.id),
       ]);
 
       if (produtosResultado.error) throw produtosResultado.error;
       if (usuariosResultado.error) throw usuariosResultado.error;
+      if (categoriasResultado.error) throw categoriasResultado.error;
       if (clientesResultado.error) throw clientesResultado.error;
       if (valesResultado.error) throw valesResultado.error;
       if (caixaResultado.error) throw caixaResultado.error;
+      if (movimentacoesResultado.error) throw movimentacoesResultado.error;
 
       setProdutos(produtosResultado.data);
       setUsuarios(usuariosResultado.data);
+      setCategorias(categoriasResultado.data);
       setClientes(clientesResultado.data);
       setVales(valesResultado.data);
       setCaixa(caixaResultado.data);
+      setMovimentacoes(movimentacoesResultado.data);
 
       if (caixaResultado.data) {
         const resumo = await calcularErpPdvResumoCaixa(caixaResultado.data);
@@ -745,6 +836,9 @@ export default function PublicPdvPage() {
       }
       if (usuario.modulo_inicial === "caixa") {
         document.getElementById("pdv-caixa")?.scrollIntoView({ behavior: "smooth" });
+      }
+      if (usuario.modulo_inicial === "estoque") {
+        document.getElementById("pdv-estoque")?.scrollIntoView({ behavior: "smooth" });
       }
     }, 0);
   }
@@ -998,6 +1092,120 @@ export default function PublicPdvPage() {
     setFeedbackOperacao({ tipo: "sucesso", texto: `${produto.nome} adicionado ao carrinho.` });
     emitirFeedbackProduto(produto);
     window.setTimeout(() => buscaRef.current?.focus(), 0);
+  }
+
+  function selecionarProdutoEstoque(produto: ErpPdvProduto) {
+    setProdutoEstoqueSelecionadoId(produto.id);
+    setProdutoEstoqueForm(criarProdutoEstoqueForm(produto));
+    setMovimentacaoEstoqueForm(criarMovimentacaoEstoqueForm(produto.id));
+  }
+
+  function novoProdutoEstoque() {
+    setProdutoEstoqueSelecionadoId("");
+    setProdutoEstoqueForm(criarProdutoEstoqueForm());
+    setMovimentacaoEstoqueForm(criarMovimentacaoEstoqueForm());
+  }
+
+  async function salvarProdutoEstoque() {
+    if (!empresaId || !podeOperarEstoque) return;
+    if (!produtoEstoqueForm.nome.trim()) {
+      setFeedbackOperacao({ tipo: "erro", texto: "Informe o nome do produto." });
+      return;
+    }
+
+    const payload: ErpPdvProdutoPayload = {
+      id: produtoEstoqueForm.id,
+      empresaId,
+      categoriaId: produtoEstoqueForm.categoriaId,
+      nome: produtoEstoqueForm.nome,
+      codigoBarras: produtoEstoqueForm.codigoBarras,
+      sku: produtoEstoqueForm.codigoInterno,
+      marca: "",
+      custo: 0,
+      precoVenda: numero(produtoEstoqueForm.precoVenda.replace(",", ".")),
+      precoAtacado: 0,
+      precoRevenda: 0,
+      precoPersonalizado: 0,
+      formacaoPrecoTipo: "manual",
+      percentualPreco: 0,
+      unidade: "un",
+      localizacao: "",
+      ncm: "",
+      observacoes: "",
+      imagemUrl: "",
+      estoqueAtual: numero(produtoEstoqueForm.estoqueAtual.replace(",", ".")),
+      estoqueMinimo: numero(produtoEstoqueForm.estoqueMinimo.replace(",", ".")),
+      ativo: produtoEstoqueForm.ativo,
+    };
+
+    setSalvando(true);
+    try {
+      const resultado = await salvarErpPdvProduto(payload);
+      if (resultado.error) throw resultado.error;
+      if (!resultado.data) throw new Error("Produto nao retornado.");
+      setProdutos((atuais) => {
+        const existe = atuais.some((produto) => produto.id === resultado.data!.id);
+        return (existe
+          ? atuais.map((produto) => (produto.id === resultado.data!.id ? resultado.data! : produto))
+          : [...atuais, resultado.data!]
+        ).sort((a, b) => a.nome.localeCompare(b.nome));
+      });
+      selecionarProdutoEstoque(resultado.data);
+      setFeedbackOperacao({ tipo: "sucesso", texto: "Produto salvo no estoque operacional." });
+    } catch (error) {
+      setFeedbackOperacao({
+        tipo: "erro",
+        texto: error instanceof Error ? error.message : "Nao foi possivel salvar o produto.",
+      });
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  async function registrarMovimentacaoEstoque() {
+    if (!empresaId || !podeOperarEstoque) return;
+    if (!movimentacaoEstoqueForm.produtoId) {
+      setFeedbackOperacao({ tipo: "erro", texto: "Selecione um produto para movimentar o estoque." });
+      return;
+    }
+
+    setSalvando(true);
+    try {
+      const resultado = await registrarErpPdvMovimentacao({
+        empresaId,
+        produtoId: movimentacaoEstoqueForm.produtoId,
+        tipo: movimentacaoEstoqueForm.tipo,
+        quantidade: numero(movimentacaoEstoqueForm.quantidade.replace(",", ".")),
+        motivo: movimentacaoEstoqueForm.motivo,
+        observacao: movimentacaoEstoqueForm.observacao,
+        usuarioResponsavel: operador || usuarioAtual?.nome || "Operador",
+        usuarioId: usuarioAtual?.id,
+      });
+      if (resultado.error) throw resultado.error;
+      if (!resultado.data) throw new Error("Movimentacao nao retornada.");
+      setMovimentacoes((atuais) => [resultado.data!, ...atuais].slice(0, 30));
+      setProdutos((atuais) =>
+        atuais.map((produto) =>
+          produto.id === resultado.data!.produto_id
+            ? { ...produto, estoque_atual: resultado.data!.estoque_posterior }
+            : produto
+        )
+      );
+      setMovimentacaoEstoqueForm(criarMovimentacaoEstoqueForm(movimentacaoEstoqueForm.produtoId));
+      setProdutoEstoqueForm((atual) =>
+        atual.id === resultado.data!.produto_id
+          ? { ...atual, estoqueAtual: String(resultado.data!.estoque_posterior) }
+          : atual
+      );
+      setFeedbackOperacao({ tipo: "sucesso", texto: "Movimentacao de estoque registrada." });
+    } catch (error) {
+      setFeedbackOperacao({
+        tipo: "erro",
+        texto: error instanceof Error ? error.message : "Nao foi possivel registrar a movimentacao.",
+      });
+    } finally {
+      setSalvando(false);
+    }
   }
 
   async function abrirCaixa() {
@@ -1400,10 +1608,10 @@ export default function PublicPdvPage() {
   ]);
 
   useEffect(() => {
-    if (operadorModalAberto || !usuarioAtual || !podeVender) return;
+    if (operadorModalAberto || !usuarioAtual || !podeVender || exibirModuloEstoque) return;
     const timer = window.setTimeout(() => buscaRef.current?.focus(), 120);
     return () => window.clearTimeout(timer);
-  }, [operadorModalAberto, usuarioAtual?.id, podeVender, produtos.length]);
+  }, [exibirModuloEstoque, operadorModalAberto, usuarioAtual?.id, podeVender, produtos.length]);
 
   if (carregando) {
     return <main className="public-pdv public-pdv--center">Carregando PDV...</main>;
@@ -1653,11 +1861,226 @@ export default function PublicPdvPage() {
       {!temModuloOperacional && (
         <section className="public-pdv-panel public-pdv-empty-state">
           <h2>Nenhum modulo operacional liberado</h2>
-          <p>Este operador esta ativo, mas nao possui permissoes de caixa, venda ou trocas para esta tela.</p>
+          <p>Este operador esta ativo, mas nao possui permissoes de caixa, venda, trocas ou produtos/estoque para esta tela.</p>
         </section>
       )}
 
-      {podeVender && (
+      {exibirModuloEstoque && (
+        <section className="public-pdv-main-sale public-pdv-stock-layout" id="pdv-estoque">
+          <section className="public-pdv-panel public-pdv-stock-products">
+            <div className="public-pdv-section-title">
+              <h2>Produtos / Estoque</h2>
+              <small>{produtosEstoqueFiltrados.length} produto(s)</small>
+            </div>
+            <div className="public-pdv-inline">
+              <input
+                value={estoqueBusca}
+                onChange={(e) => setEstoqueBusca(e.target.value)}
+                placeholder="Buscar por nome, codigo interno ou codigo de barras"
+              />
+              <button type="button" onClick={novoProdutoEstoque}>Novo produto</button>
+            </div>
+            <div className="public-pdv-stock-product-list">
+              {produtosEstoqueFiltrados.length ? (
+                produtosEstoqueFiltrados.map((produto) => (
+                  <button
+                    key={produto.id}
+                    type="button"
+                    className={`public-pdv-stock-product-card ${produtoEstoqueSelecionadoId === produto.id ? "public-pdv-stock-product-card--active" : ""}`}
+                    onClick={() => selecionarProdutoEstoque(produto)}
+                  >
+                    <strong title={produto.nome}>{produto.nome}</strong>
+                    <span>Cod. interno: {produto.sku || "-"}</span>
+                    <span>Cod. barras: {produto.codigo_barras || "-"}</span>
+                    <span>Estoque: {produto.estoque_atual}</span>
+                    <span>Min.: {produto.estoque_minimo}</span>
+                    <span>Venda: R$ {moeda(produto.preco_venda)}</span>
+                    <small>{produto.ativo ? "Ativo" : "Inativo"}</small>
+                  </button>
+                ))
+              ) : (
+                <div className="public-pdv-no-results">Nenhum produto encontrado.</div>
+              )}
+            </div>
+          </section>
+
+          <section className="public-pdv-panel public-pdv-stock-editor">
+            <div className="public-pdv-section-title">
+              <h2>{produtoEstoqueForm.id ? "Editar produto" : "Novo produto"}</h2>
+              <small>{usuarioAtual.perfil === "estoque" ? "Perfil estoque" : obterLabelPerfil(usuarioAtual)}</small>
+            </div>
+
+            <div className="public-pdv-stock-form">
+              <label>
+                Nome
+                <input
+                  value={produtoEstoqueForm.nome}
+                  onChange={(e) => setProdutoEstoqueForm((atual) => ({ ...atual, nome: e.target.value }))}
+                />
+              </label>
+              <label>
+                Categoria
+                <select
+                  value={produtoEstoqueForm.categoriaId}
+                  onChange={(e) => setProdutoEstoqueForm((atual) => ({ ...atual, categoriaId: e.target.value }))}
+                >
+                  <option value="">Sem categoria</option>
+                  {categorias.map((categoria) => (
+                    <option key={categoria.id} value={categoria.id}>{categoria.nome}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Codigo interno
+                <input
+                  value={produtoEstoqueForm.codigoInterno}
+                  onChange={(e) => setProdutoEstoqueForm((atual) => ({ ...atual, codigoInterno: e.target.value }))}
+                />
+              </label>
+              <label>
+                Codigo de barras
+                <input
+                  value={produtoEstoqueForm.codigoBarras}
+                  onChange={(e) => setProdutoEstoqueForm((atual) => ({ ...atual, codigoBarras: e.target.value }))}
+                />
+              </label>
+              <label>
+                Preco de venda
+                <input
+                  inputMode="decimal"
+                  value={produtoEstoqueForm.precoVenda}
+                  onChange={(e) => setProdutoEstoqueForm((atual) => ({ ...atual, precoVenda: e.target.value }))}
+                />
+              </label>
+              <label>
+                Estoque atual
+                <input
+                  inputMode="decimal"
+                  value={produtoEstoqueForm.estoqueAtual}
+                  onChange={(e) => setProdutoEstoqueForm((atual) => ({ ...atual, estoqueAtual: e.target.value }))}
+                />
+              </label>
+              <label>
+                Estoque minimo
+                <input
+                  inputMode="decimal"
+                  value={produtoEstoqueForm.estoqueMinimo}
+                  onChange={(e) => setProdutoEstoqueForm((atual) => ({ ...atual, estoqueMinimo: e.target.value }))}
+                />
+              </label>
+              <label className="public-pdv-stock-toggle">
+                <input
+                  type="checkbox"
+                  checked={produtoEstoqueForm.ativo}
+                  onChange={(e) => setProdutoEstoqueForm((atual) => ({ ...atual, ativo: e.target.checked }))}
+                />
+                Produto ativo
+              </label>
+            </div>
+
+            <div className="public-pdv-secondary-actions public-pdv-secondary-actions--compact">
+              <button type="button" disabled={salvando} onClick={salvarProdutoEstoque}>Salvar produto</button>
+              <button type="button" onClick={novoProdutoEstoque}>Limpar</button>
+            </div>
+
+            <section className="public-pdv-stock-movement">
+              <div className="public-pdv-section-title">
+                <h2>Movimentar estoque</h2>
+                <small>Entrada, saida e ajuste</small>
+              </div>
+              <div className="public-pdv-stock-form">
+                <label>
+                  Produto
+                  <select
+                    value={movimentacaoEstoqueForm.produtoId}
+                    onChange={(e) =>
+                      setMovimentacaoEstoqueForm((atual) => ({ ...atual, produtoId: e.target.value }))
+                    }
+                  >
+                    <option value="">Selecione um produto</option>
+                    {produtos.map((produto) => (
+                      <option key={produto.id} value={produto.id}>{produto.nome}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Tipo
+                  <select
+                    value={movimentacaoEstoqueForm.tipo}
+                    onChange={(e) =>
+                      setMovimentacaoEstoqueForm((atual) => ({
+                        ...atual,
+                        tipo: e.target.value as Exclude<ErpPdvMovimentacaoTipo, "venda">,
+                      }))
+                    }
+                  >
+                    <option value="entrada">Entrada</option>
+                    <option value="saida">Saida</option>
+                    <option value="ajuste">Ajuste</option>
+                  </select>
+                </label>
+                <label>
+                  Quantidade
+                  <input
+                    inputMode="decimal"
+                    value={movimentacaoEstoqueForm.quantidade}
+                    onChange={(e) =>
+                      setMovimentacaoEstoqueForm((atual) => ({ ...atual, quantidade: e.target.value }))
+                    }
+                  />
+                </label>
+                <label>
+                  Motivo
+                  <input
+                    value={movimentacaoEstoqueForm.motivo}
+                    onChange={(e) =>
+                      setMovimentacaoEstoqueForm((atual) => ({ ...atual, motivo: e.target.value }))
+                    }
+                  />
+                </label>
+                <label>
+                  Observacao
+                  <textarea
+                    value={movimentacaoEstoqueForm.observacao}
+                    onChange={(e) =>
+                      setMovimentacaoEstoqueForm((atual) => ({ ...atual, observacao: e.target.value }))
+                    }
+                  />
+                </label>
+              </div>
+              <button type="button" disabled={salvando} onClick={registrarMovimentacaoEstoque}>
+                Registrar movimentacao
+              </button>
+            </section>
+
+            <section className="public-pdv-stock-history">
+              <div className="public-pdv-section-title">
+                <h2>Historico</h2>
+                <small>{movimentacoes.length}</small>
+              </div>
+              <div className="public-pdv-stock-history-list">
+                {movimentacoes.length ? (
+                  movimentacoes.slice(0, 20).map((movimentacao) => {
+                    const produto = produtosPorId.get(movimentacao.produto_id);
+                    return (
+                      <div key={movimentacao.id} className="public-pdv-stock-history-item">
+                        <strong>{produto?.nome || "Produto"}</strong>
+                        <span>{movimentacao.tipo} · {movimentacao.quantidade} un.</span>
+                        <span>Estoque: {movimentacao.estoque_anterior} → {movimentacao.estoque_posterior}</span>
+                        <small>{movimentacao.motivo} · {new Date(movimentacao.created_at).toLocaleString("pt-BR")}</small>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p>Nenhuma movimentacao registrada.</p>
+                )}
+              </div>
+            </section>
+          </section>
+        </section>
+      )}
+
+      {podeVender && !exibirModuloEstoque && (
         <section className="public-pdv-main-sale public-pdv-sale-layout">
           <div className="public-pdv-panel public-pdv-sale-flow">
             <section className="public-pdv-step public-pdv-step-client">
@@ -1698,8 +2121,8 @@ export default function PublicPdvPage() {
                   ref={buscaRef}
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
-                  placeholder="Nome, SKU, codigo ou GTIN"
-                  aria-label="Buscar produto por nome, SKU, codigo ou GTIN"
+                  placeholder="Nome, codigo interno ou codigo de barras"
+                  aria-label="Buscar produto por nome, codigo interno ou codigo de barras"
                   aria-activedescendant={resultadoSelecionado ? `produto-resultado-${resultadoSelecionado.id}` : undefined}
                   aria-controls="pdv-produtos-resultados"
                   aria-expanded={Boolean(busca.trim())}
@@ -1734,7 +2157,7 @@ export default function PublicPdvPage() {
                           <span className="public-pdv-product-placeholder">Sem foto</span>
                         )}
                         <span>{produto.nome}</span>
-                        <small>SKU: {produto.sku || produto.codigo_barras || "-"}</small>
+                        <small>Cod. interno: {produto.sku || produto.codigo_barras || "-"}</small>
                         <small>Estoque: {produto.estoque_atual}</small>
                         <strong>R$ {moeda(obterPreco(produto, tabelaAtualLiberada ? tabela : "varejo"))}</strong>
                       </button>
@@ -1765,7 +2188,8 @@ export default function PublicPdvPage() {
                         <strong title={item.produto.nome}>{item.produto.nome}</strong>
                       </div>
                       <div className="public-pdv-cart-item-meta">
-                        <strong>R$ {moeda(item.subtotal)}</strong>
+                        <span>Unit. R$ {moeda(item.precoUnitario)}</span>
+                        <strong>Total R$ {moeda(item.subtotal)}</strong>
                       </div>
                       <div className="public-pdv-qty-controls">
                         <button type="button" onClick={() => alterarQuantidadeProduto(item.produto.id, item.quantidade - 1)}>
