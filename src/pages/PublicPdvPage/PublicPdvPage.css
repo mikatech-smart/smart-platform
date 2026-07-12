@@ -1916,6 +1916,7 @@
 .public-pdv-scan-row {
   align-items: stretch;
   gap: 6px;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .public-pdv-scan-row label {
@@ -1981,7 +1982,7 @@
   display: grid;
   gap: 8px;
   grid-template-columns: 28px minmax(0, 1.5fr) auto auto auto;
-  min-height: 38px;
+  min-height: 34px;
   padding: 4px 6px;
 }
 
@@ -2103,24 +2104,24 @@
 }
 
 .public-pdv-checkout .public-pdv-cart-summary span {
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .public-pdv-checkout .public-pdv-cart-summary strong {
-  font-size: 18px;
+  font-size: 15px;
 }
 
 .public-pdv-checkout .public-pdv-cart-total-row {
   align-items: center;
   flex-direction: row;
-  gap: 8px;
+  gap: 6px;
   grid-column: 1 / -1;
   justify-content: space-between;
-  padding: 8px 10px;
+  padding: 6px 8px;
 }
 
 .public-pdv-checkout .public-pdv-cart-total-row strong {
-  font-size: clamp(22px, 2vw, 30px);
+  font-size: clamp(20px, 1.8vw, 26px);
   line-height: 1;
 }
 
@@ -2137,59 +2138,182 @@
 .public-pdv-payment-grid {
   gap: 6px;
   margin-top: 0;
-  max-height: none;
-  overflow: visible;
+  max-height: 188px;
+  overflow: auto;
 }
 
 .public-pdv-payment-entry {
-  gap: 5px;
-  padding: 6px;
+  align-content: start;
+  gap: 4px;
+  grid-template-rows: auto 30px minmax(24px, 1fr);
+  min-height: 86px;
+  padding: 5px;
 }
 
 .public-pdv-payment-entry > label,
 .public-pdv-installments {
-  font-size: 10px;
+  font-size: 9px;
+}
+
+.public-pdv-payment-fields,
+.public-pdv-installments {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.public-pdv-installments span {
+  align-self: center;
 }
 
 .public-pdv-payment-entry input,
 .public-pdv-payment-entry select,
 .public-pdv-voucher-select input,
 .public-pdv-voucher-select select {
-  min-height: 32px;
-  padding: 6px 8px;
+  min-height: 30px;
+  padding: 5px 7px;
+  width: 100%;
 }
 
 .public-pdv-cash-change {
-  gap: 2px;
-  padding: 6px 8px;
+  align-items: baseline;
+  align-content: start;
+  display: grid;
+  gap: 1px 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-height: 24px;
+  padding: 4px 6px;
 }
 
 .public-pdv-cash-change span {
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .public-pdv-cash-change strong {
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .public-pdv-payment-balance {
   gap: 2px;
   margin-top: 0;
-  padding: 8px 10px;
+  padding: 6px 8px;
 }
 
 .public-pdv-payment-balance span {
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .public-pdv-payment-balance strong {
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .public-pdv-checkout .public-pdv-finalize {
-  min-height: 44px;
+  min-height: 40px;
   position: relative;
   z-index: 1;
+}
+
+.public-pdv-receipt-modal {
+  inset: 0;
+  position: fixed;
+  z-index: 40;
+}
+
+.public-pdv-receipt-backdrop {
+  background: rgba(15, 23, 42, 0.58);
+  inset: 0;
+  position: absolute;
+}
+
+.public-pdv-receipt-dialog {
+  background: #f8fafc;
+  border: 1px solid #dbe4f0;
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.3);
+  display: grid;
+  gap: 12px;
+  inset: 20px;
+  overflow: hidden;
+  padding: 14px;
+  position: absolute;
+}
+
+.public-pdv-receipt-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.public-pdv-receipt-header span {
+  color: #64748b;
+  display: block;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.public-pdv-receipt-header h2 {
+  color: #0f172a;
+  font-size: 22px;
+  margin: 2px 0 0;
+}
+
+.public-pdv-receipt-header button,
+.public-pdv-receipt-actions button {
+  min-height: 36px;
+}
+
+.public-pdv-receipt-layout {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1.4fr) minmax(300px, 0.6fr);
+  min-height: 0;
+}
+
+.public-pdv-receipt-frame {
+  background: #ffffff;
+  border: 1px solid #dbe4f0;
+  border-radius: 14px;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+}
+
+.public-pdv-receipt-sidebar {
+  background: #ffffff;
+  border: 1px solid #dbe4f0;
+  border-radius: 14px;
+  display: grid;
+  gap: 10px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+  padding: 14px;
+}
+
+.public-pdv-receipt-sidebar h3 {
+  font-size: 14px;
+  margin: 0;
+}
+
+.public-pdv-receipt-sidebar pre {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+  margin: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+  white-space: pre-wrap;
+}
+
+.public-pdv-receipt-actions {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 @media (min-width: 901px) {
@@ -2214,8 +2338,8 @@
   .public-pdv-step-cart .public-pdv-cart-item {
     gap: 6px;
     grid-template-columns: 24px minmax(0, 1.2fr) auto auto auto;
-    min-height: 34px;
-    padding: 4px 5px;
+    min-height: 30px;
+    padding: 3px 5px;
   }
 
   .public-pdv-cart-item img,
@@ -2244,6 +2368,14 @@
 
   .public-pdv-checkout .public-pdv-finalize {
     min-height: 42px;
+  }
+
+  .public-pdv-payment-entry {
+    min-height: 82px;
+  }
+
+  .public-pdv-payment-grid {
+    max-height: 172px;
   }
 }
 
@@ -2277,9 +2409,33 @@
 
   .public-pdv-payment-grid {
     grid-template-columns: 1fr;
+    max-height: none;
+  }
+
+  .public-pdv-payment-fields,
+  .public-pdv-installments,
+  .public-pdv-cash-change {
+    grid-template-columns: 1fr;
   }
 
   .public-pdv-checkout {
     overflow: visible;
+  }
+
+  .public-pdv-receipt-dialog {
+    inset: 10px;
+    padding: 10px;
+  }
+
+  .public-pdv-receipt-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .public-pdv-receipt-frame {
+    min-height: 52vh;
+  }
+
+  .public-pdv-receipt-actions {
+    grid-template-columns: 1fr;
   }
 }

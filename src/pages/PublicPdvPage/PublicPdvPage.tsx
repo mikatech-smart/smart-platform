@@ -49,6 +49,33 @@ type FeedbackOperacao = {
   texto: string;
 };
 
+type CupomVisualizacaoPagamento = {
+  forma: string;
+  valor: number;
+  parcelas?: number;
+};
+
+type CupomVisualizacaoItem = {
+  descricao: string;
+  quantidade: number;
+  subtotal: number;
+};
+
+type CupomVisualizacao = {
+  empresaNome: string;
+  empresaDocumento?: string;
+  empresaEndereco?: string;
+  numeroVenda: string;
+  operador: string;
+  cliente: string;
+  criadoEm: string;
+  itens: CupomVisualizacaoItem[];
+  pagamentos: CupomVisualizacaoPagamento[];
+  total: number;
+  troco: number;
+  complemento?: number;
+};
+
 type VendaSuspensa = {
   id: string;
   criadaEm: string;
@@ -110,6 +137,201 @@ function moeda(valor: number) {
   });
 }
 
+function escapeHtml(valor: string) {
+  return valor
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function gerarCupomTexto(cupom: CupomVisualizacao) {
+  return [
+    cupom.empresaNome,
+    "CUPOM NAO FISCAL",
+    `Venda #${cupom.numeroVenda}`,
+    `Data: ${new Date(cupom.criadoEm).toLocaleString("pt-BR")}`,
+    `Operador: ${cupom.operador}`,
+    `Cliente: ${cupom.cliente}`,
+    cupom.empresaDocumento ? `Documento: ${cupom.empresaDocumento}` : "",
+    cupom.empresaEndereco ? `Endereco: ${cupom.empresaEndereco}` : "",
+    ...cupom.itens.map((item) => `${item.quantidade} x ${item.descricao} - R$ ${moeda(item.subtotal)}`),
+    `Total: R$ ${moeda(cupom.total)}`,
+    ...cupom.pagamentos.map((pagamento) =>
+      `${pagamento.forma}: R$ ${moeda(pagamento.valor)}${pagamento.parcelas ? ` (${pagamento.parcelas}x)` : ""}`
+    ),
+    cupom.troco > 0 ? `Troco: R$ ${moeda(cupom.troco)}` : "",
+    cupom.complemento ? `Complemento: R$ ${moeda(cupom.complemento)}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function gerarCupomHtml(cupom: CupomVisualizacao) {
+  const itensHtml = cupom.itens
+    .map(
+      (item) => `
+        <div class="receipt-row receipt-row--item">
+          <span>${escapeHtml(item.descricao)}</span>
+          <strong>${item.quantidade} x R$ ${moeda(item.subtotal / Math.max(item.quantidade, 1))}</strong>
+        </div>
+        <div class="receipt-row receipt-row--total-item">
+          <span>${item.quantidade} un.</span>
+          <strong>R$ ${moeda(item.subtotal)}</strong>
+        </div>
+      `
+    )
+    .join("");
+
+  const pagamentosHtml = cupom.pagamentos
+    .map(
+      (pagamento) => `
+        <div class="receipt-row">
+          <span>${escapeHtml(pagamento.forma)}${pagamento.parcelas ? ` (${pagamento.parcelas}x)` : ""}</span>
+          <strong>R$ ${moeda(pagamento.valor)}</strong>
+        </div>
+      `
+    )
+    .join("");
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>Cupom nao fiscal #${escapeHtml(cupom.numeroVenda)}</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --receipt-width: 80mm;
+      --line: #d7dde6;
+      --text: #0f172a;
+      --muted: #475569;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #eef2f7;
+      color: var(--text);
+      font-family: "Courier New", monospace;
+      padding: 24px;
+    }
+    .receipt-preview {
+      margin: 0 auto;
+      width: min(100%, 420px);
+    }
+    .receipt {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+      margin: 0 auto;
+      padding: 18px 16px;
+      width: var(--receipt-width);
+      max-width: 100%;
+    }
+    .receipt--thermal-58 { --receipt-width: 58mm; }
+    .receipt--thermal-80 { --receipt-width: 80mm; }
+    .receipt__header,
+    .receipt__section {
+      border-bottom: 1px dashed var(--line);
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+    }
+    .receipt__header:last-child,
+    .receipt__section:last-child { border-bottom: 0; }
+    .receipt__brand {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 0 0 4px;
+      text-align: center;
+    }
+    .receipt__subtitle,
+    .receipt__meta {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+      margin: 0;
+      text-align: center;
+    }
+    .receipt__section-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      margin: 0 0 8px;
+      text-transform: uppercase;
+    }
+    .receipt-row {
+      align-items: baseline;
+      display: flex;
+      font-size: 12px;
+      gap: 10px;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .receipt-row--item {
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .receipt-row--total-item {
+      color: var(--muted);
+      font-size: 11px;
+      margin-bottom: 8px;
+    }
+    .receipt-row strong { white-space: nowrap; }
+    .receipt__total {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .receipt-preview { width: auto; }
+      .receipt {
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        padding: 0;
+        width: 80mm;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="receipt-preview">
+    <article class="receipt receipt--thermal-80">
+      <header class="receipt__header">
+        <h1 class="receipt__brand">${escapeHtml(cupom.empresaNome)}</h1>
+        <p class="receipt__subtitle">Cupom nao fiscal</p>
+        <p class="receipt__meta">Venda #${escapeHtml(cupom.numeroVenda)} | ${escapeHtml(
+          new Date(cupom.criadoEm).toLocaleString("pt-BR")
+        )}</p>
+        <p class="receipt__meta">Operador: ${escapeHtml(cupom.operador)}</p>
+        <p class="receipt__meta">Cliente: ${escapeHtml(cupom.cliente)}</p>
+        ${cupom.empresaDocumento ? `<p class="receipt__meta">${escapeHtml(cupom.empresaDocumento)}</p>` : ""}
+        ${cupom.empresaEndereco ? `<p class="receipt__meta">${escapeHtml(cupom.empresaEndereco)}</p>` : ""}
+      </header>
+      <section class="receipt__section">
+        <h2 class="receipt__section-title">Itens</h2>
+        ${itensHtml}
+      </section>
+      <section class="receipt__section">
+        <h2 class="receipt__section-title">Pagamento</h2>
+        ${pagamentosHtml}
+        ${cupom.troco > 0 ? `<div class="receipt-row"><span>Troco</span><strong>R$ ${moeda(cupom.troco)}</strong></div>` : ""}
+        ${cupom.complemento ? `<div class="receipt-row"><span>Complemento</span><strong>R$ ${moeda(cupom.complemento)}</strong></div>` : ""}
+      </section>
+      <section class="receipt__section">
+        <div class="receipt-row receipt__total">
+          <span>Total</span>
+          <strong>R$ ${moeda(cupom.total)}</strong>
+        </div>
+      </section>
+    </article>
+  </div>
+</body>
+</html>`;
+}
+
 function obterPreco(produto: ErpPdvProduto, tabela: ErpPdvTabelaPreco) {
   if (tabela === "atacado") return produto.preco_atacado || produto.preco_venda;
   if (tabela === "revenda") return produto.preco_revenda || produto.preco_venda;
@@ -139,7 +361,6 @@ export default function PublicPdvPage() {
   const [usuarioId, setUsuarioId] = useState("");
   const [operadorModalAberto, setOperadorModalAberto] = useState(true);
   const [busca, setBusca] = useState("");
-  const [quantidadeRapida, setQuantidadeRapida] = useState("1");
   const [produtoAdicionadoId, setProdutoAdicionadoId] = useState("");
   const [carrinho, setCarrinho] = useState<CarrinhoItem[]>([]);
   const [tabela, setTabela] = useState<ErpPdvTabelaPreco>("varejo");
@@ -155,7 +376,7 @@ export default function PublicPdvPage() {
     useState<ErpPdvCliente | null>(null);
   const [saldoInicial, setSaldoInicial] = useState("");
   const [valorFechamento, setValorFechamento] = useState("");
-  const [cupom, setCupom] = useState("");
+  const [cupom, setCupom] = useState<CupomVisualizacao | null>(null);
   const [vendasTroca, setVendasTroca] = useState<ErpPdvVendaBusca[]>([]);
   const [vendaTroca, setVendaTroca] = useState<ErpPdvVendaBusca | null>(null);
   const [motivoTroca, setMotivoTroca] = useState("");
@@ -174,6 +395,7 @@ export default function PublicPdvPage() {
   const buscaRef = useRef<HTMLInputElement>(null);
   const clienteBuscaRef = useRef<HTMLInputElement>(null);
   const tabelaRef = useRef<HTMLSelectElement>(null);
+  const cupomFrameRef = useRef<HTMLIFrameElement>(null);
 
   const usuarioAtual = usuarios.find((usuario) => usuario.id === usuarioId) || null;
   const operador = usuarioAtual?.nome || "";
@@ -207,6 +429,8 @@ export default function PublicPdvPage() {
   }, [busca, produtos]);
 
   const resultadoSelecionado = produtosEncontrados[resultadoSelecionadoIndex] || null;
+  const cupomTexto = useMemo(() => (cupom ? gerarCupomTexto(cupom) : ""), [cupom]);
+  const cupomHtml = useMemo(() => (cupom ? gerarCupomHtml(cupom) : ""), [cupom]);
 
   const carrinhoDetalhado = carrinho
     .map((item) => {
@@ -243,9 +467,6 @@ export default function PublicPdvPage() {
   const trocoPagamento = valoresPagamento.dinheiro > 0 ? excessoPagamento : 0;
   const pagamentoExatoOuComTroco = Math.abs(totalPago - total) < 0.01 || trocoPagamento > 0;
   const podeFinalizarPagamento = total > 0 && totalPago >= total && pagamentoExatoOuComTroco;
-  const descricaoPagamento = formasPagamentoSelecionadas
-    .map((forma) => formasPagamento.find((item) => item.id === forma)?.label || forma)
-    .join(" + ");
   const podeOperarCaixa = pode(usuarioAtual, "caixa_abrir_fechar");
   const podeVender = tabelaLiberada.length > 0;
   const podeOperarTrocas =
@@ -419,7 +640,7 @@ export default function PublicPdvPage() {
     }
 
     setCarrinho([]);
-    setCupom("");
+    setCupom(null);
     setValeId("");
     setClienteSelecionado(null);
     setUsuarioId("");
@@ -480,7 +701,7 @@ export default function PublicPdvPage() {
     setClienteSelecionado(null);
     setClienteBusca("");
     resetarPagamentoVenda();
-    setCupom("");
+    setCupom(null);
     setFeedback("Venda suspensa. O caixa esta pronto para a proxima venda.");
     window.setTimeout(() => buscaRef.current?.focus(), 0);
   }
@@ -612,7 +833,7 @@ export default function PublicPdvPage() {
       return;
     }
 
-    adicionarProduto(produto, Math.max(1, numero(quantidadeRapida)));
+    adicionarProduto(produto, 1);
   }
 
   function alterarQuantidadeProduto(produtoId: string, quantidade: number) {
@@ -656,7 +877,6 @@ export default function PublicPdvPage() {
     });
     setBusca("");
     setResultadoSelecionadoIndex(0);
-    setQuantidadeRapida("1");
     setFeedbackOperacao({ tipo: "sucesso", texto: `${produto.nome} adicionado ao carrinho.` });
     emitirFeedbackProduto(produto);
     window.setTimeout(() => buscaRef.current?.focus(), 0);
@@ -742,6 +962,20 @@ export default function PublicPdvPage() {
     setParcelasCredito("1");
     setValeId("");
   }
+
+  function fecharVisualizacaoCupom() {
+    setCupom(null);
+    window.setTimeout(() => buscaRef.current?.focus(), 0);
+  }
+
+  function imprimirCupom() {
+    cupomFrameRef.current?.contentWindow?.print();
+  }
+
+  function prepararSalvarPdf() {
+    setFeedbackOperacao({ tipo: "info", texto: "Salvar PDF preparado para a proxima etapa de impressao." });
+  }
+
   async function finalizarVenda() {
     if (!empresaId || !caixa || !operador.trim()) return;
     if (!tabelaAtualLiberada) {
@@ -802,29 +1036,28 @@ export default function PublicPdvPage() {
       if (resultado.error) throw resultado.error;
       if (!resultado.data) throw new Error("Venda nao retornada.");
 
-      setCupom(
-        [
-          empresa?.nome || "Empresa",
-          "CUPOM NAO FISCAL",
-          `Venda #${resultado.data.numero}`,
-          `Operador: ${resultado.data.operador}`,
-          `Cliente: ${resultado.data.cliente_nome}`,
-          ...carrinhoDetalhado.map(
-            (item) => `${item.quantidade} x ${item.produto.nome} - R$ ${moeda(item.subtotal)}`
-          ),
-          `Total: R$ ${moeda(resultado.data.total)}`,
-          `Pagamento: ${descricaoPagamento}`,
-          ...detalhesPagamento.map((pagamento) =>
-            `${pagamento.label}: R$ ${moeda(pagamento.valor)}${pagamento.parcelas ? ` (${pagamento.parcelas}x)` : ""}`
-          ),
-          trocoPagamento ? `Troco: R$ ${moeda(trocoPagamento)}` : "",
-          resultado.data.pagamento_complementar
-            ? `Complemento: R$ ${moeda(resultado.data.pagamento_complementar)}`
-            : "",
-        ]
-          .filter(Boolean)
-          .join("\n")
-      );
+      setCupom({
+        empresaNome: empresa?.nome || "Empresa",
+        empresaDocumento: undefined,
+        empresaEndereco: empresa?.endereco || undefined,
+        numeroVenda: String(resultado.data.numero),
+        operador: resultado.data.operador,
+        cliente: resultado.data.cliente_nome || "Consumidor final",
+        criadoEm: resultado.data.finalizada_em || new Date().toISOString(),
+        itens: carrinhoDetalhado.map((item) => ({
+          descricao: item.produto.nome,
+          quantidade: item.quantidade,
+          subtotal: item.subtotal,
+        })),
+        pagamentos: detalhesPagamento.map((pagamento) => ({
+          forma: pagamento.label,
+          valor: pagamento.valor,
+          parcelas: pagamento.parcelas,
+        })),
+        total: resultado.data.total,
+        troco: trocoPagamento,
+        complemento: resultado.data.pagamento_complementar || undefined,
+      });
       setProdutos((atuais) =>
         atuais.map((produto) => {
           const mov = resultado.data?.movimentacoes.find(
@@ -840,8 +1073,7 @@ export default function PublicPdvPage() {
       const resumo = await calcularErpPdvResumoCaixa(caixa);
       if (!resumo.error) setResumoCaixa(resumo.data);
       setFeedback("Venda finalizada.");
-      setFeedbackOperacao({ tipo: "sucesso", texto: "Pagamento concluido. Venda finalizada." });
-      window.setTimeout(() => buscaRef.current?.focus(), 0);
+      setFeedbackOperacao({ tipo: "sucesso", texto: "Pagamento concluido. Cupom aberto para conferencia." });
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "Nao foi possivel finalizar.");
       setFeedbackOperacao({
@@ -1210,14 +1442,6 @@ export default function PublicPdvPage() {
             </section>
           )}
 
-          {cupom && (
-            <section className="public-pdv-secondary-panel public-pdv-receipt">
-              <h2>Cupom</h2>
-              <pre>{cupom}</pre>
-              <button onClick={() => window.print()}>Imprimir</button>
-            </section>
-          )}
-
           {podeOperarTrocas && (
             <section className="public-pdv-secondary-panel" id="pdv-trocas">
               <h2>Trocas autorizadas</h2>
@@ -1338,13 +1562,6 @@ export default function PublicPdvPage() {
                 <small>Enter adiciona | leitor sequencial</small>
               </div>
               <div className="public-pdv-scan-row">
-                <label>Qtd
-                  <input
-                    value={quantidadeRapida}
-                    onChange={(e) => setQuantidadeRapida(e.target.value)}
-                    inputMode="numeric"
-                  />
-                </label>
                 <input
                   ref={buscaRef}
                   value={busca}
@@ -1507,7 +1724,7 @@ export default function PublicPdvPage() {
                     <div key={forma} className="public-pdv-payment-entry">
                       <label>{config?.label || forma}</label>
                       {forma === "vale_troca" ? (
-                        <>
+                        <div className="public-pdv-payment-fields">
                           <select value={valeId} onChange={(e) => setValeId(e.target.value)}>
                             <option value="">Selecione o vale</option>
                             {valesAtivos.map((vale) => (
@@ -1522,7 +1739,7 @@ export default function PublicPdvPage() {
                             placeholder={`Disponivel: R$ ${moeda(valorVale)}`}
                             inputMode="decimal"
                           />
-                        </>
+                        </div>
                       ) : (
                         <input
                           value={pagamentosVenda[forma] || ""}
@@ -1541,14 +1758,14 @@ export default function PublicPdvPage() {
                       )}
 
                       {forma === "credito" && (
-                        <label className="public-pdv-installments">
-                          Parcelamento
+                        <div className="public-pdv-installments">
+                          <span>Parcelamento</span>
                           <select value={parcelasCredito} onChange={(e) => setParcelasCredito(e.target.value)}>
                             {Array.from({ length: 12 }, (_, index) => String(index + 1)).map((parcela) => (
                               <option key={parcela} value={parcela}>{parcela}x</option>
                             ))}
                           </select>
-                        </label>
+                        </div>
                       )}
                     </div>
                   );
@@ -1569,6 +1786,48 @@ export default function PublicPdvPage() {
               Concluir pagamento
             </button>
           </aside>
+        </section>
+      )}
+
+      {cupom && (
+        <section className="public-pdv-receipt-modal" aria-modal="true" role="dialog">
+          <div className="public-pdv-receipt-backdrop" onClick={fecharVisualizacaoCupom} />
+          <div className="public-pdv-receipt-dialog">
+            <header className="public-pdv-receipt-header">
+              <div>
+                <span>Cupom nao fiscal</span>
+                <h2>Venda #{cupom.numeroVenda}</h2>
+              </div>
+              <button type="button" onClick={fecharVisualizacaoCupom}>
+                Fechar
+              </button>
+            </header>
+
+            <div className="public-pdv-receipt-layout">
+              <iframe
+                ref={cupomFrameRef}
+                className="public-pdv-receipt-frame"
+                srcDoc={cupomHtml}
+                title={`Cupom da venda ${cupom.numeroVenda}`}
+              />
+
+              <aside className="public-pdv-receipt-sidebar">
+                <h3>Resumo do cupom</h3>
+                <pre>{cupomTexto}</pre>
+                <div className="public-pdv-receipt-actions">
+                  <button type="button" onClick={imprimirCupom}>
+                    Imprimir
+                  </button>
+                  <button type="button" onClick={prepararSalvarPdf}>
+                    Salvar PDF
+                  </button>
+                  <button type="button" onClick={fecharVisualizacaoCupom}>
+                    Fechar
+                  </button>
+                </div>
+              </aside>
+            </div>
+          </div>
         </section>
       )}
     </main>
