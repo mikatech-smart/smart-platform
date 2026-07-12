@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useRef,
   useState,
   type ChangeEvent,
   type CSSProperties,
@@ -899,10 +900,19 @@ type ErpPdvProdutoForm = {
   ncm: string;
   observacoes: string;
   imagemUrl: string;
+  fabricante: string;
+  fornecedorPrincipal: string;
+  peso: string;
+  dimensoes: string;
+  estoqueMaximo: string;
+  imagensExtras: string;
   ativo: boolean;
 };
 
 type ErpPdvOrdenacaoProdutos = "nome" | "estoque" | "preco";
+
+type ErpPdvAssistenteOrigem = "codigo" | "camera" | "xml" | "manual";
+type ErpPdvAssistenteEtapa = "origem" | "dados" | "preco" | "estoque" | "salvar";
 
 type ErpPdvMovimentacaoForm = {
   produtoId: string;
@@ -1389,6 +1399,12 @@ const erpPdvProdutoFormPadrao: ErpPdvProdutoForm = {
   ncm: "",
   observacoes: "",
   imagemUrl: "",
+  fabricante: "",
+  fornecedorPrincipal: "",
+  peso: "",
+  dimensoes: "",
+  estoqueMaximo: "",
+  imagensExtras: "",
   ativo: true,
 };
 
@@ -3399,6 +3415,12 @@ function criarErpPdvProdutoForm(produto: ErpPdvProduto): ErpPdvProdutoForm {
     ncm: produto.ncm,
     observacoes: produto.observacoes,
     imagemUrl: produto.imagem_url,
+    fabricante: "",
+    fornecedorPrincipal: "",
+    peso: "",
+    dimensoes: "",
+    estoqueMaximo: "",
+    imagensExtras: "",
     ativo: produto.ativo,
   };
 }
@@ -6440,6 +6462,15 @@ export default function EmpresaForm({
   const [erpPdvCategoriaNome, setErpPdvCategoriaNome] = useState("");
   const [erpPdvProdutoForm, setErpPdvProdutoForm] =
     useState<ErpPdvProdutoForm>(() => ({ ...erpPdvProdutoFormPadrao }));
+  const [erpPdvAssistenteOrigem, setErpPdvAssistenteOrigem] =
+    useState<ErpPdvAssistenteOrigem>("manual");
+  const [erpPdvAssistenteEtapa, setErpPdvAssistenteEtapa] =
+    useState<ErpPdvAssistenteEtapa>("origem");
+  const [erpPdvAssistenteBusca, setErpPdvAssistenteBusca] = useState("");
+  const [erpPdvCameraAtiva, setErpPdvCameraAtiva] = useState(false);
+  const [erpPdvCameraMensagem, setErpPdvCameraMensagem] = useState("");
+  const erpPdvCameraVideoRef = useRef<HTMLVideoElement | null>(null);
+  const erpPdvCameraStreamRef = useRef<MediaStream | null>(null);
   const [erpPdvMovimentacaoForm, setErpPdvMovimentacaoForm] =
     useState<ErpPdvMovimentacaoForm>(() => ({
       ...erpPdvMovimentacaoFormPadrao,
@@ -6538,11 +6569,30 @@ export default function EmpresaForm({
 
       if (!termo) return true;
 
+      const categoriaProduto = erpPdvCategorias.find(
+        (categoriaErp) => categoriaErp.id === produto.categoria_id
+      );
+      const fornecedorTermo = erpPdvFornecedores.find((fornecedor) =>
+        produto.observacoes
+          .toLowerCase()
+          .includes(
+            (fornecedor.nome_fantasia || fornecedor.razao_social).toLowerCase()
+          )
+      );
+
       return [
         produto.nome,
         produto.sku,
         produto.codigo_barras,
-      ].some((valor) => valor.toLowerCase().includes(termo));
+        produto.marca,
+        produto.ncm,
+        produto.unidade,
+        produto.localizacao,
+        produto.observacoes,
+        categoriaProduto?.nome || "",
+        fornecedorTermo?.razao_social || "",
+        fornecedorTermo?.nome_fantasia || "",
+      ].some((valor) => String(valor || "").toLowerCase().includes(termo));
     })
     .sort((produtoA, produtoB) => {
       if (erpPdvOrdenacao === "estoque") {
@@ -6780,6 +6830,12 @@ export default function EmpresaForm({
     }
   );
   const erpPdvPilotoMikatech = slugPublico === "mikatech";
+
+  useEffect(() => {
+    return () => {
+      erpPdvCameraStreamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
 
   useEffect(() => {
     console.log("[Diagnóstico UPDATE] ID recebido no EmpresaForm:", {
@@ -7761,14 +7817,179 @@ export default function EmpresaForm({
 
   function limparErpPdvProdutoForm() {
     setErpPdvProdutoForm({ ...erpPdvProdutoFormPadrao });
+    setErpPdvAssistenteEtapa("origem");
+    setErpPdvAssistenteOrigem("manual");
+    setErpPdvAssistenteBusca("");
   }
 
   function editarErpPdvProduto(produto: ErpPdvProduto) {
     setErpPdvProdutoForm(criarErpPdvProdutoForm(produto));
+    setErpPdvAssistenteEtapa("dados");
     setErpPdvFeedback({
       tipo: "info",
       texto: "Produto carregado para edicao.",
     });
+  }
+
+  function localizarProdutoPorCodigoErpPdv(codigo: string) {
+    const codigoLimpo = codigo.trim().toLowerCase();
+    if (!codigoLimpo) return null;
+
+    return (
+      erpPdvProdutos.find((produto) =>
+        [produto.codigo_barras, produto.sku].some(
+          (valor) => String(valor || "").trim().toLowerCase() === codigoLimpo
+        )
+      ) || null
+    );
+  }
+
+  function iniciarAssistenteProdutoErpPdv(origem: ErpPdvAssistenteOrigem) {
+    setErpPdvAssistenteOrigem(origem);
+    setErpPdvAssistenteBusca("");
+
+    if (origem === "manual") {
+      setErpPdvProdutoForm({ ...erpPdvProdutoFormPadrao });
+      setErpPdvAssistenteEtapa("dados");
+      return;
+    }
+
+    if (origem === "xml") {
+      setErpPdvAssistenteEtapa("origem");
+      setErpPdvFeedback({
+        tipo: "info",
+        texto: "Use o importador XML da area de Entradas. Ele localiza produtos por GTIN/SKU e sugere novos cadastros.",
+      });
+      document.getElementById("erp-pdv-xml-import")?.scrollIntoView({ behavior: "smooth" });
+      return;
+    }
+
+    setErpPdvAssistenteEtapa("dados");
+  }
+
+  function aplicarCodigoAssistenteProdutoErpPdv(codigoInformado = erpPdvAssistenteBusca) {
+    const codigo = codigoInformado.trim();
+    if (!codigo) {
+      setErpPdvFeedback({ tipo: "erro", texto: "Informe ou leia um codigo de barras/GTIN." });
+      return;
+    }
+
+    const produtoExistente = localizarProdutoPorCodigoErpPdv(codigo);
+    if (produtoExistente) {
+      editarErpPdvProduto(produtoExistente);
+      setErpPdvAssistenteBusca(codigo);
+      setErpPdvFeedback({
+        tipo: "info",
+        texto: "GTIN localizado. Produto existente aberto para atualizacao, evitando duplicidade.",
+      });
+      return;
+    }
+
+    setErpPdvProdutoForm((formAtual) => ({
+      ...formAtual,
+      codigoBarras: codigo,
+      sku: formAtual.sku || codigo,
+    }));
+    setErpPdvAssistenteEtapa("dados");
+    setErpPdvFeedback({
+      tipo: "info",
+      texto: "Codigo novo. Cadastro iniciado com GTIN preenchido automaticamente.",
+    });
+  }
+
+  async function abrirCameraProdutoErpPdv() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setErpPdvCameraMensagem("Camera nao suportada neste navegador. Use o leitor ou digite o codigo.");
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      erpPdvCameraStreamRef.current = stream;
+      setErpPdvCameraAtiva(true);
+      setErpPdvCameraMensagem("Aponte a camera para o codigo de barras. QR Code fica preparado para etapa futura.");
+      window.setTimeout(() => {
+        if (erpPdvCameraVideoRef.current) erpPdvCameraVideoRef.current.srcObject = stream;
+      }, 0);
+    } catch {
+      setErpPdvCameraMensagem("Nao foi possivel abrir a camera. Confira a permissao do navegador.");
+    }
+  }
+
+  function pararCameraProdutoErpPdv() {
+    erpPdvCameraStreamRef.current?.getTracks().forEach((track) => track.stop());
+    erpPdvCameraStreamRef.current = null;
+    setErpPdvCameraAtiva(false);
+  }
+
+  async function lerCameraProdutoErpPdv() {
+    const video = erpPdvCameraVideoRef.current;
+    const BarcodeDetectorCtor = (window as typeof window & {
+      BarcodeDetector?: new (options?: { formats?: string[] }) => {
+        detect(source: HTMLVideoElement): Promise<Array<{ rawValue?: string }>>;
+      };
+    }).BarcodeDetector;
+
+    if (!video || !BarcodeDetectorCtor) {
+      setErpPdvCameraMensagem("Leitura automatica indisponivel. Digite o codigo lido no campo GTIN.");
+      return;
+    }
+
+    try {
+      const detector = new BarcodeDetectorCtor({
+        formats: ["ean_13", "ean_8", "code_128", "upc_a", "upc_e", "qr_code"],
+      });
+      const codigos = await detector.detect(video);
+      const codigo = codigos[0]?.rawValue || "";
+
+      if (!codigo) {
+        setErpPdvCameraMensagem("Nenhum codigo identificado. Aproxime a embalagem e tente novamente.");
+        return;
+      }
+
+      setErpPdvAssistenteBusca(codigo);
+      aplicarCodigoAssistenteProdutoErpPdv(codigo);
+      pararCameraProdutoErpPdv();
+    } catch {
+      setErpPdvCameraMensagem("Nao foi possivel ler o codigo pela camera agora.");
+    }
+  }
+
+  function aplicarSugestoesProdutoErpPdv() {
+    const produtoReferencia =
+      erpPdvProdutos.find(
+        (produto) =>
+          produto.marca &&
+          erpPdvProdutoForm.marca &&
+          produto.marca.toLowerCase() === erpPdvProdutoForm.marca.toLowerCase()
+      ) || erpPdvProdutos.find((produto) => produto.categoria_id);
+    const fornecedorReferencia = erpPdvFornecedores[0];
+
+    setErpPdvProdutoForm((formAtual) => ({
+      ...formAtual,
+      categoriaId: formAtual.categoriaId || produtoReferencia?.categoria_id || "",
+      ncm: formAtual.ncm || produtoReferencia?.ncm || "",
+      unidade: formAtual.unidade || produtoReferencia?.unidade || "un",
+      fornecedorPrincipal:
+        formAtual.fornecedorPrincipal ||
+        fornecedorReferencia?.nome_fantasia ||
+        fornecedorReferencia?.razao_social ||
+        "",
+    }));
+    setErpPdvFeedback({ tipo: "info", texto: "Sugestoes aplicadas com base no historico disponivel." });
+  }
+
+  function montarObservacoesProdutoErpPdv() {
+    const extras = [
+      erpPdvProdutoForm.fabricante ? "Fabricante: " + erpPdvProdutoForm.fabricante : "",
+      erpPdvProdutoForm.fornecedorPrincipal ? "Fornecedor principal: " + erpPdvProdutoForm.fornecedorPrincipal : "",
+      erpPdvProdutoForm.peso ? "Peso: " + erpPdvProdutoForm.peso : "",
+      erpPdvProdutoForm.dimensoes ? "Dimensoes: " + erpPdvProdutoForm.dimensoes : "",
+      erpPdvProdutoForm.estoqueMaximo ? "Estoque maximo: " + erpPdvProdutoForm.estoqueMaximo : "",
+      erpPdvProdutoForm.imagensExtras ? "Imagens extras: " + erpPdvProdutoForm.imagensExtras : "",
+    ].filter(Boolean);
+
+    return [erpPdvProdutoForm.observacoes.trim(), ...extras].filter(Boolean).join("\\n");
   }
 
   function adicionarProdutoAoCarrinhoErpPdv(produto: ErpPdvProduto) {
@@ -9659,7 +9880,7 @@ export default function EmpresaForm({
       unidade: erpPdvProdutoForm.unidade,
       localizacao: erpPdvProdutoForm.localizacao,
       ncm: erpPdvProdutoForm.ncm,
-      observacoes: erpPdvProdutoForm.observacoes,
+      observacoes: montarObservacoesProdutoErpPdv(),
       imagemUrl: erpPdvProdutoForm.imagemUrl,
       estoqueAtual: parseNumeroErpPdv(erpPdvProdutoForm.estoqueAtual),
       estoqueMinimo: parseNumeroErpPdv(erpPdvProdutoForm.estoqueMinimo),
@@ -14080,6 +14301,141 @@ export default function EmpresaForm({
                   </button>
                 </div>
 
+                <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-wide text-emerald-700">
+                        Assistente de cadastro
+                      </p>
+                      <h5 className="mt-1 font-black text-slate-900">
+                        Cadastro inteligente de produto
+                      </h5>
+                      <p className="mt-1 text-sm text-slate-600">
+                        Localize por GTIN, use leitor/camera, aproveite o XML existente ou siga pelo cadastro manual.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {(["origem", "dados", "preco", "estoque", "salvar"] as ErpPdvAssistenteEtapa[]).map((etapa) => (
+                        <button
+                          key={etapa}
+                          type="button"
+                          onClick={() => setErpPdvAssistenteEtapa(etapa)}
+                          className={
+                            "rounded-full px-3 py-2 text-xs font-black transition " +
+                            (erpPdvAssistenteEtapa === etapa
+                              ? "bg-emerald-700 text-white"
+                              : "bg-white text-slate-600 hover:bg-emerald-100")
+                          }
+                        >
+                          {etapa === "origem"
+                            ? "1 Origem"
+                            : etapa === "dados"
+                              ? "2 Dados"
+                              : etapa === "preco"
+                                ? "3 Preco"
+                                : etapa === "estoque"
+                                  ? "4 Estoque"
+                                  : "5 Salvar"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-4">
+                    {[
+                      { id: "codigo", titulo: "Codigo de barras", texto: "Leitor continuo/GTIN" },
+                      { id: "camera", titulo: "Camera do celular", texto: "BarcodeDetector quando suportado" },
+                      { id: "xml", titulo: "XML da NF-e", texto: "Usa o importador existente" },
+                      { id: "manual", titulo: "Cadastro manual", texto: "Fluxo completo em etapas" },
+                    ].map((origem) => (
+                      <button
+                        key={origem.id}
+                        type="button"
+                        onClick={() => iniciarAssistenteProdutoErpPdv(origem.id as ErpPdvAssistenteOrigem)}
+                        className={
+                          "rounded-2xl border p-4 text-left transition " +
+                          (erpPdvAssistenteOrigem === origem.id
+                            ? "border-emerald-500 bg-white shadow-sm"
+                            : "border-emerald-100 bg-emerald-100/60 hover:bg-white")
+                        }
+                      >
+                        <strong className="block text-sm font-black text-slate-900">{origem.titulo}</strong>
+                        <span className="mt-1 block text-xs font-bold text-slate-600">{origem.texto}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {(erpPdvAssistenteOrigem === "codigo" || erpPdvAssistenteOrigem === "camera") && (
+                    <div className="mt-4 grid gap-3 rounded-2xl bg-white p-4 md:grid-cols-[1fr_auto]">
+                      <Input
+                        label="GTIN / codigo de barras / SKU"
+                        value={erpPdvAssistenteBusca}
+                        onChange={(e) => setErpPdvAssistenteBusca(e.target.value)}
+                        placeholder="Leia ou digite o codigo"
+                      />
+                      <div className="flex items-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => aplicarCodigoAssistenteProdutoErpPdv()}
+                          className="rounded-xl bg-emerald-700 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-800"
+                        >
+                          Pesquisar GTIN
+                        </button>
+                        {erpPdvAssistenteOrigem === "camera" && (
+                          <button
+                            type="button"
+                            onClick={abrirCameraProdutoErpPdv}
+                            className="rounded-xl border border-emerald-300 px-4 py-3 text-sm font-black text-emerald-700 transition hover:bg-emerald-50"
+                          >
+                            Abrir camera
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {erpPdvAssistenteOrigem === "camera" && (
+                    <div className="mt-3 rounded-2xl bg-slate-900 p-3 text-white">
+                      <video ref={erpPdvCameraVideoRef} autoPlay muted playsInline className="h-56 w-full rounded-xl bg-black object-cover" />
+                      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-sm font-bold text-slate-200">
+                          {erpPdvCameraMensagem || "Camera preparada para leitura de codigo de barras e QR Code futuro."}
+                        </p>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={lerCameraProdutoErpPdv}
+                            disabled={!erpPdvCameraAtiva}
+                            className="rounded-xl bg-white px-4 py-2 text-sm font-black text-slate-900 disabled:opacity-50"
+                          >
+                            Ler codigo
+                          </button>
+                          <button
+                            type="button"
+                            onClick={pararCameraProdutoErpPdv}
+                            className="rounded-xl border border-white/40 px-4 py-2 text-sm font-black text-white"
+                          >
+                            Fechar camera
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={aplicarSugestoesProdutoErpPdv}
+                      className="rounded-xl border border-emerald-300 bg-white px-4 py-3 text-sm font-black text-emerald-700 transition hover:bg-emerald-50"
+                    >
+                      Aplicar sugestoes do historico
+                    </button>
+                    <span className="rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-600">
+                      Etapa atual: {erpPdvAssistenteEtapa} | Origem: {erpPdvAssistenteOrigem}
+                    </span>
+                  </div>
+                </div>
+
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   <Input
                     label="Nome"
@@ -14295,6 +14651,51 @@ export default function EmpresaForm({
                     }
                     placeholder="Preparado para fiscal futuro"
                   />
+
+                  <Input
+                    label="Fabricante"
+                    value={erpPdvProdutoForm.fabricante}
+                    onChange={(e) =>
+                      atualizarErpPdvProdutoForm("fabricante", e.target.value)
+                    }
+                    placeholder="Ex.: Fabricante do produto"
+                  />
+
+                  <Input
+                    label="Fornecedor principal"
+                    value={erpPdvProdutoForm.fornecedorPrincipal}
+                    onChange={(e) =>
+                      atualizarErpPdvProdutoForm("fornecedorPrincipal", e.target.value)
+                    }
+                    placeholder="Fornecedor preferencial"
+                  />
+
+                  <Input
+                    label="Peso"
+                    value={erpPdvProdutoForm.peso}
+                    onChange={(e) =>
+                      atualizarErpPdvProdutoForm("peso", e.target.value)
+                    }
+                    placeholder="Ex.: 1,5 kg"
+                  />
+
+                  <Input
+                    label="Dimensoes"
+                    value={erpPdvProdutoForm.dimensoes}
+                    onChange={(e) =>
+                      atualizarErpPdvProdutoForm("dimensoes", e.target.value)
+                    }
+                    placeholder="Ex.: 30 x 20 x 10 cm"
+                  />
+
+                  <Input
+                    label="Estoque maximo"
+                    value={erpPdvProdutoForm.estoqueMaximo}
+                    onChange={(e) =>
+                      atualizarErpPdvProdutoForm("estoqueMaximo", e.target.value)
+                    }
+                    placeholder="Estrutura preparada"
+                  />
                 </div>
 
                 {erpPdvPodeConsultarCustoLucro ? (
@@ -14379,6 +14780,15 @@ export default function EmpresaForm({
                     }
                   />
 
+                  <Input
+                    label="Multiplas imagens"
+                    value={erpPdvProdutoForm.imagensExtras}
+                    onChange={(e) =>
+                      atualizarErpPdvProdutoForm("imagensExtras", e.target.value)
+                    }
+                    placeholder="Estrutura preparada: URLs ou referencias futuras"
+                  />
+
                   <div>
                     <label className="block font-medium text-slate-700">
                       Observacoes
@@ -14435,7 +14845,7 @@ export default function EmpresaForm({
                     label="Buscar produtos"
                     value={erpPdvBusca}
                     onChange={(e) => setErpPdvBusca(e.target.value)}
-                    placeholder="Busque por nome, SKU ou codigo de barras"
+                    placeholder="Busque por nome, SKU, codigo, GTIN, fornecedor, marca, NCM ou categoria"
                   />
                 </div>
 
@@ -14783,7 +15193,7 @@ export default function EmpresaForm({
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 p-4">
-                  <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                  <div id="erp-pdv-xml-import" className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                       <div>
                         <p className="text-xs font-black uppercase tracking-wide text-emerald-700">
