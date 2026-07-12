@@ -2439,3 +2439,192 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Sprint 174 - alta densidade, WhatsApp e atalhos */
+.public-pdv-step-cart .public-pdv-cart-lines {
+  gap: 3px;
+  max-height: min(46vh, 520px);
+}
+
+.public-pdv-step-cart .public-pdv-cart-item {
+  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  min-height: 28px;
+  padding: 2px 6px;
+}
+
+.public-pdv-cart-item-main strong {
+  font-size: 11px;
+}
+
+.public-pdv-cart-item-meta {
+  align-items: center;
+  display: flex;
+  min-width: 70px;
+}
+
+.public-pdv-cart-item-meta strong {
+  font-size: 11px;
+}
+
+.public-pdv-qty-controls {
+  gap: 3px;
+}
+
+.public-pdv-qty-controls button,
+.public-pdv-cart-remove {
+  border-radius: 6px;
+  font-size: 12px;
+  height: 24px;
+  min-height: 24px;
+  min-width: 24px;
+}
+
+.public-pdv-qty-controls input {
+  font-size: 11px;
+  height: 24px;
+  min-height: 24px;
+  padding: 2px 4px;
+  width: 30px;
+}
+
+.public-pdv-cart-remove {
+  font-size: 13px;
+}
+
+.public-pdv-receipt-actions button {
+  min-height: 34px;
+}
+
+.public-pdv-receipt-actions {
+  align-items: stretch;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.public-pdv-shortcuts-modal {
+  inset: 0;
+  position: fixed;
+  z-index: 45;
+}
+
+.public-pdv-shortcuts-backdrop {
+  background: rgba(15, 23, 42, 0.48);
+  inset: 0;
+  position: absolute;
+}
+
+.public-pdv-shortcuts-dialog {
+  background: #ffffff;
+  border: 1px solid #dbe4f0;
+  border-radius: 16px;
+  box-shadow: 0 24px 50px rgba(15, 23, 42, 0.26);
+  display: grid;
+  gap: 12px;
+  left: 50%;
+  max-height: min(78vh, 560px);
+  overflow: hidden;
+  padding: 14px;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(680px, calc(100vw - 24px));
+}
+
+.public-pdv-shortcuts-header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.public-pdv-shortcuts-header span {
+  color: #64748b;
+  display: block;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.public-pdv-shortcuts-header h2 {
+  font-size: 20px;
+  margin: 2px 0 0;
+}
+
+.public-pdv-shortcuts-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: auto;
+}
+
+.public-pdv-shortcut-item {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  display: grid;
+  gap: 3px 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 48px;
+  padding: 8px 10px;
+}
+
+.public-pdv-shortcut-item strong {
+  color: #0f172a;
+  font-size: 12px;
+}
+
+.public-pdv-shortcut-item span {
+  color: #475569;
+  font-size: 12px;
+}
+
+@media (max-width: 1366px) and (min-width: 901px) {
+  .public-pdv-step-cart .public-pdv-cart-lines {
+    max-height: min(42vh, 420px);
+  }
+
+  .public-pdv-step-cart .public-pdv-cart-item {
+    min-height: 26px;
+    padding: 2px 5px;
+  }
+
+  .public-pdv-cart-item-main strong,
+  .public-pdv-cart-item-meta strong {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 900px) {
+  .public-pdv-step-cart .public-pdv-cart-item {
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 30px;
+  }
+
+  .public-pdv-cart-item-meta {
+    justify-content: flex-start;
+  }
+
+  .public-pdv-qty-controls {
+    grid-column: 1 / -1;
+    justify-content: start;
+  }
+
+  .public-pdv-cart-remove {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .public-pdv-receipt-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .public-pdv-shortcuts-dialog {
+    width: calc(100vw - 20px);
+  }
+
+  .public-pdv-shortcuts-grid {
+    grid-template-columns: 1fr;
+  }
+}

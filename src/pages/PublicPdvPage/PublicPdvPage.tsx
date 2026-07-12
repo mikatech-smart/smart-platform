@@ -76,6 +76,11 @@ type CupomVisualizacao = {
   complemento?: number;
 };
 
+type AtalhoAjuda = {
+  tecla: string;
+  descricao: string;
+};
+
 type VendaSuspensa = {
   id: string;
   criadaEm: string;
@@ -147,13 +152,14 @@ function escapeHtml(valor: string) {
 }
 
 function gerarCupomTexto(cupom: CupomVisualizacao) {
+  const clienteIdentificado = cupom.cliente && cupom.cliente !== "Consumidor final";
   return [
     cupom.empresaNome,
     "CUPOM NAO FISCAL",
     `Venda #${cupom.numeroVenda}`,
     `Data: ${new Date(cupom.criadoEm).toLocaleString("pt-BR")}`,
     `Operador: ${cupom.operador}`,
-    `Cliente: ${cupom.cliente}`,
+    clienteIdentificado ? `Cliente: ${cupom.cliente}` : "",
     cupom.empresaDocumento ? `Documento: ${cupom.empresaDocumento}` : "",
     cupom.empresaEndereco ? `Endereco: ${cupom.empresaEndereco}` : "",
     ...cupom.itens.map((item) => `${item.quantidade} x ${item.descricao} - R$ ${moeda(item.subtotal)}`),
@@ -168,7 +174,16 @@ function gerarCupomTexto(cupom: CupomVisualizacao) {
     .join("\n");
 }
 
+function normalizarTelefoneWhatsapp(valor: string) {
+  const digitos = valor.replace(/\D/g, "");
+  if (!digitos) return "";
+  if (digitos.startsWith("55") && digitos.length >= 12) return digitos;
+  if (digitos.length === 10 || digitos.length === 11) return `55${digitos}`;
+  return digitos;
+}
+
 function gerarCupomHtml(cupom: CupomVisualizacao) {
+  const clienteIdentificado = cupom.cliente && cupom.cliente !== "Consumidor final";
   const itensHtml = cupom.itens
     .map(
       (item) => `
@@ -306,7 +321,7 @@ function gerarCupomHtml(cupom: CupomVisualizacao) {
           new Date(cupom.criadoEm).toLocaleString("pt-BR")
         )}</p>
         <p class="receipt__meta">Operador: ${escapeHtml(cupom.operador)}</p>
-        <p class="receipt__meta">Cliente: ${escapeHtml(cupom.cliente)}</p>
+        ${clienteIdentificado ? `<p class="receipt__meta">Cliente: ${escapeHtml(cupom.cliente)}</p>` : ""}
         ${cupom.empresaDocumento ? `<p class="receipt__meta">${escapeHtml(cupom.empresaDocumento)}</p>` : ""}
         ${cupom.empresaEndereco ? `<p class="receipt__meta">${escapeHtml(cupom.empresaEndereco)}</p>` : ""}
       </header>
@@ -475,6 +490,18 @@ export default function PublicPdvPage() {
   const podeFinalizarVenda =
     Boolean(caixa) && carrinhoDetalhado.length > 0 && operador.trim().length > 0 && podeFinalizarPagamento && !salvando;
   const podeSuspenderVenda = carrinhoDetalhado.length > 0 && operador.trim().length > 0;
+  const atalhosAjuda: AtalhoAjuda[] = [
+    { tecla: "F2", descricao: "Focar busca de produto" },
+    { tecla: "F4", descricao: "Concluir venda" },
+    { tecla: "F6", descricao: "Focar cliente" },
+    ...(tabelaLiberada.length > 0 ? [{ tecla: "F7", descricao: "Focar tabela interna de preco" }] : []),
+    { tecla: "F8", descricao: "Cancelar ou limpar venda" },
+    { tecla: "F9", descricao: "Abrir ou fechar menu" },
+    { tecla: "F10", descricao: "Entrar ou sair da tela cheia" },
+    { tecla: "Esc", descricao: "Fechar ajuda, lista ou tela cheia" },
+    { tecla: "Enter", descricao: "Adicionar produto ou confirmar acao" },
+    { tecla: "↑ / ↓", descricao: "Navegar nos resultados da pesquisa" },
+  ];
 
   const modoTelaCheiaAtivo = telaCheia || telaCheiaVisual;
   async function carregarDados() {
@@ -968,12 +995,43 @@ export default function PublicPdvPage() {
     window.setTimeout(() => buscaRef.current?.focus(), 0);
   }
 
+  function abrirAjudaAtalhos() {
+    setMenuAberto(false);
+    setAtalhosAberto(true);
+  }
+
   function imprimirCupom() {
     cupomFrameRef.current?.contentWindow?.print();
   }
 
   function prepararSalvarPdf() {
     setFeedbackOperacao({ tipo: "info", texto: "Salvar PDF preparado para a proxima etapa de impressao." });
+  }
+
+  function enviarCupomWhatsapp() {
+    if (!cupom) return;
+
+    try {
+      const telefoneBase = clienteSelecionado?.whatsapp || clienteSelecionado?.telefone || "";
+      const telefone = normalizarTelefoneWhatsapp(telefoneBase);
+      const texto = gerarCupomTexto(cupom);
+      const mensagem = `${texto}\n\nPowered by ${BrandConfig.developerCompany}`;
+      const baseUrl = telefone ? `https://wa.me/${telefone}` : "https://wa.me/";
+      const url = `${baseUrl}?text=${encodeURIComponent(mensagem)}`;
+      const aberto = window.open(url, "_blank", "noopener,noreferrer");
+
+      if (!aberto) {
+        setFeedbackOperacao({ tipo: "info", texto: "WhatsApp bloqueado pelo navegador. Tente novamente." });
+        return;
+      }
+
+      setFeedbackOperacao({
+        tipo: "sucesso",
+        texto: telefone ? "WhatsApp aberto com o numero do cliente." : "WhatsApp aberto para escolher o contato.",
+      });
+    } catch {
+      setFeedbackOperacao({ tipo: "erro", texto: "Nao foi possivel abrir o WhatsApp agora." });
+    }
   }
 
   async function finalizarVenda() {
@@ -1342,8 +1400,8 @@ export default function PublicPdvPage() {
       {menuAberto && (
         <aside className="public-pdv-secondary-menu" aria-label="Menu secundario do PDV">
           <div className="public-pdv-secondary-actions">
-            <button type="button" onClick={() => setAtalhosAberto((atual) => !atual)}>
-              {atalhosAberto ? "Ocultar atalhos" : "Ajuda de atalhos"}
+            <button type="button" onClick={abrirAjudaAtalhos}>
+              Ajuda de atalhos
             </button>
             <button type="button" onClick={() => setModoCompacto((atual) => !atual)}>
               {modoCompacto ? "Voltar ao Caixa" : "Modo compacto"}
@@ -1422,23 +1480,6 @@ export default function PublicPdvPage() {
               ) : (
                 <p>Nenhuma venda suspensa.</p>
               )}
-            </section>
-          )}
-
-          {atalhosAberto && (
-            <section className="public-pdv-secondary-panel public-pdv-shortcuts" aria-label="Ajuda de atalhos">
-              <h2>Atalhos</h2>
-              <div>
-                <span>F2 Busca</span>
-                <span>F4 Finalizar</span>
-                <span>F6 Cliente</span>
-                <span>F7 Tabela</span>
-                <span>F8 Cancelar</span>
-                <span>F9 Menu</span>
-                <span>F10 Tela cheia</span>
-                <span>Esc Fechar</span>
-                <span>Enter Adicionar</span>
-              </div>
             </section>
           )}
 
@@ -1629,16 +1670,10 @@ export default function PublicPdvPage() {
                 {carrinhoDetalhado.length ? (
                   carrinhoDetalhado.map((item) => (
                     <div key={item.produto.id} className="public-pdv-cart-item">
-                      {item.produto.imagem_url ? (
-                        <img src={item.produto.imagem_url} alt={item.produto.nome} />
-                      ) : (
-                        <div className="public-pdv-cart-placeholder">Sem foto</div>
-                      )}
                       <div className="public-pdv-cart-item-main">
                         <strong title={item.produto.nome}>{item.produto.nome}</strong>
                       </div>
                       <div className="public-pdv-cart-item-meta">
-                        <span>{item.quantidade} un.</span>
                         <strong>R$ {moeda(item.subtotal)}</strong>
                       </div>
                       <div className="public-pdv-qty-controls">
@@ -1818,6 +1853,9 @@ export default function PublicPdvPage() {
                   <button type="button" onClick={imprimirCupom}>
                     Imprimir
                   </button>
+                  <button type="button" onClick={enviarCupomWhatsapp}>
+                    Enviar por WhatsApp
+                  </button>
                   <button type="button" onClick={prepararSalvarPdf}>
                     Salvar PDF
                   </button>
@@ -1826,6 +1864,32 @@ export default function PublicPdvPage() {
                   </button>
                 </div>
               </aside>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {atalhosAberto && (
+        <section className="public-pdv-shortcuts-modal" aria-modal="true" role="dialog">
+          <div className="public-pdv-shortcuts-backdrop" onClick={() => setAtalhosAberto(false)} />
+          <div className="public-pdv-shortcuts-dialog">
+            <header className="public-pdv-shortcuts-header">
+              <div>
+                <span>PDV MikaON</span>
+                <h2>Ajuda de atalhos</h2>
+              </div>
+              <button type="button" onClick={() => setAtalhosAberto(false)}>
+                Fechar
+              </button>
+            </header>
+
+            <div className="public-pdv-shortcuts-grid">
+              {atalhosAjuda.map((atalho) => (
+                <div key={atalho.tecla} className="public-pdv-shortcut-item">
+                  <strong>{atalho.tecla}</strong>
+                  <span>{atalho.descricao}</span>
+                </div>
+              ))}
             </div>
           </div>
         </section>
