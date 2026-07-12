@@ -58,6 +58,22 @@ const tabelasPreco: Array<{ id: ErpPdvTabelaPreco; label: string; permissao: Erp
   { id: "personalizada", label: "Personalizada", permissao: "preco_alterar" },
 ];
 
+const perfisUsuario: Record<string, string> = {
+  administrador: "Administrador",
+  gerente: "Gerente",
+  caixa: "Caixa",
+  vendedor: "Vendedor",
+  estoque: "Estoque",
+};
+
+const modulosIniciais: Record<string, string> = {
+  pdv: "PDV",
+  caixa: "Caixa",
+  trocas: "Trocas",
+  estoque: "Estoque",
+  relatorios: "Relatorios",
+};
+
 function numero(valor: number | string | null | undefined) {
   const parsed = typeof valor === "number" ? valor : Number(String(valor || "0"));
   return Number.isFinite(parsed) ? parsed : 0;
@@ -80,7 +96,11 @@ function obterPreco(produto: ErpPdvProduto, tabela: ErpPdvTabelaPreco) {
 }
 
 function pode(usuario: ErpPdvUsuario | null, permissao: ErpPdvPermissao) {
-  return !usuario || Boolean(usuario.permissoes[permissao]);
+  return Boolean(usuario?.permissoes[permissao]);
+}
+
+function obterTabelasLiberadas(usuario: ErpPdvUsuario | null) {
+  return tabelasPreco.filter((item) => pode(usuario, item.permissao));
 }
 
 export default function PublicPdvPage() {
@@ -93,7 +113,7 @@ export default function PublicPdvPage() {
   const [caixa, setCaixa] = useState<ErpPdvCaixa | null>(null);
   const [resumoCaixa, setResumoCaixa] = useState<ErpPdvCaixaResumo | null>(null);
   const [usuarioId, setUsuarioId] = useState("");
-  const [operadorLivre, setOperadorLivre] = useState("");
+  const [operadorModalAberto, setOperadorModalAberto] = useState(true);
   const [busca, setBusca] = useState("");
   const [carrinho, setCarrinho] = useState<CarrinhoItem[]>([]);
   const [tabela, setTabela] = useState<ErpPdvTabelaPreco>("varejo");
@@ -115,12 +135,14 @@ export default function PublicPdvPage() {
   const [feedback, setFeedback] = useState("");
 
   const usuarioAtual = usuarios.find((usuario) => usuario.id === usuarioId) || null;
-  const operador = usuarioAtual?.nome || operadorLivre;
+  const operador = usuarioAtual?.nome || "";
   const empresaId = empresa?.id || "";
   const erpContratado = empresa?.recursos_contratados?.erp_pdv === true;
+  const usuariosAtivos = usuarios.filter((usuario) => usuario.ativo);
   const produtosPorId = new Map(produtos.map((produto) => [produto.id, produto]));
-  const tabelaLiberada = tabelasPreco.filter((item) => pode(usuarioAtual, item.permissao));
+  const tabelaLiberada = obterTabelasLiberadas(usuarioAtual);
   const tabelaAtualLiberada = tabelaLiberada.some((item) => item.id === tabela);
+  const sessaoOperadorKey = `mikaon:pdv:${slug}:operador`;
   const valesAtivos = vales.filter(
     (vale) =>
       vale.status === "ativo" &&
@@ -158,6 +180,11 @@ export default function PublicPdvPage() {
   const total = carrinhoDetalhado.reduce((soma, item) => soma + item.subtotal, 0);
   const valorVale = valeSelecionado ? Math.min(total, valeSelecionado.saldo_restante) : 0;
   const complemento = Math.max(0, total - valorVale);
+  const podeOperarCaixa = pode(usuarioAtual, "caixa_abrir_fechar");
+  const podeVender = tabelaLiberada.length > 0;
+  const podeOperarTrocas =
+    pode(usuarioAtual, "devolucao_realizar") && pode(usuarioAtual, "vale_troca_emitir");
+  const temModuloOperacional = podeOperarCaixa || podeVender || podeOperarTrocas;
 
   async function carregarDados() {
     if (!slug) return;
@@ -199,7 +226,6 @@ export default function PublicPdvPage() {
       setClientes(clientesResultado.data);
       setVales(valesResultado.data);
       setCaixa(caixaResultado.data);
-      setOperadorLivre(caixaResultado.data?.operador || "");
 
       if (caixaResultado.data) {
         const resumo = await calcularErpPdvResumoCaixa(caixaResultado.data);
@@ -222,15 +248,107 @@ export default function PublicPdvPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
+  useEffect(() => {
+    if (!usuariosAtivos.length) return;
+
+    const operadorSalvo = sessionStorage.getItem(sessaoOperadorKey);
+    const usuarioSalvo = usuariosAtivos.find((usuario) => usuario.id === operadorSalvo);
+
+    if (usuarioSalvo) {
+      selecionarUsuario(usuarioSalvo.id);
+      setOperadorModalAberto(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessaoOperadorKey, usuarios.length]);
+
+  function obterLabelPerfil(usuario: ErpPdvUsuario) {
+    return perfisUsuario[usuario.perfil] || usuario.perfil;
+  }
+
+  function obterLabelModulo(usuario: ErpPdvUsuario) {
+    return modulosIniciais[usuario.modulo_inicial] || "PDV";
+  }
+
+  function obterLabelsTabelas(usuario: ErpPdvUsuario) {
+    const tabelas = obterTabelasLiberadas(usuario).map((item) => item.label);
+    return tabelas.length ? tabelas.join(", ") : "Nenhuma tabela liberada";
+  }
+
   function selecionarUsuario(id: string) {
     setUsuarioId(id);
     const usuario = usuarios.find((item) => item.id === id);
-    if (usuario?.modulo_inicial === "trocas") {
-      document.getElementById("pdv-trocas")?.scrollIntoView({ behavior: "smooth" });
+    if (!usuario) return;
+
+    sessionStorage.setItem(sessaoOperadorKey, id);
+    setOperadorModalAberto(false);
+    setFeedback(`Operador ${usuario.nome} selecionado.`);
+
+    const primeiraTabela = obterTabelasLiberadas(usuario)[0]?.id || "varejo";
+    setTabela(primeiraTabela);
+
+    window.setTimeout(() => {
+      if (usuario.modulo_inicial === "trocas") {
+        document.getElementById("pdv-trocas")?.scrollIntoView({ behavior: "smooth" });
+      }
+      if (usuario.modulo_inicial === "caixa") {
+        document.getElementById("pdv-caixa")?.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 0);
+  }
+
+  function trocarOperador() {
+    if (carrinho.length > 0) {
+      const confirmar = window.confirm(
+        "Existe uma venda em andamento. Deseja cancelar o carrinho e trocar o operador?"
+      );
+      if (!confirmar) return;
     }
-    if (usuario?.modulo_inicial === "caixa") {
-      document.getElementById("pdv-caixa")?.scrollIntoView({ behavior: "smooth" });
-    }
+
+    setCarrinho([]);
+    setCupom("");
+    setValeId("");
+    setClienteSelecionado(null);
+    setUsuarioId("");
+    sessionStorage.removeItem(sessaoOperadorKey);
+    setOperadorModalAberto(true);
+    setFeedback("Selecione o operador para continuar.");
+  }
+
+  function renderModalOperador() {
+    return (
+      <section className="public-pdv-operator-modal" aria-modal="true" role="dialog">
+        <div className="public-pdv-operator-card">
+          <span>{BrandConfig.platformName} ERP/PDV</span>
+          <h2>Selecione o operador</h2>
+          <p>
+            O acesso permanece sem senha nesta Sprint. As permissoes carregadas
+            seguem o perfil do operador escolhido.
+          </p>
+
+          <div className="public-pdv-operator-list">
+            {usuariosAtivos.length > 0 ? (
+              usuariosAtivos.map((usuario) => (
+                <button
+                  type="button"
+                  key={usuario.id}
+                  onClick={() => selecionarUsuario(usuario.id)}
+                  className="public-pdv-operator-option"
+                >
+                  <strong>{usuario.nome}</strong>
+                  <small>{obterLabelPerfil(usuario)}</small>
+                  <span>Tabelas: {obterLabelsTabelas(usuario)}</span>
+                  <span>Modulo inicial: {obterLabelModulo(usuario)}</span>
+                </button>
+              ))
+            ) : (
+              <p className="public-pdv-operator-empty">
+                Nenhum usuario ativo do ERP/PDV foi encontrado para esta empresa.
+              </p>
+            )}
+          </div>
+        </div>
+      </section>
+    );
   }
 
   function adicionarProduto(produto: ErpPdvProduto) {
@@ -461,6 +579,15 @@ export default function PublicPdvPage() {
     );
   }
 
+  if (!usuarioAtual || operadorModalAberto) {
+    return (
+      <main className="public-pdv public-pdv--operator">
+        {feedback && <div className="public-pdv-feedback">{feedback}</div>}
+        {renderModalOperador()}
+      </main>
+    );
+  }
+
   return (
     <main className="public-pdv">
       <header className="public-pdv-header">
@@ -468,34 +595,32 @@ export default function PublicPdvPage() {
           <span>{BrandConfig.platformName} ERP/PDV</span>
           <h1>{empresa.nome}</h1>
           <p>Acesso operacional em modo desenvolvimento, sem login obrigatorio.</p>
+          <div className="public-pdv-current-operator">
+            <strong>{usuarioAtual.nome}</strong>
+            <span>{obterLabelPerfil(usuarioAtual)}</span>
+          </div>
         </div>
-        <Link to={`/${empresa.slug}`}>Pagina publica</Link>
+        <div className="public-pdv-header-actions">
+          <button type="button" onClick={trocarOperador}>
+            Trocar operador
+          </button>
+          <Link to={`/${empresa.slug}`}>Pagina publica</Link>
+        </div>
       </header>
 
       {feedback && <div className="public-pdv-feedback">{feedback}</div>}
 
-      <section className="public-pdv-panel">
+      <section className="public-pdv-panel public-pdv-session-bar">
         <div>
-          <label>Operador</label>
-          <select value={usuarioId} onChange={(e) => selecionarUsuario(e.target.value)}>
-            <option value="">Modo desenvolvimento</option>
-            {usuarios
-              .filter((usuario) => usuario.ativo)
-              .map((usuario) => (
-                <option key={usuario.id} value={usuario.id}>
-                  {usuario.nome} - {usuario.perfil}
-                </option>
-              ))}
-          </select>
+          <span>Tabelas liberadas</span>
+          <strong>
+            {tabelaLiberada.length
+              ? tabelaLiberada.map((item) => item.label).join(", ")
+              : "Nenhuma tabela liberada"}
+          </strong>
         </div>
-        {!usuarioAtual && (
-          <div>
-            <label>Nome do operador</label>
-            <input value={operadorLivre} onChange={(e) => setOperadorLivre(e.target.value)} />
-          </div>
-        )}
         <div>
-          <label>Tabela</label>
+          <label>Tabela de venda</label>
           <select value={tabela} onChange={(e) => setTabela(e.target.value as ErpPdvTabelaPreco)}>
             {tabelaLiberada.length > 0 ? (
               tabelaLiberada.map((item) => (
@@ -510,7 +635,15 @@ export default function PublicPdvPage() {
         </div>
       </section>
 
+      {!temModuloOperacional && (
+        <section className="public-pdv-panel public-pdv-empty-state">
+          <h2>Nenhum modulo operacional liberado</h2>
+          <p>Este operador esta ativo, mas nao possui permissoes de caixa, venda ou trocas para esta tela.</p>
+        </section>
+      )}
+
       <section className="public-pdv-grid">
+        {podeOperarCaixa && (
         <div className="public-pdv-panel" id="pdv-caixa">
           <h2>Caixa</h2>
           {caixa ? (
@@ -533,7 +666,9 @@ export default function PublicPdvPage() {
             </>
           )}
         </div>
+        )}
 
+        {podeVender && (
         <div className="public-pdv-panel public-pdv-products">
           <h2>Produtos</h2>
           <input
@@ -552,7 +687,9 @@ export default function PublicPdvPage() {
             ))}
           </div>
         </div>
+        )}
 
+        {podeVender && (
         <div className="public-pdv-panel public-pdv-cart">
           <h2>Carrinho</h2>
           {carrinhoDetalhado.map((item) => (
@@ -641,6 +778,7 @@ export default function PublicPdvPage() {
             Finalizar venda
           </button>
         </div>
+        )}
       </section>
 
       {cupom && (
@@ -651,6 +789,7 @@ export default function PublicPdvPage() {
         </section>
       )}
 
+      {podeOperarTrocas && (
       <section className="public-pdv-panel" id="pdv-trocas">
         <h2>Trocas autorizadas</h2>
         <p>Disponivel para operadores com permissao de devolucao e vale-troca.</p>
@@ -704,6 +843,7 @@ export default function PublicPdvPage() {
           </button>
         </div>
       </section>
+      )}
     </main>
   );
 }

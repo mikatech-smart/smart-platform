@@ -64,6 +64,123 @@
   opacity: 0.5;
 }
 
+
+.public-pdv--operator {
+  display: grid;
+  place-items: center;
+}
+
+.public-pdv-operator-modal {
+  width: min(100%, 980px);
+}
+
+.public-pdv-operator-card {
+  border: 1px solid #dbe3ef;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.16);
+  padding: 24px;
+}
+
+.public-pdv-operator-card > span,
+.public-pdv-session-bar span {
+  color: #047857;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.public-pdv-operator-card h2 {
+  margin: 6px 0;
+  font-size: 28px;
+}
+
+.public-pdv-operator-card p {
+  color: #475569;
+  margin: 0;
+}
+
+.public-pdv-operator-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.public-pdv-operator-option {
+  display: grid;
+  gap: 6px;
+  border: 1px solid #dbe3ef;
+  background: #f8fafc;
+  color: #0f172a;
+  min-height: 136px;
+  text-align: left;
+}
+
+.public-pdv-operator-option:hover {
+  border-color: #10b981;
+  background: #ecfdf5;
+}
+
+.public-pdv-operator-option strong {
+  font-size: 16px;
+}
+
+.public-pdv-operator-option small {
+  color: #047857;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.public-pdv-operator-option span {
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.public-pdv-operator-empty,
+.public-pdv-empty-state p {
+  color: #64748b;
+  font-weight: 700;
+}
+
+.public-pdv-current-operator {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.public-pdv-current-operator strong,
+.public-pdv-current-operator span {
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #047857;
+  padding: 6px 10px;
+}
+
+.public-pdv-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.public-pdv-header-actions button {
+  background: #0f172a;
+}
+
+.public-pdv-session-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 16px;
+  align-items: end;
+}
+
+.public-pdv-session-bar strong {
+  display: block;
+  margin-top: 6px;
+}
 .public-pdv-feedback {
   margin-top: 14px;
   border: 1px solid #bbf7d0;
@@ -207,6 +324,25 @@
 }
 
 @media (max-width: 760px) {
+  .public-pdv-operator-card {
+    padding: 18px;
+  }
+
+  .public-pdv-operator-list,
+  .public-pdv-session-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .public-pdv-header-actions {
+    justify-content: stretch;
+  }
+
+  .public-pdv-header-actions a,
+  .public-pdv-header-actions button {
+    width: 100%;
+    text-align: center;
+  }
+
   .public-pdv {
     padding: 12px;
   }
