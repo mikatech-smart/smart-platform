@@ -42,6 +42,20 @@ type CarrinhoItem = {
   quantidade: number;
 };
 
+type VendaSuspensa = {
+  id: string;
+  criadaEm: string;
+  operadorUsuarioId: string;
+  operadorNome: string;
+  clienteId?: string;
+  clienteNome?: string;
+  clienteBusca: string;
+  tabela: ErpPdvTabelaPreco;
+  formaPagamento: ErpPdvFormaPagamento;
+  valeId: string;
+  carrinho: CarrinhoItem[];
+};
+
 const formasPagamento: Array<{ id: ErpPdvFormaPagamento; label: string }> = [
   { id: "dinheiro", label: "Dinheiro" },
   { id: "pix", label: "PIX" },
@@ -115,6 +129,8 @@ export default function PublicPdvPage() {
   const [usuarioId, setUsuarioId] = useState("");
   const [operadorModalAberto, setOperadorModalAberto] = useState(true);
   const [busca, setBusca] = useState("");
+  const [quantidadeRapida, setQuantidadeRapida] = useState("1");
+  const [produtoAdicionadoId, setProdutoAdicionadoId] = useState("");
   const [carrinho, setCarrinho] = useState<CarrinhoItem[]>([]);
   const [tabela, setTabela] = useState<ErpPdvTabelaPreco>("varejo");
   const [formaPagamento, setFormaPagamento] =
@@ -133,6 +149,8 @@ export default function PublicPdvPage() {
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [feedback, setFeedback] = useState("");
+  const [vendasSuspensas, setVendasSuspensas] = useState<VendaSuspensa[]>([]);
+  const [modoCompacto, setModoCompacto] = useState(false);
   const [menuAberto, setMenuAberto] = useState(false);
   const [atalhosAberto, setAtalhosAberto] = useState(false);
   const [telaCheia, setTelaCheia] = useState(false);
@@ -150,6 +168,7 @@ export default function PublicPdvPage() {
   const tabelaLiberada = obterTabelasLiberadas(usuarioAtual);
   const tabelaAtualLiberada = tabelaLiberada.some((item) => item.id === tabela);
   const sessaoOperadorKey = `mikaon:pdv:${slug}:operador`;
+  const vendasSuspensasKey = `mikaon:pdv:${slug}:vendas-suspensas`;
   const valesAtivos = vales.filter(
     (vale) =>
       vale.status === "ativo" &&
@@ -165,7 +184,7 @@ export default function PublicPdvPage() {
     return ativos
       .filter((produto) =>
         [produto.nome, produto.sku, produto.codigo_barras].some((valor) =>
-          valor.toLowerCase().includes(termo)
+          String(valor || "").toLowerCase().includes(termo)
         )
       )
       .slice(0, 12);
@@ -185,6 +204,7 @@ export default function PublicPdvPage() {
     })
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
   const total = carrinhoDetalhado.reduce((soma, item) => soma + item.subtotal, 0);
+  const quantidadeItensCarrinho = carrinhoDetalhado.reduce((soma, item) => soma + item.quantidade, 0);
   const valorVale = valeSelecionado ? Math.min(total, valeSelecionado.saldo_restante) : 0;
   const complemento = Math.max(0, total - valorVale);
   const podeOperarCaixa = pode(usuarioAtual, "caixa_abrir_fechar");
@@ -194,6 +214,7 @@ export default function PublicPdvPage() {
   const temModuloOperacional = podeOperarCaixa || podeVender || podeOperarTrocas;
   const podeFinalizarVenda =
     Boolean(caixa) && carrinhoDetalhado.length > 0 && operador.trim().length > 0 && !salvando;
+  const podeSuspenderVenda = carrinhoDetalhado.length > 0 && operador.trim().length > 0;
 
   const modoTelaCheiaAtivo = telaCheia || telaCheiaVisual;
   async function carregarDados() {
@@ -280,6 +301,15 @@ export default function PublicPdvPage() {
     return () => document.removeEventListener("fullscreenchange", aoAlterarTelaCheia);
   }, []);
 
+  useEffect(() => {
+    try {
+      const salvas = sessionStorage.getItem(vendasSuspensasKey);
+      setVendasSuspensas(salvas ? JSON.parse(salvas) : []);
+    } catch {
+      setVendasSuspensas([]);
+    }
+  }, [vendasSuspensasKey]);
+
   function obterLabelPerfil(usuario: ErpPdvUsuario) {
     return perfisUsuario[usuario.perfil] || usuario.perfil;
   }
@@ -359,6 +389,62 @@ export default function PublicPdvPage() {
     setFeedback("Venda cancelada antes da finalizacao.");
   }
 
+  function suspenderVendaAtual() {
+    if (!podeSuspenderVenda || !usuarioAtual) return;
+    const suspensa: VendaSuspensa = {
+      id: String(Date.now()),
+      criadaEm: new Date().toISOString(),
+      operadorUsuarioId: usuarioAtual.id,
+      operadorNome: usuarioAtual.nome,
+      clienteId: clienteSelecionado?.id,
+      clienteNome: clienteSelecionado?.nome,
+      clienteBusca,
+      tabela,
+      formaPagamento,
+      valeId,
+      carrinho,
+    };
+
+    persistirVendasSuspensas([suspensa, ...vendasSuspensas].slice(0, 12));
+    setCarrinho([]);
+    setClienteSelecionado(null);
+    setClienteBusca("");
+    setValeId("");
+    setCupom("");
+    setFeedback("Venda suspensa. O caixa esta pronto para a proxima venda.");
+    window.setTimeout(() => buscaRef.current?.focus(), 0);
+  }
+
+  function retomarVendaSuspensa(venda: VendaSuspensa) {
+    if (carrinho.length > 0) {
+      const confirmar = window.confirm("Existe uma venda em andamento. Deseja substitui-la pela venda suspensa?");
+      if (!confirmar) return;
+    }
+
+    if (usuarios.some((usuario) => usuario.id === venda.operadorUsuarioId)) {
+      setUsuarioId(venda.operadorUsuarioId);
+      sessionStorage.setItem(sessaoOperadorKey, venda.operadorUsuarioId);
+    }
+
+    setCarrinho(venda.carrinho);
+    setTabela(venda.tabela);
+    setFormaPagamento(venda.formaPagamento);
+    setValeId(venda.valeId);
+    setClienteBusca(venda.clienteBusca);
+    setClienteSelecionado(clientes.find((cliente) => cliente.id === venda.clienteId) || null);
+    persistirVendasSuspensas(vendasSuspensas.filter((item) => item.id !== venda.id));
+    setModoCompacto(false);
+    setFeedback("Venda suspensa retomada.");
+    window.setTimeout(() => buscaRef.current?.focus(), 0);
+  }
+
+  function excluirVendaSuspensa(id: string) {
+    const confirmar = window.confirm("Deseja excluir esta venda suspensa?");
+    if (!confirmar) return;
+    persistirVendasSuspensas(vendasSuspensas.filter((item) => item.id !== id));
+    setFeedback("Venda suspensa excluida.");
+  }
+
   function renderModalOperador() {
     return (
       <section className="public-pdv-operator-modal" aria-modal="true" role="dialog">
@@ -396,7 +482,76 @@ export default function PublicPdvPage() {
     );
   }
 
-  function adicionarProduto(produto: ErpPdvProduto) {
+  function persistirVendasSuspensas(proximas: VendaSuspensa[]) {
+    setVendasSuspensas(proximas);
+    sessionStorage.setItem(vendasSuspensasKey, JSON.stringify(proximas));
+  }
+
+  function emitirFeedbackProduto(produto: ErpPdvProduto) {
+    setProdutoAdicionadoId(produto.id);
+    setFeedback(`Produto adicionado: ${produto.nome}`);
+    window.setTimeout(() => setProdutoAdicionadoId(""), 700);
+
+    try {
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const audio = new AudioContextClass();
+      const oscillator = audio.createOscillator();
+      const gain = audio.createGain();
+      oscillator.frequency.value = 880;
+      gain.gain.value = 0.03;
+      oscillator.connect(gain);
+      gain.connect(audio.destination);
+      oscillator.start();
+      oscillator.stop(audio.currentTime + 0.08);
+    } catch {
+      // Feedback sonoro opcional; navegadores podem bloquear audio sem interacao previa.
+    }
+  }
+
+  function encontrarProdutoPorLeitura(termo: string) {
+    const normalizado = termo.trim().toLowerCase();
+    if (!normalizado) return null;
+    return (
+      produtos.find(
+        (produto) =>
+          produto.ativo &&
+          [produto.codigo_barras, produto.sku].some((valor) => String(valor || "").toLowerCase() === normalizado)
+      ) || null
+    );
+  }
+
+  function adicionarProdutoPorBusca() {
+    const termo = busca.trim();
+    const produtoExato = encontrarProdutoPorLeitura(termo);
+    const produto = produtoExato || produtosEncontrados[0];
+
+    if (!produto) {
+      setFeedback(termo ? `Produto ou codigo nao encontrado: ${termo}` : "Informe um produto ou codigo para adicionar.");
+      setBusca("");
+      window.setTimeout(() => buscaRef.current?.focus(), 0);
+      return;
+    }
+
+    adicionarProduto(produto, Math.max(1, numero(quantidadeRapida)));
+  }
+
+  function alterarQuantidadeProduto(produtoId: string, quantidade: number) {
+    setCarrinho((itens) =>
+      itens
+        .map((item) => {
+          if (item.produtoId !== produtoId) return item;
+          const produto = produtosPorId.get(produtoId);
+          const limite = produto?.estoque_atual || quantidade;
+          return { ...item, quantidade: Math.max(0, Math.min(quantidade, limite)) };
+        })
+        .filter((item) => item.quantidade > 0)
+    );
+  }
+
+  function adicionarProduto(produto: ErpPdvProduto, quantidade = 1) {
     if (!tabelaAtualLiberada) {
       setFeedback("Operador sem tabela de preco liberada para venda.");
       return;
@@ -412,13 +567,16 @@ export default function PublicPdvPage() {
       if (atual) {
         return itens.map((item) =>
           item.produtoId === produto.id
-            ? { ...item, quantidade: Math.min(item.quantidade + 1, produto.estoque_atual) }
+            ? { ...item, quantidade: Math.min(item.quantidade + quantidade, produto.estoque_atual) }
             : item
         );
       }
-      return [...itens, { produtoId: produto.id, quantidade: 1 }];
+      return [...itens, { produtoId: produto.id, quantidade: Math.min(quantidade, produto.estoque_atual) }];
     });
     setBusca("");
+    setQuantidadeRapida("1");
+    emitirFeedbackProduto(produto);
+    window.setTimeout(() => buscaRef.current?.focus(), 0);
   }
 
   async function abrirCaixa() {
@@ -679,7 +837,7 @@ export default function PublicPdvPage() {
 
       if (evento.key === "Enter" && alvo === buscaRef.current) {
         evento.preventDefault();
-        if (produtosEncontrados[0]) adicionarProduto(produtosEncontrados[0]);
+        adicionarProdutoPorBusca();
       }
     }
 
@@ -717,7 +875,7 @@ export default function PublicPdvPage() {
     <main
       className={`public-pdv public-pdv--cashier ${menuAberto ? "public-pdv--menu-open" : ""} ${
         telaCheiaVisual ? "public-pdv--fullscreen" : ""
-      }`}
+      } ${modoCompacto ? "public-pdv--compact" : ""}`}
     >
       <header className="public-pdv-header">
         <div>
@@ -736,6 +894,9 @@ export default function PublicPdvPage() {
           <button type="button" onClick={() => setAtalhosAberto((atual) => !atual)}>
             Atalhos
           </button>
+          <button type="button" onClick={() => setModoCompacto((atual) => !atual)}>
+            {modoCompacto ? "Voltar ao Caixa" : "Modo compacto"}
+          </button>
           <button type="button" onClick={alternarTelaCheia}>
             {modoTelaCheiaAtivo ? "Sair da tela cheia" : "Tela cheia"}
           </button>
@@ -747,6 +908,30 @@ export default function PublicPdvPage() {
       </header>
 
       {feedback && <div className="public-pdv-feedback">{feedback}</div>}
+
+      {modoCompacto && (
+        <section className="public-pdv-panel public-pdv-compact-panel">
+          <div>
+            <span>Operador</span>
+            <strong>{usuarioAtual.nome}</strong>
+          </div>
+          <div>
+            <span>Caixa</span>
+            <strong>{caixa ? "Aberto" : "Fechado"}</strong>
+          </div>
+          <div>
+            <span>Itens</span>
+            <strong>{quantidadeItensCarrinho}</strong>
+          </div>
+          <div>
+            <span>Total</span>
+            <strong>R$ {moeda(total)}</strong>
+          </div>
+          <button type="button" onClick={() => setModoCompacto(false)}>
+            Voltar ao Caixa
+          </button>
+        </section>
+      )}
 
       <section className="public-pdv-panel public-pdv-session-bar">
         <div>
@@ -831,17 +1016,30 @@ export default function PublicPdvPage() {
         <div className="public-pdv-panel public-pdv-products">
           <div className="public-pdv-section-title">
             <h2>Produtos</h2>
-            <small>F2 busca | Enter adiciona</small>
+            <small>F2 busca | Enter adiciona | leitura sequencial</small>
           </div>
-          <input
-            ref={buscaRef}
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Nome, SKU ou codigo"
-          />
+          <div className="public-pdv-scan-row">
+            <label>Qtd
+              <input
+                value={quantidadeRapida}
+                onChange={(e) => setQuantidadeRapida(e.target.value)}
+                inputMode="numeric"
+              />
+            </label>
+            <input
+              ref={buscaRef}
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Nome, SKU ou codigo"
+            />
+          </div>
           <div className="public-pdv-product-list">
             {produtosEncontrados.map((produto) => (
-              <button key={produto.id} onClick={() => adicionarProduto(produto)}>
+              <button
+                key={produto.id}
+                className={produtoAdicionadoId === produto.id ? "public-pdv-product-added" : ""}
+                onClick={() => adicionarProduto(produto)}
+              >
                 {produto.imagem_url && <img src={produto.imagem_url} alt={produto.nome} />}
                 <span>{produto.nome}</span>
                 <strong>R$ {moeda(obterPreco(produto, tabelaAtualLiberada ? tabela : "varejo"))}</strong>
@@ -860,21 +1058,29 @@ export default function PublicPdvPage() {
           </div>
           {carrinhoDetalhado.map((item) => (
             <div key={item.produto.id} className="public-pdv-cart-item">
-              <span>{item.produto.nome}</span>
-              <input
-                value={item.quantidade}
-                onChange={(e) =>
-                  setCarrinho((itens) =>
-                    itens.map((linha) =>
-                      linha.produtoId === item.produto.id
-                        ? { ...linha, quantidade: Math.min(numero(e.target.value), item.produto.estoque_atual) }
-                        : linha
-                    )
-                  )
-                }
-              />
-              <strong>R$ {moeda(item.subtotal)}</strong>
+              {item.produto.imagem_url ? (
+                <img src={item.produto.imagem_url} alt={item.produto.nome} />
+              ) : (
+                <div className="public-pdv-cart-placeholder">Sem foto</div>
+              )}
+              <div>
+                <strong>{item.produto.nome}</strong>
+                <small>Unitario: R$ {moeda(item.preco)} | Subtotal: R$ {moeda(item.subtotal)}</small>
+              </div>
+              <div className="public-pdv-qty-controls">
+                <button type="button" onClick={() => alterarQuantidadeProduto(item.produto.id, item.quantidade - 1)}>
+                  -
+                </button>
+                <input
+                  value={item.quantidade}
+                  onChange={(e) => alterarQuantidadeProduto(item.produto.id, numero(e.target.value))}
+                />
+                <button type="button" onClick={() => alterarQuantidadeProduto(item.produto.id, item.quantidade + 1)}>
+                  +
+                </button>
+              </div>
               <button
+                type="button"
                 onClick={() =>
                   setCarrinho((itens) =>
                     itens.filter((linha) => linha.produtoId !== item.produto.id)
@@ -887,12 +1093,45 @@ export default function PublicPdvPage() {
           ))}
 
           <div className="public-pdv-total">Total: R$ {moeda(total)}</div>
-          <button
-            disabled={!carrinhoDetalhado.length || !pode(usuarioAtual, "venda_cancelar")}
-            onClick={cancelarVendaAtual}
-          >
-            Cancelar venda
-          </button>
+          <div className="public-pdv-cart-actions">
+            <button
+              disabled={!carrinhoDetalhado.length || !pode(usuarioAtual, "venda_cancelar")}
+              onClick={cancelarVendaAtual}
+            >
+              Cancelar venda
+            </button>
+            <button
+              type="button"
+              disabled={!podeSuspenderVenda}
+              onClick={suspenderVendaAtual}
+            >
+              Suspender venda
+            </button>
+          </div>
+
+          <section className="public-pdv-suspended-sales">
+            <div className="public-pdv-section-title">
+              <h2>Vendas suspensas</h2>
+              <small>{vendasSuspensas.length}</small>
+            </div>
+            {vendasSuspensas.length ? (
+              vendasSuspensas.map((venda) => (
+                <div key={venda.id} className="public-pdv-suspended-sale">
+                  <div>
+                    <strong>{venda.clienteNome || "Consumidor nao identificado"}</strong>
+                    <small>
+                      {new Date(venda.criadaEm).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                      {" | "}{venda.operadorNome}
+                    </small>
+                  </div>
+                  <button type="button" onClick={() => retomarVendaSuspensa(venda)}>Retomar</button>
+                  <button type="button" onClick={() => excluirVendaSuspensa(venda.id)}>Excluir</button>
+                </div>
+              ))
+            ) : (
+              <p>Nenhuma venda suspensa.</p>
+            )}
+          </section>
 
           <label>Cliente</label>
           <div className="public-pdv-inline">
