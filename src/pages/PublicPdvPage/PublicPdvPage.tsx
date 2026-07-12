@@ -846,6 +846,11 @@ export default function PublicPdvPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [atalhosAberto, menuAberto, produtosEncontrados, podeFinalizarVenda, carrinhoDetalhado.length, usuarioAtual, telaCheiaVisual]);
 
+  useEffect(() => {
+    if (operadorModalAberto || !usuarioAtual || !podeVender) return;
+    window.setTimeout(() => buscaRef.current?.focus(), 0);
+  }, [operadorModalAberto, usuarioAtual?.id, podeVender]);
+
   if (carregando) {
     return <main className="public-pdv public-pdv--center">Carregando PDV...</main>;
   }
@@ -877,33 +882,20 @@ export default function PublicPdvPage() {
         telaCheiaVisual ? "public-pdv--fullscreen" : ""
       } ${modoCompacto ? "public-pdv--compact" : ""}`}
     >
-      <header className="public-pdv-header">
+      <header className="public-pdv-header public-pdv-header--clean">
         <div>
           <span>{BrandConfig.platformName} ERP/PDV</span>
           <h1>{empresa.nome}</h1>
-          <p>Acesso operacional em modo desenvolvimento, sem login obrigatorio.</p>
           <div className="public-pdv-current-operator">
             <strong>{usuarioAtual.nome}</strong>
             <span>{obterLabelPerfil(usuarioAtual)}</span>
+            <span>{caixa ? "Caixa aberto" : "Caixa fechado"}</span>
           </div>
         </div>
         <div className="public-pdv-header-actions">
           <button type="button" onClick={() => setMenuAberto((atual) => !atual)}>
             {menuAberto ? "Fechar menu" : "Menu"}
           </button>
-          <button type="button" onClick={() => setAtalhosAberto((atual) => !atual)}>
-            Atalhos
-          </button>
-          <button type="button" onClick={() => setModoCompacto((atual) => !atual)}>
-            {modoCompacto ? "Voltar ao Caixa" : "Modo compacto"}
-          </button>
-          <button type="button" onClick={alternarTelaCheia}>
-            {modoTelaCheiaAtivo ? "Sair da tela cheia" : "Tela cheia"}
-          </button>
-          <button type="button" onClick={trocarOperador}>
-            Trocar operador
-          </button>
-          <Link to={`/${empresa.slug}`}>Pagina publica</Link>
         </div>
       </header>
 
@@ -933,17 +925,185 @@ export default function PublicPdvPage() {
         </section>
       )}
 
-      <section className="public-pdv-panel public-pdv-session-bar">
+      {menuAberto && (
+        <aside className="public-pdv-secondary-menu" aria-label="Menu secundario do PDV">
+          <div className="public-pdv-secondary-actions">
+            <button type="button" onClick={() => setAtalhosAberto((atual) => !atual)}>
+              {atalhosAberto ? "Ocultar atalhos" : "Ajuda de atalhos"}
+            </button>
+            <button type="button" onClick={() => setModoCompacto((atual) => !atual)}>
+              {modoCompacto ? "Voltar ao Caixa" : "Modo compacto"}
+            </button>
+            <button type="button" onClick={alternarTelaCheia}>
+              {modoTelaCheiaAtivo ? "Sair da tela cheia" : "Tela cheia"}
+            </button>
+            <button type="button" onClick={trocarOperador}>
+              Trocar operador
+            </button>
+            <Link to={`/${empresa.slug}`}>Pagina publica</Link>
+          </div>
+
+          {podeOperarCaixa && (
+            <section className="public-pdv-secondary-panel" id="pdv-caixa">
+              <h2>Caixa</h2>
+              {caixa ? (
+                <>
+                  <p>Aberto por {caixa.operador}</p>
+                  <strong>Esperado: R$ {moeda(resumoCaixa?.totalEsperado || 0)}</strong>
+                  <label>Valor informado</label>
+                  <input value={valorFechamento} onChange={(e) => setValorFechamento(e.target.value)} />
+                  <button disabled={salvando || !pode(usuarioAtual, "caixa_abrir_fechar")} onClick={fecharCaixa}>
+                    Fechar caixa
+                  </button>
+                </>
+              ) : (
+                <>
+                  <label>Valor inicial</label>
+                  <input value={saldoInicial} onChange={(e) => setSaldoInicial(e.target.value)} />
+                  <button disabled={salvando || !operador.trim() || !pode(usuarioAtual, "caixa_abrir_fechar")} onClick={abrirCaixa}>
+                    Abrir caixa
+                  </button>
+                </>
+              )}
+            </section>
+          )}
+
+          {podeVender && (
+            <section className="public-pdv-secondary-panel">
+              <h2>Acoes da venda</h2>
+              <div className="public-pdv-secondary-actions public-pdv-secondary-actions--compact">
+                <button
+                  disabled={!carrinhoDetalhado.length || !pode(usuarioAtual, "venda_cancelar")}
+                  onClick={cancelarVendaAtual}
+                >
+                  Cancelar venda
+                </button>
+                <button type="button" disabled={!podeSuspenderVenda} onClick={suspenderVendaAtual}>
+                  Suspender venda
+                </button>
+              </div>
+            </section>
+          )}
+
+          {podeVender && (
+            <section className="public-pdv-secondary-panel public-pdv-suspended-sales">
+              <div className="public-pdv-section-title">
+                <h2>Vendas suspensas</h2>
+                <small>{vendasSuspensas.length}</small>
+              </div>
+              {vendasSuspensas.length ? (
+                vendasSuspensas.map((venda) => (
+                  <div key={venda.id} className="public-pdv-suspended-sale">
+                    <div>
+                      <strong>{venda.clienteNome || "Consumidor nao identificado"}</strong>
+                      <small>
+                        {new Date(venda.criadaEm).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                        {" | "}{venda.operadorNome}
+                      </small>
+                    </div>
+                    <button type="button" onClick={() => retomarVendaSuspensa(venda)}>Retomar</button>
+                    <button type="button" onClick={() => excluirVendaSuspensa(venda.id)}>Excluir</button>
+                  </div>
+                ))
+              ) : (
+                <p>Nenhuma venda suspensa.</p>
+              )}
+            </section>
+          )}
+
+          {atalhosAberto && (
+            <section className="public-pdv-secondary-panel public-pdv-shortcuts" aria-label="Ajuda de atalhos">
+              <h2>Atalhos</h2>
+              <div>
+                <span>F2 Busca</span>
+                <span>F4 Finalizar</span>
+                <span>F6 Cliente</span>
+                <span>F7 Tabela</span>
+                <span>F8 Cancelar</span>
+                <span>F9 Menu</span>
+                <span>F10 Tela cheia</span>
+                <span>Esc Fechar</span>
+                <span>Enter Adicionar</span>
+              </div>
+            </section>
+          )}
+
+          {cupom && (
+            <section className="public-pdv-secondary-panel public-pdv-receipt">
+              <h2>Cupom</h2>
+              <pre>{cupom}</pre>
+              <button onClick={() => window.print()}>Imprimir</button>
+            </section>
+          )}
+
+          {podeOperarTrocas && (
+            <section className="public-pdv-secondary-panel" id="pdv-trocas">
+              <h2>Trocas autorizadas</h2>
+              <button disabled={!pode(usuarioAtual, "devolucao_realizar")} onClick={buscarTrocas}>
+                Buscar vendas
+              </button>
+              <div className="public-pdv-exchange">
+                <select
+                  value={vendaTroca?.id || ""}
+                  onChange={(e) =>
+                    setVendaTroca(vendasTroca.find((venda) => venda.id === e.target.value) || null)
+                  }
+                >
+                  <option value="">Selecione uma venda</option>
+                  {vendasTroca.map((venda) => (
+                    <option key={venda.id} value={venda.id}>
+                      #{venda.numero} - {venda.cliente_nome} - R$ {moeda(venda.total)}
+                    </option>
+                  ))}
+                </select>
+                {vendaTroca?.itens.map((item) => (
+                  <label key={item.id}>
+                    {item.descricao} ({item.quantidade_disponivel} disp.)
+                    <input
+                      value={quantidadesTroca[item.id] || ""}
+                      onChange={(e) =>
+                        setQuantidadesTroca((atuais) => ({
+                          ...atuais,
+                          [item.id]: e.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                ))}
+                <textarea
+                  value={motivoTroca}
+                  onChange={(e) => setMotivoTroca(e.target.value)}
+                  placeholder="Motivo da troca/devolucao"
+                />
+                <button
+                  disabled={
+                    salvando ||
+                    !vendaTroca ||
+                    !motivoTroca.trim() ||
+                    !pode(usuarioAtual, "devolucao_realizar") ||
+                    !pode(usuarioAtual, "vale_troca_emitir")
+                  }
+                  onClick={registrarTroca}
+                >
+                  Registrar troca e emitir vale
+                </button>
+              </div>
+            </section>
+          )}
+        </aside>
+      )}
+
+      <section className="public-pdv-status-strip">
         <div>
-          <span>Tabelas liberadas</span>
-          <strong>
-            {tabelaLiberada.length
-              ? tabelaLiberada.map((item) => item.label).join(", ")
-              : "Nenhuma tabela liberada"}
-          </strong>
+          <span>Caixa</span>
+          <strong>{caixa ? "Aberto" : "Fechado"}</strong>
         </div>
         <div>
-          <label>Tabela de venda</label>
+          <span>Itens</span>
+          <strong>{quantidadeItensCarrinho}</strong>
+        </div>
+        <div>
+          <span>Tabela</span>
           <select
             ref={tabelaRef}
             value={tabela}
@@ -960,6 +1120,10 @@ export default function PublicPdvPage() {
             )}
           </select>
         </div>
+        <div className="public-pdv-status-total">
+          <span>Total</span>
+          <strong>R$ {moeda(total)}</strong>
+        </div>
       </section>
 
       {!temModuloOperacional && (
@@ -969,291 +1133,167 @@ export default function PublicPdvPage() {
         </section>
       )}
 
-      {atalhosAberto && (
-        <section className="public-pdv-panel public-pdv-shortcuts" aria-label="Ajuda de atalhos">
-          <h2>Atalhos</h2>
-          <div>
-            <span>F2 Busca</span>
-            <span>F4 Finalizar</span>
-            <span>F6 Cliente</span>
-            <span>F7 Tabela</span>
-            <span>F8 Cancelar</span>
-            <span>F9 Menu</span>
-            <span>F10 Tela cheia</span>
-            <span>Esc Fechar</span>
-            <span>Enter Adicionar</span>
-          </div>
-        </section>
-      )}
-
-      <section className="public-pdv-grid">
-        {podeOperarCaixa && (
-        <div className="public-pdv-panel" id="pdv-caixa">
-          <h2>Caixa</h2>
-          {caixa ? (
-            <>
-              <p>Aberto por {caixa.operador}</p>
-              <strong>Esperado: R$ {moeda(resumoCaixa?.totalEsperado || 0)}</strong>
-              <label>Valor informado</label>
-              <input value={valorFechamento} onChange={(e) => setValorFechamento(e.target.value)} />
-              <button disabled={salvando || !pode(usuarioAtual, "caixa_abrir_fechar")} onClick={fecharCaixa}>
-                Fechar caixa
-              </button>
-            </>
-          ) : (
-            <>
-              <label>Valor inicial</label>
-              <input value={saldoInicial} onChange={(e) => setSaldoInicial(e.target.value)} />
-              <button disabled={salvando || !operador.trim() || !pode(usuarioAtual, "caixa_abrir_fechar")} onClick={abrirCaixa}>
-                Abrir caixa
-              </button>
-            </>
-          )}
-        </div>
-        )}
-
+      <section className="public-pdv-grid public-pdv-main-sale">
         {podeVender && (
-        <div className="public-pdv-panel public-pdv-products">
-          <div className="public-pdv-section-title">
-            <h2>Produtos</h2>
-            <small>F2 busca | Enter adiciona | leitura sequencial</small>
-          </div>
-          <div className="public-pdv-scan-row">
-            <label>Qtd
-              <input
-                value={quantidadeRapida}
-                onChange={(e) => setQuantidadeRapida(e.target.value)}
-                inputMode="numeric"
-              />
-            </label>
-            <input
-              ref={buscaRef}
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              placeholder="Nome, SKU ou codigo"
-            />
-          </div>
-          <div className="public-pdv-product-list">
-            {produtosEncontrados.map((produto) => (
-              <button
-                key={produto.id}
-                className={produtoAdicionadoId === produto.id ? "public-pdv-product-added" : ""}
-                onClick={() => adicionarProduto(produto)}
-              >
-                {produto.imagem_url && <img src={produto.imagem_url} alt={produto.nome} />}
-                <span>{produto.nome}</span>
-                <strong>R$ {moeda(obterPreco(produto, tabelaAtualLiberada ? tabela : "varejo"))}</strong>
-                <small>Estoque: {produto.estoque_atual}</small>
-              </button>
-            ))}
-          </div>
-        </div>
-        )}
-
-        {podeVender && (
-        <div className="public-pdv-panel public-pdv-cart">
-          <div className="public-pdv-section-title">
-            <h2>Carrinho</h2>
-            <small>{carrinhoDetalhado.length} item(ns)</small>
-          </div>
-          {carrinhoDetalhado.map((item) => (
-            <div key={item.produto.id} className="public-pdv-cart-item">
-              {item.produto.imagem_url ? (
-                <img src={item.produto.imagem_url} alt={item.produto.nome} />
-              ) : (
-                <div className="public-pdv-cart-placeholder">Sem foto</div>
-              )}
-              <div>
-                <strong>{item.produto.nome}</strong>
-                <small>Unitario: R$ {moeda(item.preco)} | Subtotal: R$ {moeda(item.subtotal)}</small>
-              </div>
-              <div className="public-pdv-qty-controls">
-                <button type="button" onClick={() => alterarQuantidadeProduto(item.produto.id, item.quantidade - 1)}>
-                  -
-                </button>
-                <input
-                  value={item.quantidade}
-                  onChange={(e) => alterarQuantidadeProduto(item.produto.id, numero(e.target.value))}
-                />
-                <button type="button" onClick={() => alterarQuantidadeProduto(item.produto.id, item.quantidade + 1)}>
-                  +
-                </button>
-              </div>
-              <button
-                type="button"
-                onClick={() =>
-                  setCarrinho((itens) =>
-                    itens.filter((linha) => linha.produtoId !== item.produto.id)
-                  )
-                }
-              >
-                Remover
-              </button>
-            </div>
-          ))}
-
-          <div className="public-pdv-total">Total: R$ {moeda(total)}</div>
-          <div className="public-pdv-cart-actions">
-            <button
-              disabled={!carrinhoDetalhado.length || !pode(usuarioAtual, "venda_cancelar")}
-              onClick={cancelarVendaAtual}
-            >
-              Cancelar venda
-            </button>
-            <button
-              type="button"
-              disabled={!podeSuspenderVenda}
-              onClick={suspenderVendaAtual}
-            >
-              Suspender venda
-            </button>
-          </div>
-
-          <section className="public-pdv-suspended-sales">
+          <div className="public-pdv-panel public-pdv-products">
             <div className="public-pdv-section-title">
-              <h2>Vendas suspensas</h2>
-              <small>{vendasSuspensas.length}</small>
+              <h2>Produtos</h2>
+              <small>F2 busca | Enter adiciona</small>
             </div>
-            {vendasSuspensas.length ? (
-              vendasSuspensas.map((venda) => (
-                <div key={venda.id} className="public-pdv-suspended-sale">
-                  <div>
-                    <strong>{venda.clienteNome || "Consumidor nao identificado"}</strong>
-                    <small>
-                      {new Date(venda.criadaEm).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                      {" | "}{venda.operadorNome}
-                    </small>
-                  </div>
-                  <button type="button" onClick={() => retomarVendaSuspensa(venda)}>Retomar</button>
-                  <button type="button" onClick={() => excluirVendaSuspensa(venda.id)}>Excluir</button>
-                </div>
-              ))
-            ) : (
-              <p>Nenhuma venda suspensa.</p>
-            )}
-          </section>
-
-          <label>Cliente</label>
-          <div className="public-pdv-inline">
-            <input
-              ref={clienteBuscaRef}
-              value={clienteBusca}
-              onChange={(e) => setClienteBusca(e.target.value)}
-            />
-            <button onClick={buscarClientes}>Buscar</button>
+            <div className="public-pdv-scan-row">
+              <label>Qtd
+                <input
+                  value={quantidadeRapida}
+                  onChange={(e) => setQuantidadeRapida(e.target.value)}
+                  inputMode="numeric"
+                />
+              </label>
+              <input
+                ref={buscaRef}
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Nome, SKU ou codigo"
+              />
+            </div>
+            <div className="public-pdv-product-list">
+              {produtosEncontrados.map((produto) => (
+                <button
+                  key={produto.id}
+                  className={produtoAdicionadoId === produto.id ? "public-pdv-product-added" : ""}
+                  onClick={() => adicionarProduto(produto)}
+                >
+                  {produto.imagem_url && <img src={produto.imagem_url} alt={produto.nome} />}
+                  <span>{produto.nome}</span>
+                  <strong>R$ {moeda(obterPreco(produto, tabelaAtualLiberada ? tabela : "varejo"))}</strong>
+                  <small>Estoque: {produto.estoque_atual}</small>
+                </button>
+              ))}
+            </div>
           </div>
-          <select
-            value={clienteSelecionado?.id || ""}
-            onChange={(e) =>
-              setClienteSelecionado(clientes.find((cliente) => cliente.id === e.target.value) || null)
-            }
-          >
-            <option value="">Consumidor nao identificado</option>
-            {clientes.map((cliente) => (
-              <option key={cliente.id} value={cliente.id}>
-                {cliente.nome}
-              </option>
-            ))}
-          </select>
+        )}
 
-          <label>Pagamento</label>
-          <select value={formaPagamento} onChange={(e) => setFormaPagamento(e.target.value as ErpPdvFormaPagamento)}>
-            {formasPagamento.map((forma) => (
-              <option key={forma.id} value={forma.id}>
-                {forma.label}
-              </option>
-            ))}
-          </select>
+        {podeVender && (
+          <div className="public-pdv-panel public-pdv-cart">
+            <div className="public-pdv-section-title">
+              <h2>Carrinho</h2>
+              <small>{quantidadeItensCarrinho} item(ns)</small>
+            </div>
+            <div className="public-pdv-cart-lines">
+              {carrinhoDetalhado.length ? (
+                carrinhoDetalhado.map((item) => (
+                  <div key={item.produto.id} className="public-pdv-cart-item">
+                    {item.produto.imagem_url ? (
+                      <img src={item.produto.imagem_url} alt={item.produto.nome} />
+                    ) : (
+                      <div className="public-pdv-cart-placeholder">Sem foto</div>
+                    )}
+                    <div>
+                      <strong>{item.produto.nome}</strong>
+                      <small>Unitario: R$ {moeda(item.preco)}</small>
+                      <small>Subtotal: R$ {moeda(item.subtotal)}</small>
+                    </div>
+                    <div className="public-pdv-qty-controls">
+                      <button type="button" onClick={() => alterarQuantidadeProduto(item.produto.id, item.quantidade - 1)}>
+                        -
+                      </button>
+                      <input
+                        value={item.quantidade}
+                        onChange={(e) => alterarQuantidadeProduto(item.produto.id, numero(e.target.value))}
+                      />
+                      <button type="button" onClick={() => alterarQuantidadeProduto(item.produto.id, item.quantidade + 1)}>
+                        +
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCarrinho((itens) =>
+                          itens.filter((linha) => linha.produtoId !== item.produto.id)
+                        )
+                      }
+                    >
+                      Remover
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="public-pdv-empty-cart">Carrinho vazio</div>
+              )}
+            </div>
 
-          {formaPagamento === "vale_troca" && (
-            <>
-              <label>Vale-Troca</label>
-              <select value={valeId} onChange={(e) => setValeId(e.target.value)}>
-                <option value="">Selecione</option>
-                {valesAtivos.map((vale) => (
-                  <option key={vale.id} value={vale.id}>
-                    #{vale.numero} - {vale.cliente_nome} - R$ {moeda(vale.saldo_restante)}
-                  </option>
-                ))}
-              </select>
-              <small>Vale: R$ {moeda(valorVale)} | Complemento: R$ {moeda(complemento)}</small>
-            </>
-          )}
+            <label>Cliente</label>
+            <div className="public-pdv-inline">
+              <input
+                ref={clienteBuscaRef}
+                value={clienteBusca}
+                onChange={(e) => setClienteBusca(e.target.value)}
+                placeholder="Nome, CPF/CNPJ ou telefone"
+              />
+              <button onClick={buscarClientes}>Buscar</button>
+            </div>
+            <select
+              value={clienteSelecionado?.id || ""}
+              onChange={(e) =>
+                setClienteSelecionado(clientes.find((cliente) => cliente.id === e.target.value) || null)
+              }
+            >
+              <option value="">Consumidor nao identificado</option>
+              {clientes.map((cliente) => (
+                <option key={cliente.id} value={cliente.id}>
+                  {cliente.nome}
+                </option>
+              ))}
+            </select>
 
-          <button
-            className="public-pdv-finalize"
-            disabled={!podeFinalizarVenda}
-            onClick={finalizarVenda}
-          >
-            Finalizar venda
-          </button>
-        </div>
+            <label>Pagamento</label>
+            <select value={formaPagamento} onChange={(e) => setFormaPagamento(e.target.value as ErpPdvFormaPagamento)}>
+              {formasPagamento.map((forma) => (
+                <option key={forma.id} value={forma.id}>
+                  {forma.label}
+                </option>
+              ))}
+            </select>
+
+            {formaPagamento === "vale_troca" && (
+              <>
+                <label>Vale-Troca</label>
+                <select value={valeId} onChange={(e) => setValeId(e.target.value)}>
+                  <option value="">Selecione</option>
+                  {valesAtivos.map((vale) => (
+                    <option key={vale.id} value={vale.id}>
+                      #{vale.numero} - {vale.cliente_nome} - R$ {moeda(vale.saldo_restante)}
+                    </option>
+                  ))}
+                </select>
+                <small>Vale: R$ {moeda(valorVale)} | Complemento: R$ {moeda(complemento)}</small>
+              </>
+            )}
+
+            <div className="public-pdv-cart-summary">
+              <div>
+                <span>Subtotal</span>
+                <strong>R$ {moeda(total)}</strong>
+              </div>
+              <div>
+                <span>Desconto</span>
+                <strong>R$ {moeda(0)}</strong>
+              </div>
+              <div className="public-pdv-cart-total-row">
+                <span>Total</span>
+                <strong>R$ {moeda(total)}</strong>
+              </div>
+            </div>
+
+            <button
+              className="public-pdv-finalize"
+              disabled={!podeFinalizarVenda}
+              onClick={finalizarVenda}
+            >
+              Finalizar venda
+            </button>
+          </div>
         )}
       </section>
-
-      {cupom && (
-        <section className="public-pdv-panel public-pdv-receipt">
-          <h2>Cupom</h2>
-          <pre>{cupom}</pre>
-          <button onClick={() => window.print()}>Imprimir</button>
-        </section>
-      )}
-
-      {podeOperarTrocas && (
-      <section className="public-pdv-panel" id="pdv-trocas">
-        <h2>Trocas autorizadas</h2>
-        <p>Disponivel para operadores com permissao de devolucao e vale-troca.</p>
-        <button disabled={!pode(usuarioAtual, "devolucao_realizar")} onClick={buscarTrocas}>
-          Buscar vendas
-        </button>
-        <div className="public-pdv-exchange">
-          <select
-            value={vendaTroca?.id || ""}
-            onChange={(e) =>
-              setVendaTroca(vendasTroca.find((venda) => venda.id === e.target.value) || null)
-            }
-          >
-            <option value="">Selecione uma venda</option>
-            {vendasTroca.map((venda) => (
-              <option key={venda.id} value={venda.id}>
-                #{venda.numero} - {venda.cliente_nome} - R$ {moeda(venda.total)}
-              </option>
-            ))}
-          </select>
-          {vendaTroca?.itens.map((item) => (
-            <label key={item.id}>
-              {item.descricao} ({item.quantidade_disponivel} disp.)
-              <input
-                value={quantidadesTroca[item.id] || ""}
-                onChange={(e) =>
-                  setQuantidadesTroca((atuais) => ({
-                    ...atuais,
-                    [item.id]: e.target.value,
-                  }))
-                }
-              />
-            </label>
-          ))}
-          <textarea
-            value={motivoTroca}
-            onChange={(e) => setMotivoTroca(e.target.value)}
-            placeholder="Motivo da troca/devolucao"
-          />
-          <button
-            disabled={
-              salvando ||
-              !vendaTroca ||
-              !motivoTroca.trim() ||
-              !pode(usuarioAtual, "devolucao_realizar") ||
-              !pode(usuarioAtual, "vale_troca_emitir")
-            }
-            onClick={registrarTroca}
-          >
-            Registrar troca e emitir vale
-          </button>
-        </div>
-      </section>
-      )}
     </main>
   );
 }
