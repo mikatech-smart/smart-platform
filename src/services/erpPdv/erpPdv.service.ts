@@ -295,6 +295,13 @@ export type ErpPdvVendaItemPayload = {
   precoUnitario: number;
 };
 
+export type ErpPdvPagamentoDetalhadoPayload = {
+  forma: string;
+  label: string;
+  valor: number;
+  parcelas?: number;
+};
+
 export type ErpPdvFinalizarVendaPayload = {
   empresaId: string;
   caixaId: string;
@@ -304,6 +311,10 @@ export type ErpPdvFinalizarVendaPayload = {
   operadorUsuarioId?: string;
   formaPagamento: ErpPdvFormaPagamento;
   valeTrocaId?: string;
+  pagamentosDetalhados?: ErpPdvPagamentoDetalhadoPayload[];
+  parcelasCredito?: number;
+  valorRecebidoDinheiro?: number;
+  troco?: number;
   itens: ErpPdvVendaItemPayload[];
 };
 
@@ -2702,7 +2713,6 @@ export async function registrarErpPdvDevolucao(
   if (!itensSolicitados.length) {
     return { data: null, error: new Error("Selecione itens para devolver.") };
   }
-
   const { data: vendaData, error: vendaError } = await supabase
     .from("erp_pdv_vendas")
     .select(
@@ -3100,6 +3110,31 @@ export async function finalizarErpPdvVenda(
     pagamentoComplementar = Math.max(0, subtotal - valorValeUtilizado);
   }
 
+  const pagamentosDetalhados = (payload.pagamentosDetalhados || [])
+    .map((pagamento) => ({
+      forma: pagamento.forma,
+      label: pagamento.label,
+      valor: toNumber(pagamento.valor),
+      parcelas: pagamento.parcelas ? toNumber(pagamento.parcelas) : undefined,
+    }))
+    .filter((pagamento) => pagamento.valor > 0);
+  const historicoPagamento = pagamentosDetalhados.length
+    ? [
+        {
+          data: agora,
+          tipo: "pagamento_profissional",
+          descricao: pagamentosDetalhados
+            .map((pagamento) =>
+              `${pagamento.label}: ${pagamento.valor.toFixed(2)}${pagamento.parcelas ? ` (${pagamento.parcelas}x)` : ""}`
+            )
+            .join(" | "),
+          pagamentos: pagamentosDetalhados,
+          parcelasCredito: payload.parcelasCredito || null,
+          valorRecebidoDinheiro: toNumber(payload.valorRecebidoDinheiro),
+          troco: toNumber(payload.troco),
+        },
+      ]
+    : [];
   const { data: vendaData, error: vendaError } = await supabase
     .from("erp_pdv_vendas")
     .insert({
@@ -3117,19 +3152,27 @@ export async function finalizarErpPdvVenda(
       cliente_nome: payload.clienteNome?.trim() || "Consumidor nao identificado",
       operador,
       operador_usuario_id: payload.operadorUsuarioId || null,
-      observacao: valeTroca
-        ? `Vale-troca #${valeTroca.numero} utilizado. Complemento: ${pagamentoComplementar.toFixed(2)}`
-        : "",
-      historico_operacional: valeTroca
-        ? [
-            {
-              data: agora,
-              tipo: "utilizacao_vale",
-              descricao: `Vale-troca #${valeTroca.numero} utilizado na venda.`,
-              valor: valorValeUtilizado,
-            },
-          ]
-        : [],
+      observacao: [
+        valeTroca
+          ? `Vale-troca #${valeTroca.numero} utilizado. Complemento: ${pagamentoComplementar.toFixed(2)}`
+          : "",
+        historicoPagamento.length ? "Pagamento detalhado registrado." : "",
+      ]
+        .filter(Boolean)
+        .join(" "),
+      historico_operacional: [
+        ...(valeTroca
+          ? [
+              {
+                data: agora,
+                tipo: "utilizacao_vale",
+                descricao: `Vale-troca #${valeTroca.numero} utilizado na venda.`,
+                valor: valorValeUtilizado,
+              },
+            ]
+          : []),
+        ...historicoPagamento,
+      ],
       finalizada_em: agora,
       updated_at: agora,
     })

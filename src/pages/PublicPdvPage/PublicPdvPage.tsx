@@ -42,6 +42,8 @@ type CarrinhoItem = {
   quantidade: number;
 };
 
+type PagamentosVenda = Partial<Record<ErpPdvFormaPagamento, string>>;
+
 type VendaSuspensa = {
   id: string;
   criadaEm: string;
@@ -52,6 +54,9 @@ type VendaSuspensa = {
   clienteBusca: string;
   tabela: ErpPdvTabelaPreco;
   formaPagamento: ErpPdvFormaPagamento;
+  formasPagamentoSelecionadas?: ErpPdvFormaPagamento[];
+  pagamentosVenda?: PagamentosVenda;
+  parcelasCredito?: string;
   valeId: string;
   carrinho: CarrinhoItem[];
 };
@@ -135,6 +140,10 @@ export default function PublicPdvPage() {
   const [tabela, setTabela] = useState<ErpPdvTabelaPreco>("varejo");
   const [formaPagamento, setFormaPagamento] =
     useState<ErpPdvFormaPagamento>("dinheiro");
+  const [formasPagamentoSelecionadas, setFormasPagamentoSelecionadas] =
+    useState<ErpPdvFormaPagamento[]>(["dinheiro"]);
+  const [pagamentosVenda, setPagamentosVenda] = useState<PagamentosVenda>({ dinheiro: "" });
+  const [parcelasCredito, setParcelasCredito] = useState("1");
   const [valeId, setValeId] = useState("");
   const [clienteBusca, setClienteBusca] = useState("");
   const [clienteSelecionado, setClienteSelecionado] =
@@ -206,14 +215,35 @@ export default function PublicPdvPage() {
   const total = carrinhoDetalhado.reduce((soma, item) => soma + item.subtotal, 0);
   const quantidadeItensCarrinho = carrinhoDetalhado.reduce((soma, item) => soma + item.quantidade, 0);
   const valorVale = valeSelecionado ? Math.min(total, valeSelecionado.saldo_restante) : 0;
-  const complemento = Math.max(0, total - valorVale);
+  const valoresPagamento = formasPagamento.reduce(
+    (acc, forma) => ({
+      ...acc,
+      [forma.id]: numero(String(pagamentosVenda[forma.id] || "").replace(",", ".")),
+    }),
+    {} as Record<ErpPdvFormaPagamento, number>
+  );
+  const valorValeInformado = formasPagamentoSelecionadas.includes("vale_troca")
+    ? Math.min(numero(String(pagamentosVenda.vale_troca || "").replace(",", ".")), valorVale)
+    : 0;
+  const totalPago = formasPagamentoSelecionadas.reduce((soma, forma) => {
+    if (forma === "vale_troca") return soma + valorValeInformado;
+    return soma + valoresPagamento[forma];
+  }, 0);
+  const valorRestantePagamento = Math.max(0, total - totalPago);
+  const excessoPagamento = Math.max(0, totalPago - total);
+  const trocoPagamento = valoresPagamento.dinheiro > 0 ? excessoPagamento : 0;
+  const pagamentoExatoOuComTroco = Math.abs(totalPago - total) < 0.01 || trocoPagamento > 0;
+  const podeFinalizarPagamento = total > 0 && totalPago >= total && pagamentoExatoOuComTroco;
+  const descricaoPagamento = formasPagamentoSelecionadas
+    .map((forma) => formasPagamento.find((item) => item.id === forma)?.label || forma)
+    .join(" + ");
   const podeOperarCaixa = pode(usuarioAtual, "caixa_abrir_fechar");
   const podeVender = tabelaLiberada.length > 0;
   const podeOperarTrocas =
     pode(usuarioAtual, "devolucao_realizar") && pode(usuarioAtual, "vale_troca_emitir");
   const temModuloOperacional = podeOperarCaixa || podeVender || podeOperarTrocas;
   const podeFinalizarVenda =
-    Boolean(caixa) && carrinhoDetalhado.length > 0 && operador.trim().length > 0 && !salvando;
+    Boolean(caixa) && carrinhoDetalhado.length > 0 && operador.trim().length > 0 && podeFinalizarPagamento && !salvando;
   const podeSuspenderVenda = carrinhoDetalhado.length > 0 && operador.trim().length > 0;
 
   const modoTelaCheiaAtivo = telaCheia || telaCheiaVisual;
@@ -386,6 +416,7 @@ export default function PublicPdvPage() {
   function cancelarVendaAtual() {
     if (!carrinhoDetalhado.length || !pode(usuarioAtual, "venda_cancelar")) return;
     setCarrinho([]);
+    resetarPagamentoVenda();
     setFeedback("Venda cancelada antes da finalizacao.");
   }
 
@@ -401,6 +432,9 @@ export default function PublicPdvPage() {
       clienteBusca,
       tabela,
       formaPagamento,
+      formasPagamentoSelecionadas,
+      pagamentosVenda,
+      parcelasCredito,
       valeId,
       carrinho,
     };
@@ -409,7 +443,7 @@ export default function PublicPdvPage() {
     setCarrinho([]);
     setClienteSelecionado(null);
     setClienteBusca("");
-    setValeId("");
+    resetarPagamentoVenda();
     setCupom("");
     setFeedback("Venda suspensa. O caixa esta pronto para a proxima venda.");
     window.setTimeout(() => buscaRef.current?.focus(), 0);
@@ -429,6 +463,9 @@ export default function PublicPdvPage() {
     setCarrinho(venda.carrinho);
     setTabela(venda.tabela);
     setFormaPagamento(venda.formaPagamento);
+    setFormasPagamentoSelecionadas(venda.formasPagamentoSelecionadas || [venda.formaPagamento]);
+    setPagamentosVenda(venda.pagamentosVenda || { [venda.formaPagamento]: "" });
+    setParcelasCredito(venda.parcelasCredito || "1");
     setValeId(venda.valeId);
     setClienteBusca(venda.clienteBusca);
     setClienteSelecionado(clientes.find((cliente) => cliente.id === venda.clienteId) || null);
@@ -637,6 +674,38 @@ export default function PublicPdvPage() {
     setClientes(resultado.data);
   }
 
+  function atualizarValorPagamento(forma: ErpPdvFormaPagamento, valor: string) {
+    setPagamentosVenda((atuais) => ({ ...atuais, [forma]: valor }));
+  }
+
+  function alternarFormaPagamento(forma: ErpPdvFormaPagamento) {
+    setFormaPagamento(forma);
+    setFormasPagamentoSelecionadas((atuais) => {
+      const jaSelecionada = atuais.includes(forma);
+      if (jaSelecionada && atuais.length > 1) {
+        setPagamentosVenda((valores) => ({ ...valores, [forma]: "" }));
+        if (forma === "vale_troca") setValeId("");
+        return atuais.filter((item) => item !== forma);
+      }
+
+      if (jaSelecionada) return atuais;
+
+      const restante = Math.max(0, total - totalPago);
+      setPagamentosVenda((valores) => ({
+        ...valores,
+        [forma]: restante > 0 ? String(restante.toFixed(2)) : valores[forma] || "",
+      }));
+      return [...atuais, forma];
+    });
+  }
+
+  function resetarPagamentoVenda() {
+    setFormaPagamento("dinheiro");
+    setFormasPagamentoSelecionadas(["dinheiro"]);
+    setPagamentosVenda({ dinheiro: "" });
+    setParcelasCredito("1");
+    setValeId("");
+  }
   async function finalizarVenda() {
     if (!empresaId || !caixa || !operador.trim()) return;
     if (!tabelaAtualLiberada) {
@@ -644,10 +713,29 @@ export default function PublicPdvPage() {
       return;
     }
 
-    if (formaPagamento === "vale_troca" && !valeSelecionado) {
+    if (formasPagamentoSelecionadas.includes("vale_troca") && !valeSelecionado) {
       setFeedback("Selecione um vale-troca ativo.");
       return;
     }
+
+    if (valorRestantePagamento > 0.009) {
+      setFeedback(`Falta pagar R$ ${moeda(valorRestantePagamento)}.`);
+      return;
+    }
+
+    if (excessoPagamento > 0.009 && trocoPagamento <= 0) {
+      setFeedback("Pagamento acima do total somente gera troco quando houver dinheiro.");
+      return;
+    }
+
+    const pagamentoFinal: ErpPdvFormaPagamento =
+      formasPagamentoSelecionadas.length > 1 ? "outros" : formasPagamentoSelecionadas[0] || formaPagamento;
+    const detalhesPagamento = formasPagamentoSelecionadas.map((forma) => ({
+      forma,
+      label: formasPagamento.find((item) => item.id === forma)?.label || forma,
+      valor: forma === "vale_troca" ? valorValeInformado : valoresPagamento[forma],
+      parcelas: forma === "credito" ? numero(parcelasCredito) : undefined,
+    }));
 
     setSalvando(true);
     try {
@@ -658,8 +746,12 @@ export default function PublicPdvPage() {
         clienteNome: clienteSelecionado?.nome,
         operador,
         operadorUsuarioId: usuarioAtual?.id,
-        formaPagamento,
-        valeTrocaId: formaPagamento === "vale_troca" ? valeId : undefined,
+        formaPagamento: pagamentoFinal,
+        valeTrocaId: formasPagamentoSelecionadas.includes("vale_troca") ? valeId : undefined,
+        pagamentosDetalhados: detalhesPagamento,
+        parcelasCredito: formasPagamentoSelecionadas.includes("credito") ? numero(parcelasCredito) : undefined,
+        valorRecebidoDinheiro: valoresPagamento.dinheiro,
+        troco: trocoPagamento,
         itens: carrinhoDetalhado.map((item) => ({
           produtoId: item.produto.id,
           descricao: item.produto.nome,
@@ -681,9 +773,11 @@ export default function PublicPdvPage() {
             (item) => `${item.quantidade} x ${item.produto.nome} - R$ ${moeda(item.subtotal)}`
           ),
           `Total: R$ ${moeda(resultado.data.total)}`,
-          resultado.data.vale_troca_valor_utilizado
-            ? `Vale-Troca: R$ ${moeda(resultado.data.vale_troca_valor_utilizado)}`
-            : "",
+          `Pagamento: ${descricaoPagamento}`,
+          ...detalhesPagamento.map((pagamento) =>
+            `${pagamento.label}: R$ ${moeda(pagamento.valor)}${pagamento.parcelas ? ` (${pagamento.parcelas}x)` : ""}`
+          ),
+          trocoPagamento ? `Troco: R$ ${moeda(trocoPagamento)}` : "",
           resultado.data.pagamento_complementar
             ? `Complemento: R$ ${moeda(resultado.data.pagamento_complementar)}`
             : "",
@@ -700,7 +794,7 @@ export default function PublicPdvPage() {
         })
       );
       setCarrinho([]);
-      setValeId("");
+      resetarPagamentoVenda();
       const valesAtualizados = await listarErpPdvValesTroca(empresaId);
       if (!valesAtualizados.error) setVales(valesAtualizados.data);
       const resumo = await calcularErpPdvResumoCaixa(caixa);
@@ -1273,6 +1367,10 @@ export default function PublicPdvPage() {
                   <span>Desconto</span>
                   <strong>R$ {moeda(0)}</strong>
                 </div>
+                <div>
+                  <span>Restante</span>
+                  <strong>R$ {moeda(valorRestantePagamento)}</strong>
+                </div>
                 <div className="public-pdv-cart-total-row">
                   <span>Total</span>
                   <strong>R$ {moeda(total)}</strong>
@@ -1287,28 +1385,73 @@ export default function PublicPdvPage() {
                   <button
                     key={forma.id}
                     type="button"
-                    className={formaPagamento === forma.id ? "public-pdv-payment-active" : ""}
-                    onClick={() => setFormaPagamento(forma.id)}
+                    className={formasPagamentoSelecionadas.includes(forma.id) ? "public-pdv-payment-active" : ""}
+                    onClick={() => alternarFormaPagamento(forma.id)}
                   >
                     {forma.label}
                   </button>
                 ))}
               </div>
 
-              {formaPagamento === "vale_troca" && (
-                <div className="public-pdv-voucher-select">
-                  <label>Vale-Troca</label>
-                  <select value={valeId} onChange={(e) => setValeId(e.target.value)}>
-                    <option value="">Selecione</option>
-                    {valesAtivos.map((vale) => (
-                      <option key={vale.id} value={vale.id}>
-                        #{vale.numero} - {vale.cliente_nome} - R$ {moeda(vale.saldo_restante)}
-                      </option>
-                    ))}
-                  </select>
-                  <small>Vale: R$ {moeda(valorVale)} | Complemento: R$ {moeda(complemento)}</small>
-                </div>
-              )}
+              <div className="public-pdv-payment-grid">
+                {formasPagamentoSelecionadas.map((forma) => {
+                  const config = formasPagamento.find((item) => item.id === forma);
+                  return (
+                    <div key={forma} className="public-pdv-payment-entry">
+                      <label>{config?.label || forma}</label>
+                      {forma === "vale_troca" ? (
+                        <>
+                          <select value={valeId} onChange={(e) => setValeId(e.target.value)}>
+                            <option value="">Selecione o vale</option>
+                            {valesAtivos.map((vale) => (
+                              <option key={vale.id} value={vale.id}>
+                                #{vale.numero} - {vale.cliente_nome} - R$ {moeda(vale.saldo_restante)}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            value={pagamentosVenda.vale_troca || ""}
+                            onChange={(e) => atualizarValorPagamento("vale_troca", e.target.value)}
+                            placeholder={`Disponivel: R$ ${moeda(valorVale)}`}
+                            inputMode="decimal"
+                          />
+                        </>
+                      ) : (
+                        <input
+                          value={pagamentosVenda[forma] || ""}
+                          onChange={(e) => atualizarValorPagamento(forma, e.target.value)}
+                          placeholder="0,00"
+                          inputMode="decimal"
+                        />
+                      )}
+
+                      {forma === "dinheiro" && (
+                        <div className="public-pdv-cash-change">
+                          <span>Total: R$ {moeda(total)}</span>
+                          <span>Recebido: R$ {moeda(valoresPagamento.dinheiro)}</span>
+                          <strong>Troco: R$ {moeda(trocoPagamento)}</strong>
+                        </div>
+                      )}
+
+                      {forma === "credito" && (
+                        <label className="public-pdv-installments">
+                          Parcelamento
+                          <select value={parcelasCredito} onChange={(e) => setParcelasCredito(e.target.value)}>
+                            {Array.from({ length: 12 }, (_, index) => String(index + 1)).map((parcela) => (
+                              <option key={parcela} value={parcela}>{parcela}x</option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="public-pdv-payment-balance">
+                <span>Pago: R$ {moeda(totalPago)}</span>
+                <strong>{valorRestantePagamento > 0 ? `Falta R$ ${moeda(valorRestantePagamento)}` : trocoPagamento ? `Troco R$ ${moeda(trocoPagamento)}` : excessoPagamento > 0.009 ? "Excesso sem troco" : "Pagamento completo"}</strong>
+              </div>
             </section>
 
             <button
