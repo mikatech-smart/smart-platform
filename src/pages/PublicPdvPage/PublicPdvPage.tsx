@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { BrandConfig } from "../../config/brand";
@@ -133,6 +133,13 @@ export default function PublicPdvPage() {
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [feedback, setFeedback] = useState("");
+  const [menuAberto, setMenuAberto] = useState(false);
+  const [atalhosAberto, setAtalhosAberto] = useState(false);
+  const [telaCheia, setTelaCheia] = useState(false);
+  const [telaCheiaVisual, setTelaCheiaVisual] = useState(false);
+  const buscaRef = useRef<HTMLInputElement>(null);
+  const clienteBuscaRef = useRef<HTMLInputElement>(null);
+  const tabelaRef = useRef<HTMLSelectElement>(null);
 
   const usuarioAtual = usuarios.find((usuario) => usuario.id === usuarioId) || null;
   const operador = usuarioAtual?.nome || "";
@@ -185,7 +192,10 @@ export default function PublicPdvPage() {
   const podeOperarTrocas =
     pode(usuarioAtual, "devolucao_realizar") && pode(usuarioAtual, "vale_troca_emitir");
   const temModuloOperacional = podeOperarCaixa || podeVender || podeOperarTrocas;
+  const podeFinalizarVenda =
+    Boolean(caixa) && carrinhoDetalhado.length > 0 && operador.trim().length > 0 && !salvando;
 
+  const modoTelaCheiaAtivo = telaCheia || telaCheiaVisual;
   async function carregarDados() {
     if (!slug) return;
     setCarregando(true);
@@ -261,6 +271,15 @@ export default function PublicPdvPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessaoOperadorKey, usuarios.length]);
 
+  useEffect(() => {
+    function aoAlterarTelaCheia() {
+      setTelaCheia(Boolean(document.fullscreenElement));
+    }
+
+    document.addEventListener("fullscreenchange", aoAlterarTelaCheia);
+    return () => document.removeEventListener("fullscreenchange", aoAlterarTelaCheia);
+  }, []);
+
   function obterLabelPerfil(usuario: ErpPdvUsuario) {
     return perfisUsuario[usuario.perfil] || usuario.perfil;
   }
@@ -312,6 +331,32 @@ export default function PublicPdvPage() {
     sessionStorage.removeItem(sessaoOperadorKey);
     setOperadorModalAberto(true);
     setFeedback("Selecione o operador para continuar.");
+  }
+
+  async function alternarTelaCheia() {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+        setTelaCheiaVisual(false);
+        return;
+      }
+
+      if (telaCheiaVisual) {
+        setTelaCheiaVisual(false);
+        return;
+      }
+
+      await document.documentElement.requestFullscreen();
+    } catch {
+      setTelaCheiaVisual(true);
+      setFeedback("Modo tela cheia aplicado dentro do navegador.");
+    }
+  }
+
+  function cancelarVendaAtual() {
+    if (!carrinhoDetalhado.length || !pode(usuarioAtual, "venda_cancelar")) return;
+    setCarrinho([]);
+    setFeedback("Venda cancelada antes da finalizacao.");
   }
 
   function renderModalOperador() {
@@ -563,6 +608,86 @@ export default function PublicPdvPage() {
     }
   }
 
+  useEffect(() => {
+    function aoPressionarTecla(evento: KeyboardEvent) {
+      const alvo = evento.target as HTMLElement | null;
+
+      if (evento.key === "F2") {
+        evento.preventDefault();
+        buscaRef.current?.focus();
+        return;
+      }
+
+      if (evento.key === "F4") {
+        evento.preventDefault();
+        if (podeFinalizarVenda) void finalizarVenda();
+        return;
+      }
+
+      if (evento.key === "F6") {
+        evento.preventDefault();
+        clienteBuscaRef.current?.focus();
+        return;
+      }
+
+      if (evento.key === "F7") {
+        evento.preventDefault();
+        tabelaRef.current?.focus();
+        return;
+      }
+
+      if (evento.key === "F8") {
+        evento.preventDefault();
+        cancelarVendaAtual();
+        return;
+      }
+
+      if (evento.key === "F9") {
+        evento.preventDefault();
+        setMenuAberto((atual) => !atual);
+        return;
+      }
+
+      if (evento.key === "F10") {
+        evento.preventDefault();
+        void alternarTelaCheia();
+        return;
+      }
+
+      if (evento.key === "Escape") {
+        if (atalhosAberto) {
+          evento.preventDefault();
+          setAtalhosAberto(false);
+          return;
+        }
+        if (menuAberto) {
+          evento.preventDefault();
+          setMenuAberto(false);
+          return;
+        }
+        if (document.fullscreenElement) {
+          evento.preventDefault();
+          void document.exitFullscreen();
+          return;
+        }
+        if (telaCheiaVisual) {
+          evento.preventDefault();
+          setTelaCheiaVisual(false);
+        }
+        return;
+      }
+
+      if (evento.key === "Enter" && alvo === buscaRef.current) {
+        evento.preventDefault();
+        if (produtosEncontrados[0]) adicionarProduto(produtosEncontrados[0]);
+      }
+    }
+
+    window.addEventListener("keydown", aoPressionarTecla);
+    return () => window.removeEventListener("keydown", aoPressionarTecla);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [atalhosAberto, menuAberto, produtosEncontrados, podeFinalizarVenda, carrinhoDetalhado.length, usuarioAtual, telaCheiaVisual]);
+
   if (carregando) {
     return <main className="public-pdv public-pdv--center">Carregando PDV...</main>;
   }
@@ -589,7 +714,11 @@ export default function PublicPdvPage() {
   }
 
   return (
-    <main className="public-pdv">
+    <main
+      className={`public-pdv public-pdv--cashier ${menuAberto ? "public-pdv--menu-open" : ""} ${
+        telaCheiaVisual ? "public-pdv--fullscreen" : ""
+      }`}
+    >
       <header className="public-pdv-header">
         <div>
           <span>{BrandConfig.platformName} ERP/PDV</span>
@@ -601,6 +730,15 @@ export default function PublicPdvPage() {
           </div>
         </div>
         <div className="public-pdv-header-actions">
+          <button type="button" onClick={() => setMenuAberto((atual) => !atual)}>
+            {menuAberto ? "Fechar menu" : "Menu"}
+          </button>
+          <button type="button" onClick={() => setAtalhosAberto((atual) => !atual)}>
+            Atalhos
+          </button>
+          <button type="button" onClick={alternarTelaCheia}>
+            {modoTelaCheiaAtivo ? "Sair da tela cheia" : "Tela cheia"}
+          </button>
           <button type="button" onClick={trocarOperador}>
             Trocar operador
           </button>
@@ -621,7 +759,11 @@ export default function PublicPdvPage() {
         </div>
         <div>
           <label>Tabela de venda</label>
-          <select value={tabela} onChange={(e) => setTabela(e.target.value as ErpPdvTabelaPreco)}>
+          <select
+            ref={tabelaRef}
+            value={tabela}
+            onChange={(e) => setTabela(e.target.value as ErpPdvTabelaPreco)}
+          >
             {tabelaLiberada.length > 0 ? (
               tabelaLiberada.map((item) => (
                 <option key={item.id} value={item.id}>
@@ -639,6 +781,23 @@ export default function PublicPdvPage() {
         <section className="public-pdv-panel public-pdv-empty-state">
           <h2>Nenhum modulo operacional liberado</h2>
           <p>Este operador esta ativo, mas nao possui permissoes de caixa, venda ou trocas para esta tela.</p>
+        </section>
+      )}
+
+      {atalhosAberto && (
+        <section className="public-pdv-panel public-pdv-shortcuts" aria-label="Ajuda de atalhos">
+          <h2>Atalhos</h2>
+          <div>
+            <span>F2 Busca</span>
+            <span>F4 Finalizar</span>
+            <span>F6 Cliente</span>
+            <span>F7 Tabela</span>
+            <span>F8 Cancelar</span>
+            <span>F9 Menu</span>
+            <span>F10 Tela cheia</span>
+            <span>Esc Fechar</span>
+            <span>Enter Adicionar</span>
+          </div>
         </section>
       )}
 
@@ -670,8 +829,12 @@ export default function PublicPdvPage() {
 
         {podeVender && (
         <div className="public-pdv-panel public-pdv-products">
-          <h2>Produtos</h2>
+          <div className="public-pdv-section-title">
+            <h2>Produtos</h2>
+            <small>F2 busca | Enter adiciona</small>
+          </div>
           <input
+            ref={buscaRef}
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Nome, SKU ou codigo"
@@ -691,7 +854,10 @@ export default function PublicPdvPage() {
 
         {podeVender && (
         <div className="public-pdv-panel public-pdv-cart">
-          <h2>Carrinho</h2>
+          <div className="public-pdv-section-title">
+            <h2>Carrinho</h2>
+            <small>{carrinhoDetalhado.length} item(ns)</small>
+          </div>
           {carrinhoDetalhado.map((item) => (
             <div key={item.produto.id} className="public-pdv-cart-item">
               <span>{item.produto.nome}</span>
@@ -723,17 +889,18 @@ export default function PublicPdvPage() {
           <div className="public-pdv-total">Total: R$ {moeda(total)}</div>
           <button
             disabled={!carrinhoDetalhado.length || !pode(usuarioAtual, "venda_cancelar")}
-            onClick={() => {
-              setCarrinho([]);
-              setFeedback("Venda cancelada antes da finalizacao.");
-            }}
+            onClick={cancelarVendaAtual}
           >
             Cancelar venda
           </button>
 
           <label>Cliente</label>
           <div className="public-pdv-inline">
-            <input value={clienteBusca} onChange={(e) => setClienteBusca(e.target.value)} />
+            <input
+              ref={clienteBuscaRef}
+              value={clienteBusca}
+              onChange={(e) => setClienteBusca(e.target.value)}
+            />
             <button onClick={buscarClientes}>Buscar</button>
           </div>
           <select
@@ -774,7 +941,11 @@ export default function PublicPdvPage() {
             </>
           )}
 
-          <button disabled={salvando || !caixa || !carrinhoDetalhado.length || !operador.trim()} onClick={finalizarVenda}>
+          <button
+            className="public-pdv-finalize"
+            disabled={!podeFinalizarVenda}
+            onClick={finalizarVenda}
+          >
             Finalizar venda
           </button>
         </div>
