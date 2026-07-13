@@ -428,3 +428,7 @@ O painel de Produtos/Estoque apresenta a sequencia Custo base, Acrescimo, Markup
 # Sprint 182 - Modos do cadastro de produto
 
 O painel operacional utiliza `NOVO PRODUTO` para criacao e `EDITAR PRODUTO` para registros existentes. A edicao preserva o ID, atualiza a grade apos salvar e mantem custo, varejo e atacado independentes.
+
+## Sprint 183 - Data Grid e edicao
+
+A listagem usa selecao da linha inteira e o mesmo formulario para criacao e edicao. Produtos existentes entram em `EDITAR PRODUTO`, com dados persistidos de custo, varejo e atacado carregados e atualizados por ID. Administradores e gerentes autorizados acessam Produtos / Estoque; as permissoes do servico continuam obrigatorias.

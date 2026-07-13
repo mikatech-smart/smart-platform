@@ -573,3 +573,7 @@ Custo, preco varejo e preco atacado permanecem como fontes oficiais no banco. Ac
 # Sprint 182 - Estado de edicao
 
 A linha selecionada e a fonte do formulario de edicao. O estado deve transportar o objeto completo, e o modo e definido pela presenca do ID. A grade nao deve depender de clique em texto ou de estado paralelo duplicado.
+
+## Sprint 183
+
+Linhas do Data Grid usam botoes semanticos para acessibilidade e devem ser excluidas de seletores globais de botoes. A selecao usa o objeto completo e o ID real do produto; o formulario de edicao e o mesmo da criacao e mantem estados neutros.

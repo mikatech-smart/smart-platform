@@ -1006,7 +1006,12 @@ export default function PublicPdvPage() {
   const podeOperarTrocas =
     pode(usuarioAtual, "devolucao_realizar") && pode(usuarioAtual, "vale_troca_emitir");
   const temModuloOperacional = podeOperarCaixa || podeVender || podeOperarTrocas || podeOperarEstoque;
-  const exibirModuloEstoque = podeOperarEstoque && (!podeVender || usuarioAtual?.modulo_inicial === "estoque");
+  const exibirModuloEstoque =
+    podeOperarEstoque &&
+    (!podeVender ||
+      usuarioAtual?.modulo_inicial === "estoque" ||
+      usuarioAtual?.perfil === "administrador" ||
+      usuarioAtual?.perfil === "gerente");
   const custoProdutoEstoque = numero(produtoEstoqueForm.custo.replace(",", "."));
   const precoVarejoProdutoEstoque = numero(
     produtoEstoqueForm.precoVenda.replace(",", ".")

@@ -392,3 +392,7 @@ Listagens ERP nao devem usar verde como fundo de linha ou selecao. A formacao de
 # Sprint 182 - Edicao clara
 
 O usuario deve reconhecer imediatamente se esta criando ou editando. A linha inteira deve ser clicavel, a selecao deve ser neutra e o painel deve exibir o modo e a identidade do registro selecionado.
+
+## Sprint 183 - Regra visual
+
+O Data Grid administrativo usa fundo branco ou cinza suave e nunca recebe cor global de botoes. Como suas linhas sao botoes semanticos, seletores de botoes devem excluir `.data-grid__row`. A edicao reutiliza o painel lateral e separa claramente criacao de produto existente.

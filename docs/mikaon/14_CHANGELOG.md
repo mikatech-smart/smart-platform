@@ -369,3 +369,9 @@ A area operacional de Produtos/Estoque fica mais consistente com o restante do M
 - painel lateral agora entra em `EDITAR PRODUTO` ao selecionar uma linha;
 - salvamento de produto existente usa o ID preservado e atualiza a linha;
 - grade e estilos legados seguem base neutra, sem fundo verde nas linhas.
+
+## Sprint 183
+
+- Data Grid com linhas neutras e selecao sem verde saturado.
+- Produtos existentes abrem em `EDITAR PRODUTO`, com custos e precos carregados e salvos por UPDATE.
+- Administradores e gerentes autorizados acessam Produtos / Estoque para a validacao operacional.

@@ -47,7 +47,7 @@
 
 .public-pdv-header a,
 .public-pdv-message a,
-.public-pdv button {
+.public-pdv button:not(.data-grid__row) {
   min-height: 44px;
   border: 0;
   border-radius: 12px;

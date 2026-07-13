@@ -314,3 +314,9 @@ A listagem passou a usar tabela compacta com filtros, paginacao e painel lateral
 - produto selecionado permanecia como Novo produto: Corrigido com callback tipado e carregamento integral do registro;
 - campos de preco pareciam bloqueados e o painel nao persistia corretamente: Corrigido com modos explicitos, ID preservado e atualizacao da grade;
 - estilos legados verdes: Corrigidos na origem e nos seletores antigos.
+
+## Sprint 183
+
+- Corrigido: a regra `.public-pdv button` sobrescrevia as linhas do Data Grid; o seletor agora exclui `.data-grid__row`.
+- Corrigido: acesso de administradores e gerentes autorizados ao modulo Produtos / Estoque.
+- Validado: clique, modo `EDITAR PRODUTO`, carregamento, calculos e persistencia de custo e precos.
