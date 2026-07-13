@@ -2561,71 +2561,271 @@
 
 .public-pdv-stock-layout {
   display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(320px, 0.8fr) minmax(420px, 1.2fr);
+  gap: 10px;
+  grid-template-columns: minmax(620px, 1.25fr) minmax(420px, 0.9fr);
   min-height: 0;
 }
 
 .public-pdv-stock-products,
 .public-pdv-stock-editor {
   min-height: 0;
+  overflow: hidden;
 }
 
-.public-pdv-stock-product-list,
+.public-pdv-stock-editor-scroll,
+.public-pdv-stock-table-body,
 .public-pdv-stock-history-list {
   display: grid;
   gap: 8px;
-  max-height: 62vh;
   min-height: 0;
   overflow: auto;
 }
 
-.public-pdv-stock-product-card,
-.public-pdv-stock-history-item {
-  align-content: start;
-  background: #f8fafc;
+.public-pdv-stock-products,
+.public-pdv-stock-editor {
+  display: grid;
+  gap: 8px;
+}
+
+.public-pdv-stock-products {
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+}
+
+.public-pdv-stock-editor {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.public-pdv-stock-toolbar {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(220px, 1.6fr) repeat(5, minmax(120px, 0.72fr)) auto;
+  align-items: center;
+}
+
+.public-pdv-stock-toolbar input,
+.public-pdv-stock-toolbar select,
+.public-pdv-stock-toolbar button {
+  min-height: 38px;
+  border-radius: 8px;
+}
+
+.public-pdv-stock-table {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
   border: 1px solid #dbe3ef;
   border-radius: 10px;
-  color: #0f172a;
+  overflow: hidden;
+}
+
+.public-pdv-stock-table-header,
+.public-pdv-stock-table-row {
   display: grid;
-  gap: 3px;
-  min-height: auto;
-  padding: 10px 12px;
+  gap: 8px;
+  align-items: center;
+  grid-template-columns:
+    minmax(84px, 0.8fr)
+    minmax(112px, 1fr)
+    minmax(220px, 2.2fr)
+    72px
+    72px
+    minmax(88px, 0.9fr)
+    minmax(92px, 0.95fr)
+    minmax(92px, 0.95fr)
+    86px;
+  padding: 0 10px;
+}
+
+.public-pdv-stock-table-header {
+  min-height: 38px;
+  border-bottom: 1px solid #dbe3ef;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.public-pdv-stock-table-body {
+  gap: 0;
+}
+
+.public-pdv-stock-table-row {
+  min-height: 38px;
+  border: 0;
+  border-bottom: 1px solid #eef2f7;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 700;
   text-align: left;
 }
 
-.public-pdv-stock-product-card--active {
-  border-color: #10b981;
+.public-pdv-stock-table-row:last-child {
+  border-bottom: 0;
+}
+
+.public-pdv-stock-table-row:hover,
+.public-pdv-stock-table-row:focus-visible,
+.public-pdv-stock-table-row--active {
   background: #ecfdf5;
 }
 
-.public-pdv-stock-product-card strong,
-.public-pdv-stock-history-item strong {
+.public-pdv-stock-table-row--active {
+  box-shadow: inset 3px 0 0 #10b981;
+}
+
+.public-pdv-stock-table-row span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.public-pdv-stock-product-card span,
-.public-pdv-stock-product-card small,
-.public-pdv-stock-history-item span,
-.public-pdv-stock-history-item small {
-  color: #475569;
-  font-size: 12px;
+.public-pdv-stock-table-product {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.public-pdv-stock-table-product strong,
+.public-pdv-stock-table-product small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.public-pdv-stock-table-product small {
+  color: #64748b;
+  font-size: 11px;
   font-weight: 700;
+}
+
+.public-pdv-stock-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  border-radius: 999px;
+  padding: 0 8px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.public-pdv-stock-status--success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.public-pdv-stock-status--warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.public-pdv-stock-status--muted {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.public-pdv-stock-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.public-pdv-stock-pagination button {
+  min-height: 34px;
+  border-radius: 8px;
+  padding: 0 12px;
 }
 
 .public-pdv-stock-form {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.public-pdv-stock-form--three-columns {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.public-pdv-stock-form--prices {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.public-pdv-stock-form--full,
 .public-pdv-stock-form .public-pdv-stock-toggle,
-.public-pdv-stock-form textarea,
-.public-pdv-stock-movement,
-.public-pdv-stock-history {
+.public-pdv-stock-form textarea {
   grid-column: 1 / -1;
+}
+
+.public-pdv-stock-form input,
+.public-pdv-stock-form select,
+.public-pdv-stock-form textarea {
+  min-height: 38px;
+  border-radius: 8px;
+}
+
+.public-pdv-stock-form textarea {
+  min-height: 86px;
+}
+
+.public-pdv-stock-section {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 10px;
+}
+
+.public-pdv-stock-section:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.public-pdv-stock-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.public-pdv-stock-section-header h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.public-pdv-stock-section-header small,
+.public-pdv-stock-note {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.public-pdv-stock-metric {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 8px 10px;
+}
+
+.public-pdv-stock-metric span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.public-pdv-stock-metric strong {
+  color: #0f172a;
+  font-size: 18px;
+  font-weight: 900;
 }
 
 .public-pdv-stock-toggle {
@@ -2639,15 +2839,68 @@
   width: auto;
 }
 
-.public-pdv-stock-editor {
-  display: grid;
-  gap: 12px;
-}
-
 .public-pdv-stock-movement,
 .public-pdv-stock-history {
-  border-top: 1px solid #e2e8f0;
-  padding-top: 12px;
+  padding-top: 0;
+}
+
+.public-pdv-stock-history-item {
+  align-content: start;
+  background: #f8fafc;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  color: #0f172a;
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.public-pdv-stock-history-item strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.public-pdv-stock-history-item span,
+.public-pdv-stock-history-item small {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+@media (max-width: 1400px) {
+  .public-pdv-stock-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .public-pdv-stock-toolbar {
+    grid-template-columns: minmax(220px, 1.6fr) repeat(3, minmax(120px, 0.8fr));
+  }
+
+  .public-pdv-stock-table {
+    overflow: auto;
+  }
+
+  .public-pdv-stock-table-header,
+  .public-pdv-stock-table-row {
+    min-width: 980px;
+  }
+}
+
+@media (max-width: 900px) {
+  .public-pdv-stock-toolbar,
+  .public-pdv-stock-form,
+  .public-pdv-stock-form--three-columns,
+  .public-pdv-stock-form--prices {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .public-pdv-stock-pagination {
+    justify-content: space-between;
+  }
 }
 
 .public-pdv-receipt-actions button {

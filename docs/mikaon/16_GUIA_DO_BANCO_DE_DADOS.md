@@ -231,3 +231,14 @@ Nunca quebrar compatibilidade com versões anteriores sem planejamento.
 # Objetivo Final
 
 Manter um banco de dados sólido, consistente e preparado para milhares de empresas utilizando o MikaON em ambiente SaaS.
+---
+
+# Diretriz complementar do ERP/PDV
+
+Antes de criar novas colunas em Produtos/Estoque, deve-se verificar:
+
+- se o dado ja existe em `erp_pdv_produtos`;
+- se o dado ja existe em `erp_pdv_estoques`;
+- se o dado e derivado e pode ser calculado sem persistencia adicional.
+
+Markup e margem nao devem gerar colunas duplicadas sem necessidade comprovada.

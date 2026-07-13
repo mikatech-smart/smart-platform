@@ -346,3 +346,14 @@ Caso contrário, a alteração deverá ser rejeitada.
 # Objetivo Final
 
 Construir uma interface consistente, moderna e altamente produtiva, tornando o MikaON um ERP/CRM/PDV de padrão internacional, focado na experiência real de operação.
+---
+
+# Diretriz complementar para Produtos/Estoque
+
+Produtos/Estoque devem seguir:
+
+- pesquisa fixa no topo;
+- filtros compactos;
+- tabela compacta;
+- painel lateral ou modal para edicao;
+- alta densidade de informacao sem cards altos.

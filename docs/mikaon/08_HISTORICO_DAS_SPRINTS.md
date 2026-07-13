@@ -430,3 +430,24 @@ Este documento nunca deverá ser resumido.
 Ele representa a linha do tempo oficial do MikaON.
 
 Nenhuma Sprint poderá ser perdida.
+
+---
+
+# Sprint 178
+
+## Objetivo
+
+Reestruturar a area operacional de Produtos/Estoque com listagem compacta, filtros, paginacao e formacao de precos profissional.
+
+## Implementacoes
+
+- substituicao dos cards grandes por tabela compacta;
+- pesquisa fixa e filtros operacionais;
+- paginacao do catalogo operacional;
+- painel lateral de edicao;
+- custo, varejo, atacado, markup e margem organizados na operacao;
+- aplicacao automatica da tabela de preco liberada ao operador.
+
+Status:
+
+Concluida.

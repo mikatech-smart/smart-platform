@@ -305,3 +305,14 @@ Toda nova tela deverá possuir validação de acesso antes de ser disponibilizad
 # Objetivo Final
 
 Construir uma plataforma segura, confiável e preparada para atender empresas de diferentes portes, garantindo proteção dos dados, rastreabilidade das operações e conformidade com boas práticas de segurança.
+
+---
+
+# Regra complementar de precos e estoque
+
+Na rota operacional do ERP/PDV:
+
+- custo e lucro devem respeitar permissao explicita;
+- a tabela de preco do operador deve ser aplicada automaticamente;
+- o operador nao pode alternar manualmente para tabela nao autorizada;
+- o perfil de estoque continua sem permissao para venda e caixa.

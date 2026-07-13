@@ -492,3 +492,43 @@ e criar uma nova decisão explicando o motivo da mudança.
 Este documento representa a memória arquitetural do MikaON.
 
 Nenhuma decisão importante poderá existir apenas em conversas, mensagens ou commits.
+
+---
+
+# DEC-011
+
+## Assunto
+
+Listagem operacional de Produtos/Estoque.
+
+## Decisao
+
+A listagem operacional deve usar tabela compacta com filtros, busca fixa e paginacao.
+
+## Justificativa
+
+Grandes catalogos exigem alta densidade de informacao e navegacao rapida.
+
+## Impacto
+
+Novas evolucoes do ERP/Estoque nao devem retornar a cards altos como padrao de listagem.
+
+---
+
+# DEC-012
+
+## Assunto
+
+Formacao de precos no ERP/PDV.
+
+## Decisao
+
+Custo, preco varejo e preco atacado sao a base oficial. Markup e margem sao derivados desses valores.
+
+## Justificativa
+
+Evita divergencia de calculo entre cadastro, estoque e venda.
+
+## Impacto
+
+Toda tela que mostrar precos deve preservar a mesma matematica para preco unitario e indicadores.

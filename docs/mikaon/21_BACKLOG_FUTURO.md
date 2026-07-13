@@ -511,3 +511,22 @@ Sempre que surgir uma nova ideia aprovada durante uma conversa, ela deverá ser 
 # Objetivo Final
 
 Garantir que nenhuma funcionalidade importante do MikaON seja esquecida, permitindo que o roadmap evolua de forma organizada e priorizada.
+---
+
+# BACKLOG-021
+
+## Modulo
+
+ERP/Estoque
+
+## Prioridade
+
+Media
+
+## Status
+
+Planejado
+
+## Funcionalidade
+
+Evoluir a listagem operacional de Produtos/Estoque para paginacao server-side e filtros diretamente no banco quando o volume de dados tornar isso necessario.

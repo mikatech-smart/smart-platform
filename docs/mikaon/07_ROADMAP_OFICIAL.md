@@ -360,3 +360,14 @@ Principais focos:
 # Objetivo Final
 
 Transformar o MikaON em um software comercial de padrão internacional, preparado para operação real, escalável, altamente documentado, fácil de manter e competitivo com os principais ERPs do mercado.
+---
+
+# Diretriz ativa do ERP
+
+Produtos e Estoque seguem como frente prioritaria do nucleo operacional, com foco em:
+
+- alta densidade de informacao;
+- filtros fixos;
+- paginacao;
+- formacao de precos profissional;
+- suporte visual a catalogos grandes.

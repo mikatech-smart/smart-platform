@@ -15,6 +15,7 @@ import {
   listarErpPdvCategorias,
   listarErpPdvMovimentacoes,
   listarErpPdvProdutos,
+  listarErpPdvFornecedores,
   listarErpPdvUsuarios,
   listarErpPdvValesTroca,
   registrarErpPdvDevolucao,
@@ -24,6 +25,7 @@ import {
   type ErpPdvCaixaResumo,
   type ErpPdvCategoria,
   type ErpPdvCliente,
+  type ErpPdvFornecedor,
   type ErpPdvFormaPagamento,
   type ErpPdvMovimentacao,
   type ErpPdvMovimentacaoTipo,
@@ -134,9 +136,21 @@ type EstoqueProdutoForm = {
   categoriaId: string;
   codigoInterno: string;
   codigoBarras: string;
+  marca: string;
+  fabricante: string;
+  fornecedorPrincipal: string;
+  unidade: string;
+  ncm: string;
+  localizacao: string;
+  custo: string;
+  markupVarejo: string;
   precoVenda: string;
+  markupAtacado: string;
+  precoAtacado: string;
   estoqueAtual: string;
   estoqueMinimo: string;
+  estoqueMaximo: string;
+  observacoes: string;
   ativo: boolean;
 };
 
@@ -146,6 +160,23 @@ type EstoqueMovimentacaoForm = {
   quantidade: string;
   motivo: string;
   observacao: string;
+};
+
+type EstoqueStatusFiltro =
+  | "todos"
+  | "ativos"
+  | "inativos"
+  | "com_estoque"
+  | "sem_estoque"
+  | "abaixo_minimo";
+
+type EstoqueOrdenacao = "nome" | "estoque" | "varejo" | "atacado" | "custo";
+
+type ProdutoObservacoesEstruturadas = {
+  fabricante: string;
+  fornecedorPrincipal: string;
+  estoqueMaximo: string;
+  observacoesLivres: string;
 };
 
 const formasPagamento: Array<{ id: ErpPdvFormaPagamento; label: string }> = [
@@ -414,6 +445,79 @@ function obterTabelasLiberadas(usuario: ErpPdvUsuario | null) {
   return tabelasPreco.filter((item) => pode(usuario, item.permissao));
 }
 
+function formatarNumeroFormulario(valor: number) {
+  return Number.isFinite(valor) ? String(valor) : "";
+}
+
+function parseProdutoObservacoesEstruturadas(
+  observacoes: string
+): ProdutoObservacoesEstruturadas {
+  const linhas = observacoes
+    .split("\n")
+    .map((linha) => linha.trim())
+    .filter(Boolean);
+  const resultado: ProdutoObservacoesEstruturadas = {
+    fabricante: "",
+    fornecedorPrincipal: "",
+    estoqueMaximo: "",
+    observacoesLivres: "",
+  };
+  const livres: string[] = [];
+
+  linhas.forEach((linha) => {
+    const fabricante = linha.match(/^Fabricante:\s*(.+)$/i);
+    if (fabricante) {
+      resultado.fabricante = fabricante[1].trim();
+      return;
+    }
+
+    const fornecedor = linha.match(/^Fornecedor principal:\s*(.+)$/i);
+    if (fornecedor) {
+      resultado.fornecedorPrincipal = fornecedor[1].trim();
+      return;
+    }
+
+    const estoqueMaximo = linha.match(/^Estoque maximo:\s*(.+)$/i);
+    if (estoqueMaximo) {
+      resultado.estoqueMaximo = estoqueMaximo[1].trim();
+      return;
+    }
+
+    livres.push(linha);
+  });
+
+  resultado.observacoesLivres = livres.join("\n");
+  return resultado;
+}
+
+function montarProdutoObservacoesEstruturadas(form: EstoqueProdutoForm) {
+  return [
+    form.observacoes.trim(),
+    form.fabricante.trim() ? `Fabricante: ${form.fabricante.trim()}` : "",
+    form.fornecedorPrincipal.trim()
+      ? `Fornecedor principal: ${form.fornecedorPrincipal.trim()}`
+      : "",
+    form.estoqueMaximo.trim() ? `Estoque maximo: ${form.estoqueMaximo.trim()}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function calcularPrecoPorMarkup(custo: number, markup: number) {
+  if (custo <= 0 || markup <= 0) return 0;
+  return custo * markup;
+}
+
+function calcularIndicadoresPreco(custo: number, preco: number) {
+  const markup = custo > 0 && preco > 0 ? preco / custo : 0;
+  const margem = preco > 0 ? ((preco - custo) / preco) * 100 : 0;
+  return {
+    markup,
+    margem,
+    abaixoDoCusto: custo > 0 && preco > 0 && preco < custo,
+  };
+}
+
 function criarProdutoEstoqueForm(produto?: ErpPdvProduto | null): EstoqueProdutoForm {
   if (!produto) {
     return {
@@ -421,12 +525,33 @@ function criarProdutoEstoqueForm(produto?: ErpPdvProduto | null): EstoqueProduto
       categoriaId: "",
       codigoInterno: "",
       codigoBarras: "",
+      marca: "",
+      fabricante: "",
+      fornecedorPrincipal: "",
+      unidade: "un",
+      ncm: "",
+      localizacao: "",
+      custo: "",
+      markupVarejo: "",
       precoVenda: "",
+      markupAtacado: "",
+      precoAtacado: "",
       estoqueAtual: "0",
       estoqueMinimo: "0",
+      estoqueMaximo: "",
+      observacoes: "",
       ativo: true,
     };
   }
+
+  const observacoesEstruturadas = parseProdutoObservacoesEstruturadas(
+    produto.observacoes || ""
+  );
+  const indicadoresVarejo = calcularIndicadoresPreco(produto.custo, produto.preco_venda);
+  const indicadoresAtacado = calcularIndicadoresPreco(
+    produto.custo,
+    produto.preco_atacado || 0
+  );
 
   return {
     id: produto.id,
@@ -434,9 +559,25 @@ function criarProdutoEstoqueForm(produto?: ErpPdvProduto | null): EstoqueProduto
     categoriaId: produto.categoria_id || "",
     codigoInterno: produto.sku,
     codigoBarras: produto.codigo_barras,
+    marca: produto.marca || "",
+    fabricante: observacoesEstruturadas.fabricante,
+    fornecedorPrincipal: observacoesEstruturadas.fornecedorPrincipal,
+    unidade: produto.unidade || "un",
+    ncm: produto.ncm || "",
+    localizacao: produto.localizacao || "",
+    custo: formatarNumeroFormulario(produto.custo),
+    markupVarejo: indicadoresVarejo.markup
+      ? indicadoresVarejo.markup.toFixed(2)
+      : "",
     precoVenda: produto.preco_venda ? String(produto.preco_venda) : "",
+    markupAtacado: indicadoresAtacado.markup
+      ? indicadoresAtacado.markup.toFixed(2)
+      : "",
+    precoAtacado: produto.preco_atacado ? String(produto.preco_atacado) : "",
     estoqueAtual: String(produto.estoque_atual),
     estoqueMinimo: String(produto.estoque_minimo),
+    estoqueMaximo: observacoesEstruturadas.estoqueMaximo,
+    observacoes: observacoesEstruturadas.observacoesLivres,
     ativo: produto.ativo,
   };
 }
@@ -535,6 +676,7 @@ export default function PublicPdvPage() {
   const [usuarios, setUsuarios] = useState<ErpPdvUsuario[]>([]);
   const [categorias, setCategorias] = useState<ErpPdvCategoria[]>([]);
   const [clientes, setClientes] = useState<ErpPdvCliente[]>([]);
+  const [fornecedores, setFornecedores] = useState<ErpPdvFornecedor[]>([]);
   const [vales, setVales] = useState<ErpPdvValeTroca[]>([]);
   const [movimentacoes, setMovimentacoes] = useState<ErpPdvMovimentacao[]>([]);
   const [caixa, setCaixa] = useState<ErpPdvCaixa | null>(null);
@@ -556,6 +698,16 @@ export default function PublicPdvPage() {
   const [clienteSelecionado, setClienteSelecionado] =
     useState<ErpPdvCliente | null>(null);
   const [estoqueBusca, setEstoqueBusca] = useState("");
+  const [estoqueBuscaDebounced, setEstoqueBuscaDebounced] = useState("");
+  const [estoqueStatusFiltro, setEstoqueStatusFiltro] =
+    useState<EstoqueStatusFiltro>("todos");
+  const [estoqueCategoriaFiltro, setEstoqueCategoriaFiltro] = useState("");
+  const [estoqueMarcaFiltro, setEstoqueMarcaFiltro] = useState("");
+  const [estoqueFornecedorFiltro, setEstoqueFornecedorFiltro] = useState("");
+  const [estoqueOrdenacao, setEstoqueOrdenacao] =
+    useState<EstoqueOrdenacao>("nome");
+  const [estoquePagina, setEstoquePagina] = useState(1);
+  const [estoqueItensPorPagina, setEstoqueItensPorPagina] = useState(25);
   const [produtoEstoqueSelecionadoId, setProdutoEstoqueSelecionadoId] = useState("");
   const [produtoEstoqueForm, setProdutoEstoqueForm] = useState<EstoqueProdutoForm>(criarProdutoEstoqueForm());
   const [movimentacaoEstoqueForm, setMovimentacaoEstoqueForm] =
@@ -600,6 +752,10 @@ export default function PublicPdvPage() {
       vale.validade_em >= new Date().toISOString().slice(0, 10)
   );
   const valeSelecionado = valesAtivos.find((vale) => vale.id === valeId) || null;
+  const categoriasPorId = useMemo(
+    () => new Map(categorias.map((categoria) => [categoria.id, categoria])),
+    [categorias]
+  );
 
   const produtosEncontrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -615,15 +771,119 @@ export default function PublicPdvPage() {
   }, [busca, produtos]);
 
   const resultadoSelecionado = produtosEncontrados[resultadoSelecionadoIndex] || null;
+  const marcasProdutos = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          produtos
+            .map((produto) => produto.marca.trim())
+            .filter(Boolean)
+        )
+      ).sort((a, b) => a.localeCompare(b)),
+    [produtos]
+  );
+  const fornecedoresProdutos = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          produtos
+            .map(
+              (produto) =>
+                parseProdutoObservacoesEstruturadas(produto.observacoes).fornecedorPrincipal
+            )
+            .filter(Boolean)
+        )
+      ).sort((a, b) => a.localeCompare(b)),
+    [produtos]
+  );
   const produtosEstoqueFiltrados = useMemo(() => {
-    const termo = estoqueBusca.trim().toLowerCase();
-    if (!termo) return produtos;
-    return produtos.filter((produto) =>
-      [produto.nome, produto.sku, produto.codigo_barras].some((valor) =>
-        String(valor || "").toLowerCase().includes(termo)
-      )
-    );
-  }, [estoqueBusca, produtos]);
+    const termo = estoqueBuscaDebounced.trim().toLowerCase();
+    const filtrados = produtos.filter((produto) => {
+      const observacoesEstruturadas = parseProdutoObservacoesEstruturadas(
+        produto.observacoes
+      );
+      const categoriaNome =
+        categoriasPorId.get(produto.categoria_id || "")?.nome || "";
+      const atendeBusca =
+        !termo ||
+        [
+          produto.nome,
+          produto.sku,
+          produto.codigo_barras,
+          categoriaNome,
+          produto.marca,
+          observacoesEstruturadas.fornecedorPrincipal,
+          observacoesEstruturadas.fabricante,
+        ].some((valor) => String(valor || "").toLowerCase().includes(termo));
+
+      const atendeStatus =
+        estoqueStatusFiltro === "todos" ||
+        (estoqueStatusFiltro === "ativos" && produto.ativo) ||
+        (estoqueStatusFiltro === "inativos" && !produto.ativo) ||
+        (estoqueStatusFiltro === "com_estoque" && produto.estoque_atual > 0) ||
+        (estoqueStatusFiltro === "sem_estoque" && produto.estoque_atual <= 0) ||
+        (estoqueStatusFiltro === "abaixo_minimo" &&
+          produto.estoque_minimo > 0 &&
+          produto.estoque_atual <= produto.estoque_minimo);
+
+      const atendeCategoria =
+        !estoqueCategoriaFiltro || produto.categoria_id === estoqueCategoriaFiltro;
+      const atendeMarca =
+        !estoqueMarcaFiltro ||
+        produto.marca.toLowerCase() === estoqueMarcaFiltro.toLowerCase();
+      const atendeFornecedor =
+        !estoqueFornecedorFiltro ||
+        observacoesEstruturadas.fornecedorPrincipal.toLowerCase() ===
+          estoqueFornecedorFiltro.toLowerCase();
+
+      return (
+        atendeBusca &&
+        atendeStatus &&
+        atendeCategoria &&
+        atendeMarca &&
+        atendeFornecedor
+      );
+    });
+
+    return filtrados.sort((produtoA, produtoB) => {
+      if (estoqueOrdenacao === "estoque") {
+        return produtoB.estoque_atual - produtoA.estoque_atual;
+      }
+      if (estoqueOrdenacao === "varejo") {
+        return produtoB.preco_venda - produtoA.preco_venda;
+      }
+      if (estoqueOrdenacao === "atacado") {
+        return produtoB.preco_atacado - produtoA.preco_atacado;
+      }
+      if (estoqueOrdenacao === "custo") {
+        return produtoB.custo - produtoA.custo;
+      }
+      return produtoA.nome.localeCompare(produtoB.nome);
+    });
+  }, [
+    categoriasPorId,
+    estoqueBuscaDebounced,
+    estoqueCategoriaFiltro,
+    estoqueFornecedorFiltro,
+    estoqueMarcaFiltro,
+    estoqueOrdenacao,
+    estoqueStatusFiltro,
+    produtos,
+  ]);
+  const totalPaginasEstoque = Math.max(
+    1,
+    Math.ceil(produtosEstoqueFiltrados.length / estoqueItensPorPagina)
+  );
+  const produtosEstoquePaginados = useMemo(() => {
+    const paginaAtual = Math.min(estoquePagina, totalPaginasEstoque);
+    const inicio = (paginaAtual - 1) * estoqueItensPorPagina;
+    return produtosEstoqueFiltrados.slice(inicio, inicio + estoqueItensPorPagina);
+  }, [
+    estoqueItensPorPagina,
+    estoquePagina,
+    produtosEstoqueFiltrados,
+    totalPaginasEstoque,
+  ]);
   const cupomTexto = useMemo(() => (cupom ? gerarCupomTexto(cupom) : ""), [cupom]);
   const cupomHtml = useMemo(() => (cupom ? gerarCupomHtml(cupom) : ""), [cupom]);
 
@@ -657,10 +917,27 @@ export default function PublicPdvPage() {
   const podeOperarCaixa = pode(usuarioAtual, "caixa_abrir_fechar");
   const podeVender = tabelaLiberada.length > 0;
   const podeOperarEstoque = pode(usuarioAtual, "produto_salvar");
+  const podeConsultarCustoLucro = pode(usuarioAtual, "custo_lucro_consultar");
+  const podeAlterarPreco = pode(usuarioAtual, "preco_alterar");
   const podeOperarTrocas =
     pode(usuarioAtual, "devolucao_realizar") && pode(usuarioAtual, "vale_troca_emitir");
   const temModuloOperacional = podeOperarCaixa || podeVender || podeOperarTrocas || podeOperarEstoque;
   const exibirModuloEstoque = podeOperarEstoque && (!podeVender || usuarioAtual?.modulo_inicial === "estoque");
+  const custoProdutoEstoque = numero(produtoEstoqueForm.custo.replace(",", "."));
+  const precoVarejoProdutoEstoque = numero(
+    produtoEstoqueForm.precoVenda.replace(",", ".")
+  );
+  const precoAtacadoProdutoEstoque = numero(
+    produtoEstoqueForm.precoAtacado.replace(",", ".")
+  );
+  const indicadoresVarejoProdutoEstoque = calcularIndicadoresPreco(
+    custoProdutoEstoque,
+    precoVarejoProdutoEstoque
+  );
+  const indicadoresAtacadoProdutoEstoque = calcularIndicadoresPreco(
+    custoProdutoEstoque,
+    precoAtacadoProdutoEstoque
+  );
   const podeFinalizarVenda =
     Boolean(caixa) && carrinhoDetalhado.length > 0 && operador.trim().length > 0 && podeFinalizarPagamento && !salvando;
   const podeSuspenderVenda = carrinhoDetalhado.length > 0 && operador.trim().length > 0;
@@ -678,6 +955,40 @@ export default function PublicPdvPage() {
   ];
 
   const modoTelaCheiaAtivo = telaCheia || telaCheiaVisual;
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setEstoqueBuscaDebounced(estoqueBusca);
+    }, 180);
+
+    return () => window.clearTimeout(timeout);
+  }, [estoqueBusca]);
+
+  useEffect(() => {
+    setEstoquePagina(1);
+  }, [
+    estoqueBuscaDebounced,
+    estoqueCategoriaFiltro,
+    estoqueFornecedorFiltro,
+    estoqueItensPorPagina,
+    estoqueMarcaFiltro,
+    estoqueOrdenacao,
+    estoqueStatusFiltro,
+  ]);
+
+  useEffect(() => {
+    if (!tabelaLiberada.length) return;
+    if (!tabelaLiberada.some((item) => item.id === tabela)) {
+      setTabela(tabelaLiberada[0].id);
+    }
+  }, [tabela, tabelaLiberada]);
+
+  useEffect(() => {
+    if (estoquePagina > totalPaginasEstoque) {
+      setEstoquePagina(totalPaginasEstoque);
+    }
+  }, [estoquePagina, totalPaginasEstoque]);
+
   async function carregarDados() {
     if (!slug) return;
     setCarregando(true);
@@ -698,6 +1009,7 @@ export default function PublicPdvPage() {
         usuariosResultado,
         categoriasResultado,
         clientesResultado,
+        fornecedoresResultado,
         valesResultado,
         caixaResultado,
         movimentacoesResultado,
@@ -706,6 +1018,7 @@ export default function PublicPdvPage() {
         listarErpPdvUsuarios(empresaCarregada.id),
         listarErpPdvCategorias(empresaCarregada.id),
         buscarErpPdvClientes(empresaCarregada.id, ""),
+        listarErpPdvFornecedores(empresaCarregada.id),
         listarErpPdvValesTroca(empresaCarregada.id),
         buscarErpPdvCaixaAberto(empresaCarregada.id),
         listarErpPdvMovimentacoes(empresaCarregada.id),
@@ -715,6 +1028,7 @@ export default function PublicPdvPage() {
       if (usuariosResultado.error) throw usuariosResultado.error;
       if (categoriasResultado.error) throw categoriasResultado.error;
       if (clientesResultado.error) throw clientesResultado.error;
+      if (fornecedoresResultado.error) throw fornecedoresResultado.error;
       if (valesResultado.error) throw valesResultado.error;
       if (caixaResultado.error) throw caixaResultado.error;
       if (movimentacoesResultado.error) throw movimentacoesResultado.error;
@@ -723,6 +1037,7 @@ export default function PublicPdvPage() {
       setUsuarios(usuariosResultado.data);
       setCategorias(categoriasResultado.data);
       setClientes(clientesResultado.data);
+      setFornecedores(fornecedoresResultado.data);
       setVales(valesResultado.data);
       setCaixa(caixaResultado.data);
       setMovimentacoes(movimentacoesResultado.data);
@@ -1106,10 +1421,89 @@ export default function PublicPdvPage() {
     setMovimentacaoEstoqueForm(criarMovimentacaoEstoqueForm());
   }
 
+  function atualizarCampoProdutoEstoque(
+    campo: keyof EstoqueProdutoForm,
+    valor: string | boolean
+  ) {
+    setProdutoEstoqueForm((atual) => {
+      const proximo = {
+        ...atual,
+        [campo]: valor,
+      } as EstoqueProdutoForm;
+      const custo = numero(String(proximo.custo).replace(",", "."));
+
+      if (campo === "markupVarejo") {
+        const markup = numero(String(valor).replace(",", "."));
+        proximo.precoVenda =
+          custo > 0 && markup > 0
+            ? calcularPrecoPorMarkup(custo, markup).toFixed(2)
+            : "";
+      }
+
+      if (campo === "markupAtacado") {
+        const markup = numero(String(valor).replace(",", "."));
+        proximo.precoAtacado =
+          custo > 0 && markup > 0
+            ? calcularPrecoPorMarkup(custo, markup).toFixed(2)
+            : "";
+      }
+
+      if (campo === "custo" && atual.markupVarejo) {
+        const markup = numero(atual.markupVarejo.replace(",", "."));
+        if (markup > 0) {
+          proximo.precoVenda = calcularPrecoPorMarkup(custo, markup).toFixed(2);
+        }
+      }
+
+      if (campo === "custo" && atual.markupAtacado) {
+        const markup = numero(atual.markupAtacado.replace(",", "."));
+        if (markup > 0) {
+          proximo.precoAtacado = calcularPrecoPorMarkup(custo, markup).toFixed(2);
+        }
+      }
+
+      if (campo === "precoVenda") {
+        const preco = numero(String(valor).replace(",", "."));
+        const indicadores = calcularIndicadoresPreco(custo, preco);
+        proximo.markupVarejo = indicadores.markup ? indicadores.markup.toFixed(2) : "";
+      }
+
+      if (campo === "precoAtacado") {
+        const preco = numero(String(valor).replace(",", "."));
+        const indicadores = calcularIndicadoresPreco(custo, preco);
+        proximo.markupAtacado = indicadores.markup ? indicadores.markup.toFixed(2) : "";
+      }
+
+      return proximo;
+    });
+  }
+
   async function salvarProdutoEstoque() {
     if (!empresaId || !podeOperarEstoque) return;
     if (!produtoEstoqueForm.nome.trim()) {
       setFeedbackOperacao({ tipo: "erro", texto: "Informe o nome do produto." });
+      return;
+    }
+    if (
+      numero(produtoEstoqueForm.custo.replace(",", ".")) < 0 ||
+      numero(produtoEstoqueForm.precoVenda.replace(",", ".")) < 0 ||
+      numero(produtoEstoqueForm.precoAtacado.replace(",", ".")) < 0
+    ) {
+      setFeedbackOperacao({
+        tipo: "erro",
+        texto: "Custo e precos nao podem ser negativos.",
+      });
+      return;
+    }
+    if (
+      numero(produtoEstoqueForm.estoqueAtual.replace(",", ".")) < 0 ||
+      numero(produtoEstoqueForm.estoqueMinimo.replace(",", ".")) < 0 ||
+      numero(produtoEstoqueForm.estoqueMaximo.replace(",", ".")) < 0
+    ) {
+      setFeedbackOperacao({
+        tipo: "erro",
+        texto: "Estoques atual, minimo e maximo nao podem ser negativos.",
+      });
       return;
     }
 
@@ -1120,18 +1514,18 @@ export default function PublicPdvPage() {
       nome: produtoEstoqueForm.nome,
       codigoBarras: produtoEstoqueForm.codigoBarras,
       sku: produtoEstoqueForm.codigoInterno,
-      marca: "",
-      custo: 0,
+      marca: produtoEstoqueForm.marca,
+      custo: numero(produtoEstoqueForm.custo.replace(",", ".")),
       precoVenda: numero(produtoEstoqueForm.precoVenda.replace(",", ".")),
-      precoAtacado: 0,
+      precoAtacado: numero(produtoEstoqueForm.precoAtacado.replace(",", ".")),
       precoRevenda: 0,
       precoPersonalizado: 0,
       formacaoPrecoTipo: "manual",
       percentualPreco: 0,
-      unidade: "un",
-      localizacao: "",
-      ncm: "",
-      observacoes: "",
+      unidade: produtoEstoqueForm.unidade || "un",
+      localizacao: produtoEstoqueForm.localizacao,
+      ncm: produtoEstoqueForm.ncm,
+      observacoes: montarProdutoObservacoesEstruturadas(produtoEstoqueForm),
       imagemUrl: "",
       estoqueAtual: numero(produtoEstoqueForm.estoqueAtual.replace(",", ".")),
       estoqueMinimo: numero(produtoEstoqueForm.estoqueMinimo.replace(",", ".")),
@@ -1870,212 +2264,585 @@ export default function PublicPdvPage() {
           <section className="public-pdv-panel public-pdv-stock-products">
             <div className="public-pdv-section-title">
               <h2>Produtos / Estoque</h2>
-              <small>{produtosEstoqueFiltrados.length} produto(s)</small>
+              <small>
+                {produtosEstoqueFiltrados.length} produto(s) | Pagina {Math.min(estoquePagina, totalPaginasEstoque)} de {totalPaginasEstoque}
+              </small>
             </div>
-            <div className="public-pdv-inline">
+            <div className="public-pdv-stock-toolbar">
               <input
                 value={estoqueBusca}
                 onChange={(e) => setEstoqueBusca(e.target.value)}
-                placeholder="Buscar por nome, codigo interno ou codigo de barras"
+                placeholder="Nome, SKU, GTIN, codigo de barras, categoria, marca ou fornecedor"
               />
+              <select
+                value={estoqueStatusFiltro}
+                onChange={(e) =>
+                  setEstoqueStatusFiltro(e.target.value as EstoqueStatusFiltro)
+                }
+              >
+                <option value="todos">Todos</option>
+                <option value="ativos">Ativos</option>
+                <option value="inativos">Inativos</option>
+                <option value="com_estoque">Com estoque</option>
+                <option value="sem_estoque">Sem estoque</option>
+                <option value="abaixo_minimo">Abaixo do minimo</option>
+              </select>
+              <select
+                value={estoqueCategoriaFiltro}
+                onChange={(e) => setEstoqueCategoriaFiltro(e.target.value)}
+              >
+                <option value="">Todas categorias</option>
+                {categorias.map((categoria) => (
+                  <option key={categoria.id} value={categoria.id}>
+                    {categoria.nome}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={estoqueMarcaFiltro}
+                onChange={(e) => setEstoqueMarcaFiltro(e.target.value)}
+              >
+                <option value="">Todas marcas</option>
+                {marcasProdutos.map((marca) => (
+                  <option key={marca} value={marca}>
+                    {marca}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={estoqueFornecedorFiltro}
+                onChange={(e) => setEstoqueFornecedorFiltro(e.target.value)}
+              >
+                <option value="">Todos fornecedores</option>
+                {fornecedoresProdutos.map((fornecedor) => (
+                  <option key={fornecedor} value={fornecedor}>
+                    {fornecedor}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={estoqueOrdenacao}
+                onChange={(e) =>
+                  setEstoqueOrdenacao(e.target.value as EstoqueOrdenacao)
+                }
+              >
+                <option value="nome">Ordenar por nome</option>
+                <option value="estoque">Ordenar por estoque</option>
+                <option value="varejo">Ordenar por varejo</option>
+                <option value="atacado">Ordenar por atacado</option>
+                {podeConsultarCustoLucro && (
+                  <option value="custo">Ordenar por custo</option>
+                )}
+              </select>
+              <select
+                value={String(estoqueItensPorPagina)}
+                onChange={(e) => setEstoqueItensPorPagina(Number(e.target.value) || 25)}
+              >
+                <option value="25">25 por pagina</option>
+                <option value="50">50 por pagina</option>
+                <option value="100">100 por pagina</option>
+              </select>
               <button type="button" onClick={novoProdutoEstoque}>Novo produto</button>
             </div>
-            <div className="public-pdv-stock-product-list">
-              {produtosEstoqueFiltrados.length ? (
-                produtosEstoqueFiltrados.map((produto) => (
-                  <button
-                    key={produto.id}
-                    type="button"
-                    className={`public-pdv-stock-product-card ${produtoEstoqueSelecionadoId === produto.id ? "public-pdv-stock-product-card--active" : ""}`}
-                    onClick={() => selecionarProdutoEstoque(produto)}
-                  >
-                    <strong title={produto.nome}>{produto.nome}</strong>
-                    <span>Cod. interno: {produto.sku || "-"}</span>
-                    <span>Cod. barras: {produto.codigo_barras || "-"}</span>
-                    <span>Estoque: {produto.estoque_atual}</span>
-                    <span>Min.: {produto.estoque_minimo}</span>
-                    <span>Venda: R$ {moeda(produto.preco_venda)}</span>
-                    <small>{produto.ativo ? "Ativo" : "Inativo"}</small>
-                  </button>
-                ))
-              ) : (
-                <div className="public-pdv-no-results">Nenhum produto encontrado.</div>
-              )}
+            <div className="public-pdv-stock-table">
+              <div className="public-pdv-stock-table-header">
+                <span>Codigo</span>
+                <span>Barras</span>
+                <span>Produto</span>
+                <span>Estoque</span>
+                <span>Min.</span>
+                <span>Custo</span>
+                <span>Varejo</span>
+                <span>Atacado</span>
+                <span>Status</span>
+              </div>
+              <div className="public-pdv-stock-table-body">
+                {produtosEstoquePaginados.length ? (
+                  produtosEstoquePaginados.map((produto) => {
+                    const observacoesEstruturadas =
+                      parseProdutoObservacoesEstruturadas(produto.observacoes);
+                    const categoriaNome =
+                      categoriasPorId.get(produto.categoria_id || "")?.nome || "Sem categoria";
+                    return (
+                      <button
+                        key={produto.id}
+                        type="button"
+                        className={`public-pdv-stock-table-row ${
+                          produtoEstoqueSelecionadoId === produto.id
+                            ? "public-pdv-stock-table-row--active"
+                            : ""
+                        }`}
+                        onClick={() => selecionarProdutoEstoque(produto)}
+                      >
+                        <span>{produto.sku || "-"}</span>
+                        <span>{produto.codigo_barras || "-"}</span>
+                        <span className="public-pdv-stock-table-product">
+                          <strong title={produto.nome}>{produto.nome}</strong>
+                          <small title={`${categoriaNome}${produto.marca ? ` | ${produto.marca}` : ""}${observacoesEstruturadas.fornecedorPrincipal ? ` | ${observacoesEstruturadas.fornecedorPrincipal}` : ""}`}>
+                            {categoriaNome}
+                            {produto.marca ? ` | ${produto.marca}` : ""}
+                            {observacoesEstruturadas.fornecedorPrincipal
+                              ? ` | ${observacoesEstruturadas.fornecedorPrincipal}`
+                              : ""}
+                          </small>
+                        </span>
+                        <span>{produto.estoque_atual}</span>
+                        <span>{produto.estoque_minimo}</span>
+                        <span>
+                          {podeConsultarCustoLucro
+                            ? `R$ ${moeda(produto.custo)}`
+                            : "Oculto"}
+                        </span>
+                        <span>R$ {moeda(produto.preco_venda)}</span>
+                        <span>
+                          R$ {moeda(produto.preco_atacado || produto.preco_venda)}
+                        </span>
+                        <span>
+                          <small
+                            className={`public-pdv-stock-status ${
+                              produto.ativo
+                                ? produto.estoque_minimo > 0 &&
+                                  produto.estoque_atual <= produto.estoque_minimo
+                                  ? "public-pdv-stock-status--warning"
+                                  : "public-pdv-stock-status--success"
+                                : "public-pdv-stock-status--muted"
+                            }`}
+                          >
+                            {produto.ativo ? "Ativo" : "Inativo"}
+                          </small>
+                        </span>
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="public-pdv-no-results">Nenhum produto encontrado.</div>
+                )}
+              </div>
+            </div>
+            <div className="public-pdv-stock-pagination">
+              <button
+                type="button"
+                onClick={() => setEstoquePagina((pagina) => Math.max(1, pagina - 1))}
+                disabled={estoquePagina <= 1}
+              >
+                Anterior
+              </button>
+              <strong>
+                {Math.min(estoquePagina, totalPaginasEstoque)} / {totalPaginasEstoque}
+              </strong>
+              <button
+                type="button"
+                onClick={() =>
+                  setEstoquePagina((pagina) =>
+                    Math.min(totalPaginasEstoque, pagina + 1)
+                  )
+                }
+                disabled={estoquePagina >= totalPaginasEstoque}
+              >
+                Proxima
+              </button>
             </div>
           </section>
 
           <section className="public-pdv-panel public-pdv-stock-editor">
             <div className="public-pdv-section-title">
               <h2>{produtoEstoqueForm.id ? "Editar produto" : "Novo produto"}</h2>
-              <small>{usuarioAtual.perfil === "estoque" ? "Perfil estoque" : obterLabelPerfil(usuarioAtual)}</small>
+              <small>
+                {usuarioAtual.perfil === "estoque"
+                  ? "Perfil estoque"
+                  : obterLabelPerfil(usuarioAtual)}
+              </small>
             </div>
 
-            <div className="public-pdv-stock-form">
-              <label>
-                Nome
-                <input
-                  value={produtoEstoqueForm.nome}
-                  onChange={(e) => setProdutoEstoqueForm((atual) => ({ ...atual, nome: e.target.value }))}
-                />
-              </label>
-              <label>
-                Categoria
-                <select
-                  value={produtoEstoqueForm.categoriaId}
-                  onChange={(e) => setProdutoEstoqueForm((atual) => ({ ...atual, categoriaId: e.target.value }))}
-                >
-                  <option value="">Sem categoria</option>
-                  {categorias.map((categoria) => (
-                    <option key={categoria.id} value={categoria.id}>{categoria.nome}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Codigo interno
-                <input
-                  value={produtoEstoqueForm.codigoInterno}
-                  onChange={(e) => setProdutoEstoqueForm((atual) => ({ ...atual, codigoInterno: e.target.value }))}
-                />
-              </label>
-              <label>
-                Codigo de barras
-                <input
-                  value={produtoEstoqueForm.codigoBarras}
-                  onChange={(e) => setProdutoEstoqueForm((atual) => ({ ...atual, codigoBarras: e.target.value }))}
-                />
-              </label>
-              <label>
-                Preco de venda
-                <input
-                  inputMode="decimal"
-                  value={produtoEstoqueForm.precoVenda}
-                  onChange={(e) => setProdutoEstoqueForm((atual) => ({ ...atual, precoVenda: e.target.value }))}
-                />
-              </label>
-              <label>
-                Estoque atual
-                <input
-                  inputMode="decimal"
-                  value={produtoEstoqueForm.estoqueAtual}
-                  onChange={(e) => setProdutoEstoqueForm((atual) => ({ ...atual, estoqueAtual: e.target.value }))}
-                />
-              </label>
-              <label>
-                Estoque minimo
-                <input
-                  inputMode="decimal"
-                  value={produtoEstoqueForm.estoqueMinimo}
-                  onChange={(e) => setProdutoEstoqueForm((atual) => ({ ...atual, estoqueMinimo: e.target.value }))}
-                />
-              </label>
-              <label className="public-pdv-stock-toggle">
-                <input
-                  type="checkbox"
-                  checked={produtoEstoqueForm.ativo}
-                  onChange={(e) => setProdutoEstoqueForm((atual) => ({ ...atual, ativo: e.target.checked }))}
-                />
-                Produto ativo
-              </label>
-            </div>
+            <div className="public-pdv-stock-editor-scroll">
+              <section className="public-pdv-stock-section">
+                <div className="public-pdv-stock-section-header">
+                  <h3>Identificacao</h3>
+                  <small>Base unica compartilhada com ERP e PDV</small>
+                </div>
+                <div className="public-pdv-stock-form public-pdv-stock-form--three-columns">
+                  <label>
+                    Nome
+                    <input
+                      value={produtoEstoqueForm.nome}
+                      onChange={(e) =>
+                        atualizarCampoProdutoEstoque("nome", e.target.value)
+                      }
+                    />
+                  </label>
+                  <label>
+                    Categoria
+                    <select
+                      value={produtoEstoqueForm.categoriaId}
+                      onChange={(e) =>
+                        atualizarCampoProdutoEstoque("categoriaId", e.target.value)
+                      }
+                    >
+                      <option value="">Sem categoria</option>
+                      {categorias.map((categoria) => (
+                        <option key={categoria.id} value={categoria.id}>
+                          {categoria.nome}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Unidade
+                    <input
+                      value={produtoEstoqueForm.unidade}
+                      onChange={(e) =>
+                        atualizarCampoProdutoEstoque("unidade", e.target.value)
+                      }
+                    />
+                  </label>
+                  <label>
+                    Codigo interno
+                    <input
+                      value={produtoEstoqueForm.codigoInterno}
+                      onChange={(e) =>
+                        atualizarCampoProdutoEstoque("codigoInterno", e.target.value)
+                      }
+                    />
+                  </label>
+                  <label>
+                    Codigo de barras / GTIN
+                    <input
+                      value={produtoEstoqueForm.codigoBarras}
+                      onChange={(e) =>
+                        atualizarCampoProdutoEstoque("codigoBarras", e.target.value)
+                      }
+                    />
+                  </label>
+                  <label>
+                    NCM
+                    <input
+                      value={produtoEstoqueForm.ncm}
+                      onChange={(e) =>
+                        atualizarCampoProdutoEstoque("ncm", e.target.value)
+                      }
+                    />
+                  </label>
+                  <label>
+                    Marca
+                    <input
+                      value={produtoEstoqueForm.marca}
+                      onChange={(e) =>
+                        atualizarCampoProdutoEstoque("marca", e.target.value)
+                      }
+                    />
+                  </label>
+                  <label>
+                    Fabricante
+                    <input
+                      value={produtoEstoqueForm.fabricante}
+                      onChange={(e) =>
+                        atualizarCampoProdutoEstoque("fabricante", e.target.value)
+                      }
+                    />
+                  </label>
+                  <label>
+                    Fornecedor principal
+                    <input
+                      list="pdv-fornecedores"
+                      value={produtoEstoqueForm.fornecedorPrincipal}
+                      onChange={(e) =>
+                        atualizarCampoProdutoEstoque(
+                          "fornecedorPrincipal",
+                          e.target.value
+                        )
+                      }
+                    />
+                    <datalist id="pdv-fornecedores">
+                      {fornecedores.map((fornecedor) => (
+                        <option
+                          key={fornecedor.id}
+                          value={fornecedor.nome_fantasia || fornecedor.razao_social}
+                        />
+                      ))}
+                    </datalist>
+                  </label>
+                  <label className="public-pdv-stock-toggle">
+                    <input
+                      type="checkbox"
+                      checked={produtoEstoqueForm.ativo}
+                      onChange={(e) =>
+                        atualizarCampoProdutoEstoque("ativo", e.target.checked)
+                      }
+                    />
+                    Produto ativo
+                  </label>
+                </div>
+              </section>
 
-            <div className="public-pdv-secondary-actions public-pdv-secondary-actions--compact">
-              <button type="button" disabled={salvando} onClick={salvarProdutoEstoque}>Salvar produto</button>
-              <button type="button" onClick={novoProdutoEstoque}>Limpar</button>
-            </div>
-
-            <section className="public-pdv-stock-movement">
-              <div className="public-pdv-section-title">
-                <h2>Movimentar estoque</h2>
-                <small>Entrada, saida e ajuste</small>
-              </div>
-              <div className="public-pdv-stock-form">
-                <label>
-                  Produto
-                  <select
-                    value={movimentacaoEstoqueForm.produtoId}
-                    onChange={(e) =>
-                      setMovimentacaoEstoqueForm((atual) => ({ ...atual, produtoId: e.target.value }))
-                    }
-                  >
-                    <option value="">Selecione um produto</option>
-                    {produtos.map((produto) => (
-                      <option key={produto.id} value={produto.id}>{produto.nome}</option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Tipo
-                  <select
-                    value={movimentacaoEstoqueForm.tipo}
-                    onChange={(e) =>
-                      setMovimentacaoEstoqueForm((atual) => ({
-                        ...atual,
-                        tipo: e.target.value as Exclude<ErpPdvMovimentacaoTipo, "venda">,
-                      }))
-                    }
-                  >
-                    <option value="entrada">Entrada</option>
-                    <option value="saida">Saida</option>
-                    <option value="ajuste">Ajuste</option>
-                  </select>
-                </label>
-                <label>
-                  Quantidade
-                  <input
-                    inputMode="decimal"
-                    value={movimentacaoEstoqueForm.quantidade}
-                    onChange={(e) =>
-                      setMovimentacaoEstoqueForm((atual) => ({ ...atual, quantidade: e.target.value }))
-                    }
-                  />
-                </label>
-                <label>
-                  Motivo
-                  <input
-                    value={movimentacaoEstoqueForm.motivo}
-                    onChange={(e) =>
-                      setMovimentacaoEstoqueForm((atual) => ({ ...atual, motivo: e.target.value }))
-                    }
-                  />
-                </label>
-                <label>
-                  Observacao
-                  <textarea
-                    value={movimentacaoEstoqueForm.observacao}
-                    onChange={(e) =>
-                      setMovimentacaoEstoqueForm((atual) => ({ ...atual, observacao: e.target.value }))
-                    }
-                  />
-                </label>
-              </div>
-              <button type="button" disabled={salvando} onClick={registrarMovimentacaoEstoque}>
-                Registrar movimentacao
-              </button>
-            </section>
-
-            <section className="public-pdv-stock-history">
-              <div className="public-pdv-section-title">
-                <h2>Historico</h2>
-                <small>{movimentacoes.length}</small>
-              </div>
-              <div className="public-pdv-stock-history-list">
-                {movimentacoes.length ? (
-                  movimentacoes.slice(0, 20).map((movimentacao) => {
-                    const produto = produtosPorId.get(movimentacao.produto_id);
-                    return (
-                      <div key={movimentacao.id} className="public-pdv-stock-history-item">
-                        <strong>{produto?.nome || "Produto"}</strong>
-                        <span>{movimentacao.tipo} · {movimentacao.quantidade} un.</span>
-                        <span>Estoque: {movimentacao.estoque_anterior} → {movimentacao.estoque_posterior}</span>
-                        <small>{movimentacao.motivo} · {new Date(movimentacao.created_at).toLocaleString("pt-BR")}</small>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <p>Nenhuma movimentacao registrada.</p>
+              <section className="public-pdv-stock-section">
+                <div className="public-pdv-stock-section-header">
+                  <h3>Custos e precos</h3>
+                  <small>Varejo e atacado independentes</small>
+                </div>
+                <div className="public-pdv-stock-form public-pdv-stock-form--prices">
+                  <label>
+                    Custo
+                    <input
+                      inputMode="decimal"
+                      value={produtoEstoqueForm.custo}
+                      onChange={(e) =>
+                        atualizarCampoProdutoEstoque("custo", e.target.value)
+                      }
+                      disabled={!podeConsultarCustoLucro || !podeAlterarPreco}
+                    />
+                  </label>
+                  <label>
+                    Markup varejo
+                    <input
+                      inputMode="decimal"
+                      value={produtoEstoqueForm.markupVarejo}
+                      onChange={(e) =>
+                        atualizarCampoProdutoEstoque("markupVarejo", e.target.value)
+                      }
+                      disabled={!podeConsultarCustoLucro || !podeAlterarPreco}
+                    />
+                  </label>
+                  <label>
+                    Preco varejo
+                    <input
+                      inputMode="decimal"
+                      value={produtoEstoqueForm.precoVenda}
+                      onChange={(e) =>
+                        atualizarCampoProdutoEstoque("precoVenda", e.target.value)
+                      }
+                      disabled={!podeAlterarPreco}
+                    />
+                  </label>
+                  <label className="public-pdv-stock-metric">
+                    <span>Margem varejo</span>
+                    <strong>
+                      {indicadoresVarejoProdutoEstoque.margem.toLocaleString("pt-BR", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                      %
+                    </strong>
+                  </label>
+                  <label>
+                    Markup atacado
+                    <input
+                      inputMode="decimal"
+                      value={produtoEstoqueForm.markupAtacado}
+                      onChange={(e) =>
+                        atualizarCampoProdutoEstoque("markupAtacado", e.target.value)
+                      }
+                      disabled={!podeConsultarCustoLucro || !podeAlterarPreco}
+                    />
+                  </label>
+                  <label>
+                    Preco atacado
+                    <input
+                      inputMode="decimal"
+                      value={produtoEstoqueForm.precoAtacado}
+                      onChange={(e) =>
+                        atualizarCampoProdutoEstoque("precoAtacado", e.target.value)
+                      }
+                      disabled={!podeAlterarPreco}
+                    />
+                  </label>
+                  <label className="public-pdv-stock-metric">
+                    <span>Margem atacado</span>
+                    <strong>
+                      {indicadoresAtacadoProdutoEstoque.margem.toLocaleString("pt-BR", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                      %
+                    </strong>
+                  </label>
+                </div>
+                {!podeConsultarCustoLucro && (
+                  <p className="public-pdv-stock-note">
+                    Custo, margem e indicadores sensiveis ficam ocultos para este perfil.
+                  </p>
                 )}
+              </section>
+
+              <section className="public-pdv-stock-section">
+                <div className="public-pdv-stock-section-header">
+                  <h3>Estoque</h3>
+                  <small>Saldo, minimo, maximo e localizacao</small>
+                </div>
+                <div className="public-pdv-stock-form public-pdv-stock-form--three-columns">
+                  <label>
+                    Estoque atual
+                    <input
+                      inputMode="decimal"
+                      value={produtoEstoqueForm.estoqueAtual}
+                      onChange={(e) =>
+                        atualizarCampoProdutoEstoque("estoqueAtual", e.target.value)
+                      }
+                    />
+                  </label>
+                  <label>
+                    Estoque minimo
+                    <input
+                      inputMode="decimal"
+                      value={produtoEstoqueForm.estoqueMinimo}
+                      onChange={(e) =>
+                        atualizarCampoProdutoEstoque("estoqueMinimo", e.target.value)
+                      }
+                    />
+                  </label>
+                  <label>
+                    Estoque maximo
+                    <input
+                      inputMode="decimal"
+                      value={produtoEstoqueForm.estoqueMaximo}
+                      onChange={(e) =>
+                        atualizarCampoProdutoEstoque("estoqueMaximo", e.target.value)
+                      }
+                    />
+                  </label>
+                  <label className="public-pdv-stock-form--full">
+                    Localizacao
+                    <input
+                      value={produtoEstoqueForm.localizacao}
+                      onChange={(e) =>
+                        atualizarCampoProdutoEstoque("localizacao", e.target.value)
+                      }
+                    />
+                  </label>
+                  <label className="public-pdv-stock-form--full">
+                    Observacoes
+                    <textarea
+                      value={produtoEstoqueForm.observacoes}
+                      onChange={(e) =>
+                        atualizarCampoProdutoEstoque("observacoes", e.target.value)
+                      }
+                    />
+                  </label>
+                </div>
+              </section>
+
+              <div className="public-pdv-secondary-actions public-pdv-secondary-actions--compact">
+                <button type="button" disabled={salvando} onClick={salvarProdutoEstoque}>
+                  Salvar produto
+                </button>
+                <button type="button" onClick={novoProdutoEstoque}>Limpar</button>
               </div>
-            </section>
+
+              <section className="public-pdv-stock-section public-pdv-stock-movement">
+                <div className="public-pdv-stock-section-header">
+                  <h3>Movimentar estoque</h3>
+                  <small>Entrada, saida e ajuste</small>
+                </div>
+                <div className="public-pdv-stock-form">
+                  <label>
+                    Produto
+                    <select
+                      value={movimentacaoEstoqueForm.produtoId}
+                      onChange={(e) =>
+                        setMovimentacaoEstoqueForm((atual) => ({
+                          ...atual,
+                          produtoId: e.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">Selecione um produto</option>
+                      {produtos.map((produto) => (
+                        <option key={produto.id} value={produto.id}>
+                          {produto.nome}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Tipo
+                    <select
+                      value={movimentacaoEstoqueForm.tipo}
+                      onChange={(e) =>
+                        setMovimentacaoEstoqueForm((atual) => ({
+                          ...atual,
+                          tipo: e.target.value as Exclude<ErpPdvMovimentacaoTipo, "venda">,
+                        }))
+                      }
+                    >
+                      <option value="entrada">Entrada</option>
+                      <option value="saida">Saida</option>
+                      <option value="ajuste">Ajuste</option>
+                    </select>
+                  </label>
+                  <label>
+                    Quantidade
+                    <input
+                      inputMode="decimal"
+                      value={movimentacaoEstoqueForm.quantidade}
+                      onChange={(e) =>
+                        setMovimentacaoEstoqueForm((atual) => ({
+                          ...atual,
+                          quantidade: e.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label>
+                    Motivo
+                    <input
+                      value={movimentacaoEstoqueForm.motivo}
+                      onChange={(e) =>
+                        setMovimentacaoEstoqueForm((atual) => ({
+                          ...atual,
+                          motivo: e.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="public-pdv-stock-form--full">
+                    Observacao
+                    <textarea
+                      value={movimentacaoEstoqueForm.observacao}
+                      onChange={(e) =>
+                        setMovimentacaoEstoqueForm((atual) => ({
+                          ...atual,
+                          observacao: e.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                </div>
+                <button type="button" disabled={salvando} onClick={registrarMovimentacaoEstoque}>
+                  Registrar movimentacao
+                </button>
+              </section>
+
+              <section className="public-pdv-stock-section public-pdv-stock-history">
+                <div className="public-pdv-stock-section-header">
+                  <h3>Historico</h3>
+                  <small>{movimentacoes.length} movimentacao(oes)</small>
+                </div>
+                <div className="public-pdv-stock-history-list">
+                  {movimentacoes.length ? (
+                    movimentacoes.slice(0, 20).map((movimentacao) => {
+                      const produto = produtosPorId.get(movimentacao.produto_id);
+                      return (
+                        <div key={movimentacao.id} className="public-pdv-stock-history-item">
+                          <strong>{produto?.nome || "Produto"}</strong>
+                          <span>
+                            {movimentacao.tipo} · {movimentacao.quantidade} un.
+                          </span>
+                          <span>
+                            Estoque: {movimentacao.estoque_anterior} →{" "}
+                            {movimentacao.estoque_posterior}
+                          </span>
+                          <small>
+                            {movimentacao.motivo} ·{" "}
+                            {new Date(movimentacao.created_at).toLocaleString("pt-BR")}
+                          </small>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p>Nenhuma movimentacao registrada.</p>
+                  )}
+                </div>
+              </section>
+            </div>
           </section>
         </section>
       )}

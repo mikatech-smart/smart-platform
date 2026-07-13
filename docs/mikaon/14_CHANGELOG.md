@@ -310,3 +310,19 @@ Nenhuma funcionalidade importante deverá ser implementada sem registro no Chang
 # Objetivo Final
 
 Permitir que qualquer desenvolvedor compreenda rapidamente a evolução do MikaON apenas consultando este documento.
+
+---
+
+# Sprint 178 - Produtos/Estoque profissional
+
+Resumo
+
+- substituicao dos cards grandes por tabela compacta;
+- pesquisa fixa, filtros operacionais e paginacao;
+- painel lateral para edicao de produto;
+- organizacao de custo, varejo, atacado, markup e margem;
+- ajuste automatico da tabela de preco permitida ao operador.
+
+Impacto
+
+Melhora significativa da densidade visual e da escalabilidade da area operacional de estoque, sem alterar a frente de caixa validada.

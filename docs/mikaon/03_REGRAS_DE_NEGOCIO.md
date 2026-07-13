@@ -363,3 +363,14 @@ Sempre:
 # Atualização deste documento
 
 Sempre que uma regra permanente for criada ou alterada, este documento deverá ser atualizado antes da conclusão da Sprint.
+---
+
+# Regras permanentes de preco e estoque
+
+Na operacao de Produtos/Estoque do ERP/PDV:
+
+- custo, preco varejo e preco atacado sao dados-fonte;
+- markup e margem sao indicadores derivados;
+- varejo e atacado devem permanecer independentes;
+- custo e indicadores sensiveis nao podem aparecer para perfis sem permissao;
+- listagens grandes devem priorizar tabela compacta, filtros e paginacao.

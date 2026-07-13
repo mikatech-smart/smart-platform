@@ -273,3 +273,27 @@ Adicionar observações quando necessário.
 # Objetivo Final
 
 Construir uma base histórica de qualidade do MikaON, permitindo identificar rapidamente problemas recorrentes e evitar regressões em futuras versões.
+
+---
+
+## BUG-0007
+
+Sprint
+
+178
+
+Modulo
+
+ERP/PDV
+
+Descricao
+
+A area operacional de Produtos/Estoque utilizava cards altos, escondia a pesquisa e dificultava operacao com catalogos grandes.
+
+Status
+
+Corrigido.
+
+Observacao
+
+A listagem passou a usar tabela compacta com filtros, paginacao e painel lateral de edicao.

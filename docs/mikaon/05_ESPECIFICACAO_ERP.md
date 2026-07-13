@@ -379,3 +379,16 @@ Características:
 # Objetivo Final
 
 Construir um ERP moderno, rápido e altamente escalável, preparado para atender desde pequenas empresas até operações complexas, mantendo simplicidade para o usuário e uma arquitetura consistente para evolução contínua.
+
+---
+
+# Complemento operacional de Produtos/Estoque
+
+O modulo operacional de Produtos/Estoque deve adotar:
+
+- pesquisa fixa e sempre visivel;
+- filtros compactos no topo;
+- paginacao da listagem;
+- tabela compacta em vez de cards altos;
+- edicao em painel lateral;
+- formacao de precos com custo, varejo, atacado, markup e margem.
