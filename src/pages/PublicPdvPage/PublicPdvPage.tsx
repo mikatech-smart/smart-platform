@@ -518,6 +518,34 @@ function calcularIndicadoresPreco(custo: number, preco: number) {
   };
 }
 
+function obterStatusProdutoEstoque(produto: ErpPdvProduto) {
+  if (!produto.ativo) {
+    return {
+      label: "Inativo",
+      className: "public-pdv-stock-status--muted",
+    };
+  }
+
+  if (produto.estoque_atual <= 0) {
+    return {
+      label: "Sem estoque",
+      className: "public-pdv-stock-status--danger",
+    };
+  }
+
+  if (produto.estoque_minimo > 0 && produto.estoque_atual <= produto.estoque_minimo) {
+    return {
+      label: "Estoque baixo",
+      className: "public-pdv-stock-status--warning",
+    };
+  }
+
+  return {
+    label: "Ativo",
+    className: "public-pdv-stock-status--success",
+  };
+}
+
 function criarProdutoEstoqueForm(produto?: ErpPdvProduto | null): EstoqueProdutoForm {
   if (!produto) {
     return {
@@ -2363,6 +2391,7 @@ export default function PublicPdvPage() {
                       parseProdutoObservacoesEstruturadas(produto.observacoes);
                     const categoriaNome =
                       categoriasPorId.get(produto.categoria_id || "")?.nome || "Sem categoria";
+                    const statusProduto = obterStatusProdutoEstoque(produto);
                     return (
                       <button
                         key={produto.id}
@@ -2399,16 +2428,9 @@ export default function PublicPdvPage() {
                         </span>
                         <span>
                           <small
-                            className={`public-pdv-stock-status ${
-                              produto.ativo
-                                ? produto.estoque_minimo > 0 &&
-                                  produto.estoque_atual <= produto.estoque_minimo
-                                  ? "public-pdv-stock-status--warning"
-                                  : "public-pdv-stock-status--success"
-                                : "public-pdv-stock-status--muted"
-                            }`}
+                            className={`public-pdv-stock-status ${statusProduto.className}`}
                           >
-                            {produto.ativo ? "Ativo" : "Inativo"}
+                            {statusProduto.label}
                           </small>
                         </span>
                       </button>

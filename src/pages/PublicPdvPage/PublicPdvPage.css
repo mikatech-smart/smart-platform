@@ -2613,8 +2613,10 @@
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
-  border: 1px solid #dbe3ef;
+  border: 1px solid #d8e1eb;
   border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
   overflow: hidden;
 }
 
@@ -2638,41 +2640,52 @@
 
 .public-pdv-stock-table-header {
   min-height: 38px;
-  border-bottom: 1px solid #dbe3ef;
-  background: #f8fafc;
-  color: #64748b;
+  border-bottom: 1px solid #0f766e;
+  background: #0f766e;
+  color: #ffffff;
   font-size: 11px;
   font-weight: 900;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
 .public-pdv-stock-table-body {
   gap: 0;
+  background: #ffffff;
 }
 
 .public-pdv-stock-table-row {
   min-height: 38px;
   border: 0;
-  border-bottom: 1px solid #eef2f7;
+  border-bottom: 1px solid #edf2f7;
   background: #ffffff;
   color: #0f172a;
   font-size: 12px;
   font-weight: 700;
   text-align: left;
+  transition: background-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.public-pdv-stock-table-row:nth-child(even) {
+  background: #f8fafc;
 }
 
 .public-pdv-stock-table-row:last-child {
   border-bottom: 0;
 }
 
-.public-pdv-stock-table-row:hover,
-.public-pdv-stock-table-row:focus-visible,
-.public-pdv-stock-table-row--active {
+.public-pdv-stock-table-row:hover {
+  background: #f1f5f9;
+}
+
+.public-pdv-stock-table-row:focus-visible {
   background: #ecfdf5;
+  outline: none;
 }
 
 .public-pdv-stock-table-row--active {
-  box-shadow: inset 3px 0 0 #10b981;
+  background: #ecfdf5 !important;
+  box-shadow: inset 3px 0 0 #059669;
 }
 
 .public-pdv-stock-table-row span {
@@ -2704,12 +2717,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 24px;
+  min-height: 22px;
   border-radius: 999px;
-  padding: 0 8px;
+  padding: 0 7px;
   background: #e2e8f0;
   color: #475569;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 900;
 }
 
@@ -2723,9 +2736,14 @@
   color: #92400e;
 }
 
+.public-pdv-stock-status--danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
 .public-pdv-stock-status--muted {
-  background: #e2e8f0;
-  color: #475569;
+  background: #e5e7eb;
+  color: #6b7280;
 }
 
 .public-pdv-stock-pagination {
@@ -2765,11 +2783,39 @@
 .public-pdv-stock-form select,
 .public-pdv-stock-form textarea {
   min-height: 38px;
+  border: 1px solid #dbe3ef;
   border-radius: 8px;
+  background: #ffffff;
+  box-shadow: none;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
 }
 
 .public-pdv-stock-form textarea {
   min-height: 86px;
+}
+
+.public-pdv-stock-toolbar input,
+.public-pdv-stock-toolbar select,
+.public-pdv-stock-pagination button,
+.public-pdv-stock-form input,
+.public-pdv-stock-form select,
+.public-pdv-stock-form textarea,
+.public-pdv-stock-toolbar button {
+  background: #ffffff;
+  border: 1px solid #dbe3ef;
+  color: #0f172a;
+}
+
+.public-pdv-stock-toolbar input:focus,
+.public-pdv-stock-toolbar select:focus,
+.public-pdv-stock-pagination button:focus-visible,
+.public-pdv-stock-form input:focus,
+.public-pdv-stock-form select:focus,
+.public-pdv-stock-form textarea:focus,
+.public-pdv-stock-toolbar button:focus-visible {
+  border-color: #059669;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
+  outline: none;
 }
 
 .public-pdv-stock-section {
@@ -2789,6 +2835,7 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
+  padding: 0 0 6px;
 }
 
 .public-pdv-stock-section-header h3 {
@@ -2846,14 +2893,56 @@
 
 .public-pdv-stock-history-item {
   align-content: start;
-  background: #f8fafc;
-  border: 1px solid #dbe3ef;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
   color: #0f172a;
   display: grid;
   gap: 3px;
   padding: 8px 10px;
   text-align: left;
+}
+
+.public-pdv-stock-history-item:nth-child(even) {
+  background: #f8fafc;
+}
+
+.public-pdv-stock-toolbar button {
+  background: #047857;
+  border-color: #047857;
+  color: #ffffff;
+}
+
+.public-pdv-stock-toolbar button:hover,
+.public-pdv-stock-toolbar button:focus-visible {
+  background: #065f46;
+  border-color: #065f46;
+  color: #ffffff;
+}
+
+.public-pdv-stock-pagination button,
+.public-pdv-secondary-actions--compact button:not(:first-child),
+.public-pdv-stock-movement > button {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.public-pdv-secondary-actions--compact button:first-child {
+  background: #047857;
+  border-color: #047857;
+  color: #ffffff;
+}
+
+.public-pdv-secondary-actions--compact button:first-child:hover,
+.public-pdv-secondary-actions--compact button:first-child:focus-visible {
+  background: #065f46;
+  border-color: #065f46;
+}
+
+.public-pdv-stock-movement > button:hover,
+.public-pdv-stock-pagination button:hover,
+.public-pdv-secondary-actions--compact button:not(:first-child):hover {
+  background: #f8fafc;
 }
 
 .public-pdv-stock-history-item strong {

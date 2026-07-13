@@ -532,3 +532,23 @@ Evita divergencia de calculo entre cadastro, estoque e venda.
 ## Impacto
 
 Toda tela que mostrar precos deve preservar a mesma matematica para preco unitario e indicadores.
+
+---
+
+# DEC-013
+
+## Assunto
+
+Uso de verde em tabelas operacionais.
+
+## Decisao
+
+Grandes areas em verde saturado nao devem ser utilizadas em tabelas operacionais do MikaON.
+
+## Justificativa
+
+Causa cansaco visual e reduz conforto em uso prolongado.
+
+## Impacto
+
+Produtos/Estoque e futuras listagens operacionais devem usar base clara, selecao suave e verde apenas como destaque pontual.

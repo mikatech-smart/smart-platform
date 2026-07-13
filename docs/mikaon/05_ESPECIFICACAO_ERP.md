@@ -392,3 +392,18 @@ O modulo operacional de Produtos/Estoque deve adotar:
 - tabela compacta em vez de cards altos;
 - edicao em painel lateral;
 - formacao de precos com custo, varejo, atacado, markup e margem.
+
+---
+
+# Padrao visual oficial de Produtos/Estoque
+
+A area operacional de Produtos/Estoque deve reutilizar o mesmo padrao visual do PDV.
+
+Diretrizes:
+
+- fundo principal claro;
+- linhas brancas ou cinza muito suave;
+- selecao em verde-claro discreto;
+- cabecalho com destaque moderado;
+- selos pequenos para status;
+- painel lateral branco, com bordas leves e campos compactos.

@@ -451,3 +451,23 @@ Reestruturar a area operacional de Produtos/Estoque com listagem compacta, filtr
 Status:
 
 Concluida.
+
+---
+
+# Sprint 179
+
+## Objetivo
+
+Refinar visualmente a area de Produtos/Estoque para alinhar a interface ao padrao aprovado do PDV.
+
+## Implementacoes
+
+- remocao do verde intenso nas linhas da tabela;
+- cabecalho moderado e mais consistente com o sistema;
+- hover, zebra e selecao suavizados;
+- painel lateral padronizado com fundo branco e campos compactos;
+- status em selos discretos.
+
+Status:
+
+Concluida.

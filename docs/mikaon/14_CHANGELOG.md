@@ -326,3 +326,18 @@ Resumo
 Impacto
 
 Melhora significativa da densidade visual e da escalabilidade da area operacional de estoque, sem alterar a frente de caixa validada.
+
+---
+
+# Sprint 179 - Padronizacao visual de Produtos/Estoque
+
+Resumo
+
+- refinamento visual da tabela para fundo claro e leitura prolongada;
+- reducao do verde saturado;
+- selos de status mais discretos;
+- painel lateral alinhado ao padrao do PDV.
+
+Impacto
+
+A area operacional de Produtos/Estoque fica mais consistente com o restante do MikaON, sem alterar comportamento funcional.

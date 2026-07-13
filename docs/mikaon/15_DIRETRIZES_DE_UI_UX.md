@@ -357,3 +357,15 @@ Produtos/Estoque devem seguir:
 - tabela compacta;
 - painel lateral ou modal para edicao;
 - alta densidade de informacao sem cards altos.
+
+---
+
+# Reuso visual entre PDV e Produtos/Estoque
+
+Produtos/Estoque deve reutilizar o mesmo vocabulario visual do PDV:
+
+- branco como base;
+- cinza claro para apoio;
+- verde institucional apenas como destaque;
+- hover e selecao suaves;
+- campos e botoes com o mesmo padrao de altura, raio e foco.
