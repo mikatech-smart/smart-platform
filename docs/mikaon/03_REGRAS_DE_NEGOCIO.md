@@ -381,3 +381,10 @@ Na operacao de Produtos/Estoque do ERP/PDV:
 # Sprint 181 - Formacao de precos
 
 Custo, preco final de varejo e preco final de atacado sao fontes persistidas. Para cada tabela, acrescimo, markup e margem sao indicadores derivados e independentes. O ultimo campo editado define o recalculo, sem alterar a outra tabela.
+
+
+---
+
+# Sprint 182 - Selecao e edicao de produtos
+
+A selecao de uma linha de Produtos/Estoque deve carregar o registro completo no formulario compartilhado, preservando o ID para atualizacao. Produto novo e produto existente possuem modos explicitos, sem cadastro duplicado.

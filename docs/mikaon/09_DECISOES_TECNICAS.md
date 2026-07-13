@@ -566,3 +566,10 @@ O PDV permanece orientado a velocidade operacional. O ERP utiliza Data Grid, lin
 # Sprint 181 - Fontes e indicadores de preco
 
 Custo, preco varejo e preco atacado permanecem como fontes oficiais no banco. Acrescimo, markup e margem nao geram colunas derivadas nesta Sprint. O Data Grid usa base neutra, com verde reservado para acoes e pequenos indicadores.
+
+
+---
+
+# Sprint 182 - Estado de edicao
+
+A linha selecionada e a fonte do formulario de edicao. O estado deve transportar o objeto completo, e o modo e definido pela presenca do ID. A grade nao deve depender de clique em texto ou de estado paralelo duplicado.

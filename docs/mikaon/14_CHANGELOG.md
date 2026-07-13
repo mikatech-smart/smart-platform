@@ -360,3 +360,12 @@ A area operacional de Produtos/Estoque fica mais consistente com o restante do M
 - reorganizado o painel de custos e precos;
 - adicionados acrescimo, markup, margem e preco final independentes para varejo e atacado;
 - fortalecidas as validacoes de valores numericos.
+
+
+---
+
+# Sprint 182 - Selecao, edicao e grade
+
+- painel lateral agora entra em `EDITAR PRODUTO` ao selecionar uma linha;
+- salvamento de produto existente usa o ID preservado e atualiza a linha;
+- grade e estilos legados seguem base neutra, sem fundo verde nas linhas.

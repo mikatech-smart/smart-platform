@@ -488,3 +488,14 @@ Substituida a listagem administrativa de Produtos/Estoque por uma grade reutiliz
 - adicionada formacao independente de precos para varejo e atacado;
 - corrigido o recalculo ao editar custo, acrescimo, markup e preco final;
 - adicionadas validacoes contra valores invalidos, negativos, NaN e Infinity.
+
+
+---
+
+# Sprint 182 - Correcao da selecao e edicao
+
+- corrigido o carregamento do produto selecionado no painel;
+- diferenciados os modos novo e edicao;
+- preservado o ID na atualizacao;
+- corrigida a atualizacao da linha apos salvar;
+- neutralizados estilos legados verdes da listagem.

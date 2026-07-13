@@ -421,3 +421,10 @@ Produtos/Estoque utiliza Data Grid como padrao ERP: uma linha compacta por produ
 # Sprint 181 - Formacao profissional de precos
 
 O painel de Produtos/Estoque apresenta a sequencia Custo base, Acrescimo, Markup, Margem e Preco final separadamente para Varejo e Atacado. Custo e precos sao persistidos; acrescimo, markup e margem sao calculados na aplicacao.
+
+
+---
+
+# Sprint 182 - Modos do cadastro de produto
+
+O painel operacional utiliza `NOVO PRODUTO` para criacao e `EDITAR PRODUTO` para registros existentes. A edicao preserva o ID, atualiza a grade apos salvar e mantem custo, varejo e atacado independentes.

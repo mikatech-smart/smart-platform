@@ -305,3 +305,12 @@ A listagem passou a usar tabela compacta com filtros, paginacao e painel lateral
 
 - Data Grid com fundo verde nas linhas: Corrigido, linhas e selecao agora usam tons neutros.
 - Formacao de precos incompleta e custo recalculando preco indevidamente: Corrigido, com tabelas independentes e regra do ultimo campo editado.
+
+
+---
+
+# Sprint 182 - Bugs corrigidos
+
+- produto selecionado permanecia como Novo produto: Corrigido com callback tipado e carregamento integral do registro;
+- campos de preco pareciam bloqueados e o painel nao persistia corretamente: Corrigido com modos explicitos, ID preservado e atualizacao da grade;
+- estilos legados verdes: Corrigidos na origem e nos seletores antigos.

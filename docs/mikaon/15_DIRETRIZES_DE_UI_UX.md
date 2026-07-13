@@ -385,3 +385,10 @@ Produtos/Estoque deve reutilizar o mesmo vocabulario visual do PDV:
 # Sprint 181 - Grade neutra e precos
 
 Listagens ERP nao devem usar verde como fundo de linha ou selecao. A formacao de precos deve seguir uma sequencia visual explicita: Custo base, Acrescimo, Markup, Margem e Preco final, repetida de forma independente para cada tabela.
+
+
+---
+
+# Sprint 182 - Edicao clara
+
+O usuario deve reconhecer imediatamente se esta criando ou editando. A linha inteira deve ser clicavel, a selecao deve ser neutra e o painel deve exibir o modo e a identidade do registro selecionado.

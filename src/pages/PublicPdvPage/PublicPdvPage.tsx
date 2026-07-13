@@ -1654,6 +1654,14 @@ export default function PublicPdvPage() {
           : [...atuais, resultado.data!]
         ).sort((a, b) => a.nome.localeCompare(b.nome));
       });
+      setProdutosEstoquePaginaServidor((atuais) => {
+        const existe = atuais.some((produto) => produto.id === resultado.data!.id);
+        return existe
+          ? atuais.map((produto) =>
+              produto.id === resultado.data!.id ? resultado.data! : produto
+            )
+          : atuais;
+      });
       selecionarProdutoEstoque(resultado.data);
       setFeedbackOperacao({ tipo: "sucesso", texto: "Produto salvo no estoque operacional." });
     } catch (error) {
@@ -2521,9 +2529,11 @@ export default function PublicPdvPage() {
 
           <section className="public-pdv-panel public-pdv-stock-editor">
             <div className="public-pdv-section-title">
-              <h2>{produtoEstoqueForm.id ? "Editar produto" : "Novo produto"}</h2>
+              <h2>{produtoEstoqueForm.id ? "EDITAR PRODUTO" : "NOVO PRODUTO"}</h2>
               <small>
-                {usuarioAtual.perfil === "estoque"
+                {produtoEstoqueForm.id
+                  ? `${produtoEstoqueForm.nome || "Produto"}${produtoEstoqueForm.codigoInterno ? ` | ${produtoEstoqueForm.codigoInterno}` : ""}`
+                  : usuarioAtual.perfil === "estoque"
                   ? "Perfil estoque"
                   : obterLabelPerfil(usuarioAtual)}
               </small>
@@ -2801,9 +2811,11 @@ export default function PublicPdvPage() {
 
               <div className="public-pdv-secondary-actions public-pdv-secondary-actions--compact">
                 <button type="button" disabled={salvando} onClick={salvarProdutoEstoque}>
-                  Salvar produto
+                  {produtoEstoqueForm.id ? "Salvar alterações" : "Salvar produto"}
                 </button>
-                <button type="button" onClick={novoProdutoEstoque}>Limpar</button>
+                <button type="button" onClick={novoProdutoEstoque}>
+                  {produtoEstoqueForm.id ? "Cancelar edição" : "Limpar"}
+                </button>
               </div>
 
               <section className="public-pdv-stock-section public-pdv-stock-movement">

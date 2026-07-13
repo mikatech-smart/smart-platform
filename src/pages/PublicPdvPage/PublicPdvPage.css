@@ -2641,8 +2641,8 @@
 .public-pdv-stock-table-header {
   min-height: 38px;
   border-bottom: 1px solid #0f766e;
-  background: #0f766e;
-  color: #ffffff;
+  background: #e2e8f0;
+  color: #334155;
   font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.02em;
@@ -2679,13 +2679,13 @@
 }
 
 .public-pdv-stock-table-row:focus-visible {
-  background: #ecfdf5;
+  background: #eef2f7;
   outline: none;
 }
 
 .public-pdv-stock-table-row--active {
-  background: #ecfdf5 !important;
-  box-shadow: inset 3px 0 0 #059669;
+  background: #eef2f7 !important;
+  box-shadow: inset 3px 0 0 #94a3b8;
 }
 
 .public-pdv-stock-table-row span {
