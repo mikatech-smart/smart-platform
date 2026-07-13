@@ -341,3 +341,12 @@ Resumo
 Impacto
 
 A area operacional de Produtos/Estoque fica mais consistente com o restante do MikaON, sem alterar comportamento funcional.
+
+
+---
+
+# Sprint 180 - Data Grid administrativo
+
+- substituida a listagem de Produtos/Estoque por Data Grid reutilizavel;
+- linhas horizontais compactas, zebra suave, selecao discreta e status em selo;
+- painel lateral e operacao existente preservados.

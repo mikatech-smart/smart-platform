@@ -1233,6 +1233,94 @@ export async function listarErpPdvProdutos(empresaId: string) {
   };
 }
 
+export type ErpPdvProdutosPaginados = {
+  data: ErpPdvProduto[];
+  total: number;
+  pagina: number;
+  limite: number;
+};
+
+export async function listarErpPdvProdutosPaginado(
+  empresaId: string,
+  pagina = 1,
+  limite = 25,
+  busca = "",
+  ordenacao: "nome" | "estoque" | "varejo" | "atacado" | "custo" = "nome"
+) {
+  const paginaSegura = Math.max(1, pagina);
+  const limiteSeguro = Math.min(100, Math.max(1, limite));
+  const inicio = (paginaSegura - 1) * limiteSeguro;
+  const fim = inicio + limiteSeguro - 1;
+  const colunaOrdenacao =
+    ordenacao === "varejo"
+      ? "preco_venda"
+      : ordenacao === "atacado"
+        ? "preco_atacado"
+        : ordenacao === "estoque"
+          ? "nome"
+        : ordenacao;
+
+  let consulta = supabase
+    .from("erp_pdv_produtos")
+    .select(
+      `
+        id, empresa_id, categoria_id, nome, codigo_barras, sku, marca, custo,
+        preco_venda, preco_atacado, preco_revenda, preco_personalizado,
+        formacao_preco_tipo, percentual_preco, historico_precos, unidade,
+        localizacao, ncm, observacoes, imagem_url, ativo
+      `,
+      { count: "exact" }
+    )
+    .eq("empresa_id", empresaId)
+    .order(colunaOrdenacao, { ascending: true })
+    .range(inicio, fim);
+
+  const termo = busca.trim();
+  if (termo) {
+    const valor = termo.replace(/[,()]/g, " ").trim();
+    consulta = consulta.or(
+      `nome.ilike.%${valor}%,sku.ilike.%${valor}%,codigo_barras.ilike.%${valor}%,marca.ilike.%${valor}%`
+    );
+  }
+
+  const { data, count, error } = await consulta;
+  if (error) {
+    return { data: null, error };
+  }
+
+  const produtosPagina = (data || []) as ErpPdvProdutoRow[];
+  const ids = produtosPagina.map((produto) => produto.id);
+  const { data: estoqueData, error: estoqueError } = ids.length
+    ? await supabase
+        .from("erp_pdv_estoques")
+        .select("produto_id, quantidade_atual, estoque_minimo")
+        .eq("empresa_id", empresaId)
+        .in("produto_id", ids)
+    : { data: [], error: null };
+
+  if (estoqueError) {
+    return { data: null, error: estoqueError };
+  }
+
+  const estoquesPorProduto = new Map(
+    ((estoqueData || []) as ErpPdvEstoqueRow[]).map((estoque) => [
+      estoque.produto_id,
+      estoque,
+    ])
+  );
+
+  const resultado: ErpPdvProdutosPaginados = {
+    data: produtosPagina.map((produto) =>
+      normalizarProduto(produto, estoquesPorProduto.get(produto.id))
+    ),
+    total: count || 0,
+    pagina: paginaSegura,
+    limite: limiteSeguro,
+  };
+
+  return { data: resultado, error: null };
+}
+
 export async function listarErpPdvClientes(empresaId: string) {
   const { data, error } = await supabase
     .from("erp_pdv_clientes")

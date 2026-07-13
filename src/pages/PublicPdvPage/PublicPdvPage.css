@@ -2753,6 +2753,25 @@
   gap: 8px;
 }
 
+.public-pdv-data-grid-scroll {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.public-pdv-data-grid-product {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.public-pdv-data-grid-number {
+  text-align: right;
+}
+
+.public-pdv-data-grid-money {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
 .public-pdv-stock-pagination button {
   min-height: 34px;
   border-radius: 8px;

@@ -223,3 +223,9 @@ O MikaON não será apenas um sistema bonito.
 Será uma plataforma construída para durar muitos anos.
 
 Cada Sprint deverá melhorar o sistema sem comprometer sua arquitetura.
+
+---
+
+# Sprint 180 - Data Grid administrativo
+
+Listagens administrativas em massa devem utilizar o componente reutilizavel DataGrid, com paginacao, linhas compactas, estado vazio e selecao de registro. O componente nao deve conter regras de negocio e deve ser reutilizado por Produtos, Clientes, Fornecedores, Compras, Financeiro, Usuarios e Relatorios.

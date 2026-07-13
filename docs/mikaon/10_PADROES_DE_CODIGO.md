@@ -376,3 +376,9 @@ Se qualquer resposta for negativa, revisar a Sprint.
 # Objetivo Final
 
 Construir um código limpo, consistente e sustentável, permitindo que o MikaON evolua continuamente sem perda de qualidade, independentemente da equipe de desenvolvimento.
+
+---
+
+# Sprint 180 - Data Grid reutilizavel
+
+O componente DataGrid deve receber colunas tipadas, registros, chave estavel, selecao e estado vazio. A grade nao deve conhecer regras de negocio, deve renderizar apenas a pagina atual e deve manter rolagem interna quando a largura exigir.

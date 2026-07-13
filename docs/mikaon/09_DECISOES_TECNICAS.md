@@ -552,3 +552,10 @@ Causa cansaco visual e reduz conforto em uso prolongado.
 ## Impacto
 
 Produtos/Estoque e futuras listagens operacionais devem usar base clara, selecao suave e verde apenas como destaque pontual.
+
+
+---
+
+# Sprint 180 - Separacao visual entre PDV e ERP
+
+O PDV permanece orientado a velocidade operacional. O ERP utiliza Data Grid, linhas compactas e alta densidade para leitura e manutencao de grandes catalogos. Registros administrativos em massa nao devem ser representados por cards.

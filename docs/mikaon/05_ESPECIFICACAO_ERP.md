@@ -407,3 +407,10 @@ Diretrizes:
 - cabecalho com destaque moderado;
 - selos pequenos para status;
 - painel lateral branco, com bordas leves e campos compactos.
+
+
+---
+
+# Sprint 180 - Data Grid de Produtos/Estoque
+
+Produtos/Estoque utiliza Data Grid como padrao ERP: uma linha compacta por produto, colunas de codigo, produto, estoque, minimo, custo, varejo, atacado e status, filtros no topo, paginacao de 25/50/100 itens e painel lateral preservado para edicao.

@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import { DataGrid } from "../../components/common/DataGrid/DataGrid";
 import { BrandConfig } from "../../config/brand";
 import type { Empresa } from "../../models/Empresa";
 import { buscarEmpresaPorSlug } from "../../services/empresa/empresa.service";
@@ -15,6 +16,7 @@ import {
   listarErpPdvCategorias,
   listarErpPdvMovimentacoes,
   listarErpPdvProdutos,
+  listarErpPdvProdutosPaginado,
   listarErpPdvFornecedores,
   listarErpPdvUsuarios,
   listarErpPdvValesTroca,
@@ -736,6 +738,10 @@ export default function PublicPdvPage() {
     useState<EstoqueOrdenacao>("nome");
   const [estoquePagina, setEstoquePagina] = useState(1);
   const [estoqueItensPorPagina, setEstoqueItensPorPagina] = useState(25);
+  const [produtosEstoquePaginaServidor, setProdutosEstoquePaginaServidor] =
+    useState<ErpPdvProduto[]>([]);
+  const [totalProdutosEstoqueServidor, setTotalProdutosEstoqueServidor] =
+    useState(0);
   const [produtoEstoqueSelecionadoId, setProdutoEstoqueSelecionadoId] = useState("");
   const [produtoEstoqueForm, setProdutoEstoqueForm] = useState<EstoqueProdutoForm>(criarProdutoEstoqueForm());
   const [movimentacaoEstoqueForm, setMovimentacaoEstoqueForm] =
@@ -784,6 +790,14 @@ export default function PublicPdvPage() {
     () => new Map(categorias.map((categoria) => [categoria.id, categoria])),
     [categorias]
   );
+  const usarPaginacaoServidorEstoque =
+    pode(usuarioAtual, "produto_salvar") &&
+    (!tabelaLiberada.length || usuarioAtual?.modulo_inicial === "estoque") &&
+    estoqueStatusFiltro === "todos" &&
+    estoqueOrdenacao !== "estoque" &&
+    !estoqueCategoriaFiltro &&
+    !estoqueMarcaFiltro &&
+    !estoqueFornecedorFiltro;
 
   const produtosEncontrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -900,17 +914,24 @@ export default function PublicPdvPage() {
   ]);
   const totalPaginasEstoque = Math.max(
     1,
-    Math.ceil(produtosEstoqueFiltrados.length / estoqueItensPorPagina)
+    Math.ceil(
+      (usarPaginacaoServidorEstoque
+        ? totalProdutosEstoqueServidor
+        : produtosEstoqueFiltrados.length) / estoqueItensPorPagina
+    )
   );
   const produtosEstoquePaginados = useMemo(() => {
+    if (usarPaginacaoServidorEstoque) return produtosEstoquePaginaServidor;
     const paginaAtual = Math.min(estoquePagina, totalPaginasEstoque);
     const inicio = (paginaAtual - 1) * estoqueItensPorPagina;
     return produtosEstoqueFiltrados.slice(inicio, inicio + estoqueItensPorPagina);
   }, [
     estoqueItensPorPagina,
     estoquePagina,
+    produtosEstoquePaginaServidor,
     produtosEstoqueFiltrados,
     totalPaginasEstoque,
+    usarPaginacaoServidorEstoque,
   ]);
   const cupomTexto = useMemo(() => (cupom ? gerarCupomTexto(cupom) : ""), [cupom]);
   const cupomHtml = useMemo(() => (cupom ? gerarCupomHtml(cupom) : ""), [cupom]);
@@ -1016,6 +1037,33 @@ export default function PublicPdvPage() {
       setEstoquePagina(totalPaginasEstoque);
     }
   }, [estoquePagina, totalPaginasEstoque]);
+
+  useEffect(() => {
+    if (!empresaId || !usarPaginacaoServidorEstoque) return;
+    let ativo = true;
+    void listarErpPdvProdutosPaginado(
+      empresaId,
+      estoquePagina,
+      estoqueItensPorPagina,
+      estoqueBuscaDebounced,
+      estoqueOrdenacao
+    ).then((resultado) => {
+      if (!ativo || resultado.error || !resultado.data) return;
+      setProdutosEstoquePaginaServidor(resultado.data.data);
+      setTotalProdutosEstoqueServidor(resultado.data.total);
+    });
+
+    return () => {
+      ativo = false;
+    };
+  }, [
+    empresaId,
+    estoqueBuscaDebounced,
+    estoqueItensPorPagina,
+    estoqueOrdenacao,
+    estoquePagina,
+    usarPaginacaoServidorEstoque,
+  ]);
 
   async function carregarDados() {
     if (!slug) return;
@@ -2372,74 +2420,45 @@ export default function PublicPdvPage() {
               </select>
               <button type="button" onClick={novoProdutoEstoque}>Novo produto</button>
             </div>
-            <div className="public-pdv-stock-table">
-              <div className="public-pdv-stock-table-header">
-                <span>Codigo</span>
-                <span>Barras</span>
-                <span>Produto</span>
-                <span>Estoque</span>
-                <span>Min.</span>
-                <span>Custo</span>
-                <span>Varejo</span>
-                <span>Atacado</span>
-                <span>Status</span>
-              </div>
-              <div className="public-pdv-stock-table-body">
-                {produtosEstoquePaginados.length ? (
-                  produtosEstoquePaginados.map((produto) => {
-                    const observacoesEstruturadas =
-                      parseProdutoObservacoesEstruturadas(produto.observacoes);
-                    const categoriaNome =
-                      categoriasPorId.get(produto.categoria_id || "")?.nome || "Sem categoria";
-                    const statusProduto = obterStatusProdutoEstoque(produto);
-                    return (
-                      <button
-                        key={produto.id}
-                        type="button"
-                        className={`public-pdv-stock-table-row ${
-                          produtoEstoqueSelecionadoId === produto.id
-                            ? "public-pdv-stock-table-row--active"
-                            : ""
-                        }`}
-                        onClick={() => selecionarProdutoEstoque(produto)}
-                      >
-                        <span>{produto.sku || "-"}</span>
-                        <span>{produto.codigo_barras || "-"}</span>
-                        <span className="public-pdv-stock-table-product">
-                          <strong title={produto.nome}>{produto.nome}</strong>
-                          <small title={`${categoriaNome}${produto.marca ? ` | ${produto.marca}` : ""}${observacoesEstruturadas.fornecedorPrincipal ? ` | ${observacoesEstruturadas.fornecedorPrincipal}` : ""}`}>
-                            {categoriaNome}
-                            {produto.marca ? ` | ${produto.marca}` : ""}
-                            {observacoesEstruturadas.fornecedorPrincipal
-                              ? ` | ${observacoesEstruturadas.fornecedorPrincipal}`
-                              : ""}
-                          </small>
+            <div className="public-pdv-data-grid-scroll">
+              <DataGrid<ErpPdvProduto>
+                columns={[
+                  { id: "codigo", label: "Codigo", render: (produto) => produto.sku || "-" },
+                  { id: "barras", label: "Barras", render: (produto) => produto.codigo_barras || "-" },
+                  {
+                    id: "produto",
+                    label: "Produto",
+                    cellClassName: "public-pdv-data-grid-product",
+                    render: (produto) => {
+                      const categoriaNome = categoriasPorId.get(produto.categoria_id || "")?.nome || "Sem categoria";
+                      const fornecedor = parseProdutoObservacoesEstruturadas(produto.observacoes).fornecedorPrincipal;
+                      return (
+                        <span title={`${produto.nome} | ${categoriaNome}${produto.marca ? ` | ${produto.marca}` : ""}${fornecedor ? ` | ${fornecedor}` : ""}`}>
+                          {produto.nome}
                         </span>
-                        <span>{produto.estoque_atual}</span>
-                        <span>{produto.estoque_minimo}</span>
-                        <span>
-                          {podeConsultarCustoLucro
-                            ? `R$ ${moeda(produto.custo)}`
-                            : "Oculto"}
-                        </span>
-                        <span>R$ {moeda(produto.preco_venda)}</span>
-                        <span>
-                          R$ {moeda(produto.preco_atacado || produto.preco_venda)}
-                        </span>
-                        <span>
-                          <small
-                            className={`public-pdv-stock-status ${statusProduto.className}`}
-                          >
-                            {statusProduto.label}
-                          </small>
-                        </span>
-                      </button>
-                    );
-                  })
-                ) : (
-                  <div className="public-pdv-no-results">Nenhum produto encontrado.</div>
-                )}
-              </div>
+                      );
+                    },
+                  },
+                  { id: "estoque", label: "Estoque", cellClassName: "public-pdv-data-grid-number", render: (produto) => produto.estoque_atual },
+                  { id: "minimo", label: "Min.", cellClassName: "public-pdv-data-grid-number", render: (produto) => produto.estoque_minimo },
+                  { id: "custo", label: "Custo", cellClassName: "public-pdv-data-grid-money", render: (produto) => podeConsultarCustoLucro ? `R$ ${moeda(produto.custo)}` : "Oculto" },
+                  { id: "varejo", label: "Varejo", cellClassName: "public-pdv-data-grid-money", render: (produto) => `R$ ${moeda(produto.preco_venda)}` },
+                  { id: "atacado", label: "Atacado", cellClassName: "public-pdv-data-grid-money", render: (produto) => `R$ ${moeda(produto.preco_atacado || produto.preco_venda)}` },
+                  {
+                    id: "status",
+                    label: "Status",
+                    render: (produto) => {
+                      const statusProduto = obterStatusProdutoEstoque(produto);
+                      return <small className={`public-pdv-stock-status ${statusProduto.className}`}>{statusProduto.label}</small>;
+                    },
+                  },
+                ]}
+                rows={produtosEstoquePaginados}
+                getRowId={(produto) => produto.id}
+                selectedRowId={produtoEstoqueSelecionadoId}
+                onRowClick={selecionarProdutoEstoque}
+                emptyMessage="Nenhum produto encontrado."
+              />
             </div>
             <div className="public-pdv-stock-pagination">
               <button

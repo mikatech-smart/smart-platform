@@ -228,3 +228,9 @@ Toda decisão derivada de uma análise deverá ser registrada neste documento.
 # Objetivo Final
 
 Construir um software que reúna as melhores práticas observadas no mercado, sem perder identidade própria, simplicidade operacional e foco na produtividade.
+
+---
+
+# Sprint 180 - Referencia de Data Grid
+
+A decisao de usar Data Grid em Produtos/Estoque segue o padrao observado em ERPs comerciais: linhas densas, colunas estaveis, filtros compactos e paginacao para catalogos extensos. O PDV permanece com uma linguagem operacional distinta.

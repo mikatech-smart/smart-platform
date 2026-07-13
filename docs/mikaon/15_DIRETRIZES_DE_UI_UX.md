@@ -369,3 +369,12 @@ Produtos/Estoque deve reutilizar o mesmo vocabulario visual do PDV:
 - verde institucional apenas como destaque;
 - hover e selecao suaves;
 - campos e botoes com o mesmo padrao de altura, raio e foco.
+
+
+---
+
+# Sprint 180 - Linguagem por contexto
+
+- PDV: linguagem operacional, foco, velocidade e acoes de venda.
+- ERP: Data Grid, alta densidade, filtros e leitura semelhante a planilha.
+- Cards nao devem representar registros administrativos em massa.

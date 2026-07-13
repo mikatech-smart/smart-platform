@@ -471,3 +471,10 @@ Refinar visualmente a area de Produtos/Estoque para alinhar a interface ao padra
 Status:
 
 Concluida.
+
+
+---
+
+# Sprint 180 - Data Grid profissional
+
+Substituida a listagem administrativa de Produtos/Estoque por uma grade reutilizavel, compacta e com visual de planilha empresarial. Busca, filtros, ordenacao, paginacao, selecao e painel lateral foram preservados.
