@@ -432,3 +432,7 @@ O painel operacional utiliza `NOVO PRODUTO` para criacao e `EDITAR PRODUTO` para
 ## Sprint 183 - Data Grid e edicao
 
 A listagem usa selecao da linha inteira e o mesmo formulario para criacao e edicao. Produtos existentes entram em `EDITAR PRODUTO`, com dados persistidos de custo, varejo e atacado carregados e atualizados por ID. Administradores e gerentes autorizados acessam Produtos / Estoque; as permissoes do servico continuam obrigatorias.
+
+## Sprint 184 - Motor de formacao de precos
+
+O painel calcula custo, acrescimo, markup, margem e preco final separadamente para varejo e atacado. O preco final e persistido; os indicadores sao reconstruidos ao carregar. A digitacao aceita decimal com virgula, ponto e percentual, preserva campos vazios temporarios e nao sobrescreve o campo ativo.

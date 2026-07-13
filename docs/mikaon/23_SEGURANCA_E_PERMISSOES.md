@@ -330,3 +330,7 @@ A edicao de custo e indicadores sensiveis continua condicionada a `custo_lucro_c
 # Sprint 182 - Edicao por permissao
 
 O carregamento do formulario nao concede permissao. A edicao de custo e precos continua condicionada as permissoes existentes, enquanto a atualizacao do registro preserva empresa e ID no servico.
+
+## Sprint 184
+
+O motor de precos nao amplia permissoes: custo e indicadores sensiveis continuam exigindo custo_lucro_consultar e preco_alterar, enquanto precos finais exigem preco_alterar. Campos derivados permanecem somente leitura.

@@ -375,3 +375,9 @@ A area operacional de Produtos/Estoque fica mais consistente com o restante do M
 - Data Grid com linhas neutras e selecao sem verde saturado.
 - Produtos existentes abrem em `EDITAR PRODUTO`, com custos e precos carregados e salvos por UPDATE.
 - Administradores e gerentes autorizados acessam Produtos / Estoque para a validacao operacional.
+
+## Sprint 184
+
+- Motor de formacao de precos previsivel e independente para varejo e atacado.
+- Entradas decimais preservadas durante a digitacao.
+- Preco final persistido e indicadores recalculados com protecao contra valores invalidos.

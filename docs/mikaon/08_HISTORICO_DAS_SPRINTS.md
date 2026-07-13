@@ -503,3 +503,7 @@ Substituida a listagem administrativa de Produtos/Estoque por uma grade reutiliz
 ## Sprint 183 - Diagnostico e correcao
 
 Corrigida a regra global de botoes que pintava as linhas do Data Grid de verde. Foi validada a selecao de produtos reais, o carregamento em `EDITAR PRODUTO`, a formacao de precos e a persistencia por UPDATE. Administrador e gerente autorizados passaram a acessar Produtos / Estoque.
+
+## Sprint 184 - Motor de formacao de precos
+
+Corrigido o recalculo durante a digitacao: varejo e atacado agora sao independentes, o ultimo campo editado e preservado e custo, preco varejo e preco atacado permanecem como fontes persistidas.

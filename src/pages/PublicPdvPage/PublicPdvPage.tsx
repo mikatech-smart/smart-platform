@@ -220,6 +220,13 @@ function numero(valor: number | string | null | undefined) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function numeroFormulario(valor: string) {
+  const texto = valor.trim().replace(/%/g, "").replace(",", ".");
+  if (!texto) return null;
+  const parsed = Number(texto);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function campoNumericoValido(valor: string) {
   const texto = valor.trim().replace(",", ".");
   return texto === "" || Number.isFinite(Number(texto));
@@ -1546,28 +1553,44 @@ export default function PublicPdvPage() {
         ...atual,
         [campo]: valor,
       } as EstoqueProdutoForm;
-      const custo = numero(String(proximo.custo).replace(",", "."));
+      const custo = numeroFormulario(proximo.custo);
 
       const atualizarTabela = (tabela: "varejo" | "atacado") => {
         const precoCampo = tabela === "varejo" ? "precoVenda" : "precoAtacado";
         const acrescimoCampo = tabela === "varejo" ? "acrescimoVarejo" : "acrescimoAtacado";
         const markupCampo = tabela === "varejo" ? "markupVarejo" : "markupAtacado";
-        const camposEditaveis = [precoCampo, acrescimoCampo, markupCampo] as string[];
+        const campoDaTabela = campo === precoCampo || campo === acrescimoCampo || campo === markupCampo;
+        if (campo !== "custo" && !campoDaTabela) return;
+
+        const custoSeguro = custo ?? 0;
+        const valorDigitado = typeof valor === "string" ? valor : "";
 
         if (campo === acrescimoCampo) {
-          const acrescimo = numero(String(valor).replace(",", "."));
-          proximo[precoCampo] = valorIndicador(calcularPrecoPorAcrescimo(custo, acrescimo));
-        } else if (campo === markupCampo) {
-          const markup = numero(String(valor).replace(",", "."));
-          proximo[precoCampo] = valorIndicador(calcularPrecoPorMarkup(custo, markup));
+          const acrescimo = numeroFormulario(valorDigitado);
+          proximo[precoCampo] = acrescimo === null
+            ? ""
+            : valorIndicador(calcularPrecoPorAcrescimo(custoSeguro, acrescimo));
+          proximo[markupCampo] = valorIndicador(
+            calcularFormacaoPreco(custoSeguro, numeroFormulario(proximo[precoCampo]) ?? 0).markup
+          );
+          return;
         }
 
-        if (campo === "custo" || camposEditaveis.includes(String(campo))) {
-          const preco = numero(String(proximo[precoCampo]).replace(",", "."));
-          const indicadores = calcularFormacaoPreco(custo, preco);
-          proximo[acrescimoCampo] = valorIndicador(indicadores.acrescimo);
-          proximo[markupCampo] = valorIndicador(indicadores.markup);
+        if (campo === markupCampo) {
+          const markup = numeroFormulario(valorDigitado);
+          proximo[precoCampo] = markup === null
+            ? ""
+            : valorIndicador(calcularPrecoPorMarkup(custoSeguro, markup));
+          proximo[acrescimoCampo] = valorIndicador(
+            calcularFormacaoPreco(custoSeguro, numeroFormulario(proximo[precoCampo]) ?? 0).acrescimo
+          );
+          return;
         }
+
+        const preco = numeroFormulario(proximo[precoCampo]);
+        const indicadores = calcularFormacaoPreco(custoSeguro, preco ?? 0);
+        proximo[acrescimoCampo] = valorIndicador(indicadores.acrescimo);
+        proximo[markupCampo] = valorIndicador(indicadores.markup);
       };
 
       atualizarTabela("varejo");

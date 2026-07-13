@@ -320,3 +320,9 @@ A listagem passou a usar tabela compacta com filtros, paginacao e painel lateral
 - Corrigido: a regra `.public-pdv button` sobrescrevia as linhas do Data Grid; o seletor agora exclui `.data-grid__row`.
 - Corrigido: acesso de administradores e gerentes autorizados ao modulo Produtos / Estoque.
 - Validado: clique, modo `EDITAR PRODUTO`, carregamento, calculos e persistencia de custo e precos.
+
+## Sprint 184
+
+- Corrigido: o onChange recalculava e sobrescrevia o proprio campo digitado a cada tecla.
+- Corrigido: o recalculo de uma tabela podia reescrever indicadores da outra.
+- Validado: preco final, markup, acrescimo, margem, decimais, campo vazio e persistencia apos recarregar.

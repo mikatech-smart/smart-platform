@@ -577,3 +577,7 @@ A linha selecionada e a fonte do formulario de edicao. O estado deve transportar
 ## Sprint 183
 
 Linhas do Data Grid usam botoes semanticos para acessibilidade e devem ser excluidas de seletores globais de botoes. A selecao usa o objeto completo e o ID real do produto; o formulario de edicao e o mesmo da criacao e mantem estados neutros.
+
+## Sprint 184
+
+O motor de formacao de precos mantem strings de entrada durante a digitacao e calcula derivados com numeros seguros. Custo e precos finais sao fontes oficiais; acrescimo, markup e margem nao sao persistidos como fontes concorrentes.
