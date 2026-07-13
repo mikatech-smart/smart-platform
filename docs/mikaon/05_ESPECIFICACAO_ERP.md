@@ -414,3 +414,10 @@ Diretrizes:
 # Sprint 180 - Data Grid de Produtos/Estoque
 
 Produtos/Estoque utiliza Data Grid como padrao ERP: uma linha compacta por produto, colunas de codigo, produto, estoque, minimo, custo, varejo, atacado e status, filtros no topo, paginacao de 25/50/100 itens e painel lateral preservado para edicao.
+
+
+---
+
+# Sprint 181 - Formacao profissional de precos
+
+O painel de Produtos/Estoque apresenta a sequencia Custo base, Acrescimo, Markup, Margem e Preco final separadamente para Varejo e Atacado. Custo e precos sao persistidos; acrescimo, markup e margem sao calculados na aplicacao.

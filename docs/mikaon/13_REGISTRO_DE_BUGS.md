@@ -297,3 +297,11 @@ Corrigido.
 Observacao
 
 A listagem passou a usar tabela compacta com filtros, paginacao e painel lateral de edicao.
+
+
+---
+
+# Sprint 181 - Bugs corrigidos
+
+- Data Grid com fundo verde nas linhas: Corrigido, linhas e selecao agora usam tons neutros.
+- Formacao de precos incompleta e custo recalculando preco indevidamente: Corrigido, com tabelas independentes e regra do ultimo campo editado.

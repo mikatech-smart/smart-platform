@@ -316,3 +316,10 @@ Na rota operacional do ERP/PDV:
 - a tabela de preco do operador deve ser aplicada automaticamente;
 - o operador nao pode alternar manualmente para tabela nao autorizada;
 - o perfil de estoque continua sem permissao para venda e caixa.
+
+
+---
+
+# Sprint 181 - Permissoes de formacao de precos
+
+A edicao de custo e indicadores sensiveis continua condicionada a `custo_lucro_consultar` e `preco_alterar`. A edicao dos precos finais permanece condicionada a `preco_alterar`; perfis sem essas permissoes continuam com campos bloqueados e sem ampliacao de acesso.

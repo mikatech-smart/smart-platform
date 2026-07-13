@@ -242,3 +242,10 @@ Antes de criar novas colunas em Produtos/Estoque, deve-se verificar:
 - se o dado e derivado e pode ser calculado sem persistencia adicional.
 
 Markup e margem nao devem gerar colunas duplicadas sem necessidade comprovada.
+
+
+---
+
+# Sprint 181 - Persistencia de precos
+
+A estrutura existente de `erp_pdv_produtos` ja possui custo, preco_venda e preco_atacado. Nenhuma migration foi criada. Acrescimo, markup e margem permanecem derivados na aplicacao para evitar divergencia entre colunas.

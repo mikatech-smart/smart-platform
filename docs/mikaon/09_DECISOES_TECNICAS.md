@@ -559,3 +559,10 @@ Produtos/Estoque e futuras listagens operacionais devem usar base clara, selecao
 # Sprint 180 - Separacao visual entre PDV e ERP
 
 O PDV permanece orientado a velocidade operacional. O ERP utiliza Data Grid, linhas compactas e alta densidade para leitura e manutencao de grandes catalogos. Registros administrativos em massa nao devem ser representados por cards.
+
+
+---
+
+# Sprint 181 - Fontes e indicadores de preco
+
+Custo, preco varejo e preco atacado permanecem como fontes oficiais no banco. Acrescimo, markup e margem nao geram colunas derivadas nesta Sprint. O Data Grid usa base neutra, com verde reservado para acoes e pequenos indicadores.

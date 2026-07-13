@@ -1479,10 +1479,14 @@ export async function salvarErpPdvProduto(payload: ErpPdvProdutoPayload) {
     };
   }
 
-  if (toNumber(payload.precoVenda) < 0) {
+  if (
+    toNumber(payload.custo) < 0 ||
+    toNumber(payload.precoVenda) < 0 ||
+    toNumber(payload.precoAtacado) < 0
+  ) {
     return {
       data: null,
-      error: new Error("O preco de venda nao pode ser negativo."),
+      error: new Error("Custo e precos nao podem ser negativos."),
     };
   }
 

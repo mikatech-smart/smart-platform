@@ -16,8 +16,9 @@
 }
 
 .data-grid__header {
-  background: #166534;
-  color: #fff;
+  background: #e2e8f0;
+  border-bottom: 2px solid #94a3b8;
+  color: #334155;
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.04em;
@@ -51,11 +52,11 @@
 
 .data-grid__row:hover,
 .data-grid__row--selected {
-  background: #ecfdf5;
+  background: #eef2f7;
 }
 
 .data-grid__row--selected {
-  box-shadow: inset 3px 0 #16a34a;
+  box-shadow: inset 3px 0 #94a3b8;
 }
 
 .data-grid__cell {

@@ -350,3 +350,13 @@ A area operacional de Produtos/Estoque fica mais consistente com o restante do M
 - substituida a listagem de Produtos/Estoque por Data Grid reutilizavel;
 - linhas horizontais compactas, zebra suave, selecao discreta e status em selo;
 - painel lateral e operacao existente preservados.
+
+
+---
+
+# Sprint 181 - Data Grid e precos
+
+- neutralizado o fundo das linhas e da selecao do Data Grid;
+- reorganizado o painel de custos e precos;
+- adicionados acrescimo, markup, margem e preco final independentes para varejo e atacado;
+- fortalecidas as validacoes de valores numericos.

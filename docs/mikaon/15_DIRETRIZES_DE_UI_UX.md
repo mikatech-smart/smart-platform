@@ -378,3 +378,10 @@ Produtos/Estoque deve reutilizar o mesmo vocabulario visual do PDV:
 - PDV: linguagem operacional, foco, velocidade e acoes de venda.
 - ERP: Data Grid, alta densidade, filtros e leitura semelhante a planilha.
 - Cards nao devem representar registros administrativos em massa.
+
+
+---
+
+# Sprint 181 - Grade neutra e precos
+
+Listagens ERP nao devem usar verde como fundo de linha ou selecao. A formacao de precos deve seguir uma sequencia visual explicita: Custo base, Acrescimo, Markup, Margem e Preco final, repetida de forma independente para cada tabela.

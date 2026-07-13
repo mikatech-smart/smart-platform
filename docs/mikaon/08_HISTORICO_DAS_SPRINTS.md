@@ -478,3 +478,13 @@ Concluida.
 # Sprint 180 - Data Grid profissional
 
 Substituida a listagem administrativa de Produtos/Estoque por uma grade reutilizavel, compacta e com visual de planilha empresarial. Busca, filtros, ordenacao, paginacao, selecao e painel lateral foram preservados.
+
+
+---
+
+# Sprint 181 - Correcao visual e formacao de precos
+
+- removido o fundo verde das linhas e da selecao do Data Grid;
+- adicionada formacao independente de precos para varejo e atacado;
+- corrigido o recalculo ao editar custo, acrescimo, markup e preco final;
+- adicionadas validacoes contra valores invalidos, negativos, NaN e Infinity.

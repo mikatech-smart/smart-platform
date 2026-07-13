@@ -374,3 +374,10 @@ Na operacao de Produtos/Estoque do ERP/PDV:
 - varejo e atacado devem permanecer independentes;
 - custo e indicadores sensiveis nao podem aparecer para perfis sem permissao;
 - listagens grandes devem priorizar tabela compacta, filtros e paginacao.
+
+
+---
+
+# Sprint 181 - Formacao de precos
+
+Custo, preco final de varejo e preco final de atacado sao fontes persistidas. Para cada tabela, acrescimo, markup e margem sao indicadores derivados e independentes. O ultimo campo editado define o recalculo, sem alterar a outra tabela.
