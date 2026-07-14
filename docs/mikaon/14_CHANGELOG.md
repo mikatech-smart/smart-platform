@@ -399,3 +399,15 @@ A area operacional de Produtos/Estoque fica mais consistente com o restante do M
 - Corrigida a consulta de caixa aberto para suportar um caixa independente por operador.
 - Fechamento da operacao vinculado ao operador atual.
 - Mantido o perfil Vendedor separado e o modelo centralizado como evolucao futura.
+
+## Sprint 190
+
+- Criada a area administrativa Colaboradores.
+- Adicionados nome de exibicao, funcoes acumulaveis, pesquisa, filtros e lista compacta.
+- Integrada a selecao operacional por funcao e tabela autorizada.
+
+## Sprint 191
+
+- Padronizada a entrada de redes sociais para usuario, @usuario ou URL completa.
+- Corrigida a abertura do YouTube para usar /@usuario.
+- Centralizada a geracao de links canonicos para Instagram, TikTok, YouTube e Kwai.

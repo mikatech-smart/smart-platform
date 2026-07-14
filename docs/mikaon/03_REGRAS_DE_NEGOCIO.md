@@ -400,3 +400,7 @@ A entrada do PDV inicia por perfil, com Administrador, Caixa e Vendedor. Ao esco
 ## Sprint 189 - Caixa individual
 
 O modelo principal suporta um caixa aberto por operador e empresa. A abertura, vendas, recebimentos, movimentacoes e fechamento ficam vinculados ao operador e ao caixa. Um operador nao pode encerrar o caixa de outro sem autorizacao administrativa.
+
+## Sprint 190 - Colaboradores
+
+Colaboradores sao cadastrados uma unica vez por empresa e podem acumular as funcoes Administrador, Caixa, Vendedor Varejo e Vendedor Atacado. A inativacao e logica e remove o colaborador das selecoes operacionais sem apagar seu historico.

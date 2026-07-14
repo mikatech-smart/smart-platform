@@ -423,6 +423,7 @@ export default function PublicEmpresaPage() {
             telefone={empresa.telefone}
             email={empresa.email}
             instagram={empresa.instagram}
+            facebook={empresa.facebook}
             tiktok={empresa.tiktok}
             youtube={empresa.youtube}
             kwai={empresa.kwai}

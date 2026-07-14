@@ -54,6 +54,12 @@ export type ErpPdvPerfilUsuario =
   | "vendedor"
   | "estoque";
 
+export type ErpPdvFuncaoColaborador =
+  | "administrador"
+  | "caixa"
+  | "vendedor_varejo"
+  | "vendedor_atacado";
+
 export type ErpPdvPermissao =
   | "tabela_varejo"
   | "tabela_atacado"
@@ -73,9 +79,11 @@ export type ErpPdvUsuario = {
   id: string;
   empresa_id: string;
   nome: string;
+  nome_exibicao: string;
   email: string;
   telefone: string;
   perfil: ErpPdvPerfilUsuario;
+  funcoes: ErpPdvFuncaoColaborador[];
   modulo_inicial: string;
   permissoes: Record<ErpPdvPermissao, boolean>;
   ativo: boolean;
@@ -87,9 +95,11 @@ export type ErpPdvUsuarioPayload = {
   id?: string;
   empresaId: string;
   nome: string;
+  nomeExibicao: string;
   email: string;
   telefone: string;
   perfil: ErpPdvPerfilUsuario;
+  funcoes: ErpPdvFuncaoColaborador[];
   moduloInicial: string;
   permissoes: Record<ErpPdvPermissao, boolean>;
   ativo: boolean;
@@ -551,9 +561,11 @@ type ErpPdvUsuarioRow = {
   id: string;
   empresa_id: string;
   nome?: string;
+  nome_exibicao?: string;
   email?: string;
   telefone?: string;
   perfil?: ErpPdvPerfilUsuario;
+  funcoes?: unknown;
   modulo_inicial?: string;
   permissoes?: Record<string, boolean> | null;
   ativo?: boolean;
@@ -791,6 +803,34 @@ function normalizarPerfilUsuario(valor: string | undefined): ErpPdvPerfilUsuario
     : "administrador";
 }
 
+const funcoesColaboradorValidas: ErpPdvFuncaoColaborador[] = [
+  "administrador",
+  "caixa",
+  "vendedor_varejo",
+  "vendedor_atacado",
+];
+
+export function obterFuncoesErpPdvUsuario(
+  usuario: Pick<ErpPdvUsuario, "perfil" | "permissoes" | "funcoes">
+): ErpPdvFuncaoColaborador[] {
+  const funcoesInformadas = Array.isArray(usuario.funcoes)
+    ? usuario.funcoes.filter((funcao): funcao is ErpPdvFuncaoColaborador =>
+        funcoesColaboradorValidas.includes(funcao)
+      )
+    : [];
+
+  if (funcoesInformadas.length > 0) return [...new Set(funcoesInformadas)];
+  if (usuario.perfil === "administrador" || usuario.perfil === "gerente") return ["administrador"];
+  if (usuario.perfil === "caixa") return ["caixa"];
+  if (usuario.perfil === "vendedor") {
+    const funcoes: ErpPdvFuncaoColaborador[] = [];
+    if (usuario.permissoes.tabela_varejo) funcoes.push("vendedor_varejo");
+    if (usuario.permissoes.tabela_atacado) funcoes.push("vendedor_atacado");
+    return funcoes.length ? funcoes : ["vendedor_varejo"];
+  }
+  return [];
+}
+
 function normalizarHistoricoPrecos(valor: unknown): ErpPdvHistoricoPrecoItem[] {
   if (!Array.isArray(valor)) return [];
 
@@ -851,15 +891,23 @@ function normalizarHistoricoOperacional(
 }
 
 function normalizarUsuario(row: ErpPdvUsuarioRow): ErpPdvUsuario {
+  const permissoes = normalizarPermissoesUsuario(row.permissoes);
+  const perfil = normalizarPerfilUsuario(row.perfil);
   return {
     id: row.id,
     empresa_id: row.empresa_id,
     nome: row.nome || "",
+    nome_exibicao: row.nome_exibicao || row.nome || "",
     email: row.email || "",
     telefone: row.telefone || "",
-    perfil: normalizarPerfilUsuario(row.perfil),
+    perfil,
+    funcoes: obterFuncoesErpPdvUsuario({
+      perfil,
+      permissoes,
+      funcoes: Array.isArray(row.funcoes) ? row.funcoes as ErpPdvFuncaoColaborador[] : [],
+    }),
     modulo_inicial: row.modulo_inicial || "pdv",
-    permissoes: normalizarPermissoesUsuario(row.permissoes),
+    permissoes,
     ativo: row.ativo !== false,
     created_at: row.created_at || "",
     updated_at: row.updated_at || "",
@@ -1079,7 +1127,7 @@ export async function listarErpPdvUsuarios(empresaId: string) {
   const { data, error } = await supabase
     .from("erp_pdv_usuarios")
     .select(
-      "id, empresa_id, nome, email, telefone, perfil, modulo_inicial, permissoes, ativo, created_at, updated_at"
+      "id, empresa_id, nome, nome_exibicao, email, telefone, perfil, funcoes, modulo_inicial, permissoes, ativo, created_at, updated_at"
     )
     .eq("empresa_id", empresaId)
     .order("ativo", { ascending: false })
@@ -1103,9 +1151,11 @@ export async function salvarErpPdvUsuario(payload: ErpPdvUsuarioPayload) {
   const usuarioPayload = {
     empresa_id: payload.empresaId,
     nome: payload.nome.trim(),
+    nome_exibicao: payload.nomeExibicao.trim() || payload.nome.trim(),
     email: payload.email.trim(),
     telefone: payload.telefone.trim(),
     perfil: payload.perfil,
+    funcoes: payload.funcoes,
     modulo_inicial: payload.moduloInicial.trim() || "pdv",
     permissoes: normalizarPermissoesUsuario(payload.permissoes),
     ativo: payload.ativo,
@@ -1122,7 +1172,7 @@ export async function salvarErpPdvUsuario(payload: ErpPdvUsuarioPayload) {
 
   const { data, error } = await query
     .select(
-      "id, empresa_id, nome, email, telefone, perfil, modulo_inicial, permissoes, ativo, created_at, updated_at"
+      "id, empresa_id, nome, nome_exibicao, email, telefone, perfil, funcoes, modulo_inicial, permissoes, ativo, created_at, updated_at"
     )
     .single();
 

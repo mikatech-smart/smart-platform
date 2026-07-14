@@ -342,3 +342,7 @@ Vendedores de Varejo entram somente com a tabela varejo autorizada; vendedores d
 ## Sprint 189 - Permissoes de caixa
 
 A abertura e o fechamento usam a permissao existente de caixa e o identificador do operador atual. O fechamento normal consulta empresa, caixa e operador, impedindo que um operador encerre o caixa de outro. Administradores podem usar os caminhos administrativos existentes sem operador forcado.
+
+## Sprint 190 - Colaboradores e funcoes
+
+O cadastro de colaboradores fica restrito ao contexto administrativo. Caixa e vendedores nao acessam essa area. Colaboradores inativos nao aparecem no PDV; as funcoes Vendedor Varejo e Vendedor Atacado liberam somente suas respectivas tabelas.

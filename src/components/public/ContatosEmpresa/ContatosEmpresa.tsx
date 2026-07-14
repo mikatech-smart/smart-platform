@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import "./ContatosEmpresa.css";
+import { criarLinkRedeSocial } from "../../../utils/socialLinks";
 
 interface ContatosEmpresaProps {
   nome: string;
@@ -16,6 +17,7 @@ interface ContatosEmpresaProps {
   telefone?: string | null;
   email?: string | null;
   instagram?: string | null;
+  facebook?: string | null;
   tiktok?: string | null;
   youtube?: string | null;
   kwai?: string | null;
@@ -45,30 +47,6 @@ function criarLinkExterno(url: string) {
   }
 
   return `https://${url}`;
-}
-
-function criarLinkInstagram(instagram: string) {
-  if (!instagram) return "";
-
-  if (instagram.startsWith("http://") || instagram.startsWith("https://")) {
-    return instagram;
-  }
-
-  const usuario = instagram.replace("@", "");
-
-  return `https://instagram.com/${usuario}`;
-}
-
-function criarLinkRedeSocial(valor: string, baseUrl: string) {
-  if (!valor) return "";
-
-  if (valor.startsWith("http://") || valor.startsWith("https://")) {
-    return valor;
-  }
-
-  const usuario = valor.replace("@", "");
-
-  return `${baseUrl.replace(/\/$/, "")}/${usuario}`;
 }
 
 function normalizarValor(valor?: string | null) {
@@ -267,6 +245,7 @@ export default function ContatosEmpresa({
   telefone,
   email,
   instagram,
+  facebook,
   tiktok,
   youtube,
   kwai,
@@ -288,10 +267,11 @@ export default function ContatosEmpresa({
   const fecharPixTimer = useRef<number | null>(null);
 
   const whatsappLink = criarLinkWhatsApp(whatsapp || telefone || "");
-  const instagramLink = criarLinkInstagram(instagram || "");
-  const tiktokLink = criarLinkRedeSocial(tiktok || "", "https://tiktok.com/@");
-  const youtubeLink = criarLinkRedeSocial(youtube || "", "https://youtube.com");
-  const kwaiLink = criarLinkRedeSocial(kwai || "", "https://kwai.com/@");
+  const instagramLink = criarLinkRedeSocial("instagram", instagram || "");
+  const facebookLink = criarLinkRedeSocial("facebook", facebook || "");
+  const tiktokLink = criarLinkRedeSocial("tiktok", tiktok || "");
+  const youtubeLink = criarLinkRedeSocial("youtube", youtube || "");
+  const kwaiLink = criarLinkRedeSocial("kwai", kwai || "");
   const siteLink = criarLinkExterno(site || "");
   const googleReviewLink = criarLinkExterno(googleReviewUrl || "");
   const nomeWifi = normalizarValor(wifiNome);
@@ -516,6 +496,17 @@ export default function ContatosEmpresa({
               rel="noreferrer"
             >
               <ConteudoAcao icon={<InstagramIcon />} label="Instagram" tone="instagram" />
+            </a>
+          )}
+
+          {facebookLink && (
+            <a
+              className="public-empresa-action public-empresa-action--light"
+              href={facebookLink}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <ConteudoAcao icon={<Globe size={26} />} label="Facebook" tone="site" />
             </a>
           )}
 

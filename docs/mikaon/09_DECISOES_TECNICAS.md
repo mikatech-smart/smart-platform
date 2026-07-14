@@ -589,3 +589,11 @@ A modalidade de vendedor faz parte da selecao de sessao e deve ser aplicada junt
 ## Sprint 189 - Modelo de caixa
 
 O modelo implementado e caixa individual por empresa e operador. O modelo centralizado fica reservado para evolucao futura. Consultas sem operador preservam compatibilidade administrativa; a operacao comum usa o identificador do operador.
+
+## Sprint 190 - Funcoes acumulaveis
+
+O campo legado de perfil permanece para compatibilidade. A autorizacao operacional utiliza a lista de funcoes do colaborador, permitindo Caixa com Vendedor Varejo ou Atacado e aplicando a tabela correspondente na selecao do PDV.
+
+## Sprint 191 - Links sociais
+
+O cadastro armazena somente o identificador normalizado. A abertura gera URLs canonicas por rede; o YouTube usa obrigatoriamente o formato /@usuario.

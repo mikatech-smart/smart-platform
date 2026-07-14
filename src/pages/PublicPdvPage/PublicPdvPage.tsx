@@ -13,6 +13,7 @@ import { buscarEmpresaPorSlug } from "../../services/empresa/empresa.service";
 import {
   abrirErpPdvCaixa,
   buscarErpPdvCaixaAberto,
+  obterFuncoesErpPdvUsuario,
   buscarErpPdvClientes,
   buscarErpPdvVendasParaTroca,
   calcularErpPdvResumoCaixa,
@@ -34,6 +35,7 @@ import {
   type ErpPdvCliente,
   type ErpPdvFornecedor,
   type ErpPdvFormaPagamento,
+  type ErpPdvFuncaoColaborador,
   type ErpPdvMovimentacao,
   type ErpPdvMovimentacaoTipo,
   type ErpPdvPermissao,
@@ -1301,21 +1303,20 @@ export default function PublicPdvPage() {
 
     if (perfilSelecaoOperador === "administrador") {
       return usuariosAtivos.filter(
-        (usuario) => usuario.perfil === "administrador" || usuario.perfil === "gerente"
+        (usuario) => obterFuncoesErpPdvUsuario(usuario).includes("administrador")
       );
     }
 
     if (perfilSelecaoOperador === "caixa") {
-      return usuariosAtivos.filter((usuario) => usuario.perfil === "caixa");
+      return usuariosAtivos.filter((usuario) => obterFuncoesErpPdvUsuario(usuario).includes("caixa"));
     }
 
     if (!tabelaSelecaoVendedor) return [];
 
     return usuariosAtivos.filter((usuario) => {
-      if (usuario.perfil !== "vendedor") return false;
-      return obterTabelasLiberadas(usuario).some(
-        (tabelaLiberadaItem) => tabelaLiberadaItem.id === tabelaSelecaoVendedor
-      );
+      const funcaoVendedor: ErpPdvFuncaoColaborador =
+        tabelaSelecaoVendedor === "atacado" ? "vendedor_atacado" : "vendedor_varejo";
+      return obterFuncoesErpPdvUsuario(usuario).includes(funcaoVendedor);
     });
   }
 

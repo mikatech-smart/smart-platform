@@ -33,6 +33,7 @@ import {
   listarErpPdvValesTroca,
   listarErpPdvProdutos,
   listarErpPdvUsuarios,
+  obterFuncoesErpPdvUsuario,
   finalizarErpPdvVenda,
   obterErpPdvResumoTrocas,
   registrarErpPdvEntradaMercadorias,
@@ -63,6 +64,7 @@ import {
   type ErpPdvTabelaPreco,
   type ErpPdvTrocasResumo,
   type ErpPdvPerfilUsuario,
+  type ErpPdvFuncaoColaborador,
   type ErpPdvPermissao,
   type ErpPdvUsuario,
   type ErpPdvUsuarioPayload,
@@ -76,6 +78,7 @@ import Button from "../../ui/Button";
 import UploadImagem from "../UploadImagem";
 import QRCodeEmpresa from "../QRCodeEmpresa/QRCodeEmpresa";
 import HeroEmpresa from "../../public/HeroEmpresa/HeroEmpresa";
+import { normalizarUsuarioRedeSocial } from "../../../utils/socialLinks";
 import InformacoesEmpresa from "../../public/InformacoesEmpresa/InformacoesEmpresa";
 import ContatosEmpresa from "../../public/ContatosEmpresa/ContatosEmpresa";
 import {
@@ -1095,9 +1098,11 @@ type ErpPdvDevolucaoForm = {
 type ErpPdvUsuarioForm = {
   id: string;
   nome: string;
+  nomeExibicao: string;
   email: string;
   telefone: string;
   perfil: ErpPdvPerfilUsuario;
+  funcoes: ErpPdvFuncaoColaborador[];
   moduloInicial: string;
   permissoes: Record<ErpPdvPermissao, boolean>;
   ativo: boolean;
@@ -1186,6 +1191,16 @@ const erpPdvPerfisUsuario: Array<{
   { id: "estoque", label: "Estoque" },
 ];
 
+const erpPdvFuncoesColaborador: Array<{
+  id: ErpPdvFuncaoColaborador;
+  label: string;
+}> = [
+  { id: "administrador", label: "Administrador" },
+  { id: "caixa", label: "Caixa" },
+  { id: "vendedor_varejo", label: "Vendedor Varejo" },
+  { id: "vendedor_atacado", label: "Vendedor Atacado" },
+];
+
 function criarPermissoesErpPdv(
   ativas: ErpPdvPermissao[] = erpPdvPermissoes.map((permissao) => permissao.id)
 ) {
@@ -1219,12 +1234,35 @@ function criarPermissoesPerfilErpPdv(perfil: ErpPdvPerfilUsuario) {
   return criarPermissoesErpPdv(["produto_salvar", "custo_lucro_consultar"]);
 }
 
+function obterPerfilPrincipalColaborador(funcoes: ErpPdvFuncaoColaborador[]): ErpPdvPerfilUsuario {
+  if (funcoes.includes("administrador")) return "administrador";
+  if (funcoes.includes("caixa")) return "caixa";
+  if (funcoes.includes("vendedor_varejo") || funcoes.includes("vendedor_atacado")) {
+    return "vendedor";
+  }
+  return "caixa";
+}
+
+function criarPermissoesFuncoesColaborador(funcoes: ErpPdvFuncaoColaborador[]) {
+  if (funcoes.includes("administrador")) return criarPermissoesErpPdv();
+
+  const permissoes: ErpPdvPermissao[] = [];
+  if (funcoes.includes("caixa")) {
+    permissoes.push("tabela_varejo", "caixa_abrir_fechar", "caixa_movimentar", "venda_cancelar");
+  }
+  if (funcoes.includes("vendedor_varejo")) permissoes.push("tabela_varejo", "venda_cancelar");
+  if (funcoes.includes("vendedor_atacado")) permissoes.push("tabela_atacado", "venda_cancelar");
+  return criarPermissoesErpPdv([...new Set(permissoes)]);
+}
+
 const erpPdvUsuarioFormPadrao: ErpPdvUsuarioForm = {
   id: "",
   nome: "",
+  nomeExibicao: "",
   email: "",
   telefone: "",
   perfil: "caixa",
+  funcoes: ["caixa"],
   moduloInicial: "pdv",
   permissoes: criarPermissoesPerfilErpPdv("caixa"),
   ativo: true,
@@ -6150,49 +6188,6 @@ function formatarTelefone(valor: string) {
   return `(${ddd}) ${parteInicial}-${parteFinal}`;
 }
 
-function normalizarUsuarioRedeSocial(valor: string) {
-  const texto = valor.trim();
-
-  if (!texto) return "";
-
-  const textoSemArroba = texto.replace(/^@+/, "");
-  const contemLink =
-    /^https?:\/\//i.test(texto) ||
-    /^www\./i.test(texto) ||
-    /(^|\.)instagram\.com/i.test(texto) ||
-    /(^|\.)facebook\.com/i.test(texto) ||
-    /(^|\.)tiktok\.com/i.test(texto) ||
-    /(^|\.)youtube\.com/i.test(texto) ||
-    /(^|\.)youtu\.be/i.test(texto) ||
-    /(^|\.)kwai\.com/i.test(texto) ||
-    /(^|\.)k\.kwai\.com/i.test(texto);
-
-  if (!contemLink) {
-    return textoSemArroba.replace(/\s+/g, "");
-  }
-
-  try {
-    const url = new URL(
-      texto.startsWith("http://") || texto.startsWith("https://")
-        ? texto
-        : `https://${texto}`
-    );
-    const partes = url.pathname
-      .split("/")
-      .map((parte) => parte.trim())
-      .filter(Boolean);
-    const usuario = partes.find((parte) =>
-      !["p", "reel", "reels", "tv", "channel", "c", "user"].includes(
-        parte.toLowerCase()
-      )
-    );
-
-    return (usuario || textoSemArroba).replace(/^@+/, "").split("?")[0];
-  } catch {
-    return textoSemArroba.replace(/\s+/g, "");
-  }
-}
-
 interface EmpresaFormProps {
   empresaInicialId?: string;
   empresaInicialSlug?: string;
@@ -6374,6 +6369,8 @@ export default function EmpresaForm({
     useState("");
   const [erpPdvUsuarioForm, setErpPdvUsuarioForm] =
     useState<ErpPdvUsuarioForm>(() => ({ ...erpPdvUsuarioFormPadrao }));
+  const [erpPdvUsuarioBusca, setErpPdvUsuarioBusca] = useState("");
+  const [erpPdvUsuarioFiltro, setErpPdvUsuarioFiltro] = useState("todos");
   const [erpPdvFornecedorForm, setErpPdvFornecedorForm] =
     useState<ErpPdvFornecedorForm>(() => ({ ...erpPdvFornecedorFormPadrao }));
   const [erpPdvEntradaForm, setErpPdvEntradaForm] =
@@ -8257,7 +8254,7 @@ export default function EmpresaForm({
   }
 
   function atualizarUsuarioFormErpPdv(
-    campo: keyof Omit<ErpPdvUsuarioForm, "permissoes">,
+    campo: keyof Omit<ErpPdvUsuarioForm, "permissoes" | "funcoes">,
     valor: string | boolean
   ) {
     setErpPdvUsuarioForm((formAtual) => {
@@ -8277,6 +8274,23 @@ export default function EmpresaForm({
     });
   }
 
+  function atualizarFuncoesUsuarioErpPdv(funcoes: ErpPdvFuncaoColaborador[]) {
+    const funcoesUnicas: ErpPdvFuncaoColaborador[] = [...new Set(funcoes)];
+    const permissoesBase = criarPermissoesFuncoesColaborador(funcoesUnicas);
+    setErpPdvUsuarioForm((formAtual) => ({
+      ...formAtual,
+      funcoes: funcoesUnicas,
+      perfil: obterPerfilPrincipalColaborador(funcoesUnicas),
+      permissoes: {
+        ...formAtual.permissoes,
+        ...permissoesBase,
+        ...(funcoesUnicas.includes("vendedor_varejo") ? {} : { tabela_varejo: false }),
+        ...(funcoesUnicas.includes("vendedor_atacado") ? {} : { tabela_atacado: false }),
+        ...(funcoesUnicas.includes("caixa") ? {} : { caixa_abrir_fechar: false, caixa_movimentar: false }),
+      },
+    }));
+  }
+
   function atualizarPermissaoUsuarioErpPdv(
     permissao: ErpPdvPermissao,
     ativo: boolean
@@ -8294,12 +8308,14 @@ export default function EmpresaForm({
     setErpPdvUsuarioForm({
       id: usuario.id,
       nome: usuario.nome,
+      nomeExibicao: usuario.nome_exibicao || usuario.nome,
       email: usuario.email,
       telefone: usuario.telefone,
-      perfil: usuario.perfil,
+      perfil: obterPerfilPrincipalColaborador(obterFuncoesErpPdvUsuario(usuario)),
+      funcoes: obterFuncoesErpPdvUsuario(usuario),
       moduloInicial: usuario.modulo_inicial || "pdv",
       permissoes: {
-        ...criarPermissoesPerfilErpPdv(usuario.perfil),
+        ...criarPermissoesFuncoesColaborador(obterFuncoesErpPdvUsuario(usuario)),
         ...usuario.permissoes,
       },
       ativo: usuario.ativo,
@@ -8336,9 +8352,11 @@ export default function EmpresaForm({
         id: erpPdvUsuarioForm.id || undefined,
         empresaId,
         nome: erpPdvUsuarioForm.nome,
+        nomeExibicao: erpPdvUsuarioForm.nomeExibicao,
         email: erpPdvUsuarioForm.email,
         telefone: erpPdvUsuarioForm.telefone,
         perfil: erpPdvUsuarioForm.perfil,
+        funcoes: erpPdvUsuarioForm.funcoes,
         moduloInicial: erpPdvUsuarioForm.moduloInicial,
         permissoes: erpPdvUsuarioForm.permissoes,
         ativo: erpPdvUsuarioForm.ativo,
@@ -8368,6 +8386,33 @@ export default function EmpresaForm({
     } finally {
       setErpPdvSalvando(false);
     }
+  }
+
+  function obterLabelFuncaoColaborador(funcao: ErpPdvFuncaoColaborador) {
+    return erpPdvFuncoesColaborador.find((item) => item.id === funcao)?.label || funcao;
+  }
+
+  function obterColaboradoresFiltrados() {
+    const termo = erpPdvUsuarioBusca.trim().toLowerCase();
+    return erpPdvUsuarios.filter((usuario) => {
+      const funcoes = obterFuncoesErpPdvUsuario(usuario);
+      const correspondeFiltro =
+        erpPdvUsuarioFiltro === "todos" ||
+        (erpPdvUsuarioFiltro === "ativos" && usuario.ativo) ||
+        (erpPdvUsuarioFiltro === "inativos" && !usuario.ativo) ||
+        (erpPdvUsuarioFiltro === "administradores" && funcoes.includes("administrador")) ||
+        (erpPdvUsuarioFiltro === "caixas" && funcoes.includes("caixa")) ||
+        (erpPdvUsuarioFiltro === "varejo" && funcoes.includes("vendedor_varejo")) ||
+        (erpPdvUsuarioFiltro === "atacado" && funcoes.includes("vendedor_atacado"));
+      if (!correspondeFiltro) return false;
+      if (!termo) return true;
+      return [
+        usuario.nome,
+        usuario.nome_exibicao,
+        usuario.perfil,
+        ...funcoes.map(obterLabelFuncaoColaborador),
+      ].some((valor) => valor.toLowerCase().includes(termo));
+    });
   }
 
   async function copiarLinkPdvErpPdv() {
@@ -12024,19 +12069,19 @@ export default function EmpresaForm({
               </div>
             )}
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            {!modoCliente && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
               <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                   <p className="text-sm font-bold uppercase tracking-wide text-green-700">
-                    Usuarios e permissoes
+                    Colaboradores
                   </p>
                   <h4 className="mt-2 text-lg font-bold text-slate-900">
-                    Controle de acesso do ERP/PDV
+                    Cadastro administrativo de colaboradores
                   </h4>
                   <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500">
-                    Cadastre operadores por empresa e configure o que cada perfil
-                    pode executar. Sem operador selecionado, o modo
-                    desenvolvimento permanece liberado.
+                    Cadastre colaboradores, acumule funcoes autorizadas e defina
+                    as permissoes operacionais de cada pessoa.
                   </p>
                 </div>
                 <div className="min-w-[240px]">
@@ -12072,6 +12117,14 @@ export default function EmpresaForm({
                       placeholder="Nome do operador"
                     />
                     <Input
+                      label="Nome de exibicao"
+                      value={erpPdvUsuarioForm.nomeExibicao}
+                      onChange={(e) =>
+                        atualizarUsuarioFormErpPdv("nomeExibicao", e.target.value)
+                      }
+                      placeholder="Como aparecera no PDV"
+                    />
+                    <Input
                       label="E-mail"
                       value={erpPdvUsuarioForm.email}
                       onChange={(e) =>
@@ -12087,27 +12140,6 @@ export default function EmpresaForm({
                       }
                       placeholder="Contato"
                     />
-                    <div>
-                      <label className="block text-sm font-bold text-slate-700">
-                        Perfil
-                      </label>
-                      <select
-                        value={erpPdvUsuarioForm.perfil}
-                        onChange={(e) =>
-                          atualizarUsuarioFormErpPdv(
-                            "perfil",
-                            e.target.value as ErpPdvPerfilUsuario
-                          )
-                        }
-                        className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
-                      >
-                        {erpPdvPerfisUsuario.map((perfil) => (
-                          <option key={perfil.id} value={perfil.id}>
-                            {perfil.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
                     <div>
                       <label className="block text-sm font-bold text-slate-700">
                         Modulo inicial
@@ -12130,6 +12162,37 @@ export default function EmpresaForm({
                       </select>
                     </div>
                   </div>
+
+                  <fieldset className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
+                    <legend className="px-1 text-sm font-black text-slate-900">
+                      Funcoes autorizadas
+                    </legend>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                      {erpPdvFuncoesColaborador.map((funcao) => (
+                        <label
+                          key={funcao.id}
+                          className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={erpPdvUsuarioForm.funcoes.includes(funcao.id)}
+                            onChange={(e) =>
+                              atualizarFuncoesUsuarioErpPdv(
+                                e.target.checked
+                                  ? [...erpPdvUsuarioForm.funcoes, funcao.id]
+                                  : erpPdvUsuarioForm.funcoes.filter((item) => item !== funcao.id)
+                              )
+                            }
+                            className="h-4 w-4 rounded border-slate-300 text-green-700 focus:ring-green-500"
+                          />
+                          {funcao.label}
+                        </label>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-xs font-semibold text-slate-500">
+                      Varejo e Atacado liberam somente suas respectivas tabelas no PDV.
+                    </p>
+                  </fieldset>
 
                   <label className="mt-3 flex items-center gap-2 text-sm font-bold text-slate-700">
                     <input
@@ -12205,36 +12268,95 @@ export default function EmpresaForm({
 
                   <div className="rounded-2xl border border-slate-200 p-4">
                     <h5 className="font-black text-slate-900">
-                      Usuarios cadastrados
+                      Colaboradores cadastrados
                     </h5>
-                    <div className="mt-3 grid max-h-[520px] gap-2 overflow-auto">
-                      {erpPdvUsuarios.length > 0 ? (
-                        erpPdvUsuarios.map((usuario) => (
-                          <button
-                            type="button"
-                            key={usuario.id}
-                            onClick={() => editarUsuarioErpPdv(usuario)}
-                            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-left transition hover:border-green-300 hover:bg-green-50"
-                          >
-                            <span className="block font-black text-slate-900">
-                              {usuario.nome}
-                            </span>
-                            <span className="mt-1 block text-xs font-bold text-slate-500">
-                              {obterLabelPerfilErpPdv(usuario.perfil)} |{" "}
-                              {usuario.ativo ? "Ativo" : "Inativo"}
-                            </span>
-                          </button>
-                        ))
+                    <div className="mt-3 grid gap-2 md:grid-cols-[1fr_180px]">
+                      <Input
+                        label="Pesquisar colaborador"
+                        value={erpPdvUsuarioBusca}
+                        onChange={(e) => setErpPdvUsuarioBusca(e.target.value)}
+                        placeholder="Nome ou funcao"
+                      />
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700">Filtro</label>
+                        <select
+                          value={erpPdvUsuarioFiltro}
+                          onChange={(e) => setErpPdvUsuarioFiltro(e.target.value)}
+                          className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold text-slate-700 outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                        >
+                          <option value="todos">Todos</option>
+                          <option value="ativos">Ativos</option>
+                          <option value="inativos">Inativos</option>
+                          <option value="administradores">Administradores</option>
+                          <option value="caixas">Caixas</option>
+                          <option value="varejo">Vendedores Varejo</option>
+                          <option value="atacado">Vendedores Atacado</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="mt-3 max-h-[520px] overflow-auto">
+                      {obterColaboradoresFiltrados().length > 0 ? (
+                        <table className="w-full min-w-[620px] border-collapse text-left text-sm">
+                          <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                            <tr>
+                              <th className="px-3 py-2">Nome</th>
+                              <th className="px-3 py-2">Funcoes</th>
+                              <th className="px-3 py-2">Tabelas</th>
+                              <th className="px-3 py-2">Caixa</th>
+                              <th className="px-3 py-2">Status</th>
+                              <th className="px-3 py-2">Acao</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {obterColaboradoresFiltrados().map((usuario) => {
+                              const funcoes = obterFuncoesErpPdvUsuario(usuario);
+                              const tabelas = [
+                                funcoes.includes("vendedor_varejo") ? "Varejo" : "",
+                                funcoes.includes("vendedor_atacado") ? "Atacado" : "",
+                              ].filter(Boolean).join(" / ") || "Nenhuma";
+                              return (
+                                <tr key={usuario.id} className="border-b border-slate-100 hover:bg-slate-50">
+                                  <td className="px-3 py-2 font-bold text-slate-900">
+                                    <span className="block">{usuario.nome_exibicao || usuario.nome}</span>
+                                    <span className="text-xs font-medium text-slate-500">{usuario.email || "Sem e-mail"}</span>
+                                  </td>
+                                  <td className="px-3 py-2 text-slate-700">
+                                    {funcoes.map(obterLabelFuncaoColaborador).join(", ") || "Sem funcao"}
+                                  </td>
+                                  <td className="px-3 py-2 text-slate-700">{tabelas}</td>
+                                  <td className="px-3 py-2 text-slate-700">
+                                    {funcoes.includes("caixa") ? "Autorizado" : "Nao"}
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <span className={usuario.ativo ? "rounded-full bg-green-50 px-2 py-1 text-xs font-bold text-green-700" : "rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-500"}>
+                                      {usuario.ativo ? "Ativo" : "Inativo"}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => editarUsuarioErpPdv(usuario)}
+                                      className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-700 hover:border-green-300 hover:bg-green-50"
+                                    >
+                                      Editar
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
                       ) : (
                         <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
-                          Nenhum usuario ERP/PDV cadastrado ainda.
+                          Nenhum colaborador encontrado.
                         </p>
                       )}
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+              </div>
+            )}
 
             <div className="hidden rounded-2xl border border-slate-200 bg-white p-4">
               <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -19137,6 +19259,7 @@ export default function EmpresaForm({
                         telefone={telefone}
                         email={email}
                         instagram={instagram}
+                        facebook={facebook}
                         tiktok={tiktok}
                         youtube={youtube}
                         kwai={kwai}
@@ -19435,7 +19558,7 @@ export default function EmpresaForm({
 
               setInstagram(valorNormalizado);
             }}
-            helperText="Digite apenas o usuário, sem @ e sem link."
+            helperText="Digite o usuario ou cole o link completo. O sistema identifica automaticamente o perfil."
           />
 
           <Input
@@ -19447,7 +19570,7 @@ export default function EmpresaForm({
 
               setTiktok(valorNormalizado);
             }}
-            helperText="Digite apenas o usuário, sem @ e sem link."
+            helperText="Digite o usuario ou cole o link completo. O sistema identifica automaticamente o perfil."
           />
 
           <Input
@@ -19459,7 +19582,7 @@ export default function EmpresaForm({
 
               setYoutube(valorNormalizado);
             }}
-            helperText="Digite apenas o usuário, sem @ e sem link."
+            helperText="Digite o usuario ou cole o link completo. O sistema identifica automaticamente o perfil."
           />
 
           <Input
@@ -19471,7 +19594,7 @@ export default function EmpresaForm({
 
               setKwai(valorNormalizado);
             }}
-            helperText="Digite apenas o usuário, sem @ e sem link."
+            helperText="Digite o usuario ou cole o link completo. O sistema identifica automaticamente o perfil."
           />
 
           <Input
@@ -19483,7 +19606,7 @@ export default function EmpresaForm({
 
               setFacebook(valorNormalizado);
             }}
-            helperText="Digite apenas o usuário, sem @ e sem link."
+            helperText="Digite o usuario ou cole o link completo. O sistema identifica automaticamente o perfil."
           />
 
           <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">

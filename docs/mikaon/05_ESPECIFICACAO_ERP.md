@@ -436,3 +436,7 @@ A listagem usa selecao da linha inteira e o mesmo formulario para criacao e edic
 ## Sprint 184 - Motor de formacao de precos
 
 O painel calcula custo, acrescimo, markup, margem e preco final separadamente para varejo e atacado. O preco final e persistido; os indicadores sao reconstruidos ao carregar. A digitacao aceita decimal com virgula, ponto e percentual, preserva campos vazios temporarios e nao sobrescreve o campo ativo.
+
+## Sprint 190 - Cadastro de colaboradores
+
+O modulo administrativo possui a area Colaboradores, com listagem compacta, pesquisa, filtros, edicao, ativacao e inativacao. O cadastro reutiliza erp_pdv_usuarios e permite nome de exibicao, funcoes acumulaveis, tabelas autorizadas e permissoes operacionais.

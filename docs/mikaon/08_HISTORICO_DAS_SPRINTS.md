@@ -519,3 +519,11 @@ Refinado o fluxo inicial do PDV com lista compacta de perfis, modalidades de ven
 ## Sprint 189 - Caixa individual
 
 O fluxo de selecao do perfil Caixa passou a carregar e validar o caixa por operador, permitindo varios colaboradores e mantendo seus totais independentes.
+
+## Sprint 190 - Cadastro administrativo de colaboradores
+
+A area administrativa passou a permitir cadastrar, editar, ativar e inativar colaboradores com funcoes acumulaveis, mantendo a integracao com a selecao de operador e o caixa individual.
+
+## Sprint 191 - Redes sociais
+
+Padronizada a entrada de perfis sociais para aceitar usuario, @usuario e URL completa, com normalizacao para identificador e links canonicos por rede.

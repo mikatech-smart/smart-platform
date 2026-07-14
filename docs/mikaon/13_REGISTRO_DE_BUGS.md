@@ -332,3 +332,7 @@ A listagem passou a usar tabela compacta com filtros, paginacao e painel lateral
 - Corrigido: campos de formacao de precos travavam ou sobrescreviam a digitacao ao recalcular no componente pai.
 - Corrigido: callback de persistencia chamado dentro de updater de estado, gerando aviso de atualizacao durante renderizacao.
 - Validado: Backspace, Delete, entrada decimal, formulas e persistencia no navegador.
+
+## Sprint 191 - Links invalidos de redes sociais
+
+Corrigido. Entradas com @, URL completa, www, parametros ou barra final sao normalizadas antes do salvamento e da abertura do link.
