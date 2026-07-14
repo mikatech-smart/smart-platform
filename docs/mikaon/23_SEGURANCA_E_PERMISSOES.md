@@ -334,3 +334,7 @@ O carregamento do formulario nao concede permissao. A edicao de custo e precos c
 ## Sprint 184
 
 O motor de precos nao amplia permissoes: custo e indicadores sensiveis continuam exigindo custo_lucro_consultar e preco_alterar, enquanto precos finais exigem preco_alterar. Campos derivados permanecem somente leitura.
+
+## Sprint 188 - Permissoes por tabela
+
+Vendedores de Varejo entram somente com a tabela varejo autorizada; vendedores de Atacado entram somente com a tabela atacado autorizada. Um vendedor com ambas as autorizacoes pode ser selecionado em qualquer modalidade, mas a tabela escolhida fica fixa e o seletor manual permanece bloqueado. Senha individual nao foi implementada nesta Sprint.

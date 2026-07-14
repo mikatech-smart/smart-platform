@@ -387,3 +387,9 @@ A area operacional de Produtos/Estoque fica mais consistente com o restante do M
 - Editor de precos separado em componente proprio.
 - Digitação de custo, acrescimo, markup e preco final estabilizada.
 - Varejo e atacado continuam independentes e persistentes.
+
+## Sprint 188
+
+- Selecao de operador reorganizada em perfis e modalidades compactas.
+- Vendedores filtrados por tabela autorizada, com suporte a multiplos operadores e tabela fixa durante a sessao.
+- Senha e autenticacao individual permanecem planejadas para fase futura.

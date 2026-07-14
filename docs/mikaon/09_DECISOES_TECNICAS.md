@@ -581,3 +581,7 @@ Linhas do Data Grid usam botoes semanticos para acessibilidade e devem ser exclu
 ## Sprint 184
 
 O motor de formacao de precos mantem strings de entrada durante a digitacao e calcula derivados com numeros seguros. Custo e precos finais sao fontes oficiais; acrescimo, markup e margem nao sao persistidos como fontes concorrentes.
+
+## Sprint 188 - Decisao de tabela na sessao
+
+A modalidade de vendedor faz parte da selecao de sessao e deve ser aplicada junto ao operador. O vendedor nao alterna tabelas manualmente durante a operacao; a tabela e definida pelo caminho Varejo ou Atacado escolhido antes do operador.

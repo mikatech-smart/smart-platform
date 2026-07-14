@@ -392,3 +392,7 @@ A selecao de uma linha de Produtos/Estoque deve carregar o registro completo no 
 ## Sprint 184 - Formacao de precos
 
 Custo, preco final de varejo e preco final de atacado sao as fontes persistidas. Acrescimo, markup e margem sao derivados de forma independente para cada tabela. O campo editado e preservado durante a digitacao; somente os demais indicadores sao recalculados.
+
+## Sprint 188 - Operadores e tabelas
+
+A entrada do PDV inicia por perfil, com Administrador, Caixa e Vendedor. Ao escolher Vendedor, a modalidade Varejo ou Atacado e selecionada antes do operador. A tabela escolhida fica fixa durante a sessao; um vendedor autorizado nas duas tabelas pode aparecer nas duas listas. O perfil Estoque nao e selecionado no PDV; as funcoes de estoque ficam concentradas no Administrador.

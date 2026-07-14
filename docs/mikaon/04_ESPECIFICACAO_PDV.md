@@ -501,3 +501,7 @@ Planejadas:
 Construir um PDV capaz de competir com os principais sistemas comerciais do mercado, mantendo operação simples, rápida e extremamente produtiva.
 
 Toda Sprint deverá aproximar o PDV desse objetivo.
+
+## Sprint 188 - Selecao compacta
+
+A selecao inicial exibe Administrador, Caixa e Vendedor. Vendedor passa por modalidade e recebe somente operadores ativos compativeis com a tabela autorizada. A tabela e aplicada automaticamente e nao pode ser trocada manualmente pelo vendedor. Senha e autenticacao individual permanecem como evolucao futura.

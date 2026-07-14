@@ -780,6 +780,7 @@ export default function PublicPdvPage() {
   const tabelaLiberada = obterTabelasLiberadas(usuarioAtual);
   const tabelaAtualLiberada = tabelaLiberada.some((item) => item.id === tabela);
   const sessaoOperadorKey = `mikaon:pdv:${slug}:operador`;
+  const sessaoOperadorTabelaKey = `mikaon:pdv:${slug}:operador-tabela`;
   const vendasSuspensasKey = `mikaon:pdv:${slug}:vendas-suspensas`;
   const valesAtivos = vales.filter(
     (vale) =>
@@ -986,7 +987,9 @@ export default function PublicPdvPage() {
     { tecla: "F2", descricao: "Focar busca de produto" },
     { tecla: "F4", descricao: "Concluir venda" },
     { tecla: "F6", descricao: "Focar cliente" },
-    ...(tabelaLiberada.length > 0 ? [{ tecla: "F7", descricao: "Focar tabela interna de preco" }] : []),
+    ...(tabelaLiberada.length > 0 && usuarioAtual?.perfil !== "vendedor"
+      ? [{ tecla: "F7", descricao: "Focar tabela interna de preco" }]
+      : []),
     { tecla: "F8", descricao: "Cancelar ou limpar venda" },
     { tecla: "F9", descricao: "Abrir ou fechar menu" },
     { tecla: "F10", descricao: "Entrar ou sair da tela cheia" },
@@ -1138,11 +1141,17 @@ export default function PublicPdvPage() {
     const usuarioSalvo = usuariosAtivos.find((usuario) => usuario.id === operadorSalvo);
 
     if (usuarioSalvo) {
-      selecionarUsuario(usuarioSalvo.id);
+      const tabelaSalva = sessionStorage.getItem(sessaoOperadorTabelaKey);
+      const tabelaForcada =
+        usuarioSalvo.perfil === "vendedor" &&
+        (tabelaSalva === "varejo" || tabelaSalva === "atacado")
+          ? tabelaSalva
+          : undefined;
+      selecionarUsuario(usuarioSalvo.id, tabelaForcada);
       setOperadorModalAberto(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessaoOperadorKey, usuarios.length]);
+  }, [sessaoOperadorKey, sessaoOperadorTabelaKey, usuarios.length]);
 
   useEffect(() => {
     function aoAlterarTelaCheia() {
@@ -1201,17 +1210,22 @@ export default function PublicPdvPage() {
     return tabelas.length ? tabelas.join(", ") : "Nenhuma tabela liberada";
   }
 
-  function selecionarUsuario(id: string) {
+  function selecionarUsuario(id: string, tabelaForcada?: ErpPdvTabelaPreco) {
     setUsuarioId(id);
     const usuario = usuarios.find((item) => item.id === id);
     if (!usuario) return;
 
     sessionStorage.setItem(sessaoOperadorKey, id);
+    if (usuario.perfil === "vendedor" && tabelaForcada) {
+      sessionStorage.setItem(sessaoOperadorTabelaKey, tabelaForcada);
+    } else {
+      sessionStorage.removeItem(sessaoOperadorTabelaKey);
+    }
     setOperadorModalAberto(false);
     setFeedback("");
 
     const primeiraTabela = obterTabelasLiberadas(usuario)[0]?.id || "varejo";
-    setTabela(primeiraTabela);
+    setTabela(tabelaForcada || primeiraTabela);
 
     window.setTimeout(() => {
       if (usuario.modulo_inicial === "trocas") {
@@ -1282,6 +1296,7 @@ export default function PublicPdvPage() {
     setClienteSelecionado(null);
     setUsuarioId("");
     sessionStorage.removeItem(sessaoOperadorKey);
+    sessionStorage.removeItem(sessaoOperadorTabelaKey);
     setPerfilSelecaoOperador(null);
     setTabelaSelecaoVendedor(null);
     setOperadorModalAberto(true);
@@ -1448,7 +1463,14 @@ export default function PublicPdvPage() {
                 <button
                   type="button"
                   key={usuario.id}
-                  onClick={() => selecionarUsuario(usuario.id)}
+                  onClick={() =>
+                    selecionarUsuario(
+                      usuario.id,
+                      perfilSelecaoOperador === "vendedor"
+                        ? tabelaSelecaoVendedor || undefined
+                        : undefined
+                    )
+                  }
                   className="public-pdv-operator-option"
                 >
                   <strong>{usuario.nome}</strong>
@@ -2395,7 +2417,12 @@ export default function PublicPdvPage() {
         tabIndex={-1}
         aria-hidden="true"
         value={tabela}
-        onChange={(e) => setTabela(e.target.value as ErpPdvTabelaPreco)}
+        disabled={usuarioAtual?.perfil === "vendedor"}
+        onChange={(e) => {
+          if (usuarioAtual?.perfil !== "vendedor") {
+            setTabela(e.target.value as ErpPdvTabelaPreco);
+          }
+        }}
       >
         {tabelaLiberada.length > 0 ? (
           tabelaLiberada.map((item) => (

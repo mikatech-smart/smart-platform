@@ -511,3 +511,7 @@ Corrigido o recalculo durante a digitacao: varejo e atacado agora sao independen
 ## Sprint 185 - Editor de precos
 
 A formacao de precos foi extraida para ProductPricingEditor. O componente preserva a digitacao, permite campo vazio temporario e confirma os valores no blur ou Enter, mantendo varejo e atacado independentes.
+
+## Sprint 188 - Selecao de operador
+
+Refinado o fluxo inicial do PDV com lista compacta de perfis, modalidades de vendedor e filtragem por tabela autorizada. Multiplos vendedores de Varejo e Atacado sao suportados, inclusive vendedores autorizados nas duas modalidades.
