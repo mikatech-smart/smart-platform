@@ -171,6 +171,9 @@ type EstoqueMovimentacaoForm = {
   observacao: string;
 };
 
+type PerfilSelecaoOperador = "administrador" | "caixa" | "vendedor";
+type TabelaSelecaoVendedor = "varejo" | "atacado";
+
 type EstoqueStatusFiltro =
   | "todos"
   | "ativos"
@@ -708,6 +711,10 @@ export default function PublicPdvPage() {
   const [resumoCaixa, setResumoCaixa] = useState<ErpPdvCaixaResumo | null>(null);
   const [usuarioId, setUsuarioId] = useState("");
   const [operadorModalAberto, setOperadorModalAberto] = useState(true);
+  const [perfilSelecaoOperador, setPerfilSelecaoOperador] =
+    useState<PerfilSelecaoOperador | null>(null);
+  const [tabelaSelecaoVendedor, setTabelaSelecaoVendedor] =
+    useState<TabelaSelecaoVendedor | null>(null);
   const [busca, setBusca] = useState("");
   const [produtoAdicionadoId, setProdutoAdicionadoId] = useState("");
   const [carrinho, setCarrinho] = useState<CarrinhoItem[]>([]);
@@ -1219,6 +1226,48 @@ export default function PublicPdvPage() {
     }, 0);
   }
 
+  function selecionarPerfilOperador(perfil: PerfilSelecaoOperador) {
+    setPerfilSelecaoOperador(perfil);
+    setTabelaSelecaoVendedor(null);
+  }
+
+  function selecionarTabelaVendedor(tabelaSelecionada: TabelaSelecaoVendedor) {
+    setTabelaSelecaoVendedor(tabelaSelecionada);
+  }
+
+  function voltarSelecaoOperador() {
+    if (perfilSelecaoOperador === "vendedor" && tabelaSelecaoVendedor) {
+      setTabelaSelecaoVendedor(null);
+      return;
+    }
+
+    setPerfilSelecaoOperador(null);
+    setTabelaSelecaoVendedor(null);
+  }
+
+  function obterUsuariosDisponiveisParaSelecao() {
+    if (!perfilSelecaoOperador) return [];
+
+    if (perfilSelecaoOperador === "administrador") {
+      return usuariosAtivos.filter(
+        (usuario) => usuario.perfil === "administrador" || usuario.perfil === "gerente"
+      );
+    }
+
+    if (perfilSelecaoOperador === "caixa") {
+      return usuariosAtivos.filter((usuario) => usuario.perfil === "caixa");
+    }
+
+    if (!tabelaSelecaoVendedor) return [];
+
+    return usuariosAtivos.filter((usuario) => {
+      if (usuario.perfil !== "vendedor") return false;
+      return obterTabelasLiberadas(usuario).some(
+        (tabelaLiberadaItem) => tabelaLiberadaItem.id === tabelaSelecaoVendedor
+      );
+    });
+  }
+
   function trocarOperador() {
     if (carrinho.length > 0) {
       const confirmar = window.confirm(
@@ -1233,6 +1282,8 @@ export default function PublicPdvPage() {
     setClienteSelecionado(null);
     setUsuarioId("");
     sessionStorage.removeItem(sessaoOperadorKey);
+    setPerfilSelecaoOperador(null);
+    setTabelaSelecaoVendedor(null);
     setOperadorModalAberto(true);
     setFeedback("Selecione o operador para continuar.");
   }
@@ -1328,19 +1379,72 @@ export default function PublicPdvPage() {
   }
 
   function renderModalOperador() {
+    const usuariosDisponiveis = obterUsuariosDisponiveisParaSelecao();
+    const exibindoVendedores = perfilSelecaoOperador === "vendedor";
+    const podeListarUsuarios =
+      Boolean(perfilSelecaoOperador) &&
+      (!exibindoVendedores || Boolean(tabelaSelecaoVendedor));
+
     return (
       <section className="public-pdv-operator-modal" aria-modal="true" role="dialog">
         <div className="public-pdv-operator-card">
           <span>{BrandConfig.platformName} ERP/PDV</span>
-          <h2>Selecione o operador</h2>
+          <h2>{perfilSelecaoOperador ? "Selecione o operador" : "Selecione o perfil"}</h2>
           <p>
-            O acesso permanece sem senha nesta Sprint. As permissoes carregadas
-            seguem o perfil do operador escolhido.
+            {perfilSelecaoOperador
+              ? "As permissoes carregadas seguem o perfil do operador escolhido."
+              : "Escolha o tipo de acesso para continuar."}
           </p>
 
-          <div className="public-pdv-operator-list">
-            {usuariosAtivos.length > 0 ? (
-              usuariosAtivos.map((usuario) => (
+          {!perfilSelecaoOperador && (
+            <div className="public-pdv-operator-profiles">
+              <button
+                type="button"
+                className="public-pdv-operator-profile"
+                onClick={() => selecionarPerfilOperador("administrador")}
+              >
+                Administrador
+              </button>
+              <button
+                type="button"
+                className="public-pdv-operator-profile"
+                onClick={() => selecionarPerfilOperador("caixa")}
+              >
+                Caixa
+              </button>
+              <button
+                type="button"
+                className="public-pdv-operator-profile"
+                onClick={() => selecionarPerfilOperador("vendedor")}
+              >
+                Vendedor
+              </button>
+            </div>
+          )}
+
+          {exibindoVendedores && !tabelaSelecaoVendedor && (
+            <div className="public-pdv-operator-profiles">
+              <button
+                type="button"
+                className="public-pdv-operator-profile"
+                onClick={() => selecionarTabelaVendedor("varejo")}
+              >
+                Vendedor Varejo
+              </button>
+              <button
+                type="button"
+                className="public-pdv-operator-profile"
+                onClick={() => selecionarTabelaVendedor("atacado")}
+              >
+                Vendedor Atacado
+              </button>
+            </div>
+          )}
+
+          {podeListarUsuarios && (
+            <div className="public-pdv-operator-list">
+              {usuariosDisponiveis.length > 0 ? (
+                usuariosDisponiveis.map((usuario) => (
                 <button
                   type="button"
                   key={usuario.id}
@@ -1352,13 +1456,24 @@ export default function PublicPdvPage() {
                   <span>Tabelas: {obterLabelsTabelas(usuario)}</span>
                   <span>Modulo inicial: {obterLabelModulo(usuario)}</span>
                 </button>
-              ))
-            ) : (
-              <p className="public-pdv-operator-empty">
-                Nenhum usuario ativo do ERP/PDV foi encontrado para esta empresa.
-              </p>
-            )}
-          </div>
+                ))
+              ) : (
+                <p className="public-pdv-operator-empty">
+                  Nenhum operador compativel foi encontrado para esta selecao.
+                </p>
+              )}
+            </div>
+          )}
+
+          {perfilSelecaoOperador && (
+            <button
+              type="button"
+              className="public-pdv-operator-back"
+              onClick={voltarSelecaoOperador}
+            >
+              Voltar
+            </button>
+          )}
         </div>
       </section>
     );

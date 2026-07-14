@@ -107,13 +107,41 @@
   margin-top: 18px;
 }
 
+.public-pdv-operator-profiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.public-pdv-operator-profile,
+.public-pdv-operator-back {
+  min-height: 40px;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  padding: 9px 14px;
+}
+
+.public-pdv-operator-profile:hover,
+.public-pdv-operator-back:hover {
+  border-color: #10b981;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.public-pdv-operator-back {
+  margin-top: 14px;
+}
+
 .public-pdv-operator-option {
   display: grid;
   gap: 6px;
   border: 1px solid #dbe3ef;
   background: #f8fafc;
   color: #0f172a;
-  min-height: 136px;
+  min-height: 0;
   text-align: left;
 }
 
