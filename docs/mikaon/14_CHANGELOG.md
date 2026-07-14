@@ -381,3 +381,9 @@ A area operacional de Produtos/Estoque fica mais consistente com o restante do M
 - Motor de formacao de precos previsivel e independente para varejo e atacado.
 - Entradas decimais preservadas durante a digitacao.
 - Preco final persistido e indicadores recalculados com protecao contra valores invalidos.
+
+## Sprint 185
+
+- Editor de precos separado em componente proprio.
+- Digitação de custo, acrescimo, markup e preco final estabilizada.
+- Varejo e atacado continuam independentes e persistentes.

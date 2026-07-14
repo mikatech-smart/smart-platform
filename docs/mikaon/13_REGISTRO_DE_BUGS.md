@@ -326,3 +326,9 @@ A listagem passou a usar tabela compacta com filtros, paginacao e painel lateral
 - Corrigido: o onChange recalculava e sobrescrevia o proprio campo digitado a cada tecla.
 - Corrigido: o recalculo de uma tabela podia reescrever indicadores da outra.
 - Validado: preco final, markup, acrescimo, margem, decimais, campo vazio e persistencia apos recarregar.
+
+## Sprint 185
+
+- Corrigido: campos de formacao de precos travavam ou sobrescreviam a digitacao ao recalcular no componente pai.
+- Corrigido: callback de persistencia chamado dentro de updater de estado, gerando aviso de atualizacao durante renderizacao.
+- Validado: Backspace, Delete, entrada decimal, formulas e persistencia no navegador.

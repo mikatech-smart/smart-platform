@@ -2,6 +2,11 @@
 import { Link, useParams } from "react-router-dom";
 
 import { DataGrid } from "../../components/common/DataGrid/DataGrid";
+import {
+  ProductPricingEditor,
+  normalizeProductPricingValues,
+  type ProductPricingValues,
+} from "../../components/erp/ProductPricingEditor/ProductPricingEditor";
 import { BrandConfig } from "../../config/brand";
 import type { Empresa } from "../../models/Empresa";
 import { buscarEmpresaPorSlug } from "../../services/empresa/empresa.service";
@@ -218,13 +223,6 @@ const modulosIniciais: Record<string, string> = {
 function numero(valor: number | string | null | undefined) {
   const parsed = typeof valor === "number" ? valor : Number(String(valor || "0"));
   return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function numeroFormulario(valor: string) {
-  const texto = valor.trim().replace(/%/g, "").replace(",", ".");
-  if (!texto) return null;
-  const parsed = Number(texto);
-  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function campoNumericoValido(valor: string) {
@@ -519,45 +517,6 @@ function montarProdutoObservacoesEstruturadas(form: EstoqueProdutoForm) {
     .join("\n");
 }
 
-type FormacaoPreco = {
-  preco: number;
-  acrescimo: number;
-  markup: number;
-  margem: number;
-  abaixoDoCusto: boolean;
-};
-
-function calcularFormacaoPreco(custo: number, preco: number): FormacaoPreco {
-  const custoSeguro = Number.isFinite(custo) && custo > 0 ? custo : 0;
-  const precoSeguro = Number.isFinite(preco) && preco > 0 ? preco : 0;
-  const markup = custoSeguro > 0 && precoSeguro > 0 ? precoSeguro / custoSeguro : 0;
-  const acrescimo = custoSeguro > 0 && precoSeguro > 0
-    ? ((precoSeguro - custoSeguro) / custoSeguro) * 100
-    : 0;
-  const margem = precoSeguro > 0 ? ((precoSeguro - custoSeguro) / precoSeguro) * 100 : 0;
-  return {
-    preco: precoSeguro,
-    acrescimo: Number.isFinite(acrescimo) ? acrescimo : 0,
-    markup: Number.isFinite(markup) ? markup : 0,
-    margem: Number.isFinite(margem) ? margem : 0,
-    abaixoDoCusto: custoSeguro > 0 && precoSeguro > 0 && precoSeguro < custoSeguro,
-  };
-}
-
-function calcularPrecoPorAcrescimo(custo: number, acrescimo: number) {
-  if (!Number.isFinite(custo) || custo <= 0 || !Number.isFinite(acrescimo)) return 0;
-  return custo * (1 + acrescimo / 100);
-}
-
-function calcularPrecoPorMarkup(custo: number, markup: number) {
-  if (!Number.isFinite(custo) || custo <= 0 || !Number.isFinite(markup) || markup <= 0) return 0;
-  return custo * markup;
-}
-
-function valorIndicador(valor: number) {
-  return valor > 0 && Number.isFinite(valor) ? valor.toFixed(2) : "";
-}
-
 function obterStatusProdutoEstoque(produto: ErpPdvProduto) {
   if (!produto.ativo) {
     return {
@@ -617,11 +576,15 @@ function criarProdutoEstoqueForm(produto?: ErpPdvProduto | null): EstoqueProduto
   const observacoesEstruturadas = parseProdutoObservacoesEstruturadas(
     produto.observacoes || ""
   );
-  const indicadoresVarejo = calcularFormacaoPreco(produto.custo, produto.preco_venda);
-  const indicadoresAtacado = calcularFormacaoPreco(
-    produto.custo,
-    produto.preco_atacado || 0
-  );
+  const pricing = normalizeProductPricingValues({
+    custo: formatarNumeroFormulario(produto.custo),
+    acrescimoVarejo: "",
+    markupVarejo: "",
+    precoVenda: produto.preco_venda ? String(produto.preco_venda) : "",
+    acrescimoAtacado: "",
+    markupAtacado: "",
+    precoAtacado: produto.preco_atacado ? String(produto.preco_atacado) : "",
+  });
 
   return {
     id: produto.id,
@@ -635,17 +598,7 @@ function criarProdutoEstoqueForm(produto?: ErpPdvProduto | null): EstoqueProduto
     unidade: produto.unidade || "un",
     ncm: produto.ncm || "",
     localizacao: produto.localizacao || "",
-    custo: formatarNumeroFormulario(produto.custo),
-    acrescimoVarejo: valorIndicador(indicadoresVarejo.acrescimo),
-    markupVarejo: indicadoresVarejo.markup
-      ? indicadoresVarejo.markup.toFixed(2)
-      : "",
-    precoVenda: produto.preco_venda ? String(produto.preco_venda) : "",
-    acrescimoAtacado: valorIndicador(indicadoresAtacado.acrescimo),
-    markupAtacado: indicadoresAtacado.markup
-      ? indicadoresAtacado.markup.toFixed(2)
-      : "",
-    precoAtacado: produto.preco_atacado ? String(produto.preco_atacado) : "",
+    ...pricing,
     estoqueAtual: String(produto.estoque_atual),
     estoqueMinimo: String(produto.estoque_minimo),
     estoqueMaximo: observacoesEstruturadas.estoqueMaximo,
@@ -1019,21 +972,6 @@ export default function PublicPdvPage() {
       usuarioAtual?.modulo_inicial === "estoque" ||
       usuarioAtual?.perfil === "administrador" ||
       usuarioAtual?.perfil === "gerente");
-  const custoProdutoEstoque = numero(produtoEstoqueForm.custo.replace(",", "."));
-  const precoVarejoProdutoEstoque = numero(
-    produtoEstoqueForm.precoVenda.replace(",", ".")
-  );
-  const precoAtacadoProdutoEstoque = numero(
-    produtoEstoqueForm.precoAtacado.replace(",", ".")
-  );
-  const indicadoresVarejoProdutoEstoque = calcularFormacaoPreco(
-    custoProdutoEstoque,
-    precoVarejoProdutoEstoque
-  );
-  const indicadoresAtacadoProdutoEstoque = calcularFormacaoPreco(
-    custoProdutoEstoque,
-    precoAtacadoProdutoEstoque
-  );
   const podeFinalizarVenda =
     Boolean(caixa) && carrinhoDetalhado.length > 0 && operador.trim().length > 0 && podeFinalizarPagamento && !salvando;
   const podeSuspenderVenda = carrinhoDetalhado.length > 0 && operador.trim().length > 0;
@@ -1549,55 +1487,12 @@ export default function PublicPdvPage() {
     valor: string | boolean
   ) {
     setProdutoEstoqueForm((atual) => {
-      const proximo = {
-        ...atual,
-        [campo]: valor,
-      } as EstoqueProdutoForm;
-      const custo = numeroFormulario(proximo.custo);
-
-      const atualizarTabela = (tabela: "varejo" | "atacado") => {
-        const precoCampo = tabela === "varejo" ? "precoVenda" : "precoAtacado";
-        const acrescimoCampo = tabela === "varejo" ? "acrescimoVarejo" : "acrescimoAtacado";
-        const markupCampo = tabela === "varejo" ? "markupVarejo" : "markupAtacado";
-        const campoDaTabela = campo === precoCampo || campo === acrescimoCampo || campo === markupCampo;
-        if (campo !== "custo" && !campoDaTabela) return;
-
-        const custoSeguro = custo ?? 0;
-        const valorDigitado = typeof valor === "string" ? valor : "";
-
-        if (campo === acrescimoCampo) {
-          const acrescimo = numeroFormulario(valorDigitado);
-          proximo[precoCampo] = acrescimo === null
-            ? ""
-            : valorIndicador(calcularPrecoPorAcrescimo(custoSeguro, acrescimo));
-          proximo[markupCampo] = valorIndicador(
-            calcularFormacaoPreco(custoSeguro, numeroFormulario(proximo[precoCampo]) ?? 0).markup
-          );
-          return;
-        }
-
-        if (campo === markupCampo) {
-          const markup = numeroFormulario(valorDigitado);
-          proximo[precoCampo] = markup === null
-            ? ""
-            : valorIndicador(calcularPrecoPorMarkup(custoSeguro, markup));
-          proximo[acrescimoCampo] = valorIndicador(
-            calcularFormacaoPreco(custoSeguro, numeroFormulario(proximo[precoCampo]) ?? 0).acrescimo
-          );
-          return;
-        }
-
-        const preco = numeroFormulario(proximo[precoCampo]);
-        const indicadores = calcularFormacaoPreco(custoSeguro, preco ?? 0);
-        proximo[acrescimoCampo] = valorIndicador(indicadores.acrescimo);
-        proximo[markupCampo] = valorIndicador(indicadores.markup);
-      };
-
-      atualizarTabela("varejo");
-      atualizarTabela("atacado");
-
-      return proximo;
+      return { ...atual, [campo]: valor } as EstoqueProdutoForm;
     });
+  }
+
+  function atualizarPrecosProdutoEstoque(valores: ProductPricingValues) {
+    setProdutoEstoqueForm((atual) => ({ ...atual, ...valores }));
   }
 
   async function salvarProdutoEstoque() {
@@ -2687,98 +2582,23 @@ export default function PublicPdvPage() {
                 </div>
               </section>
 
-              <section className="public-pdv-stock-section">
-                <div className="public-pdv-stock-section-header">
-                  <h3>Custos e precos</h3>
-                  <small>Varejo e atacado independentes</small>
-                </div>
-                <div className="public-pdv-price-form">
-                  <label className="public-pdv-price-base">
-                    Custo base
-                    <input
-                      inputMode="decimal"
-                      value={produtoEstoqueForm.custo}
-                      onChange={(e) => atualizarCampoProdutoEstoque("custo", e.target.value)}
-                      disabled={!podeConsultarCustoLucro || !podeAlterarPreco}
-                    />
-                  </label>
-
-                  <fieldset className="public-pdv-price-group">
-                    <legend>Varejo</legend>
-                    <label>
-                      Acréscimo (%)
-                      <input
-                        inputMode="decimal"
-                        value={produtoEstoqueForm.acrescimoVarejo}
-                        onChange={(e) => atualizarCampoProdutoEstoque("acrescimoVarejo", e.target.value)}
-                        disabled={!podeConsultarCustoLucro || !podeAlterarPreco}
-                      />
-                    </label>
-                    <label>
-                      Markup
-                      <input
-                        inputMode="decimal"
-                        value={produtoEstoqueForm.markupVarejo}
-                        onChange={(e) => atualizarCampoProdutoEstoque("markupVarejo", e.target.value)}
-                        disabled={!podeConsultarCustoLucro || !podeAlterarPreco}
-                      />
-                    </label>
-                    <label className="public-pdv-stock-metric">
-                      Margem (%)
-                      <strong>{indicadoresVarejoProdutoEstoque.margem.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%</strong>
-                    </label>
-                    <label>
-                      Preço final
-                      <input
-                        inputMode="decimal"
-                        value={produtoEstoqueForm.precoVenda}
-                        onChange={(e) => atualizarCampoProdutoEstoque("precoVenda", e.target.value)}
-                        disabled={!podeAlterarPreco}
-                      />
-                    </label>
-                  </fieldset>
-
-                  <fieldset className="public-pdv-price-group">
-                    <legend>Atacado</legend>
-                    <label>
-                      Acréscimo (%)
-                      <input
-                        inputMode="decimal"
-                        value={produtoEstoqueForm.acrescimoAtacado}
-                        onChange={(e) => atualizarCampoProdutoEstoque("acrescimoAtacado", e.target.value)}
-                        disabled={!podeConsultarCustoLucro || !podeAlterarPreco}
-                      />
-                    </label>
-                    <label>
-                      Markup
-                      <input
-                        inputMode="decimal"
-                        value={produtoEstoqueForm.markupAtacado}
-                        onChange={(e) => atualizarCampoProdutoEstoque("markupAtacado", e.target.value)}
-                        disabled={!podeConsultarCustoLucro || !podeAlterarPreco}
-                      />
-                    </label>
-                    <label className="public-pdv-stock-metric">
-                      Margem (%)
-                      <strong>{indicadoresAtacadoProdutoEstoque.margem.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%</strong>
-                    </label>
-                    <label>
-                      Preço final
-                      <input
-                        inputMode="decimal"
-                        value={produtoEstoqueForm.precoAtacado}
-                        onChange={(e) => atualizarCampoProdutoEstoque("precoAtacado", e.target.value)}
-                        disabled={!podeAlterarPreco}
-                      />
-                    </label>
-                  </fieldset>
-                </div>
-                {!podeConsultarCustoLucro && (
-                  <p className="public-pdv-stock-note">
-                    Custo, margem e indicadores sensiveis ficam ocultos para este perfil.
-                  </p>
-                )}
-              </section>
+              <ProductPricingEditor
+                custo={produtoEstoqueForm.custo}
+                acrescimoVarejo={produtoEstoqueForm.acrescimoVarejo}
+                markupVarejo={produtoEstoqueForm.markupVarejo}
+                precoVenda={produtoEstoqueForm.precoVenda}
+                acrescimoAtacado={produtoEstoqueForm.acrescimoAtacado}
+                markupAtacado={produtoEstoqueForm.markupAtacado}
+                precoAtacado={produtoEstoqueForm.precoAtacado}
+                canEditCost={podeConsultarCustoLucro && podeAlterarPreco}
+                canEditPrices={podeAlterarPreco}
+                onChange={atualizarPrecosProdutoEstoque}
+              />
+              {!podeConsultarCustoLucro && (
+                <p className="public-pdv-stock-note">
+                  Custo, margem e indicadores sensiveis ficam ocultos para este perfil.
+                </p>
+              )}
 
               <section className="public-pdv-stock-section">
                 <div className="public-pdv-stock-section-header">

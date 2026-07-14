@@ -507,3 +507,7 @@ Corrigida a regra global de botoes que pintava as linhas do Data Grid de verde. 
 ## Sprint 184 - Motor de formacao de precos
 
 Corrigido o recalculo durante a digitacao: varejo e atacado agora sao independentes, o ultimo campo editado e preservado e custo, preco varejo e preco atacado permanecem como fontes persistidas.
+
+## Sprint 185 - Editor de precos
+
+A formacao de precos foi extraida para ProductPricingEditor. O componente preserva a digitacao, permite campo vazio temporario e confirma os valores no blur ou Enter, mantendo varejo e atacado independentes.
