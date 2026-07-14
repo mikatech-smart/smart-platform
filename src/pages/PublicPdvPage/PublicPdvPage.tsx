@@ -1223,9 +1223,11 @@ export default function PublicPdvPage() {
     }
     setOperadorModalAberto(false);
     setFeedback("");
+    setMenuAberto(false);
 
     const primeiraTabela = obterTabelasLiberadas(usuario)[0]?.id || "varejo";
     setTabela(tabelaForcada || primeiraTabela);
+    void carregarCaixaDoOperador(usuario);
 
     window.setTimeout(() => {
       if (usuario.modulo_inicial === "trocas") {
@@ -1238,6 +1240,41 @@ export default function PublicPdvPage() {
         document.getElementById("pdv-estoque")?.scrollIntoView({ behavior: "smooth" });
       }
     }, 0);
+  }
+
+  async function carregarCaixaDoOperador(usuario: ErpPdvUsuario) {
+    if (!empresaId) return;
+
+    setCaixa(null);
+    setResumoCaixa(null);
+    setValorFechamento("");
+
+    const resultado = await buscarErpPdvCaixaAberto(
+      empresaId,
+      usuario.perfil === "caixa" ? usuario.id : undefined
+    );
+    if (resultado.error) {
+      setFeedback("Nao foi possivel verificar o caixa do operador.");
+      return;
+    }
+
+    setCaixa(resultado.data);
+    if (!resultado.data) {
+      if (usuario.perfil === "caixa") {
+        setFeedback("Abra seu caixa para iniciar a operacao.");
+        setMenuAberto(true);
+      }
+      return;
+    }
+
+    const resumo = await calcularErpPdvResumoCaixa(resultado.data);
+    if (resumo.error) {
+      setFeedback("Nao foi possivel carregar o resumo do caixa.");
+      return;
+    }
+
+    setResumoCaixa(resumo.data);
+    setValorFechamento(String(resumo.data?.totalEsperado || ""));
   }
 
   function selecionarPerfilOperador(perfil: PerfilSelecaoOperador) {
@@ -1295,6 +1332,9 @@ export default function PublicPdvPage() {
     setValeId("");
     setClienteSelecionado(null);
     setUsuarioId("");
+    setCaixa(null);
+    setResumoCaixa(null);
+    setValorFechamento("");
     sessionStorage.removeItem(sessaoOperadorKey);
     sessionStorage.removeItem(sessaoOperadorTabelaKey);
     setPerfilSelecaoOperador(null);
@@ -1813,6 +1853,7 @@ export default function PublicPdvPage() {
       const resultado = await fecharErpPdvCaixa({
         empresaId,
         caixaId: caixa.id,
+        operadorUsuarioId: usuarioAtual?.id,
         valorInformado: numero(valorFechamento.replace(",", ".")),
         observacao: `Fechado por ${operador || "modo desenvolvimento"}`,
       });

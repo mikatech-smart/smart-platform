@@ -396,3 +396,7 @@ Custo, preco final de varejo e preco final de atacado sao as fontes persistidas.
 ## Sprint 188 - Operadores e tabelas
 
 A entrada do PDV inicia por perfil, com Administrador, Caixa e Vendedor. Ao escolher Vendedor, a modalidade Varejo ou Atacado e selecionada antes do operador. A tabela escolhida fica fixa durante a sessao; um vendedor autorizado nas duas tabelas pode aparecer nas duas listas. O perfil Estoque nao e selecionado no PDV; as funcoes de estoque ficam concentradas no Administrador.
+
+## Sprint 189 - Caixa individual
+
+O modelo principal suporta um caixa aberto por operador e empresa. A abertura, vendas, recebimentos, movimentacoes e fechamento ficam vinculados ao operador e ao caixa. Um operador nao pode encerrar o caixa de outro sem autorizacao administrativa.

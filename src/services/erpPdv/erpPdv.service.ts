@@ -1955,14 +1955,23 @@ export async function registrarErpPdvEntradaMercadorias(
   };
 }
 
-export async function buscarErpPdvCaixaAberto(empresaId: string) {
-  const { data, error } = await supabase
+export async function buscarErpPdvCaixaAberto(
+  empresaId: string,
+  operadorUsuarioId?: string
+) {
+  let query = supabase
     .from("erp_pdv_caixas")
     .select(
       "id, empresa_id, status, operador, operador_usuario_id, aberto_em, fechado_em, saldo_inicial, saldo_final, valor_informado, diferenca, observacao"
     )
     .eq("empresa_id", empresaId)
-    .eq("status", "aberto")
+    .eq("status", "aberto");
+
+  if (operadorUsuarioId) {
+    query = query.eq("operador_usuario_id", operadorUsuarioId);
+  }
+
+  const { data, error } = await query
     .order("aberto_em", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -1986,7 +1995,10 @@ export async function abrirErpPdvCaixa(payload: {
     };
   }
 
-  const caixaAberto = await buscarErpPdvCaixaAberto(payload.empresaId);
+  const caixaAberto = await buscarErpPdvCaixaAberto(
+    payload.empresaId,
+    payload.operadorUsuarioId
+  );
   if (caixaAberto.error) {
     return {
       data: null,
@@ -1997,7 +2009,7 @@ export async function abrirErpPdvCaixa(payload: {
   if (caixaAberto.data) {
     return {
       data: null,
-      error: new Error("Ja existe um caixa aberto para esta empresa."),
+      error: new Error("Este operador ja possui um caixa aberto."),
     };
   }
 
@@ -2404,17 +2416,23 @@ export async function gerarErpPdvRelatorioOperacional(
 export async function fecharErpPdvCaixa(payload: {
   empresaId: string;
   caixaId: string;
+  operadorUsuarioId?: string;
   valorInformado: number;
   observacao: string;
 }) {
-  const { data: caixaData, error: caixaError } = await supabase
+  let caixaQuery = supabase
     .from("erp_pdv_caixas")
     .select(
       "id, empresa_id, status, operador, operador_usuario_id, aberto_em, fechado_em, saldo_inicial, saldo_final, valor_informado, diferenca, observacao"
     )
     .eq("empresa_id", payload.empresaId)
-    .eq("id", payload.caixaId)
-    .single();
+    .eq("id", payload.caixaId);
+
+  if (payload.operadorUsuarioId) {
+    caixaQuery = caixaQuery.eq("operador_usuario_id", payload.operadorUsuarioId);
+  }
+
+  const { data: caixaData, error: caixaError } = await caixaQuery.single();
 
   if (caixaError || !caixaData) {
     return {

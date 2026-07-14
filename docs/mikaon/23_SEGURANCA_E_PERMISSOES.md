@@ -338,3 +338,7 @@ O motor de precos nao amplia permissoes: custo e indicadores sensiveis continuam
 ## Sprint 188 - Permissoes por tabela
 
 Vendedores de Varejo entram somente com a tabela varejo autorizada; vendedores de Atacado entram somente com a tabela atacado autorizada. Um vendedor com ambas as autorizacoes pode ser selecionado em qualquer modalidade, mas a tabela escolhida fica fixa e o seletor manual permanece bloqueado. Senha individual nao foi implementada nesta Sprint.
+
+## Sprint 189 - Permissoes de caixa
+
+A abertura e o fechamento usam a permissao existente de caixa e o identificador do operador atual. O fechamento normal consulta empresa, caixa e operador, impedindo que um operador encerre o caixa de outro. Administradores podem usar os caminhos administrativos existentes sem operador forcado.

@@ -505,3 +505,7 @@ Toda Sprint deverá aproximar o PDV desse objetivo.
 ## Sprint 188 - Selecao compacta
 
 A selecao inicial exibe Administrador, Caixa e Vendedor. Vendedor passa por modalidade e recebe somente operadores ativos compativeis com a tabela autorizada. A tabela e aplicada automaticamente e nao pode ser trocada manualmente pelo vendedor. Senha e autenticacao individual permanecem como evolucao futura.
+
+## Sprint 189 - Multiplos operadores de caixa
+
+O perfil Caixa lista todos os colaboradores ativos autorizados. Cada operador consulta seu proprio caixa aberto; sem caixa, o PDV oferece abertura com valor inicial. A selecao de Vendedor permanece separada.

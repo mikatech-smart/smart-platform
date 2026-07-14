@@ -585,3 +585,7 @@ O motor de formacao de precos mantem strings de entrada durante a digitacao e ca
 ## Sprint 188 - Decisao de tabela na sessao
 
 A modalidade de vendedor faz parte da selecao de sessao e deve ser aplicada junto ao operador. O vendedor nao alterna tabelas manualmente durante a operacao; a tabela e definida pelo caminho Varejo ou Atacado escolhido antes do operador.
+
+## Sprint 189 - Modelo de caixa
+
+O modelo implementado e caixa individual por empresa e operador. O modelo centralizado fica reservado para evolucao futura. Consultas sem operador preservam compatibilidade administrativa; a operacao comum usa o identificador do operador.

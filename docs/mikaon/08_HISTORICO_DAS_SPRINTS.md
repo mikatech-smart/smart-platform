@@ -515,3 +515,7 @@ A formacao de precos foi extraida para ProductPricingEditor. O componente preser
 ## Sprint 188 - Selecao de operador
 
 Refinado o fluxo inicial do PDV com lista compacta de perfis, modalidades de vendedor e filtragem por tabela autorizada. Multiplos vendedores de Varejo e Atacado sao suportados, inclusive vendedores autorizados nas duas modalidades.
+
+## Sprint 189 - Caixa individual
+
+O fluxo de selecao do perfil Caixa passou a carregar e validar o caixa por operador, permitindo varios colaboradores e mantendo seus totais independentes.

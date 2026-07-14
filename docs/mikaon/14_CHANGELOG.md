@@ -393,3 +393,9 @@ A area operacional de Produtos/Estoque fica mais consistente com o restante do M
 - Selecao de operador reorganizada em perfis e modalidades compactas.
 - Vendedores filtrados por tabela autorizada, com suporte a multiplos operadores e tabela fixa durante a sessao.
 - Senha e autenticacao individual permanecem planejadas para fase futura.
+
+## Sprint 189
+
+- Corrigida a consulta de caixa aberto para suportar um caixa independente por operador.
+- Fechamento da operacao vinculado ao operador atual.
+- Mantido o perfil Vendedor separado e o modelo centralizado como evolucao futura.
