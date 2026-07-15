@@ -1,0 +1,33 @@
+.selection-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.selection-list-item {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 800;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.selection-list-item:hover,
+.selection-list-item:focus-visible {
+  border-color: #86efac;
+  background: #f0fdf4;
+  outline: none;
+}
+
+.selection-list-empty {
+  margin-top: 16px;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 700;
+}

@@ -8,6 +8,7 @@ import {
 } from "react";
 import { useParams } from "react-router-dom";
 
+import { AppToast } from "../../components/common/AppToast";
 import type { Empresa } from "../../models/Empresa";
 import {
   buscarLandingPagePorSlug,
@@ -1447,11 +1448,12 @@ export function PublicLandingPageContent({
                   })}
 
                   {leadMensagem && (
-                    <p
-                      className={`public-landing-contact__feedback public-landing-contact__feedback--${leadMensagem.tipo}`}
-                    >
-                      {leadMensagem.texto}
-                    </p>
+                    <AppToast
+                      open
+                      message={leadMensagem.texto}
+                      type={leadMensagem.tipo === "sucesso" ? "success" : "error"}
+                      onClose={() => setLeadMensagem(null)}
+                    />
                   )}
 
                   <button type="submit" disabled={leadEnviando}>

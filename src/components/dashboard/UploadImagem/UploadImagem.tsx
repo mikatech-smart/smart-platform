@@ -4,6 +4,7 @@ import {
   excluirImagem,
   uploadImagem,
 } from "../../../services/storage/storage.service";
+import { notifyToast } from "../../../utils/toast";
 import type { UploadImagemProps } from "./UploadImagem.types";
 import "./UploadImagem.css";
 
@@ -160,7 +161,7 @@ export default function UploadImagem({
       }
 
       console.error("Erro ao remover imagem:", error);
-      alert(`Erro ao remover imagem: ${mensagemErro}`);
+      notifyToast(`Erro ao remover imagem: ${mensagemErro}`, "error");
     } finally {
       setEnviando(false);
     }
@@ -180,7 +181,7 @@ export default function UploadImagem({
       isAudio &&
       !["mp3", "wav", "ogg", "m4a"].includes(extensaoArquivo)
     ) {
-      alert("Formato invalido. Envie um arquivo MP3, WAV, OGG ou M4A.");
+      notifyToast("Formato invalido. Envie um arquivo MP3, WAV, OGG ou M4A.", "warning");
 
       if (inputRef.current) {
         inputRef.current.value = "";
@@ -194,7 +195,7 @@ export default function UploadImagem({
       (!formatosImagemPermitidos.includes(extensaoArquivo) ||
         !["image/png", "image/jpeg", "image/webp"].includes(arquivo.type))
     ) {
-      alert("Formato invalido. Envie uma imagem PNG, JPG, JPEG ou WEBP.");
+      notifyToast("Formato invalido. Envie uma imagem PNG, JPG, JPEG ou WEBP.", "warning");
 
       if (inputRef.current) {
         inputRef.current.value = "";
@@ -204,7 +205,7 @@ export default function UploadImagem({
     }
 
     if (!isAudio && arquivo.size > tamanhoMaximoMb * 1024 * 1024) {
-      alert(`Imagem muito grande. Envie um arquivo de ate ${tamanhoMaximoMb} MB.`);
+      notifyToast(`Imagem muito grande. Envie um arquivo de ate ${tamanhoMaximoMb} MB.`, "warning");
 
       if (inputRef.current) {
         inputRef.current.value = "";
@@ -242,8 +243,10 @@ export default function UploadImagem({
           error
         );
 
-        alert(
+        notifyToast(
           `Erro ao enviar arquivo para o Supabase Storage: ${mensagemErro}. Verifique se o bucket empresas existe no projeto Supabase correto.`
+          ,
+          "error"
         );
       } finally {
         setEnviando(false);

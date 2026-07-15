@@ -1,0 +1,11 @@
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.form-actions--start { justify-content: flex-start; }
+.form-actions--end { justify-content: flex-end; }
+.form-actions--between { justify-content: space-between; }

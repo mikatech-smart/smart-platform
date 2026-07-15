@@ -1,13 +1,19 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
-import { DataGrid } from "../../components/common/DataGrid/DataGrid";
+import { DataTable } from "../../components/common/DataTable/DataTable";
+import { AppSearch } from "../../components/common/AppSearch";
+import { AppModal } from "../../components/common/AppModal";
+import { AppToast } from "../../components/common/AppToast";
+import { EmptyState } from "../../components/common/EmptyState";
+import { requestConfirm } from "../../utils/confirm";
 import {
   ProductPricingEditor,
   normalizeProductPricingValues,
   type ProductPricingValues,
 } from "../../components/erp/ProductPricingEditor/ProductPricingEditor";
 import { BrandConfig } from "../../config/brand";
+import SelectionList from "../../components/common/SelectionList/SelectionList";
 import type { Empresa } from "../../models/Empresa";
 import { buscarEmpresaPorSlug } from "../../services/empresa/empresa.service";
 import {
@@ -215,14 +221,6 @@ const perfisUsuario: Record<string, string> = {
   caixa: "Caixa",
   vendedor: "Vendedor",
   estoque: "Estoque",
-};
-
-const modulosIniciais: Record<string, string> = {
-  pdv: "PDV",
-  caixa: "Caixa",
-  trocas: "Trocas",
-  estoque: "Estoque",
-  relatorios: "Relatorios",
 };
 
 function numero(valor: number | string | null | undefined) {
@@ -1178,12 +1176,6 @@ export default function PublicPdvPage() {
   }, [busca, produtosEncontrados.length]);
 
   useEffect(() => {
-    if (!feedbackOperacao) return;
-    const timer = window.setTimeout(() => setFeedbackOperacao(null), 2600);
-    return () => window.clearTimeout(timer);
-  }, [feedbackOperacao]);
-
-  useEffect(() => {
     if (!empresaId) return;
 
     const timer = window.setTimeout(async () => {
@@ -1201,15 +1193,6 @@ export default function PublicPdvPage() {
 
   function obterLabelPerfil(usuario: ErpPdvUsuario) {
     return perfisUsuario[usuario.perfil] || usuario.perfil;
-  }
-
-  function obterLabelModulo(usuario: ErpPdvUsuario) {
-    return modulosIniciais[usuario.modulo_inicial] || "PDV";
-  }
-
-  function obterLabelsTabelas(usuario: ErpPdvUsuario) {
-    const tabelas = obterTabelasLiberadas(usuario).map((item) => item.label);
-    return tabelas.length ? tabelas.join(", ") : "Nenhuma tabela liberada";
   }
 
   function selecionarUsuario(id: string, tabelaForcada?: ErpPdvTabelaPreco) {
@@ -1282,10 +1265,24 @@ export default function PublicPdvPage() {
   function selecionarPerfilOperador(perfil: PerfilSelecaoOperador) {
     setPerfilSelecaoOperador(perfil);
     setTabelaSelecaoVendedor(null);
+
+    if (perfil !== "vendedor") {
+      const usuariosDoPerfil = usuariosAtivos.filter((usuario) =>
+        perfil === "administrador"
+          ? obterFuncoesErpPdvUsuario(usuario).includes("administrador")
+          : obterFuncoesErpPdvUsuario(usuario).includes("caixa")
+      );
+      if (usuariosDoPerfil.length === 1) selecionarUsuario(usuariosDoPerfil[0].id);
+    }
   }
 
   function selecionarTabelaVendedor(tabelaSelecionada: TabelaSelecaoVendedor) {
     setTabelaSelecaoVendedor(tabelaSelecionada);
+    const funcao = tabelaSelecionada === "atacado" ? "vendedor_atacado" : "vendedor_varejo";
+    const vendedores = usuariosAtivos.filter((usuario) =>
+      obterFuncoesErpPdvUsuario(usuario).includes(funcao)
+    );
+    if (vendedores.length === 1) selecionarUsuario(vendedores[0].id, tabelaSelecionada);
   }
 
   function voltarSelecaoOperador() {
@@ -1320,11 +1317,14 @@ export default function PublicPdvPage() {
     });
   }
 
-  function trocarOperador() {
+  async function trocarOperador() {
     if (carrinho.length > 0) {
-      const confirmar = window.confirm(
-        "Existe uma venda em andamento. Deseja cancelar o carrinho e trocar o operador?"
-      );
+      const confirmar = await requestConfirm({
+        title: "Trocar operador",
+        message: "Existe uma venda em andamento. Deseja cancelar o carrinho e trocar o operador?",
+        variant: "warning",
+        confirmLabel: "Trocar operador",
+      });
       if (!confirmar) return;
     }
 
@@ -1401,9 +1401,14 @@ export default function PublicPdvPage() {
     window.setTimeout(() => buscaRef.current?.focus(), 0);
   }
 
-  function retomarVendaSuspensa(venda: VendaSuspensa) {
+  async function retomarVendaSuspensa(venda: VendaSuspensa) {
     if (carrinho.length > 0) {
-      const confirmar = window.confirm("Existe uma venda em andamento. Deseja substitui-la pela venda suspensa?");
+      const confirmar = await requestConfirm({
+        title: "Retomar venda suspensa",
+        message: "Existe uma venda em andamento. Deseja substitui-la pela venda suspensa?",
+        variant: "warning",
+        confirmLabel: "Retomar venda",
+      });
       if (!confirmar) return;
     }
 
@@ -1427,8 +1432,13 @@ export default function PublicPdvPage() {
     window.setTimeout(() => buscaRef.current?.focus(), 0);
   }
 
-  function excluirVendaSuspensa(id: string) {
-    const confirmar = window.confirm("Deseja excluir esta venda suspensa?");
+  async function excluirVendaSuspensa(id: string) {
+    const confirmar = await requestConfirm({
+      title: "Excluir venda suspensa",
+      message: "Deseja excluir esta venda suspensa? Esta acao nao podera ser desfeita.",
+      variant: "danger",
+      confirmLabel: "Excluir venda",
+    });
     if (!confirmar) return;
     persistirVendasSuspensas(vendasSuspensas.filter((item) => item.id !== id));
     setFeedback("Venda suspensa excluida.");
@@ -1442,8 +1452,15 @@ export default function PublicPdvPage() {
       (!exibindoVendedores || Boolean(tabelaSelecaoVendedor));
 
     return (
-      <section className="public-pdv-operator-modal" aria-modal="true" role="dialog">
-        <div className="public-pdv-operator-card">
+      <AppModal
+        open
+        ariaLabel="Selecao de operador"
+        closeOnBackdrop={false}
+        closeOnEscape={false}
+        showCloseButton={false}
+        onClose={() => undefined}
+        dialogClassName="public-pdv-operator-modal public-pdv-operator-card"
+      >
           <span>{BrandConfig.platformName} ERP/PDV</span>
           <h2>{perfilSelecaoOperador ? "Selecione o operador" : "Selecione o perfil"}</h2>
           <p>
@@ -1453,79 +1470,45 @@ export default function PublicPdvPage() {
           </p>
 
           {!perfilSelecaoOperador && (
-            <div className="public-pdv-operator-profiles">
-              <button
-                type="button"
-                className="public-pdv-operator-profile"
-                onClick={() => selecionarPerfilOperador("administrador")}
-              >
-                Administrador
-              </button>
-              <button
-                type="button"
-                className="public-pdv-operator-profile"
-                onClick={() => selecionarPerfilOperador("caixa")}
-              >
-                Caixa
-              </button>
-              <button
-                type="button"
-                className="public-pdv-operator-profile"
-                onClick={() => selecionarPerfilOperador("vendedor")}
-              >
-                Vendedor
-              </button>
-            </div>
+            <SelectionList
+              ariaLabel="Perfis de acesso"
+              items={[
+                { id: "administrador", label: "Administrador" },
+                { id: "caixa", label: "Caixa" },
+                { id: "vendedor", label: "Vendedor" },
+              ]}
+              onSelect={(id) => selecionarPerfilOperador(id as PerfilSelecaoOperador)}
+            />
           )}
 
           {exibindoVendedores && !tabelaSelecaoVendedor && (
-            <div className="public-pdv-operator-profiles">
-              <button
-                type="button"
-                className="public-pdv-operator-profile"
-                onClick={() => selecionarTabelaVendedor("varejo")}
-              >
-                Vendedor Varejo
-              </button>
-              <button
-                type="button"
-                className="public-pdv-operator-profile"
-                onClick={() => selecionarTabelaVendedor("atacado")}
-              >
-                Vendedor Atacado
-              </button>
-            </div>
+            <SelectionList
+              ariaLabel="Modalidades de vendedor"
+              items={[
+                { id: "varejo", label: "Vendedor Varejo" },
+                { id: "atacado", label: "Vendedor Atacado" },
+              ]}
+              onSelect={(id) => selecionarTabelaVendedor(id as TabelaSelecaoVendedor)}
+            />
           )}
 
           {podeListarUsuarios && (
-            <div className="public-pdv-operator-list">
-              {usuariosDisponiveis.length > 0 ? (
-                usuariosDisponiveis.map((usuario) => (
-                <button
-                  type="button"
-                  key={usuario.id}
-                  onClick={() =>
-                    selecionarUsuario(
-                      usuario.id,
-                      perfilSelecaoOperador === "vendedor"
-                        ? tabelaSelecaoVendedor || undefined
-                        : undefined
-                    )
-                  }
-                  className="public-pdv-operator-option"
-                >
-                  <strong>{usuario.nome}</strong>
-                  <small>{obterLabelPerfil(usuario)}</small>
-                  <span>Tabelas: {obterLabelsTabelas(usuario)}</span>
-                  <span>Modulo inicial: {obterLabelModulo(usuario)}</span>
-                </button>
-                ))
-              ) : (
-                <p className="public-pdv-operator-empty">
-                  Nenhum operador compativel foi encontrado para esta selecao.
-                </p>
-              )}
-            </div>
+            <SelectionList
+              ariaLabel="Operadores disponiveis"
+              emptyMessage="Nenhum operador compativel foi encontrado para esta selecao."
+              items={usuariosDisponiveis.map((usuario) => ({
+                id: usuario.id,
+                label: usuario.nome,
+              }))}
+              onSelect={(id) =>
+                selecionarUsuario(
+                  id,
+                  perfilSelecaoOperador === "vendedor"
+                    ? tabelaSelecaoVendedor || undefined
+                    : undefined
+                )
+              }
+            />
           )}
 
           {perfilSelecaoOperador && (
@@ -1537,8 +1520,7 @@ export default function PublicPdvPage() {
               Voltar
             </button>
           )}
-        </div>
-      </section>
+      </AppModal>
     );
   }
 
@@ -2246,7 +2228,11 @@ export default function PublicPdvPage() {
   if (!usuarioAtual || operadorModalAberto) {
     return (
       <main className="public-pdv public-pdv--operator">
-        {feedback && <div className="public-pdv-feedback">{feedback}</div>}
+        <AppToast
+          open={Boolean(feedback)}
+          message={feedback}
+          onClose={() => setFeedback("")}
+        />
         {renderModalOperador()}
       </main>
     );
@@ -2284,7 +2270,11 @@ export default function PublicPdvPage() {
         </div>
       </header>
 
-      {feedback && <div className="public-pdv-feedback">{feedback}</div>}
+      <AppToast
+        open={Boolean(feedback)}
+        message={feedback}
+        onClose={() => setFeedback("")}
+      />
 
       {modoCompacto && (
         <section className="public-pdv-panel public-pdv-compact-panel">
@@ -2391,7 +2381,7 @@ export default function PublicPdvPage() {
                   </div>
                 ))
               ) : (
-                <p>Nenhuma venda suspensa.</p>
+                <EmptyState title="Nenhuma venda suspensa" />
               )}
             </section>
           )}
@@ -2494,9 +2484,9 @@ export default function PublicPdvPage() {
               </small>
             </div>
             <div className="public-pdv-stock-toolbar">
-              <input
+              <AppSearch
                 value={estoqueBusca}
-                onChange={(e) => setEstoqueBusca(e.target.value)}
+                onChange={setEstoqueBusca}
                 placeholder="Nome, SKU, GTIN, codigo de barras, categoria, marca ou fornecedor"
               />
               <select
@@ -2570,7 +2560,7 @@ export default function PublicPdvPage() {
               <button type="button" onClick={novoProdutoEstoque}>Novo produto</button>
             </div>
             <div className="public-pdv-data-grid-scroll">
-              <DataGrid<ErpPdvProduto>
+              <DataTable<ErpPdvProduto>
                 columns={[
                   { id: "codigo", label: "Codigo", render: (produto) => produto.sku || "-" },
                   { id: "barras", label: "Barras", render: (produto) => produto.codigo_barras || "-" },
@@ -3007,15 +2997,15 @@ export default function PublicPdvPage() {
                 <small>Enter adiciona | leitor sequencial</small>
               </div>
               <div className="public-pdv-scan-row">
-                <input
-                  ref={buscaRef}
+                <AppSearch
+                  inputRef={buscaRef}
                   value={busca}
-                  onChange={(e) => setBusca(e.target.value)}
+                  onChange={setBusca}
                   placeholder="Nome, codigo interno ou codigo de barras"
                   aria-label="Buscar produto por nome, codigo interno ou codigo de barras"
-                  aria-activedescendant={resultadoSelecionado ? `produto-resultado-${resultadoSelecionado.id}` : undefined}
-                  aria-controls="pdv-produtos-resultados"
-                  aria-expanded={Boolean(busca.trim())}
+                  ariaActivedescendant={resultadoSelecionado ? `produto-resultado-${resultadoSelecionado.id}` : undefined}
+                  ariaControls="pdv-produtos-resultados"
+                  ariaExpanded={Boolean(busca.trim())}
                 />
               </div>
               {busca.trim() && (
@@ -3053,15 +3043,18 @@ export default function PublicPdvPage() {
                       </button>
                     ))
                   ) : (
-                    <div className="public-pdv-no-results">Nenhum produto encontrado.</div>
+                    <EmptyState title="Nenhum produto encontrado" className="public-pdv-no-results" />
                   )}
                 </div>
               )}
 
               {feedbackOperacao && (
-                <div className={`public-pdv-operation-feedback public-pdv-operation-feedback--${feedbackOperacao.tipo}`}>
-                  {feedbackOperacao.texto}
-                </div>
+                <AppToast
+                  open
+                  message={feedbackOperacao.texto}
+                  type={feedbackOperacao.tipo === "sucesso" ? "success" : feedbackOperacao.tipo === "erro" ? "error" : "info"}
+                  onClose={() => setFeedbackOperacao(null)}
+                />
               )}
             </section>
 
@@ -3113,7 +3106,7 @@ export default function PublicPdvPage() {
                     </div>
                   ))
                 ) : (
-                  <div className="public-pdv-empty-cart">Carrinho vazio</div>
+                  <EmptyState title="Carrinho vazio" description="Busque um produto para iniciar a venda." className="public-pdv-empty-cart" />
                 )}
               </div>
             </section>
@@ -3234,9 +3227,15 @@ export default function PublicPdvPage() {
       )}
 
       {cupom && (
-        <section className="public-pdv-receipt-modal" aria-modal="true" role="dialog">
+        <AppModal
+          open
+          bare
+          ariaLabel={`Cupom da venda ${cupom.numeroVenda}`}
+          onClose={fecharVisualizacaoCupom}
+          className="public-pdv-receipt-modal"
+          dialogClassName="public-pdv-receipt-dialog"
+        >
           <div className="public-pdv-receipt-backdrop" onClick={fecharVisualizacaoCupom} />
-          <div className="public-pdv-receipt-dialog">
             <header className="public-pdv-receipt-header">
               <div>
                 <span>Cupom nao fiscal</span>
@@ -3274,14 +3273,19 @@ export default function PublicPdvPage() {
                 </div>
               </aside>
             </div>
-          </div>
-        </section>
+        </AppModal>
       )}
 
       {atalhosAberto && (
-        <section className="public-pdv-shortcuts-modal" aria-modal="true" role="dialog">
+        <AppModal
+          open
+          bare
+          ariaLabel="Ajuda de atalhos"
+          onClose={() => setAtalhosAberto(false)}
+          className="public-pdv-shortcuts-modal"
+          dialogClassName="public-pdv-shortcuts-dialog"
+        >
           <div className="public-pdv-shortcuts-backdrop" onClick={() => setAtalhosAberto(false)} />
-          <div className="public-pdv-shortcuts-dialog">
             <header className="public-pdv-shortcuts-header">
               <div>
                 <span>PDV MikaON</span>
@@ -3300,8 +3304,7 @@ export default function PublicPdvPage() {
                 </div>
               ))}
             </div>
-          </div>
-        </section>
+        </AppModal>
       )}
     </main>
   );

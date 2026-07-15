@@ -1,7 +1,5 @@
+import { AppHeader } from "../../components/common/AppHeader";
+
 export default function Wifi() {
-  return (
-    <>
-      <h1>Wi-Fi</h1>
-    </>
-  );
+  return <AppHeader title="Wi-Fi" />;
 }

@@ -1,0 +1,31 @@
+.form-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field__label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.form-field__required {
+  color: #dc2626;
+}
+
+.form-field__message {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.form-field__message--error {
+  color: #dc2626;
+}

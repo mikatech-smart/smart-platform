@@ -100,21 +100,6 @@
   margin: 0;
 }
 
-.public-pdv-operator-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 18px;
-}
-
-.public-pdv-operator-profiles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 18px;
-}
-
-.public-pdv button.public-pdv-operator-profile,
 .public-pdv button.public-pdv-operator-back {
   min-height: 40px;
   border: 1px solid #dbe3ef;
@@ -124,7 +109,6 @@
   padding: 9px 14px;
 }
 
-.public-pdv button.public-pdv-operator-profile:hover,
 .public-pdv button.public-pdv-operator-back:hover {
   border-color: #10b981;
   background: #ecfdf5;
@@ -135,39 +119,6 @@
   margin-top: 14px;
 }
 
-.public-pdv button.public-pdv-operator-option {
-  display: grid;
-  gap: 6px;
-  border: 1px solid #dbe3ef;
-  background: #f8fafc;
-  color: #0f172a;
-  min-height: 0;
-  padding: 10px 12px;
-  text-align: left;
-}
-
-.public-pdv button.public-pdv-operator-option:hover {
-  border-color: #10b981;
-  background: #ecfdf5;
-}
-
-.public-pdv-operator-option strong {
-  font-size: 16px;
-}
-
-.public-pdv-operator-option small {
-  color: #047857;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.public-pdv-operator-option span {
-  color: #475569;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.public-pdv-operator-empty,
 .public-pdv-empty-state p {
   color: #64748b;
   font-weight: 700;

@@ -1,7 +1,5 @@
+import { AppHeader } from "../../components/common/AppHeader";
+
 export default function Whatsapp() {
-  return (
-    <>
-      <h1>WhatsApp</h1>
-    </>
-  );
+  return <AppHeader title="WhatsApp" />;
 }

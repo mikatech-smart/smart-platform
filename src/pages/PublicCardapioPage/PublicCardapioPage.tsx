@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Link, useParams } from "react-router-dom";
+import { AppSearch } from "../../components/common/AppSearch";
+import { EmptyState } from "../../components/common/EmptyState";
 
 import type { Empresa } from "../../models/Empresa";
 import { buscarEmpresaPorSlug } from "../../services/empresa/empresa.service";
@@ -351,15 +353,13 @@ export default function PublicCardapioPage() {
       </header>
 
       <section className="public-cardapio-tools" aria-label="Busca e filtros do cardapio">
-        <label className="public-cardapio-search">
-          <span>Buscar produto</span>
-          <input
-            type="search"
-            value={buscaProduto}
-            onChange={(event) => setBuscaProduto(event.target.value)}
-            placeholder="Digite o nome, descricao ou observacao"
-          />
-        </label>
+        <AppSearch
+          className="public-cardapio-search"
+          label="Buscar produto"
+          value={buscaProduto}
+          onChange={setBuscaProduto}
+          placeholder="Digite o nome, descricao ou observacao"
+        />
 
         <div className="public-cardapio-filters" aria-label="Filtrar por categoria">
           <button
@@ -517,10 +517,11 @@ export default function PublicCardapioPage() {
         )}
 
         {!possuiResultadoFiltrado && (
-          <section className="public-cardapio-empty">
-            <h2>Nenhum item encontrado</h2>
-            <p>Ajuste a busca ou selecione outra categoria.</p>
-          </section>
+          <EmptyState
+            title="Nenhum item encontrado"
+            description="Ajuste a busca ou selecione outra categoria."
+            className="public-cardapio-empty"
+          />
         )}
       </section>
     </main>

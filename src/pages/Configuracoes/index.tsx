@@ -1,7 +1,5 @@
+import { AppHeader } from "../../components/common/AppHeader";
+
 export default function Configuracoes() {
-  return (
-    <>
-      <h1>Configurações</h1>
-    </>
-  );
+  return <AppHeader title="Configurações" />;
 }
