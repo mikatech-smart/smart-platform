@@ -2416,19 +2416,31 @@ export default function PublicPdvPage() {
       {menuAberto && (
         <aside className="public-pdv-secondary-menu" aria-label="Menu secundario do PDV">
           <div className="public-pdv-secondary-actions">
-            <button type="button" onClick={abrirAjudaAtalhos}>
-              Ajuda de atalhos
-            </button>
-            <button type="button" onClick={() => setModoCompacto((atual) => !atual)}>
-              {modoCompacto ? "Voltar ao Caixa" : "Modo compacto"}
+            {podeOperarCaixa && (
+              <button
+                type="button"
+                disabled={
+                  salvando ||
+                  (!caixa && !operador.trim()) ||
+                  !pode(usuarioAtual, "caixa_abrir_fechar")
+                }
+                onClick={caixa ? fecharCaixa : abrirCaixa}
+              >
+                {caixa ? "Fechar caixa" : "Abrir caixa"}
+              </button>
+            )}
+            <button type="button" onClick={trocarOperador}>
+              Trocar operador
             </button>
             <button type="button" onClick={alternarTelaCheia}>
               {modoTelaCheiaAtivo ? "Sair da tela cheia" : "Tela cheia"}
             </button>
-            <button type="button" onClick={trocarOperador}>
-              Trocar operador
+            <button type="button" onClick={() => setModoCompacto((atual) => !atual)}>
+              {modoCompacto ? "Voltar ao Caixa" : "Modo compacto"}
             </button>
-            <Link to={`/${empresa.slug}`}>Pagina publica</Link>
+            <button type="button" onClick={abrirAjudaAtalhos}>
+              Ajuda de atalhos
+            </button>
           </div>
 
           {podeOperarCaixa && (
@@ -2440,17 +2452,11 @@ export default function PublicPdvPage() {
                   <strong>Esperado: R$ {moeda(resumoCaixa?.totalEsperado || 0)}</strong>
                   <label>Valor informado</label>
                   <input value={valorFechamento} onChange={(e) => setValorFechamento(e.target.value)} />
-                  <button disabled={salvando || !pode(usuarioAtual, "caixa_abrir_fechar")} onClick={fecharCaixa}>
-                    Fechar caixa
-                  </button>
                 </>
               ) : (
                 <>
                   <label>Valor inicial</label>
                   <input value={saldoInicial} onChange={(e) => setSaldoInicial(e.target.value)} />
-                  <button disabled={salvando || !operador.trim() || !pode(usuarioAtual, "caixa_abrir_fechar")} onClick={abrirCaixa}>
-                    Abrir caixa
-                  </button>
                 </>
               )}
             </section>
@@ -3128,33 +3134,43 @@ export default function PublicPdvPage() {
                   role="listbox"
                 >
                   {produtosEncontrados.length ? (
-                    produtosEncontrados.map((produto, index) => (
-                      <button
-                        key={produto.id}
-                        id={`produto-resultado-${produto.id}`}
-                        type="button"
-                        role="option"
-                        aria-selected={index === resultadoSelecionadoIndex}
-                        className={[
-                          produtoAdicionadoId === produto.id ? "public-pdv-product-added" : "",
-                          index === resultadoSelecionadoIndex ? "public-pdv-product-selected" : "",
-                        ]
-                          .filter(Boolean)
-                          .join(" ")}
-                        onMouseEnter={() => setResultadoSelecionadoIndex(index)}
-                        onClick={() => adicionarProduto(produto)}
-                      >
-                        {produto.imagem_url ? (
-                          <img src={produto.imagem_url} alt={produto.nome} />
-                        ) : (
-                          <span className="public-pdv-product-placeholder">Sem foto</span>
-                        )}
-                        <span>{produto.nome}</span>
-                        <small>Cod. interno: {produto.sku || produto.codigo_barras || "-"}</small>
-                        <small>Estoque: {produto.estoque_atual}</small>
-                        <strong>R$ {moeda(obterPreco(produto, tabelaAtualLiberada ? tabela : "varejo"))}</strong>
-                      </button>
-                    ))
+                    <>
+                      <div className="public-pdv-product-list-header" role="presentation">
+                        <span>Código</span>
+                        <span>Descrição</span>
+                        <span>Estoque</span>
+                        <span>Preço de venda</span>
+                      </div>
+                      {produtosEncontrados.map((produto, index) => (
+                        <button
+                          key={produto.id}
+                          id={`produto-resultado-${produto.id}`}
+                          type="button"
+                          role="option"
+                          aria-selected={index === resultadoSelecionadoIndex}
+                          className={[
+                            "public-pdv-product-result",
+                            produtoAdicionadoId === produto.id ? "public-pdv-product-added" : "",
+                            index === resultadoSelecionadoIndex ? "public-pdv-product-selected" : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
+                          onMouseEnter={() => setResultadoSelecionadoIndex(index)}
+                          onClick={() => adicionarProduto(produto)}
+                        >
+                          <span className="public-pdv-product-result-code">
+                            {produto.sku || produto.codigo_barras || "-"}
+                          </span>
+                          <span className="public-pdv-product-result-description" title={produto.nome}>
+                            {produto.nome}
+                          </span>
+                          <span className="public-pdv-product-result-stock">{produto.estoque_atual}</span>
+                          <strong className="public-pdv-product-result-price">
+                            R$ {moeda(obterPreco(produto, tabelaAtualLiberada ? tabela : "varejo"))}
+                          </strong>
+                        </button>
+                      ))}
+                    </>
                   ) : (
                     <div className="public-pdv-no-results">Nenhum produto encontrado.</div>
                   )}

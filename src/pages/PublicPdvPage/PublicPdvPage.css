@@ -389,31 +389,77 @@
 
 .public-pdv-product-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: 1fr;
+  gap: 0;
   max-height: 560px;
+  overflow-x: hidden;
   overflow: auto;
 }
 
-.public-pdv-product-list button {
+.public-pdv-product-list-header,
+.public-pdv-product-result {
   display: grid;
-  gap: 6px;
-  align-content: start;
-  border: 1px solid #dbe3ef;
-  background: #f8fafc;
-  color: #0f172a;
-  min-height: 170px;
+  grid-template-columns: minmax(140px, 0.8fr) minmax(0, 2.8fr) 90px 130px;
+  gap: 12px;
+  align-items: center;
   text-align: left;
 }
 
-.public-pdv-product-list img {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: 10px;
-  object-fit: cover;
+.public-pdv-product-list-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  min-height: 32px;
+  border-bottom: 1px solid #cbd5e1;
+  background: #f1f5f9;
+  color: #0f172a;
+  padding: 7px 10px;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
-.public-pdv-product-list strong {
+.public-pdv-product-result {
+  width: 100%;
+  min-height: 38px;
+  border: 0;
+  border-bottom: 1px solid #e2e8f0;
+  border-radius: 0;
+  background: #ffffff;
+  color: #0f172a;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.public-pdv-product-result:nth-child(even) {
+  background: #f8fafc;
+}
+
+.public-pdv-product-result:hover,
+.public-pdv-product-result.public-pdv-product-selected {
+  background: #eef2f7;
+}
+
+.public-pdv-product-result.public-pdv-product-added {
+  background: #f0fdf4;
+}
+
+.public-pdv-product-result-code,
+.public-pdv-product-result-description,
+.public-pdv-product-result-stock,
+.public-pdv-product-result-price {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.public-pdv-product-result-stock,
+.public-pdv-product-result-price {
+  text-align: right;
+}
+
+.public-pdv-product-result-price {
   color: #047857;
 }
 
@@ -966,29 +1012,29 @@
 .public-pdv-secondary-menu {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
   border: 1px solid #dbe3ef;
   border-radius: 12px;
   background: #ffffff;
-  padding: 12px;
+  padding: 8px;
 }
 
 .public-pdv-secondary-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   grid-column: 1 / -1;
 }
 
 .public-pdv-secondary-actions a,
 .public-pdv-secondary-actions button {
-  min-height: 40px;
+  min-height: 34px;
   border: 0;
   border-radius: 10px;
   background: #0f172a;
   color: #ffffff;
   font-weight: 900;
-  padding: 9px 12px;
+  padding: 7px 10px;
   text-decoration: none;
 }
 
@@ -1003,11 +1049,11 @@
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   background: #f8fafc;
-  padding: 12px;
+  padding: 8px;
 }
 
 .public-pdv-secondary-panel h2 {
-  margin: 0 0 8px;
+  margin: 0 0 5px;
 }
 
 .public-pdv--cashier .public-pdv-secondary-menu #pdv-caixa,
@@ -1256,8 +1302,8 @@
 }
 
 .public-pdv--cashier .public-pdv-secondary-menu {
-  max-height: 34vh;
-  overflow: auto;
+  max-height: none;
+  overflow: visible;
 }
 
 .public-pdv-status-strip {
@@ -3402,4 +3448,219 @@
   .public-pdv-stock-form {
     grid-template-columns: 1fr;
   }
+}
+
+/* Sprint 206: final compact product-result layout after legacy responsive rules. */
+.public-pdv--cashier .public-pdv-product-list {
+  grid-template-columns: 1fr;
+  gap: 0;
+  min-height: 0;
+  max-height: calc(100vh - 260px);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.public-pdv--cashier .public-pdv-product-list-header,
+.public-pdv--cashier .public-pdv-product-list .public-pdv-product-result {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.8fr) minmax(0, 2.8fr) 76px 118px;
+  gap: 10px;
+  align-items: center;
+  text-align: left;
+}
+
+.public-pdv--cashier .public-pdv-product-list-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  min-height: 30px;
+  border-bottom: 1px solid #cbd5e1;
+  background: #f1f5f9;
+  color: #0f172a;
+  padding: 6px 10px;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.public-pdv--cashier .public-pdv-product-list .public-pdv-product-result {
+  width: 100%;
+  min-height: 34px;
+  border: 0;
+  border-bottom: 1px solid #e2e8f0;
+  border-radius: 0;
+  background: #ffffff;
+  color: #0f172a;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.public-pdv--cashier .public-pdv-product-list .public-pdv-product-result:nth-child(odd) {
+  background: #f8fafc;
+}
+
+.public-pdv--cashier .public-pdv-product-list .public-pdv-product-result:hover,
+.public-pdv--cashier .public-pdv-product-list .public-pdv-product-result.public-pdv-product-selected {
+  background: #eef2f7;
+}
+
+.public-pdv--cashier .public-pdv-product-list .public-pdv-product-result.public-pdv-product-added {
+  background: #f0fdf4;
+}
+
+.public-pdv--cashier .public-pdv-product-result-code,
+.public-pdv--cashier .public-pdv-product-result-description,
+.public-pdv--cashier .public-pdv-product-result-stock,
+.public-pdv--cashier .public-pdv-product-result-price {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.public-pdv--cashier .public-pdv-product-result-stock,
+.public-pdv--cashier .public-pdv-product-result-price {
+  text-align: right;
+}
+
+.public-pdv--cashier .public-pdv-product-result-price {
+  color: #047857;
+}
+
+@media (max-width: 900px) {
+  .public-pdv--cashier .public-pdv-product-list-header,
+  .public-pdv--cashier .public-pdv-product-list .public-pdv-product-result {
+    grid-template-columns: minmax(90px, 0.8fr) minmax(0, 2.2fr) 60px 100px;
+    gap: 8px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+
+@media (max-width: 520px) {
+  .public-pdv--cashier .public-pdv-product-list-header,
+  .public-pdv--cashier .public-pdv-product-list .public-pdv-product-result {
+    grid-template-columns: minmax(72px, 0.85fr) minmax(0, 2fr) 48px 84px;
+    gap: 6px;
+    font-size: 11px;
+  }
+
+  .public-pdv--cashier .public-pdv-product-list-header {
+    font-size: 9px;
+  }
+}
+
+/* Sprint 207 - cabeçalho horizontal compacto do PDV */
+.public-pdv--cashier .public-pdv-header--clean {
+  min-height: 54px;
+  border: 1px solid #d1fae5;
+  border-radius: 8px;
+  background: #f0fdf4;
+  padding: 7px 10px;
+}
+
+.public-pdv--cashier .public-pdv-header--clean .public-pdv-topbar {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0;
+}
+
+.public-pdv--cashier .public-pdv-header--clean .public-pdv-topbar > div {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: baseline;
+  gap: 6px;
+  border-left: 1px solid #bbf7d0;
+  padding: 0 12px;
+}
+
+.public-pdv--cashier .public-pdv-header--clean .public-pdv-topbar > div:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.public-pdv--cashier .public-pdv-header--clean .public-pdv-topbar span {
+  flex: 0 0 auto;
+  color: #047857;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.public-pdv--cashier .public-pdv-header--clean .public-pdv-topbar strong {
+  min-width: 0;
+  margin-top: 0;
+  color: #064e3b;
+  font-size: 13px;
+}
+
+.public-pdv--cashier .public-pdv-header--clean .public-pdv-header-actions {
+  flex: 0 0 auto;
+  margin-left: 10px;
+}
+
+.public-pdv--cashier .public-pdv-header--clean .public-pdv-header-actions button {
+  min-height: 38px;
+  min-width: 92px;
+  border-radius: 8px;
+  background: #047857;
+  padding: 7px 12px;
+}
+
+@media (max-width: 760px) {
+  .public-pdv--cashier .public-pdv-header--clean {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .public-pdv--cashier .public-pdv-header--clean .public-pdv-topbar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 0;
+  }
+
+  .public-pdv--cashier .public-pdv-header--clean .public-pdv-topbar > div {
+    padding: 0 8px;
+  }
+
+  .public-pdv--cashier .public-pdv-header--clean .public-pdv-topbar > div:nth-child(3) {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .public-pdv--cashier .public-pdv-header--clean .public-pdv-header-actions {
+    margin-left: 0;
+  }
+
+  .public-pdv--cashier .public-pdv-header--clean .public-pdv-header-actions button {
+    width: 100%;
+  }
+}
+
+/* Sprint 208 - separadores e ordem compacta do menu */
+.public-pdv--cashier .public-pdv-header--clean .public-pdv-topbar > div {
+  position: relative;
+  border-left: 0;
+}
+
+.public-pdv--cashier .public-pdv-header--clean .public-pdv-topbar > div + div::before {
+  content: "|";
+  position: absolute;
+  left: 0;
+  color: #86efac;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.public-pdv--cashier .public-pdv-secondary-actions {
+  align-items: center;
+  gap: 6px;
+}
+
+/* Sprint 209 - garante espaço inferior para a ação do caixa */
+.public-pdv--cashier .public-pdv-secondary-menu #pdv-caixa {
+  min-height: 0;
+  overflow: visible;
+  padding-bottom: 20px;
 }
