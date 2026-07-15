@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import type { FormEvent } from "react";
 
 import { DataGrid } from "../../components/common/DataGrid/DataGrid";
 import {
@@ -713,6 +714,9 @@ export default function PublicPdvPage() {
   const [resumoCaixa, setResumoCaixa] = useState<ErpPdvCaixaResumo | null>(null);
   const [usuarioId, setUsuarioId] = useState("");
   const [operadorModalAberto, setOperadorModalAberto] = useState(true);
+  const [loginEnviado, setLoginEnviado] = useState(false);
+  const [loginUsuario, setLoginUsuario] = useState("");
+  const [loginSenha, setLoginSenha] = useState("");
   const [perfilSelecaoOperador, setPerfilSelecaoOperador] =
     useState<PerfilSelecaoOperador | null>(null);
   const [tabelaSelecaoVendedor, setTabelaSelecaoVendedor] =
@@ -1203,6 +1207,24 @@ export default function PublicPdvPage() {
     return perfisUsuario[usuario.perfil] || usuario.perfil;
   }
 
+  function entrarNoAcessoTemporario(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!loginUsuario.trim() || !loginSenha) {
+      setFeedback("Informe o usuario e a senha para continuar.");
+      return;
+    }
+
+    setFeedback("");
+    setLoginEnviado(true);
+  }
+
+  function voltarAoLogin() {
+    setLoginEnviado(false);
+    setPerfilSelecaoOperador(null);
+    setTabelaSelecaoVendedor(null);
+    setFeedback("");
+  }
+
   function obterLabelModulo(usuario: ErpPdvUsuario) {
     return modulosIniciais[usuario.modulo_inicial] || "PDV";
   }
@@ -1549,6 +1571,12 @@ export default function PublicPdvPage() {
               className="public-pdv-operator-back"
               onClick={voltarSelecaoOperador}
             >
+              Voltar
+            </button>
+          )}
+
+          {!perfilSelecaoOperador && loginEnviado && (
+            <button type="button" className="public-pdv-operator-back" onClick={voltarAoLogin}>
               Voltar
             </button>
           )}
@@ -2262,7 +2290,48 @@ export default function PublicPdvPage() {
     return (
       <main className="public-pdv public-pdv--operator">
         {feedback && <div className="public-pdv-feedback">{feedback}</div>}
-        {renderModalOperador()}
+        {!loginEnviado ? (
+          <section className="public-pdv-login-shell" aria-label="Login do ERP/PDV">
+            <div className="public-pdv-login-brand">
+              <img className="public-pdv-login-brand-logo" src="/mikaon-logo-official.jpg" alt="Logo MikaON" />
+              <h1>Gestão inteligente para o seu negócio.</h1>
+              <p>ERP • PDV • Estoque • Financeiro • CRM</p>
+            </div>
+            <form className="public-pdv-login-form" onSubmit={entrarNoAcessoTemporario}>
+              <div>
+                <span className="public-pdv-login-kicker">Acesso operacional</span>
+                <h2>Entrar</h2>
+                <p>Informe seus dados para continuar.</p>
+              </div>
+              <label>
+                Usuário
+                <input
+                  type="text"
+                  value={loginUsuario}
+                  onChange={(event) => setLoginUsuario(event.target.value)}
+                  autoComplete="username"
+                  placeholder="Digite seu usuário"
+                  autoFocus
+                />
+              </label>
+              <label>
+                Senha
+                <input
+                  type="password"
+                  value={loginSenha}
+                  onChange={(event) => setLoginSenha(event.target.value)}
+                  autoComplete="current-password"
+                  placeholder="Digite sua senha"
+                />
+              </label>
+              <button type="submit" className="public-pdv-login-submit">
+                Entrar
+              </button>
+            </form>
+          </section>
+        ) : (
+          renderModalOperador()
+        )}
       </main>
     );
   }
