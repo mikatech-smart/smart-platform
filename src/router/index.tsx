@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
+import type { ReactNode } from "react";
 
 import PublicProfile from "../pages/connect/PublicProfile/PublicProfile";
 import PublicEmpresaPage from "../pages/PublicEmpresaPage/PublicEmpresaPage";
@@ -14,6 +15,17 @@ import Dashboard from "../pages/dashboard/Dashboard";
 import Empresas from "../pages/dashboard/Empresas";
 import Configuracoes from "../pages/dashboard/Configuracoes";
 import PainelCliente from "../pages/PainelCliente/PainelCliente";
+
+function MockCaixaRouteGuard({ children }: { children: ReactNode }) {
+  const mockRole = sessionStorage.getItem("mikaon:mock-login-role");
+  const slug = sessionStorage.getItem("mikaon:mock-login-slug") || "mikatech";
+
+  if (mockRole === "caixa") {
+    return <Navigate to={`/pdv/${slug}`} replace />;
+  }
+
+  return children;
+}
 
 export default function AppRouter() {
   return (
@@ -69,7 +81,11 @@ export default function AppRouter() {
         {/* Dashboard */}
         <Route
           path="/dashboard"
-          element={<Dashboard />}
+          element={
+            <MockCaixaRouteGuard>
+              <Dashboard />
+            </MockCaixaRouteGuard>
+          }
         >
           <Route index element={<Empresas />} />
 

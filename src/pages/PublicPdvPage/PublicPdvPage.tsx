@@ -1214,8 +1214,27 @@ export default function PublicPdvPage() {
       return;
     }
 
-    setFeedback("");
-    setLoginEnviado(true);
+    if (loginUsuario.trim().toLowerCase() === "caixa" && loginSenha === "123456") {
+      const usuarioCaixaMock = usuariosAtivos.find(
+        (usuario) =>
+          usuario.nome === "Caixa PDV Teste" &&
+          obterFuncoesErpPdvUsuario(usuario).includes("caixa")
+      );
+
+      if (!usuarioCaixaMock) {
+        setFeedback("O usuario mock Caixa PDV Teste nao esta disponivel nesta empresa.");
+        return;
+      }
+
+      sessionStorage.setItem("mikaon:mock-login-role", "caixa");
+      sessionStorage.setItem("mikaon:mock-login-slug", slug);
+      setFeedback("");
+      setLoginEnviado(true);
+      selecionarUsuario(usuarioCaixaMock.id);
+      return;
+    }
+
+    setFeedback("Usuario ou senha invalidos.");
   }
 
   function voltarAoLogin() {
