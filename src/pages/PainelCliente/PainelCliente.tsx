@@ -2,8 +2,6 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import EmpresaForm from "../../components/dashboard/EmpresaForm";
-import Sidebar from "../../components/dashboard/Sidebar";
-import { AppShell } from "../../components/common/AppShell";
 import { BrandConfig } from "../../config/brand";
 import { buscarEmpresaPorSlug } from "../../services/empresa/empresa.service";
 import type { Empresa } from "../../models/Empresa";
@@ -115,19 +113,24 @@ export default function PainelCliente() {
   }
 
   return (
-    <AppShell
-      sidebar={<Sidebar nomeEmpresa={empresa.nome} logoEmpresa={empresa.logo} />}
-      title="Painel da Empresa"
-      subtitle={`Edite as informações públicas de ${empresa.nome || "sua empresa"}.`}
-      contentClassName="overflow-x-hidden p-4 md:p-10"
-    >
+    <main className="min-h-screen overflow-x-hidden bg-slate-100 p-4 md:p-10">
       <div className="mx-auto max-w-6xl min-w-0 space-y-6">
+        <header className="rounded-2xl bg-white p-4 shadow-sm md:p-6">
+          <h1 className="text-3xl font-bold text-slate-900">
+            Painel da Empresa
+          </h1>
+
+          <p className="mt-2 text-slate-500">
+            Edite as informações públicas de {empresa.nome || "sua empresa"}.
+          </p>
+        </header>
+
         <EmpresaForm
           empresaInicialId={empresa.id}
           empresaInicialSlug={empresa.slug}
           modoCliente
         />
       </div>
-    </AppShell>
+    </main>
   );
 }

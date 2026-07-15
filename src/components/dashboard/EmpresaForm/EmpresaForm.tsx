@@ -78,13 +78,7 @@ import Button from "../../ui/Button";
 import UploadImagem from "../UploadImagem";
 import QRCodeEmpresa from "../QRCodeEmpresa/QRCodeEmpresa";
 import HeroEmpresa from "../../public/HeroEmpresa/HeroEmpresa";
-import { DataTable } from "../../common/DataTable/DataTable";
-import { AppSearch } from "../../common/AppSearch";
-import { AppModal } from "../../common/AppModal";
-import { AppToast } from "../../common/AppToast";
 import { normalizarUsuarioRedeSocial } from "../../../utils/socialLinks";
-import { notifyToast } from "../../../utils/toast";
-import { requestConfirm } from "../../../utils/confirm";
 import InformacoesEmpresa from "../../public/InformacoesEmpresa/InformacoesEmpresa";
 import ContatosEmpresa from "../../public/ContatosEmpresa/ContatosEmpresa";
 import {
@@ -5468,9 +5462,8 @@ function LandingBlocosExtrasSection({
             <button
               type="button"
               onClick={() =>
-                notifyToast(
-                  "Este recurso sera liberado em uma etapa futura da Landing Page.",
-                  "info"
+                window.alert(
+                  "Este recurso sera liberado em uma etapa futura da Landing Page."
                 )
               }
               className="mt-4 w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50"
@@ -7564,14 +7557,12 @@ export default function EmpresaForm({
     });
   }
 
-  async function removerLandingPageProdutoCategoria(categoria: string) {
-    const confirmado = await requestConfirm({
-      title: "Remover categoria",
-      message: `Remover a categoria "${categoria}"? Os produtos vinculados ficarao sem categoria.`,
-      variant: "warning",
-      confirmLabel: "Remover categoria",
-    });
-    if (!confirmado) {
+  function removerLandingPageProdutoCategoria(categoria: string) {
+    if (
+      !window.confirm(
+        `Remover a categoria "${categoria}"? Os produtos vinculados ficarao sem categoria.`
+      )
+    ) {
       return;
     }
 
@@ -7651,19 +7642,13 @@ export default function EmpresaForm({
     return heroPreenchido || sobrePreenchido || servicosPreenchidos || ctaPreenchido;
   }
 
-  async function aplicarLandingPageTemplate(template: LandingPageTemplateConfig) {
+  function aplicarLandingPageTemplate(template: LandingPageTemplateConfig) {
     const possuiDados = landingPageTemplatePodeSobrescrever();
     const mensagem = possuiDados
       ? `Aplicar o template "${template.nome}" vai substituir os dados atuais de Hero, Sobre, Servicos e CTA. Deseja continuar?`
       : `Deseja aplicar o template "${template.nome}" na Landing Page?`;
 
-    const confirmado = await requestConfirm({
-      title: possuiDados ? "Substituir dados da Landing Page" : "Aplicar template",
-      message: mensagem,
-      variant: possuiDados ? "warning" : "simple",
-      confirmLabel: "Aplicar template",
-    });
-    if (!confirmado) return;
+    if (!window.confirm(mensagem)) return;
 
     setLandingPageHero({ ...template.hero });
     setLandingPageSobre({ ...template.sobre });
@@ -10910,7 +10895,7 @@ export default function EmpresaForm({
     const texto = (crmInteracoesRascunho[clienteId] || "").trim();
 
     if (!texto) {
-      notifyToast("Informe a anotacao antes de adicionar ao historico.", "warning");
+      alert("Informe a anotacao antes de adicionar ao historico.");
       return;
     }
 
@@ -10988,12 +10973,12 @@ export default function EmpresaForm({
     const titulo = rascunho.titulo.trim();
 
     if (!titulo) {
-      notifyToast("Informe o titulo da tarefa antes de adicionar.", "warning");
+      alert("Informe o titulo da tarefa antes de adicionar.");
       return;
     }
 
     if (!rascunho.vencimento) {
-      notifyToast("Informe a data de vencimento da tarefa.", "warning");
+      alert("Informe a data de vencimento da tarefa.");
       return;
     }
 
@@ -11158,11 +11143,10 @@ export default function EmpresaForm({
       })
     );
 
-    notifyToast(
+    alert(
       totalRegistrado > 0
         ? `${totalRegistrado} tarefa(s) vencida(s) registrada(s) no historico.`
-        : "Nenhuma nova tarefa vencida encontrada.",
-      totalRegistrado > 0 ? "success" : "info"
+        : "Nenhuma nova tarefa vencida encontrada."
     );
   }
 
@@ -11206,7 +11190,7 @@ export default function EmpresaForm({
 
   async function publicarLandingPageAlteracoes() {
     if (!empresaId) {
-      notifyToast("Empresa ainda nao foi carregada. Tente novamente.", "warning");
+      alert("Empresa ainda nao foi carregada. Tente novamente.");
       return;
     }
 
@@ -11227,24 +11211,18 @@ export default function EmpresaForm({
     } as Parameters<typeof atualizarEmpresa>[1]);
 
     if (error) {
-      notifyToast(error.message || "Erro ao publicar alteracoes.", "error");
+      alert(error.message || "Erro ao publicar alteracoes.");
       return;
     }
 
     setLandingPageVersaoPublicada(novaVersaoPublicada);
     setLandingPageHistoricoVersoes(novoHistorico);
     setLandingPageVersaoHistoricoVisualizada(null);
-    notifyToast("Alteracoes publicadas com sucesso!", "success");
+    alert("Alteracoes publicadas com sucesso!");
   }
 
   async function descartarLandingPageAlteracoes() {
-    const confirmado = await requestConfirm({
-      title: "Descartar alteracoes",
-      message: "Descartar as alteracoes do rascunho e voltar para a versao publicada?",
-      variant: "warning",
-      confirmLabel: "Descartar alteracoes",
-    });
-    if (!confirmado) {
+    if (!window.confirm("Descartar as alteracoes do rascunho e voltar para a versao publicada?")) {
       return;
     }
 
@@ -11263,20 +11241,14 @@ export default function EmpresaForm({
     } as Parameters<typeof atualizarEmpresa>[1]);
 
     if (error) {
-      notifyToast(error.message || "Erro ao descartar alteracoes.", "error");
+      alert(error.message || "Erro ao descartar alteracoes.");
     }
   }
 
   async function restaurarLandingPageVersaoHistorico(
     versao: LandingPagePublicavelConfig
   ) {
-    const confirmado = await requestConfirm({
-      title: "Restaurar versao",
-      message: "Restaurar esta versao como rascunho atual? A versao publica continuara igual ate publicar novamente.",
-      variant: "warning",
-      confirmLabel: "Restaurar versao",
-    });
-    if (!confirmado) {
+    if (!window.confirm("Restaurar esta versao como rascunho atual? A versao publica continuara igual ate publicar novamente.")) {
       return;
     }
 
@@ -11297,11 +11269,11 @@ export default function EmpresaForm({
     } as Parameters<typeof atualizarEmpresa>[1]);
 
     if (error) {
-      notifyToast(error.message || "Erro ao restaurar versao.", "error");
+      alert(error.message || "Erro ao restaurar versao.");
       return;
     }
 
-    notifyToast("Versao restaurada no rascunho.", "success");
+    alert("Versao restaurada no rascunho.");
   }
 
   async function salvar() {
@@ -11310,12 +11282,12 @@ export default function EmpresaForm({
     const slugFinal = gerarSlug(slugAdmin || slug);
 
     if (!empresaId) {
-      notifyToast("Empresa ainda não foi carregada. Tente novamente.", "warning");
+      alert("Empresa ainda não foi carregada. Tente novamente.");
       return;
     }
 
     if (!slugFinal) {
-      notifyToast("Informe um slug válido antes de salvar.", "warning");
+      alert("Informe um slug válido antes de salvar.");
       return;
     }
 
@@ -11332,12 +11304,12 @@ export default function EmpresaForm({
     const erpPdvConfig = montarErpPdvConfig();
 
     if (whatsappLocal && whatsappLocal.length < 10) {
-      notifyToast("Informe um WhatsApp válido com DDD.", "warning");
+      alert("Informe um WhatsApp válido com DDD.");
       return;
     }
 
     if (telefoneLocal && telefoneLocal.length < 10) {
-      notifyToast("Informe um telefone válido com DDD.", "warning");
+      alert("Informe um telefone válido com DDD.");
       return;
     }
 
@@ -11432,7 +11404,7 @@ export default function EmpresaForm({
         tipo: "erro",
         texto: error.message || "Erro ao salvar. Revise os dados e tente novamente.",
       });
-      notifyToast(error.message || "Erro ao salvar.", "error");
+      alert(error.message || "Erro ao salvar.");
       return;
     }
 
@@ -11462,13 +11434,13 @@ export default function EmpresaForm({
       tipo: "sucesso",
       texto: "Dados salvos com sucesso. Recarregue a empresa para conferir os dados persistidos.",
     });
-      notifyToast("Dados salvos com sucesso!", "success");
+    alert("Dados salvos com sucesso!");
     onSalvar?.();
   }
 
   async function salvarLogo(url: string) {
     if (!empresaId) {
-      notifyToast("Empresa ainda não foi carregada. Tente novamente antes de alterar a logo.", "warning");
+      alert("Empresa ainda não foi carregada. Tente novamente antes de alterar a logo.");
       return;
     }
 
@@ -11488,7 +11460,7 @@ export default function EmpresaForm({
 
       console.error("Erro ao salvar logo no Supabase:", error);
 
-      notifyToast(`Erro ao salvar logo no Supabase: ${mensagemErro}`, "error");
+      alert(`Erro ao salvar logo no Supabase: ${mensagemErro}`);
       return;
     }
 
@@ -11500,7 +11472,7 @@ export default function EmpresaForm({
 
   async function salvarBanner(url: string) {
     if (!empresaId) {
-      notifyToast("Empresa ainda não foi carregada. Tente novamente antes de alterar o banner.", "warning");
+      alert("Empresa ainda não foi carregada. Tente novamente antes de alterar o banner.");
       return;
     }
 
@@ -11522,7 +11494,7 @@ export default function EmpresaForm({
 
       console.error("Erro ao salvar banner no Supabase:", error);
 
-      notifyToast(`Erro ao salvar banner no Supabase: ${mensagemErro}`, "error");
+      alert(`Erro ao salvar banner no Supabase: ${mensagemErro}`);
     }
   }
 
@@ -12084,12 +12056,17 @@ export default function EmpresaForm({
             </div>
 
             {erpPdvFeedback && (
-              <AppToast
-                open
-                message={erpPdvFeedback.texto}
-                type={erpPdvFeedback.tipo === "sucesso" ? "success" : erpPdvFeedback.tipo === "erro" ? "error" : "info"}
-                onClose={() => setErpPdvFeedback(null)}
-              />
+              <div
+                className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+                  erpPdvFeedback.tipo === "sucesso"
+                    ? "border-green-200 bg-green-50 text-green-700"
+                    : erpPdvFeedback.tipo === "erro"
+                    ? "border-red-200 bg-red-50 text-red-700"
+                    : "border-slate-200 bg-slate-50 text-slate-600"
+                }`}
+              >
+                {erpPdvFeedback.texto}
+              </div>
             )}
 
             {!modoCliente && (
@@ -12317,60 +12294,63 @@ export default function EmpresaForm({
                         </select>
                       </div>
                     </div>
-                    <div className="mt-3">
-                      <DataTable
-                        rows={obterColaboradoresFiltrados()}
-                        getRowId={(usuario) => usuario.id}
-                        onRowClick={editarUsuarioErpPdv}
-                        emptyMessage="Nenhum colaborador encontrado."
-                        columns={[
-                          {
-                            id: "nome",
-                            label: "Nome",
-                            render: (usuario) => (
-                              <>
-                                <span className="block font-bold text-slate-900">{usuario.nome_exibicao || usuario.nome}</span>
-                                <span className="text-xs font-medium text-slate-500">{usuario.email || "Sem e-mail"}</span>
-                              </>
-                            ),
-                          },
-                          {
-                            id: "funcoes",
-                            label: "Funcoes",
-                            render: (usuario) => obterFuncoesErpPdvUsuario(usuario).map(obterLabelFuncaoColaborador).join(", ") || "Sem funcao",
-                          },
-                          {
-                            id: "tabelas",
-                            label: "Tabelas",
-                            render: (usuario) => {
+                    <div className="mt-3 max-h-[520px] overflow-auto">
+                      {obterColaboradoresFiltrados().length > 0 ? (
+                        <table className="w-full min-w-[620px] border-collapse text-left text-sm">
+                          <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                            <tr>
+                              <th className="px-3 py-2">Nome</th>
+                              <th className="px-3 py-2">Funcoes</th>
+                              <th className="px-3 py-2">Tabelas</th>
+                              <th className="px-3 py-2">Caixa</th>
+                              <th className="px-3 py-2">Status</th>
+                              <th className="px-3 py-2">Acao</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {obterColaboradoresFiltrados().map((usuario) => {
                               const funcoes = obterFuncoesErpPdvUsuario(usuario);
-                              return [
+                              const tabelas = [
                                 funcoes.includes("vendedor_varejo") ? "Varejo" : "",
                                 funcoes.includes("vendedor_atacado") ? "Atacado" : "",
                               ].filter(Boolean).join(" / ") || "Nenhuma";
-                            },
-                          },
-                          {
-                            id: "caixa",
-                            label: "Caixa",
-                            render: (usuario) => obterFuncoesErpPdvUsuario(usuario).includes("caixa") ? "Autorizado" : "Nao",
-                          },
-                          {
-                            id: "status",
-                            label: "Status",
-                            render: (usuario) => (
-                              <span className={usuario.ativo ? "rounded-full bg-green-50 px-2 py-1 text-xs font-bold text-green-700" : "rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-500"}>
-                                {usuario.ativo ? "Ativo" : "Inativo"}
-                              </span>
-                            ),
-                          },
-                          {
-                            id: "acao",
-                            label: "Acao",
-                            render: () => <span className="text-xs font-bold text-slate-500">Editar na linha</span>,
-                          },
-                        ]}
-                      />
+                              return (
+                                <tr key={usuario.id} className="border-b border-slate-100 hover:bg-slate-50">
+                                  <td className="px-3 py-2 font-bold text-slate-900">
+                                    <span className="block">{usuario.nome_exibicao || usuario.nome}</span>
+                                    <span className="text-xs font-medium text-slate-500">{usuario.email || "Sem e-mail"}</span>
+                                  </td>
+                                  <td className="px-3 py-2 text-slate-700">
+                                    {funcoes.map(obterLabelFuncaoColaborador).join(", ") || "Sem funcao"}
+                                  </td>
+                                  <td className="px-3 py-2 text-slate-700">{tabelas}</td>
+                                  <td className="px-3 py-2 text-slate-700">
+                                    {funcoes.includes("caixa") ? "Autorizado" : "Nao"}
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <span className={usuario.ativo ? "rounded-full bg-green-50 px-2 py-1 text-xs font-bold text-green-700" : "rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-500"}>
+                                      {usuario.ativo ? "Ativo" : "Inativo"}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => editarUsuarioErpPdv(usuario)}
+                                      className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-700 hover:border-green-300 hover:bg-green-50"
+                                    >
+                                      Editar
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+                          Nenhum colaborador encontrado.
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -13532,9 +13512,9 @@ export default function EmpresaForm({
                     </div>
 
                     <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
-                      <AppSearch
+                      <input
                         value={erpPdvClienteBusca}
-                        onChange={setErpPdvClienteBusca}
+                        onChange={(e) => setErpPdvClienteBusca(e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
                             e.preventDefault();
@@ -13542,6 +13522,7 @@ export default function EmpresaForm({
                           }
                         }}
                         placeholder="Buscar por nome, CPF/CNPJ ou telefone"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
                       />
 
                       <button
@@ -14311,54 +14292,76 @@ export default function EmpresaForm({
                     ))}
                   </div>
 
-                  <div className="mt-4">
-                    <DataTable
-                      rows={erpPdvRelatorio.vendas.slice(0, 80)}
-                      getRowId={(venda) => venda.id}
-                      emptyMessage="Sem vendas para os filtros atuais."
-                      columns={[
-                        {
-                          id: "venda",
-                          label: "Venda",
-                          render: (venda) => <strong>#{venda.numero}</strong>,
-                        },
-                        {
-                          id: "data",
-                          label: "Data",
-                          render: (venda) => new Date(venda.finalizada_em).toLocaleString("pt-BR"),
-                        },
-                        {
-                          id: "operador",
-                          label: "Operador",
-                          render: (venda) => venda.operador || "-",
-                        },
-                        {
-                          id: "cliente",
-                          label: "Cliente",
-                          render: (venda) => venda.cliente_nome || "-",
-                        },
-                        {
-                          id: "pagamento",
-                          label: "Pagamento",
-                          render: (venda) => obterLabelFormaPagamentoErpPdv(venda.forma_pagamento),
-                        },
-                        {
-                          id: "itens",
-                          label: "Itens",
-                          render: (venda) => formatarNumeroErpPdv(venda.quantidade_itens) || "0",
-                        },
-                        {
-                          id: "total",
-                          label: "Total",
-                          render: (venda) => <strong>R$ {formatarMoedaErpPdv(venda.total)}</strong>,
-                        },
-                        {
-                          id: "lucro",
-                          label: "Lucro",
-                          render: (venda) => <strong className="text-green-700">R$ {formatarMoedaErpPdv(venda.lucro_bruto)}</strong>,
-                        },
-                      ]}
-                    />
+                  <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200">
+                    <table className="min-w-full divide-y divide-slate-200 text-sm">
+                      <thead className="bg-slate-50">
+                        <tr>
+                          {[
+                            "Venda",
+                            "Data",
+                            "Operador",
+                            "Cliente",
+                            "Pagamento",
+                            "Itens",
+                            "Total",
+                            "Lucro",
+                          ].map((cabecalho) => (
+                            <th
+                              key={cabecalho}
+                              className="px-3 py-3 text-left text-xs font-black uppercase tracking-wide text-slate-500"
+                            >
+                              {cabecalho}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {erpPdvRelatorio.vendas.length > 0 ? (
+                          erpPdvRelatorio.vendas.slice(0, 80).map((venda) => (
+                            <tr key={venda.id}>
+                              <td className="px-3 py-3 font-bold text-slate-900">
+                                #{venda.numero}
+                              </td>
+                              <td className="px-3 py-3 text-slate-600">
+                                {new Date(venda.finalizada_em).toLocaleString(
+                                  "pt-BR"
+                                )}
+                              </td>
+                              <td className="px-3 py-3 text-slate-600">
+                                {venda.operador || "-"}
+                              </td>
+                              <td className="px-3 py-3 text-slate-600">
+                                {venda.cliente_nome || "-"}
+                              </td>
+                              <td className="px-3 py-3 text-slate-600">
+                                {obterLabelFormaPagamentoErpPdv(
+                                  venda.forma_pagamento
+                                )}
+                              </td>
+                              <td className="px-3 py-3 text-slate-600">
+                                {formatarNumeroErpPdv(venda.quantidade_itens) ||
+                                  "0"}
+                              </td>
+                              <td className="px-3 py-3 font-bold text-slate-900">
+                                R$ {formatarMoedaErpPdv(venda.total)}
+                              </td>
+                              <td className="px-3 py-3 font-bold text-green-700">
+                                R$ {formatarMoedaErpPdv(venda.lucro_bruto)}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td
+                              colSpan={8}
+                              className="px-3 py-6 text-center text-sm text-slate-500"
+                            >
+                              Sem vendas para os filtros atuais.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </>
               ) : (
@@ -14976,10 +14979,10 @@ export default function EmpresaForm({
             <div className="rounded-2xl border border-slate-200 bg-white p-4">
               <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <div className="min-w-0 flex-1">
-                  <AppSearch
+                  <Input
                     label="Buscar produtos"
                     value={erpPdvBusca}
-                    onChange={setErpPdvBusca}
+                    onChange={(e) => setErpPdvBusca(e.target.value)}
                     placeholder="Busque por nome, SKU, codigo, GTIN, fornecedor, marca, NCM ou categoria"
                   />
                 </div>
@@ -19193,15 +19196,14 @@ export default function EmpresaForm({
             <div className="flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:flex-wrap">
               <button
                 type="button"
-                onClick={async () => {
-                  const confirmado = await requestConfirm({
-                    title: "Restaurar tema padrao",
-                    message: `Deseja restaurar o tema padrao definido pela ${BrandConfig.developerCompany}?`,
-                    variant: "warning",
-                    confirmLabel: "Restaurar tema",
-                  });
+                onClick={() => {
+                  const confirmado = window.confirm(
+                    `Deseja restaurar o tema padrao definido pela ${BrandConfig.developerCompany}?`
+                  );
 
-                  if (confirmado) aplicarAparencia(TemaPadraoMikatech);
+                  if (confirmado) {
+                    aplicarAparencia(TemaPadraoMikatech);
+                  }
                 }}
                 className="rounded-xl border border-slate-200 px-4 py-3 font-bold text-slate-700"
               >
@@ -19615,12 +19617,18 @@ export default function EmpresaForm({
       )}
 
       {feedbackSalvamento && (
-        <AppToast
-          open
-          message={feedbackSalvamento.texto}
-          type={feedbackSalvamento.tipo === "sucesso" ? "success" : feedbackSalvamento.tipo === "erro" ? "error" : "info"}
-          onClose={() => setFeedbackSalvamento(null)}
-        />
+        <div
+          className={`rounded-xl px-4 py-3 text-sm font-semibold ${
+            feedbackSalvamento.tipo === "sucesso"
+              ? "bg-green-50 text-green-700"
+              : feedbackSalvamento.tipo === "erro"
+                ? "bg-red-50 text-red-700"
+                : "bg-blue-50 text-blue-700"
+          }`}
+          role="status"
+        >
+          {feedbackSalvamento.texto}
+        </div>
       )}
 
       <div className="flex justify-end">
@@ -19662,14 +19670,13 @@ export default function EmpresaForm({
       )}
 
       {landingPageIaModalAberto && (
-        <AppModal
-          open
-          bare
-          ariaLabel="IA para Landing Page"
-          onClose={() => setLandingPageIaModalAberto(false)}
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4"
-          dialogClassName="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="landing-page-ia-titulo"
         >
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl">
             <div className="flex min-w-0 flex-col gap-3 border-b border-slate-200 pb-4 md:flex-row md:items-start md:justify-between">
               <div className="min-w-0">
                 <p className="text-sm font-bold uppercase tracking-wide text-green-700">
@@ -19790,7 +19797,8 @@ export default function EmpresaForm({
                 </p>
               </div>
             </div>
-        </AppModal>
+          </div>
+        </div>
       )}
     </div>
   );

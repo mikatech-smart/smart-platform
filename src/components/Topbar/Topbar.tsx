@@ -1,14 +1,21 @@
 import { Bell, Search, UserCircle2 } from "lucide-react";
 import { BrandConfig } from "../../config/brand";
-import { AppHeader } from "../common/AppHeader";
 
 export default function Topbar() {
   return (
-    <AppHeader
-      title={BrandConfig.platformName}
-      subtitle="Bem-vindo ao painel administrativo."
-      actions={
-        <div className="flex items-center gap-6">
+    <header className="flex items-center justify-between bg-white border-b border-gray-200 px-8 py-5">
+
+      <div>
+        <h1 className="text-2xl font-bold text-gray-800">
+          {BrandConfig.platformName}
+        </h1>
+
+        <p className="text-sm text-gray-500">
+          Bem-vindo ao painel administrativo.
+        </p>
+      </div>
+
+      <div className="flex items-center gap-6">
 
         <Search
           size={22}
@@ -25,8 +32,8 @@ export default function Topbar() {
           className="text-green-500"
         />
 
-        </div>
-      }
-    />
+      </div>
+
+    </header>
   );
 }

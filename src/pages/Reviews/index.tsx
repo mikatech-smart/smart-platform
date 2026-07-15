@@ -1,5 +1,7 @@
-import { AppHeader } from "../../components/common/AppHeader";
-
 export default function Reviews() {
-  return <AppHeader title="Reviews" />;
+  return (
+    <>
+      <h1>Reviews</h1>
+    </>
+  );
 }

@@ -8,7 +8,6 @@ import {
 import { Gift, Stamp } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 
-import { AppToast } from "../../components/common/AppToast";
 import type { Empresa } from "../../models/Empresa";
 import {
   buscarEmpresaPorSlug,
@@ -410,12 +409,11 @@ export default function PublicFidelidadePage() {
           </label>
 
           {cadastroMensagem && (
-            <AppToast
-              open
-              message={cadastroMensagem.texto}
-              type={cadastroMensagem.tipo === "sucesso" ? "success" : "error"}
-              onClose={() => setCadastroMensagem(null)}
-            />
+            <p
+              className={`public-fidelidade-signup__feedback public-fidelidade-signup__feedback--${cadastroMensagem.tipo}`}
+            >
+              {cadastroMensagem.texto}
+            </p>
           )}
 
           <button type="submit" disabled={cadastroEnviando}>

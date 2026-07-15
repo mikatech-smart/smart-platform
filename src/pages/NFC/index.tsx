@@ -1,5 +1,7 @@
-import { AppHeader } from "../../components/common/AppHeader";
-
 export default function Clientes() {
-  return <AppHeader title="Clientes" />;
+  return (
+    <>
+      <h1>Clientes</h1>
+    </>
+  );
 }

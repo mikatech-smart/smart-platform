@@ -1,13 +1,6 @@
 import { Fragment, useEffect, useState } from "react";
 
 import EmpresaForm from "../../components/dashboard/EmpresaForm";
-import { FormActions } from "../../components/common/FormActions";
-import { FormField } from "../../components/common/FormField";
-import { EmptyState } from "../../components/common/EmptyState";
-import { AppSearch } from "../../components/common/AppSearch";
-import { AppHeader } from "../../components/common/AppHeader";
-import { notifyToast } from "../../utils/toast";
-import { requestConfirm } from "../../utils/confirm";
 import { BrandConfig } from "../../config/brand";
 import {
   criarEmpresa as criarEmpresaService,
@@ -110,7 +103,7 @@ export default function Empresas() {
     const slug = gerarSlug(novoSlug || novoNome);
 
     if (!novoNome || !slug) {
-      notifyToast("Informe o nome e o slug da empresa.", "warning");
+      alert("Informe o nome e o slug da empresa.");
       return;
     }
 
@@ -125,7 +118,7 @@ export default function Empresas() {
 
       if (error) {
         console.error("Erro completo ao criar empresa:", error);
-        notifyToast(
+        alert(
           error.message ||
             "Erro ao criar empresa. Verifique as permissões do Admin no Supabase."
         );
@@ -145,12 +138,9 @@ export default function Empresas() {
   }
 
   async function excluirEmpresa(id: string) {
-    const confirmado = await requestConfirm({
-      title: "Excluir empresa",
-      message: "Tem certeza que deseja excluir esta empresa? Esta acao nao podera ser desfeita.",
-      variant: "irreversible",
-      confirmLabel: "Excluir empresa",
-    });
+    const confirmado = window.confirm(
+      "Tem certeza que deseja excluir esta empresa? Esta ação não poderá ser desfeita."
+    );
 
     if (!confirmado) return;
 
@@ -158,7 +148,7 @@ export default function Empresas() {
 
     if (error) {
       console.error("Erro completo ao excluir empresa:", error);
-      notifyToast(error.message || "Erro ao excluir empresa.", "error");
+      alert(error.message || "Erro ao excluir empresa.");
       return;
     }
 
@@ -168,22 +158,28 @@ export default function Empresas() {
 
   return (
     <section className="min-w-0 max-w-full space-y-6 overflow-x-hidden">
-      <AppHeader
-        title="Empresas"
-        subtitle="Gerencie todas as empresas pelo painel administrativo."
-        actions={
-          <button
-            type="button"
-            onClick={() => {
-              setEmpresaIdEmEdicao("");
-              setMostrarNovaEmpresa((valor) => !valor);
-            }}
-            className="rounded-xl bg-green-700 px-5 py-3 font-bold text-white"
-          >
-            + Nova Empresa
-          </button>
-        }
-      />
+      <div className="flex min-w-0 flex-col gap-4 rounded-2xl bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between md:p-6">
+        <div className="min-w-0">
+          <h2 className="text-2xl font-bold text-slate-900">
+            Empresas
+          </h2>
+
+          <p className="mt-1 text-slate-500">
+            Gerencie todas as empresas pelo painel administrativo.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            setEmpresaIdEmEdicao("");
+            setMostrarNovaEmpresa((valor) => !valor);
+          }}
+          className="rounded-xl bg-green-700 px-5 py-3 font-bold text-white"
+        >
+          + Nova Empresa
+        </button>
+      </div>
 
       {mostrarNovaEmpresa && (
         <div className="min-w-0 rounded-2xl bg-white p-4 shadow-sm md:p-6">
@@ -192,7 +188,11 @@ export default function Empresas() {
           </h3>
 
           <div className="mt-4 grid min-w-0 gap-4 md:grid-cols-3">
-            <FormField label="Nome" required>
+            <div>
+              <label className="mb-2 block font-medium">
+                Nome
+              </label>
+
               <input
                 value={novoNome}
                 onChange={(e) => {
@@ -206,9 +206,13 @@ export default function Empresas() {
                 }}
                 className="w-full rounded-xl border p-3"
               />
-            </FormField>
+            </div>
 
-            <FormField label="Slug" required>
+            <div>
+              <label className="mb-2 block font-medium">
+                Slug
+              </label>
+
               <input
                 value={novoSlug}
                 onChange={(e) => {
@@ -217,9 +221,13 @@ export default function Empresas() {
                 }}
                 className="w-full rounded-xl border p-3"
               />
-            </FormField>
+            </div>
 
-            <FormField label="Tipo de gerenciamento">
+            <div>
+              <label className="mb-2 block font-medium">
+                Tipo de gerenciamento
+              </label>
+
               <select
                 value={novoTipo}
                 onChange={(e) => setNovoTipo(e.target.value)}
@@ -237,19 +245,17 @@ export default function Empresas() {
                   Cliente administra
                 </option>
               </select>
-            </FormField>
+            </div>
           </div>
 
-          <FormActions align="start">
-            <button
-              type="button"
-              onClick={criarEmpresa}
-              disabled={salvandoNovaEmpresa}
-              className="rounded-xl bg-green-700 px-5 py-3 font-bold text-white disabled:opacity-50"
-            >
-              {salvandoNovaEmpresa ? "Criando..." : "Criar Empresa"}
-            </button>
-          </FormActions>
+          <button
+            type="button"
+            onClick={criarEmpresa}
+            disabled={salvandoNovaEmpresa}
+            className="mt-4 rounded-xl bg-green-700 px-5 py-3 font-bold text-white disabled:opacity-50"
+          >
+            {salvandoNovaEmpresa ? "Criando..." : "Criar Empresa"}
+          </button>
         </div>
       )}
 
@@ -260,13 +266,17 @@ export default function Empresas() {
       ) : (
         <div className="grid min-w-0 gap-3">
           <div className="min-w-0 rounded-2xl bg-white p-4 shadow-sm">
-            <FormField label="Buscar empresas">
-              <AppSearch
-                value={busca}
-                onChange={setBusca}
-                placeholder="Busque por nome, slug, categoria ou tipo"
-              />
-            </FormField>
+            <label className="mb-2 block text-sm font-bold text-slate-700">
+              Buscar empresas
+            </label>
+
+            <input
+              type="search"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Busque por nome, slug, categoria ou tipo"
+              className="w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition focus:border-green-600 focus:ring-2 focus:ring-green-100"
+            />
 
             <p className="mt-2 text-xs font-medium text-slate-500">
               {empresasFiltradas.length} de {empresas.length} empresas
@@ -407,11 +417,9 @@ export default function Empresas() {
           })}
 
           {empresasFiltradas.length === 0 && (
-            <EmptyState
-              title="Nenhuma empresa encontrada"
-              description="Ajuste a busca ou cadastre uma nova empresa."
-              className="rounded-2xl bg-white shadow-sm"
-            />
+            <div className="rounded-2xl bg-white p-6 text-center text-sm font-medium text-slate-500 shadow-sm">
+              Nenhuma empresa encontrada para essa busca.
+            </div>
           )}
         </div>
       )}

@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { MessageCircle } from "lucide-react";
-import { EmptyState } from "../../components/common/EmptyState";
 import { Link, useParams } from "react-router-dom";
-import { AppSearch } from "../../components/common/AppSearch";
 
 import type { Empresa } from "../../models/Empresa";
 import {
@@ -391,13 +389,15 @@ export default function PublicCatalogoPage() {
       </header>
 
       <section className="public-catalogo-tools" aria-label="Busca e filtros do catalogo">
-        <AppSearch
-          className="public-catalogo-search"
-          label="Buscar produto"
-          value={buscaProduto}
-          onChange={setBuscaProduto}
-          placeholder="Digite o nome, descricao ou preco"
-        />
+        <label className="public-catalogo-search">
+          <span>Buscar produto</span>
+          <input
+            type="search"
+            value={buscaProduto}
+            onChange={(event) => setBuscaProduto(event.target.value)}
+            placeholder="Digite o nome, descricao ou preco"
+          />
+        </label>
 
         <div className="public-catalogo-filters" aria-label="Filtrar por categoria">
           <button
@@ -529,11 +529,10 @@ export default function PublicCatalogoPage() {
         )}
 
         {!possuiResultadoFiltrado && (
-          <EmptyState
-            title="Nenhum item encontrado"
-            description="Ajuste a busca ou selecione outra categoria."
-            className="public-catalogo-empty"
-          />
+          <section className="public-catalogo-empty">
+            <h2>Nenhum item encontrado</h2>
+            <p>Ajuste a busca ou selecione outra categoria.</p>
+          </section>
         )}
       </section>
     </main>
