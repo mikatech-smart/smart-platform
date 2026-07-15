@@ -30,6 +30,7 @@ dist-ssr
 
 # Testes locais
 TESTE_CODEX.txt
+TESTE-CODEX.md
 
 # TypeScript Build
 *.tsbuildinfo
