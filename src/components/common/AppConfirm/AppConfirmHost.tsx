@@ -20,8 +20,14 @@ export default function AppConfirmHost() {
       variant={request?.variant}
       confirmLabel={request?.confirmLabel}
       cancelLabel={request?.cancelLabel}
-      onConfirm={() => resolveConfirmation(true)}
-      onCancel={() => resolveConfirmation(false)}
+      onConfirm={() => {
+        resolveConfirmation(true);
+        setRequest(null);
+      }}
+      onCancel={() => {
+        resolveConfirmation(false);
+        setRequest(null);
+      }}
     />
   );
 }

@@ -71,7 +71,7 @@
 }
 
 .public-pdv-operator-modal {
-  width: min(100%, 980px);
+  width: min(100%, 420px);
 }
 
 .public-pdv-operator-card {
@@ -79,7 +79,7 @@
   border-radius: 18px;
   background: #ffffff;
   box-shadow: 0 24px 70px rgba(15, 23, 42, 0.16);
-  padding: 24px;
+  padding: 16px;
 }
 
 .public-pdv-operator-card > span,
@@ -92,12 +92,33 @@
 
 .public-pdv-operator-card h2 {
   margin: 6px 0;
-  font-size: 28px;
+  font-size: 20px;
 }
 
 .public-pdv-operator-card p {
   color: #475569;
   margin: 0;
+  font-size: 13px;
+}
+
+/* SelectionList buttons must not inherit the PDV action-button treatment. */
+.public-pdv button.selection-list-item {
+  min-height: 32px;
+  border: 1px solid #dbe3ef;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #0f172a;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.public-pdv button.selection-list-item:hover,
+.public-pdv button.selection-list-item:focus-visible {
+  border-color: #86efac;
+  background: #f7fee7;
+  color: #166534;
+  outline: none;
 }
 
 .public-pdv button.public-pdv-operator-back {

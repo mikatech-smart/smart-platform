@@ -1,27 +1,28 @@
 .selection-list {
   display: grid;
-  gap: 6px;
-  margin-top: 16px;
+  gap: 3px;
+  margin-top: 12px;
 }
 
 .selection-list-item {
   width: 100%;
-  min-height: 38px;
+  min-height: 32px;
   border: 1px solid #dbe3ef;
-  border-radius: 8px;
+  border-radius: 5px;
   background: #ffffff;
   color: #0f172a;
-  padding: 8px 12px;
+  padding: 6px 10px;
   text-align: left;
-  font-size: 14px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 700;
   transition: border-color 140ms ease, background-color 140ms ease;
 }
 
 .selection-list-item:hover,
 .selection-list-item:focus-visible {
   border-color: #86efac;
-  background: #f0fdf4;
+  background: #f7fee7;
+  color: #166534;
   outline: none;
 }
 
