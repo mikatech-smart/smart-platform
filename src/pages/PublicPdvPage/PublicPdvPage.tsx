@@ -1282,10 +1282,24 @@ export default function PublicPdvPage() {
   function selecionarPerfilOperador(perfil: PerfilSelecaoOperador) {
     setPerfilSelecaoOperador(perfil);
     setTabelaSelecaoVendedor(null);
+
+    if (perfil !== "vendedor") {
+      const usuariosDoPerfil = usuariosAtivos.filter((usuario) =>
+        perfil === "administrador"
+          ? obterFuncoesErpPdvUsuario(usuario).includes("administrador")
+          : obterFuncoesErpPdvUsuario(usuario).includes("caixa")
+      );
+      if (usuariosDoPerfil.length === 1) selecionarUsuario(usuariosDoPerfil[0].id);
+    }
   }
 
   function selecionarTabelaVendedor(tabelaSelecionada: TabelaSelecaoVendedor) {
     setTabelaSelecaoVendedor(tabelaSelecionada);
+    const funcao = tabelaSelecionada === "atacado" ? "vendedor_atacado" : "vendedor_varejo";
+    const vendedores = usuariosAtivos.filter((usuario) =>
+      obterFuncoesErpPdvUsuario(usuario).includes(funcao)
+    );
+    if (vendedores.length === 1) selecionarUsuario(vendedores[0].id, tabelaSelecionada);
   }
 
   function voltarSelecaoOperador() {
@@ -1321,7 +1335,8 @@ export default function PublicPdvPage() {
   }
 
   function trocarOperador() {
-    if (carrinho.length > 0) {
+    const possuiItensNoCarrinho = carrinho.some((item) => item.quantidade > 0);
+    if (possuiItensNoCarrinho) {
       const confirmar = window.confirm(
         "Existe uma venda em andamento. Deseja cancelar o carrinho e trocar o operador?"
       );
