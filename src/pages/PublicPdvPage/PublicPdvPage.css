@@ -3771,6 +3771,19 @@
   cursor: pointer;
 }
 
+.public-pdv-closing-report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.public-pdv-closing-report-actions button {
+  min-height: 32px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
 .public-pdv-closing-report-content {
   min-height: 0;
   overflow: auto;
@@ -3883,5 +3896,37 @@
   .public-pdv-closing-report-grid,
   .public-pdv-closing-report-columns {
     grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  body.public-pdv-print-closing-report * {
+    visibility: hidden;
+  }
+
+  body.public-pdv-print-closing-report .public-pdv-closing-report-dialog,
+  body.public-pdv-print-closing-report .public-pdv-closing-report-dialog * {
+    visibility: visible;
+  }
+
+  body.public-pdv-print-closing-report .public-pdv-closing-report-modal {
+    position: static;
+  }
+
+  body.public-pdv-print-closing-report .public-pdv-closing-report-backdrop {
+    display: none;
+  }
+
+  body.public-pdv-print-closing-report .public-pdv-closing-report-dialog {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  body.public-pdv-print-closing-report .public-pdv-closing-report-actions {
+    display: none;
   }
 }

@@ -261,6 +261,34 @@ function situacaoRelatorio(valor: number) {
     : `Caixa com falta de R$ ${moeda(Math.abs(valor))}`;
 }
 
+function resumoFechamentoTexto(
+  resumo: ErpPdvCaixaResumo,
+  empresaNome: string,
+  operadorNome: string,
+  diferenca: number
+) {
+  const caixa = resumo.caixa;
+  return [
+    "RELATÓRIO DE FECHAMENTO DE CAIXA",
+    `Empresa: ${empresaNome}`,
+    `Operador: ${operadorNome}`,
+    `Data: ${dataHoraRelatorio(caixa.fechado_em)}`,
+    "",
+    `Total vendido: R$ ${moeda(resumo.totalVendas)}`,
+    `Dinheiro: R$ ${moeda(resumo.vendasPorFormaPagamento.dinheiro || 0)}`,
+    `PIX: R$ ${moeda(resumo.vendasPorFormaPagamento.pix || 0)}`,
+    `Débito: R$ ${moeda(resumo.vendasPorFormaPagamento.debito || 0)}`,
+    `Crédito: R$ ${moeda(resumo.vendasPorFormaPagamento.credito || 0)}`,
+    `Outros: R$ ${moeda(resumo.vendasPorFormaPagamento.outros || 0)}`,
+    `Saldo inicial: R$ ${moeda(caixa.saldo_inicial)}`,
+    `Suprimentos: R$ ${moeda(resumo.suprimentos)}`,
+    `Sangrias: R$ ${moeda(resumo.sangrias)}`,
+    `Valor esperado: R$ ${moeda(resumo.totalEsperado)}`,
+    `Valor informado: R$ ${moeda(resumo.valorInformado)}`,
+    `Situação: ${situacaoRelatorio(diferenca)}`,
+  ].join("\n");
+}
+
 function escapeHtml(valor: string) {
   return valor
     .replaceAll("&", "&amp;")
@@ -1998,6 +2026,34 @@ export default function PublicPdvPage() {
     setAtalhosAberto(true);
   }
 
+  function imprimirRelatorioFechamento() {
+    const classe = "public-pdv-print-closing-report";
+    const limpar = () => document.body.classList.remove(classe);
+    document.body.classList.add(classe);
+    window.addEventListener("afterprint", limpar, { once: true });
+    window.print();
+    window.setTimeout(limpar, 1500);
+  }
+
+  function compartilharRelatorioFechamento(canal: "email" | "whatsapp") {
+    if (!relatorioFechamento) return;
+    const operadorRelatorio = usuarioAtual?.nome || relatorioFechamento.caixa.operador || "Operador";
+    const texto = resumoFechamentoTexto(
+      relatorioFechamento,
+      empresa?.nome || "Empresa",
+      operadorRelatorio,
+      diferencaFechamento
+    );
+
+    if (canal === "email") {
+      const assunto = `Fechamento de caixa - ${empresa?.nome || "Empresa"}`;
+      window.location.href = `mailto:?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(texto)}`;
+      return;
+    }
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank", "noopener,noreferrer");
+  }
+
   function imprimirCupom() {
     cupomFrameRef.current?.contentWindow?.print();
   }
@@ -3429,9 +3485,12 @@ export default function PublicPdvPage() {
                 <span>Fechamento de caixa</span>
                 <h2>Relatório de Fechamento de Caixa</h2>
               </div>
-              <button type="button" onClick={() => setRelatorioFechamento(null)}>
-                Fechar
-              </button>
+              <div className="public-pdv-closing-report-actions">
+                <button type="button" onClick={imprimirRelatorioFechamento}>Imprimir</button>
+                <button type="button" onClick={() => compartilharRelatorioFechamento("email")}>E-mail</button>
+                <button type="button" onClick={() => compartilharRelatorioFechamento("whatsapp")}>WhatsApp</button>
+                <button type="button" onClick={() => setRelatorioFechamento(null)}>Fechar</button>
+              </div>
             </header>
 
             <div className="public-pdv-closing-report-content">
