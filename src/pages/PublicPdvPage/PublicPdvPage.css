@@ -3665,6 +3665,49 @@
   padding-bottom: 20px;
 }
 
+/* Sprint 210.2 - estabiliza o card Caixa nos estados fechado e aberto */
+.public-pdv--cashier .public-pdv-secondary-menu #pdv-caixa {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  height: 132px;
+  overflow: hidden;
+  padding-bottom: 8px;
+}
+
+.public-pdv--cashier .public-pdv-secondary-menu #pdv-caixa h2 {
+  flex: 0 0 auto;
+  margin-bottom: 2px;
+}
+
+.public-pdv--cashier .public-pdv-secondary-menu #pdv-caixa p,
+.public-pdv--cashier .public-pdv-secondary-menu #pdv-caixa strong,
+.public-pdv--cashier .public-pdv-secondary-menu #pdv-caixa label {
+  flex: 0 0 auto;
+  margin: 0;
+  line-height: 1.15;
+}
+
+.public-pdv--cashier .public-pdv-secondary-menu #pdv-caixa p,
+.public-pdv--cashier .public-pdv-secondary-menu #pdv-caixa strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.public-pdv--cashier .public-pdv-secondary-menu #pdv-caixa label {
+  font-size: 10px;
+}
+
+.public-pdv--cashier .public-pdv-secondary-menu #pdv-caixa input {
+  box-sizing: border-box;
+  flex: 0 0 28px;
+  height: 28px;
+  min-height: 28px;
+  padding: 4px 8px;
+}
+
 /* Sprint 210 - relatorio visual do fechamento do caixa */
 .public-pdv-closing-report-modal {
   position: fixed;
