@@ -3664,3 +3664,181 @@
   overflow: visible;
   padding-bottom: 20px;
 }
+
+/* Sprint 210 - relatorio visual do fechamento do caixa */
+.public-pdv-closing-report-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+}
+
+.public-pdv-closing-report-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.58);
+}
+
+.public-pdv-closing-report-dialog {
+  position: absolute;
+  inset: 5vh 6vw;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 16px;
+  overflow: hidden;
+  padding: 24px;
+  border: 1px solid #dbe4f0;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.3);
+}
+
+.public-pdv-closing-report-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 14px;
+}
+
+.public-pdv-closing-report-header span,
+.public-pdv-closing-report-section h3 {
+  color: #047857;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.public-pdv-closing-report-header h2 {
+  margin: 3px 0 0;
+  color: #0f172a;
+  font-size: 24px;
+}
+
+.public-pdv-closing-report-header button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: #047857;
+  color: #ffffff;
+  padding: 8px 18px;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.public-pdv-closing-report-content {
+  min-height: 0;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.public-pdv-closing-report-section {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 14px;
+}
+
+.public-pdv-closing-report-section h3 {
+  margin: 0 0 10px;
+}
+
+.public-pdv-closing-report-grid,
+.public-pdv-closing-report-columns {
+  display: grid;
+  gap: 10px;
+}
+
+.public-pdv-closing-report-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.public-pdv-closing-report-columns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 12px;
+}
+
+.public-pdv-closing-report-grid div,
+.public-pdv-closing-report-values div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 7px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.public-pdv-closing-report-grid div {
+  display: grid;
+  justify-content: initial;
+  gap: 3px;
+}
+
+.public-pdv-closing-report-grid span,
+.public-pdv-closing-report-values span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.public-pdv-closing-report-grid strong,
+.public-pdv-closing-report-values strong {
+  color: #0f172a;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.public-pdv-closing-report-totals,
+.public-pdv-closing-report-check {
+  background: #f8fafc;
+}
+
+.public-pdv-closing-report-status {
+  margin-top: 12px;
+  padding: 12px 14px;
+}
+
+.public-pdv-closing-report-status strong {
+  font-size: 13px;
+}
+
+.public-pdv-closing-report-status--ok {
+  background: #ecfdf5;
+  border-color: #bbf7d0;
+  color: #047857;
+}
+
+.public-pdv-closing-report-status--surplus {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #c2410c;
+}
+
+.public-pdv-closing-report-status--shortage {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.public-pdv-closing-report-difference {
+  white-space: pre-line;
+}
+
+@media (max-width: 760px) {
+  .public-pdv-closing-report-dialog {
+    inset: 12px;
+    padding: 16px;
+  }
+
+  .public-pdv-closing-report-header h2 {
+    font-size: 19px;
+  }
+
+  .public-pdv-closing-report-grid,
+  .public-pdv-closing-report-columns {
+    grid-template-columns: 1fr;
+  }
+}

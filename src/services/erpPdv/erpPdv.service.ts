@@ -2189,8 +2189,9 @@ export async function calcularErpPdvResumoCaixa(caixa: ErpPdvCaixa) {
   const sangrias = (movimentacoesData || [])
     .filter((movimentacao) => movimentacao.tipo === "sangria")
     .reduce((total, movimentacao) => total + toNumber(movimentacao.valor), 0);
+  const totalDinheiro = vendasPorFormaPagamento.dinheiro || 0;
   const totalEsperado =
-    caixa.saldo_inicial + totalVendas + suprimentos - sangrias;
+    caixa.saldo_inicial + totalDinheiro + suprimentos - sangrias;
   const valorInformado =
     caixa.status === "aberto" ? totalEsperado : caixa.valor_informado;
 

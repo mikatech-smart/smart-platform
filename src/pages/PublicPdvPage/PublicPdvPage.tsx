@@ -243,6 +243,24 @@ function moeda(valor: number) {
   });
 }
 
+function dataHoraRelatorio(valor: string | null) {
+  return valor ? new Date(valor).toLocaleString("pt-BR") : "-";
+}
+
+function diferencaRelatorio(valor: number) {
+  if (Math.abs(valor) < 0.005) return "Sem divergência\nR$ 0,00";
+  return valor > 0
+    ? `Sobra: + R$ ${moeda(valor)}`
+    : `Falta: - R$ ${moeda(Math.abs(valor))}`;
+}
+
+function situacaoRelatorio(valor: number) {
+  if (Math.abs(valor) < 0.005) return "Caixa conferido sem divergências";
+  return valor > 0
+    ? `Caixa com sobra de R$ ${moeda(valor)}`
+    : `Caixa com falta de R$ ${moeda(Math.abs(valor))}`;
+}
+
 function escapeHtml(valor: string) {
   return valor
     .replaceAll("&", "&amp;")
@@ -756,6 +774,7 @@ export default function PublicPdvPage() {
     useState<EstoqueMovimentacaoForm>(criarMovimentacaoEstoqueForm());
   const [saldoInicial, setSaldoInicial] = useState("");
   const [valorFechamento, setValorFechamento] = useState("");
+  const [relatorioFechamento, setRelatorioFechamento] = useState<ErpPdvCaixaResumo | null>(null);
   const [cupom, setCupom] = useState<CupomVisualizacao | null>(null);
   const [vendasTroca, setVendasTroca] = useState<ErpPdvVendaBusca[]>([]);
   const [vendaTroca, setVendaTroca] = useState<ErpPdvVendaBusca | null>(null);
@@ -780,6 +799,9 @@ export default function PublicPdvPage() {
   const usuarioAtual = usuarios.find((usuario) => usuario.id === usuarioId) || null;
   const operador = usuarioAtual?.nome || "";
   const empresaId = empresa?.id || "";
+  const diferencaFechamento = relatorioFechamento
+    ? relatorioFechamento.valorInformado - relatorioFechamento.totalEsperado
+    : 0;
   const erpContratado = empresa?.recursos_contratados?.erp_pdv === true;
   const usuariosAtivos = usuarios.filter((usuario) => usuario.ativo);
   const produtosPorId = new Map(produtos.map((produto) => [produto.id, produto]));
@@ -1921,6 +1943,7 @@ export default function PublicPdvPage() {
         observacao: `Fechado por ${operador || "modo desenvolvimento"}`,
       });
       if (resultado.error) throw resultado.error;
+      setRelatorioFechamento(resultado.data);
       setResumoCaixa(resultado.data);
       setCaixa(null);
       setCarrinho([]);
@@ -3392,6 +3415,94 @@ export default function PublicPdvPage() {
                   </button>
                 </div>
               </aside>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {relatorioFechamento && (
+        <section className="public-pdv-closing-report-modal" aria-modal="true" role="dialog">
+          <div className="public-pdv-closing-report-backdrop" />
+          <div className="public-pdv-closing-report-dialog">
+            <header className="public-pdv-closing-report-header">
+              <div>
+                <span>Fechamento de caixa</span>
+                <h2>Relatório de Fechamento de Caixa</h2>
+              </div>
+              <button type="button" onClick={() => setRelatorioFechamento(null)}>
+                Fechar
+              </button>
+            </header>
+
+            <div className="public-pdv-closing-report-content">
+              <section className="public-pdv-closing-report-section">
+                <h3>Identificação</h3>
+                <div className="public-pdv-closing-report-grid">
+                  <div><span>Empresa</span><strong>{empresa?.nome || "-"}</strong></div>
+                  <div><span>Operador</span><strong>{usuarioAtual?.nome || relatorioFechamento.caixa.operador || "Operador"}</strong></div>
+                  <div><span>Número do Caixa</span><strong>Caixa PDV</strong></div>
+                  <div><span>Data</span><strong>{dataHoraRelatorio(relatorioFechamento.caixa.fechado_em).split(" ")[0]}</strong></div>
+                  <div><span>Hora de abertura</span><strong>{dataHoraRelatorio(relatorioFechamento.caixa.aberto_em).split(" ")[1] || "-"}</strong></div>
+                  <div><span>Hora de fechamento</span><strong>{dataHoraRelatorio(relatorioFechamento.caixa.fechado_em).split(" ")[1] || "-"}</strong></div>
+                </div>
+              </section>
+
+              <div className="public-pdv-closing-report-columns">
+                <section className="public-pdv-closing-report-section">
+                  <h3>Resumo Financeiro</h3>
+                  <div className="public-pdv-closing-report-values">
+                    <div><span>Saldo inicial</span><strong>R$ {moeda(relatorioFechamento.caixa.saldo_inicial)}</strong></div>
+                    <div><span>Dinheiro</span><strong>R$ {moeda(relatorioFechamento.vendasPorFormaPagamento.dinheiro || 0)}</strong></div>
+                    <div><span>PIX</span><strong>R$ {moeda(relatorioFechamento.vendasPorFormaPagamento.pix || 0)}</strong></div>
+                    <div><span>Cartão débito</span><strong>R$ {moeda(relatorioFechamento.vendasPorFormaPagamento.debito || 0)}</strong></div>
+                    <div><span>Cartão crédito</span><strong>R$ {moeda(relatorioFechamento.vendasPorFormaPagamento.credito || 0)}</strong></div>
+                    <div><span>Voucher</span><strong>R$ {moeda(relatorioFechamento.vendasPorFormaPagamento.vale_troca || 0)}</strong></div>
+                    <div><span>Outros</span><strong>R$ {moeda(relatorioFechamento.vendasPorFormaPagamento.outros || 0)}</strong></div>
+                  </div>
+                </section>
+
+                <section className="public-pdv-closing-report-section">
+                  <h3>Movimentações</h3>
+                  <div className="public-pdv-closing-report-values">
+                    <div><span>Suprimentos</span><strong>R$ {moeda(relatorioFechamento.suprimentos)}</strong></div>
+                    <div><span>Sangrias</span><strong>R$ {moeda(relatorioFechamento.sangrias)}</strong></div>
+                    <div><span>Estornos</span><strong>R$ 0,00</strong></div>
+                    <div><span>Cancelamentos</span><strong>R$ 0,00</strong></div>
+                    <div><span>Descontos</span><strong>R$ 0,00</strong></div>
+                  </div>
+                </section>
+              </div>
+
+              <div className="public-pdv-closing-report-columns">
+                <section className="public-pdv-closing-report-section public-pdv-closing-report-totals">
+                  <h3>Totais</h3>
+                  <div className="public-pdv-closing-report-values">
+                    <div><span>Total vendido</span><strong>R$ {moeda(relatorioFechamento.totalVendas)}</strong></div>
+                    <div><span>Total recebido</span><strong>R$ {moeda(relatorioFechamento.totalVendas)}</strong></div>
+                    <div><span>Valor esperado em dinheiro</span><strong>R$ {moeda(relatorioFechamento.totalEsperado)}</strong></div>
+                  </div>
+                </section>
+
+                <section className="public-pdv-closing-report-section public-pdv-closing-report-check">
+                  <h3>Conferência</h3>
+                  <div className="public-pdv-closing-report-values">
+                    <div><span>Valor informado pelo operador</span><strong>R$ {moeda(relatorioFechamento.valorInformado)}</strong></div>
+                    <div><span>Diferença</span><strong className="public-pdv-closing-report-difference">{diferencaRelatorio(diferencaFechamento)}</strong></div>
+                  </div>
+                </section>
+              </div>
+
+              <section
+                className={`public-pdv-closing-report-section public-pdv-closing-report-status public-pdv-closing-report-status--${
+                  Math.abs(diferencaFechamento) < 0.005
+                    ? "ok"
+                    : diferencaFechamento > 0
+                      ? "surplus"
+                      : "shortage"
+                }`}
+              >
+                <strong>{situacaoRelatorio(diferencaFechamento)}</strong>
+              </section>
             </div>
           </div>
         </section>
