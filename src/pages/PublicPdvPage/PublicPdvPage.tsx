@@ -1365,20 +1365,18 @@ export default function PublicPdvPage() {
     }
 
     if (loginUsuario.trim().toLowerCase() === "estoque" && loginSenha === "123456") {
-      const usuarioEstoqueMock = usuariosAtivos.find(
-        (usuario) => usuario.id === "mock-estoque-teste"
+      const usuarioEstoqueMock = criarUsuarioEstoqueMock(empresaId);
+      setUsuarios((atuais) =>
+        atuais.some((usuario) => usuario.id === usuarioEstoqueMock.id)
+          ? atuais
+          : [...atuais, usuarioEstoqueMock]
       );
-
-      if (!usuarioEstoqueMock) {
-        setFeedback("O usuario mock Estoquista Teste nao esta disponivel nesta empresa.");
-        return;
-      }
 
       sessionStorage.setItem("mikaon:mock-login-role", "estoque");
       sessionStorage.setItem("mikaon:mock-login-slug", slug);
       setFeedback("");
       setLoginEnviado(true);
-      selecionarUsuario(usuarioEstoqueMock.id);
+      selecionarUsuario(usuarioEstoqueMock.id, undefined, usuarioEstoqueMock);
       return;
     }
 
@@ -1401,9 +1399,13 @@ export default function PublicPdvPage() {
     return tabelas.length ? tabelas.join(", ") : "Nenhuma tabela liberada";
   }
 
-  function selecionarUsuario(id: string, tabelaForcada?: ErpPdvTabelaPreco) {
+  function selecionarUsuario(
+    id: string,
+    tabelaForcada?: ErpPdvTabelaPreco,
+    usuarioDireto?: ErpPdvUsuario
+  ) {
     setUsuarioId(id);
-    const usuario = usuarios.find((item) => item.id === id);
+    const usuario = usuarioDireto || usuarios.find((item) => item.id === id);
     if (!usuario) return;
 
     sessionStorage.setItem(sessaoOperadorKey, id);
