@@ -2765,7 +2765,7 @@ export default function PublicPdvPage() {
             </section>
           )}
 
-          {podeVender && (
+          {!ehPerfilEstoque && podeVender && (
             <section className="public-pdv-secondary-panel">
               <h2>Acoes da venda</h2>
               <div className="public-pdv-secondary-actions public-pdv-secondary-actions--compact">
@@ -2782,7 +2782,7 @@ export default function PublicPdvPage() {
             </section>
           )}
 
-          {podeVender && (
+          {!ehPerfilEstoque && podeVender && (
             <section className="public-pdv-secondary-panel public-pdv-suspended-sales">
               <div className="public-pdv-section-title">
                 <h2>Vendas suspensas</h2>
