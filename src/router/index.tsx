@@ -20,7 +20,7 @@ function MockCaixaRouteGuard({ children }: { children: ReactNode }) {
   const mockRole = sessionStorage.getItem("mikaon:mock-login-role");
   const slug = sessionStorage.getItem("mikaon:mock-login-slug") || "mikatech";
 
-  if (mockRole === "caixa") {
+  if (mockRole === "caixa" || mockRole === "estoque") {
     return <Navigate to={`/pdv/${slug}`} replace />;
   }
 

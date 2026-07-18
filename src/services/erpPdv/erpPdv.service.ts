@@ -1621,6 +1621,80 @@ export async function salvarErpPdvProduto(payload: ErpPdvProdutoPayload) {
   };
 }
 
+export async function excluirErpPdvProduto(payload: {
+  empresaId: string;
+  produtoId: string;
+}) {
+  const [movimentacoesResultado, vendasResultado] = await Promise.all([
+    supabase
+      .from("erp_pdv_movimentacoes")
+      .select("id", { count: "exact", head: true })
+      .eq("empresa_id", payload.empresaId)
+      .eq("produto_id", payload.produtoId),
+    supabase
+      .from("erp_pdv_venda_itens")
+      .select("id", { count: "exact", head: true })
+      .eq("produto_id", payload.produtoId),
+  ]);
+
+  if (movimentacoesResultado.error) {
+    return { data: null, logical: false, error: movimentacoesResultado.error };
+  }
+  if (vendasResultado.error) {
+    return { data: null, logical: false, error: vendasResultado.error };
+  }
+
+  const possuiHistorico =
+    (movimentacoesResultado.count || 0) > 0 || (vendasResultado.count || 0) > 0;
+
+  if (possuiHistorico) {
+    return {
+      data: null,
+      logical: false,
+      error: new Error(
+        "Este produto possui historico e nao pode ser excluido. Utilize a opcao Desativar produto."
+      ),
+    };
+  }
+
+  const { error: estoqueError } = await supabase
+    .from("erp_pdv_estoques")
+    .delete()
+    .eq("empresa_id", payload.empresaId)
+    .eq("produto_id", payload.produtoId);
+
+  if (estoqueError) {
+    return { data: null, logical: false, error: estoqueError };
+  }
+
+  const { error } = await supabase
+    .from("erp_pdv_produtos")
+    .delete()
+    .eq("empresa_id", payload.empresaId)
+    .eq("id", payload.produtoId);
+
+  return { data: null, logical: false, error };
+}
+
+export async function alterarStatusErpPdvProduto(payload: {
+  empresaId: string;
+  produtoId: string;
+  ativo: boolean;
+}) {
+  const { data, error } = await supabase
+    .from("erp_pdv_produtos")
+    .update({ ativo: payload.ativo, updated_at: new Date().toISOString() })
+    .eq("empresa_id", payload.empresaId)
+    .eq("id", payload.produtoId)
+    .select("*")
+    .single();
+
+  return {
+    data: data ? normalizarProduto(data as ErpPdvProdutoRow) : null,
+    error,
+  };
+}
+
 export async function listarErpPdvMovimentacoes(empresaId: string) {
   const { data, error } = await supabase
     .from("erp_pdv_movimentacoes")

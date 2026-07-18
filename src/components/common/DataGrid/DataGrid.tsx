@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 
 import "./DataGrid.css";
 
@@ -16,6 +16,7 @@ type DataGridProps<TRow> = {
   getRowId: (row: TRow) => string;
   selectedRowId?: string;
   onRowClick?: (row: TRow) => void;
+  onRowContextMenu?: (row: TRow, event: MouseEvent<HTMLButtonElement>) => void;
   emptyMessage?: string;
 };
 
@@ -25,6 +26,7 @@ export function DataGrid<TRow>({
   getRowId,
   selectedRowId,
   onRowClick,
+  onRowContextMenu,
   emptyMessage = "Nenhum registro encontrado.",
 }: DataGridProps<TRow>) {
   return (
@@ -52,6 +54,11 @@ export function DataGrid<TRow>({
                 className={className}
                 key={rowId}
                 onClick={() => onRowClick?.(row)}
+                onContextMenu={(event) => {
+                  if (!onRowContextMenu) return;
+                  event.preventDefault();
+                  onRowContextMenu(row, event);
+                }}
                 role="row"
                 type="button"
               >

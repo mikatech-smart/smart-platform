@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import type { FormEvent } from "react";
+import { useLayoutEffect } from "react";
+import type { FormEvent, MouseEvent } from "react";
 
 import { DataGrid } from "../../components/common/DataGrid/DataGrid";
 import {
@@ -18,6 +19,8 @@ import {
   buscarErpPdvClientes,
   buscarErpPdvVendasParaTroca,
   calcularErpPdvResumoCaixa,
+  alterarStatusErpPdvProduto,
+  excluirErpPdvProduto,
   fecharErpPdvCaixa,
   finalizarErpPdvVenda,
   listarErpPdvCategorias,
@@ -225,6 +228,38 @@ const modulosIniciais: Record<string, string> = {
   estoque: "Estoque",
   relatorios: "Relatorios",
 };
+
+function criarUsuarioEstoqueMock(empresaId: string): ErpPdvUsuario {
+  return {
+    id: "mock-estoque-teste",
+    empresa_id: empresaId,
+    nome: "Estoquista Teste",
+    nome_exibicao: "Estoquista Teste",
+    email: "estoque@mock.local",
+    telefone: "",
+    perfil: "estoque",
+    funcoes: [],
+    modulo_inicial: "estoque",
+    permissoes: {
+      tabela_varejo: false,
+      tabela_atacado: false,
+      tabela_revenda: false,
+      produto_salvar: true,
+      preco_alterar: true,
+      desconto_aplicar: false,
+      caixa_abrir_fechar: false,
+      caixa_movimentar: false,
+      venda_cancelar: false,
+      devolucao_realizar: false,
+      vale_troca_emitir: false,
+      custo_lucro_consultar: true,
+      relatorios_acessar: false,
+    },
+    ativo: true,
+    created_at: "",
+    updated_at: "",
+  };
+}
 
 function numero(valor: number | string | null | undefined) {
   const parsed = typeof valor === "number" ? valor : Number(String(valor || "0"));
@@ -797,6 +832,14 @@ export default function PublicPdvPage() {
   const [totalProdutosEstoqueServidor, setTotalProdutosEstoqueServidor] =
     useState(0);
   const [produtoEstoqueSelecionadoId, setProdutoEstoqueSelecionadoId] = useState("");
+  const [menuContextoProduto, setMenuContextoProduto] = useState<{
+    produto: ErpPdvProduto;
+    x: number;
+    y: number;
+  } | null>(null);
+  const [menuContextoPosicao, setMenuContextoPosicao] = useState({ x: 8, y: 8 });
+  const menuContextoRef = useRef<HTMLDivElement>(null);
+  const estoquePaginaConsultaIdRef = useRef(0);
   const [produtoEstoqueForm, setProdutoEstoqueForm] = useState<EstoqueProdutoForm>(criarProdutoEstoqueForm());
   const [movimentacaoEstoqueForm, setMovimentacaoEstoqueForm] =
     useState<EstoqueMovimentacaoForm>(criarMovimentacaoEstoqueForm());
@@ -1024,7 +1067,17 @@ export default function PublicPdvPage() {
   const podeFinalizarPagamento = total > 0 && totalPago >= total && pagamentoExatoOuComTroco;
   const podeOperarCaixa = pode(usuarioAtual, "caixa_abrir_fechar");
   const podeVender = tabelaLiberada.length > 0;
+  const ehPerfilEstoque = usuarioAtual?.perfil === "estoque";
   const podeOperarEstoque = pode(usuarioAtual, "produto_salvar");
+  const podeExcluirProduto =
+    podeOperarEstoque &&
+    (ehPerfilEstoque || usuarioAtual?.perfil === "administrador" || usuarioAtual?.perfil === "gerente");
+  const movimentacoesVisiveisEstoque = ehPerfilEstoque
+    ? movimentacoes.filter(
+        (movimentacao) =>
+          movimentacao.tipo !== "venda" && movimentacao.origem !== "venda"
+      )
+    : movimentacoes;
   const podeConsultarCustoLucro = pode(usuarioAtual, "custo_lucro_consultar");
   const podeAlterarPreco = pode(usuarioAtual, "preco_alterar");
   const podeOperarTrocas =
@@ -1055,6 +1108,26 @@ export default function PublicPdvPage() {
   ];
 
   const modoTelaCheiaAtivo = telaCheia || telaCheiaVisual;
+
+  useLayoutEffect(() => {
+    if (!menuContextoProduto || !menuContextoRef.current) return;
+
+    const menu = menuContextoRef.current.getBoundingClientRect();
+    const margem = 8;
+    const espaco = 6;
+    const x = Math.max(
+      margem,
+      Math.min(menuContextoProduto.x, window.innerWidth - menu.width - margem)
+    );
+    const abaixo = menuContextoProduto.y + espaco;
+    const acima = menuContextoProduto.y - menu.height - espaco;
+    const y =
+      abaixo + menu.height <= window.innerHeight - margem
+        ? abaixo
+        : Math.max(margem, acima);
+
+    setMenuContextoPosicao({ x, y });
+  }, [menuContextoProduto]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -1092,6 +1165,7 @@ export default function PublicPdvPage() {
   useEffect(() => {
     if (!empresaId || !usarPaginacaoServidorEstoque) return;
     let ativo = true;
+    const consultaId = ++estoquePaginaConsultaIdRef.current;
     void listarErpPdvProdutosPaginado(
       empresaId,
       estoquePagina,
@@ -1099,7 +1173,7 @@ export default function PublicPdvPage() {
       estoqueBuscaDebounced,
       estoqueOrdenacao
     ).then((resultado) => {
-      if (!ativo || resultado.error || !resultado.data) return;
+      if (!ativo || consultaId !== estoquePaginaConsultaIdRef.current || resultado.error || !resultado.data) return;
       setProdutosEstoquePaginaServidor(resultado.data.data);
       setTotalProdutosEstoqueServidor(resultado.data.total);
     });
@@ -1161,7 +1235,13 @@ export default function PublicPdvPage() {
       if (movimentacoesResultado.error) throw movimentacoesResultado.error;
 
       setProdutos(produtosResultado.data);
-      setUsuarios(usuariosResultado.data);
+      const usuariosSemMockEstoque = usuariosResultado.data.filter(
+        (usuario) => usuario.nome !== "Estoquista Teste"
+      );
+      setUsuarios([
+        ...usuariosSemMockEstoque,
+        criarUsuarioEstoqueMock(empresaCarregada.id),
+      ]);
       setCategorias(categoriasResultado.data);
       setClientes(clientesResultado.data);
       setFornecedores(fornecedoresResultado.data);
@@ -1281,6 +1361,24 @@ export default function PublicPdvPage() {
       setFeedback("");
       setLoginEnviado(true);
       selecionarUsuario(usuarioCaixaMock.id);
+      return;
+    }
+
+    if (loginUsuario.trim().toLowerCase() === "estoque" && loginSenha === "123456") {
+      const usuarioEstoqueMock = usuariosAtivos.find(
+        (usuario) => usuario.id === "mock-estoque-teste"
+      );
+
+      if (!usuarioEstoqueMock) {
+        setFeedback("O usuario mock Estoquista Teste nao esta disponivel nesta empresa.");
+        return;
+      }
+
+      sessionStorage.setItem("mikaon:mock-login-role", "estoque");
+      sessionStorage.setItem("mikaon:mock-login-slug", slug);
+      setFeedback("");
+      setLoginEnviado(true);
+      selecionarUsuario(usuarioEstoqueMock.id);
       return;
     }
 
@@ -2021,9 +2119,124 @@ export default function PublicPdvPage() {
     window.setTimeout(() => buscaRef.current?.focus(), 0);
   }
 
+  function fecharMenuContextoProduto() {
+    setMenuContextoProduto(null);
+    setMenuContextoPosicao({ x: 8, y: 8 });
+  }
+
+  async function recarregarPaginaEstoqueServidor() {
+    if (!empresaId || !usarPaginacaoServidorEstoque) return;
+    const consultaId = ++estoquePaginaConsultaIdRef.current;
+    const resultado = await listarErpPdvProdutosPaginado(
+      empresaId,
+      estoquePagina,
+      estoqueItensPorPagina,
+      estoqueBuscaDebounced,
+      estoqueOrdenacao
+    );
+    if (consultaId !== estoquePaginaConsultaIdRef.current || resultado.error || !resultado.data) return;
+    setProdutosEstoquePaginaServidor(resultado.data.data);
+    setTotalProdutosEstoqueServidor(resultado.data.total);
+  }
+
   function abrirAjudaAtalhos() {
     setMenuAberto(false);
     setAtalhosAberto(true);
+  }
+
+  async function excluirProdutoEstoque(produtoSelecionado?: ErpPdvProduto) {
+    const produtoId = produtoSelecionado?.id || produtoEstoqueForm.id;
+    const produtoNome = produtoSelecionado?.nome || produtoEstoqueForm.nome || "Produto";
+    if (!empresaId || !produtoId || !podeExcluirProduto) return;
+
+    const confirmar = window.confirm(
+      `Deseja excluir o produto "${produtoNome}"?`
+    );
+    if (!confirmar) {
+      fecharMenuContextoProduto();
+      return;
+    }
+
+    fecharMenuContextoProduto();
+    setSalvando(true);
+    try {
+      const resultado = await excluirErpPdvProduto({
+        empresaId,
+        produtoId,
+      });
+      if (resultado.error) throw resultado.error;
+
+      setProdutos((atuais) => atuais.filter((produto) => produto.id !== produtoId));
+      setProdutosEstoquePaginaServidor((atuais) =>
+        atuais.filter((produto) => produto.id !== produtoId)
+      );
+      if (produtoEstoqueForm.id === produtoId) novoProdutoEstoque();
+      void recarregarPaginaEstoqueServidor();
+      fecharMenuContextoProduto();
+      setFeedbackOperacao({ tipo: "sucesso", texto: "Produto excluido." });
+    } catch (error) {
+      fecharMenuContextoProduto();
+      setFeedbackOperacao({
+        tipo: "erro",
+        texto: error instanceof Error ? error.message : "Nao foi possivel excluir o produto.",
+      });
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  async function alterarStatusProdutoEstoque(produto: ErpPdvProduto) {
+    if (!empresaId || !podeExcluirProduto) return;
+    const proximoStatus = !produto.ativo;
+    const confirmar = window.confirm(
+      `${proximoStatus ? "Reativar" : "Desativar"} o produto "${produto.nome}"?`
+    );
+    if (!confirmar) {
+      fecharMenuContextoProduto();
+      return;
+    }
+
+    fecharMenuContextoProduto();
+    setSalvando(true);
+    try {
+      const resultado = await alterarStatusErpPdvProduto({
+        empresaId,
+        produtoId: produto.id,
+        ativo: proximoStatus,
+      });
+      if (resultado.error) throw resultado.error;
+      if (!resultado.data) throw new Error("Produto nao retornado.");
+      estoquePaginaConsultaIdRef.current += 1;
+      setProdutos((atuais) =>
+        atuais.map((item) => (item.id === produto.id ? resultado.data! : item))
+      );
+      setProdutosEstoquePaginaServidor((atuais) =>
+        atuais.map((item) => (item.id === produto.id ? resultado.data! : item))
+      );
+      if (produtoEstoqueForm.id === produto.id) selecionarProdutoEstoque(resultado.data);
+      fecharMenuContextoProduto();
+      setFeedbackOperacao({
+        tipo: "sucesso",
+        texto: proximoStatus ? "Produto reativado." : "Produto desativado.",
+      });
+    } catch (error) {
+      fecharMenuContextoProduto();
+      setFeedbackOperacao({
+        tipo: "erro",
+        texto: error instanceof Error ? error.message : "Nao foi possivel alterar o status do produto.",
+      });
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  function abrirMenuContextoProduto(produto: ErpPdvProduto, event: MouseEvent<HTMLButtonElement>) {
+    selecionarProdutoEstoque(produto);
+    setMenuContextoProduto({
+      produto,
+      x: event.clientX,
+      y: event.clientY,
+    });
   }
 
   function imprimirRelatorioFechamento() {
@@ -2450,10 +2663,12 @@ export default function PublicPdvPage() {
             <span>Operador</span>
             <strong>{usuarioAtual.nome}</strong>
           </div>
-          <div>
-            <span>Caixa</span>
-            <strong>{caixa ? "Aberto" : "Fechado"}</strong>
-          </div>
+          {!ehPerfilEstoque && (
+            <div>
+              <span>Caixa</span>
+              <strong>{caixa ? "Aberto" : "Fechado"}</strong>
+            </div>
+          )}
           <div>
             <span>Status</span>
             <strong>{obterLabelPerfil(usuarioAtual)}</strong>
@@ -2474,20 +2689,29 @@ export default function PublicPdvPage() {
             <span>Operador</span>
             <strong>{usuarioAtual.nome}</strong>
           </div>
-          <div>
-            <span>Caixa</span>
-            <strong>{caixa ? "Aberto" : "Fechado"}</strong>
-          </div>
-          <div>
-            <span>Itens</span>
-            <strong>{quantidadeItensCarrinho}</strong>
-          </div>
-          <div>
-            <span>Total</span>
-            <strong>R$ {moeda(total)}</strong>
-          </div>
+          {ehPerfilEstoque ? (
+            <div>
+              <span>Módulo</span>
+              <strong>Produtos / Estoque</strong>
+            </div>
+          ) : (
+            <>
+              <div>
+                <span>Caixa</span>
+                <strong>{caixa ? "Aberto" : "Fechado"}</strong>
+              </div>
+              <div>
+                <span>Itens</span>
+                <strong>{quantidadeItensCarrinho}</strong>
+              </div>
+              <div>
+                <span>Total</span>
+                <strong>R$ {moeda(total)}</strong>
+              </div>
+            </>
+          )}
           <button type="button" onClick={() => setModoCompacto(false)}>
-            Voltar ao Caixa
+            {ehPerfilEstoque ? "Voltar ao Estoque" : "Voltar ao Caixa"}
           </button>
         </section>
       )}
@@ -2786,7 +3010,14 @@ export default function PublicPdvPage() {
                     label: "Status",
                     render: (produto) => {
                       const statusProduto = obterStatusProdutoEstoque(produto);
-                      return <small className={`public-pdv-stock-status ${statusProduto.className}`}>{statusProduto.label}</small>;
+                      return (
+                        <span
+                          className={`public-pdv-stock-status ${statusProduto.className}`}
+                          aria-label={`Status: ${statusProduto.label}`}
+                        >
+                          {statusProduto.label}
+                        </span>
+                      );
                     },
                   },
                 ]}
@@ -2794,6 +3025,7 @@ export default function PublicPdvPage() {
                 getRowId={(produto) => produto.id}
                 selectedRowId={produtoEstoqueSelecionadoId}
                 onRowClick={selecionarProdutoEstoque}
+                onRowContextMenu={ehPerfilEstoque ? abrirMenuContextoProduto : undefined}
                 emptyMessage="Nenhum produto encontrado."
               />
             </div>
@@ -3033,12 +3265,17 @@ export default function PublicPdvPage() {
                 <button type="button" disabled={salvando} onClick={salvarProdutoEstoque}>
                   {produtoEstoqueForm.id ? "Salvar alterações" : "Salvar produto"}
                 </button>
+                {produtoEstoqueForm.id && podeExcluirProduto && (
+                  <button className="public-pdv-stock-danger" type="button" disabled={salvando} onClick={() => void excluirProdutoEstoque()}>
+                    Excluir produto
+                  </button>
+                )}
                 <button type="button" onClick={novoProdutoEstoque}>
                   {produtoEstoqueForm.id ? "Cancelar edição" : "Limpar"}
                 </button>
               </div>
 
-              <section className="public-pdv-stock-section public-pdv-stock-movement">
+              <section className="public-pdv-stock-section public-pdv-stock-movement" id="pdv-estoque-movimentacao">
                 <div className="public-pdv-stock-section-header">
                   <h3>Movimentar estoque</h3>
                   <small>Entrada, saida e ajuste</small>
@@ -3122,14 +3359,14 @@ export default function PublicPdvPage() {
                 </button>
               </section>
 
-              <section className="public-pdv-stock-section public-pdv-stock-history">
+              <section className="public-pdv-stock-section public-pdv-stock-history" id="pdv-estoque-historico">
                 <div className="public-pdv-stock-section-header">
                   <h3>Historico</h3>
-                  <small>{movimentacoes.length} movimentacao(oes)</small>
+                  <small>{movimentacoesVisiveisEstoque.length} movimentacao(oes)</small>
                 </div>
                 <div className="public-pdv-stock-history-list">
-                  {movimentacoes.length ? (
-                    movimentacoes.slice(0, 20).map((movimentacao) => {
+                  {movimentacoesVisiveisEstoque.length ? (
+                    movimentacoesVisiveisEstoque.slice(0, 20).map((movimentacao) => {
                       const produto = produtosPorId.get(movimentacao.produto_id);
                       return (
                         <div key={movimentacao.id} className="public-pdv-stock-history-item">
@@ -3142,8 +3379,8 @@ export default function PublicPdvPage() {
                             {movimentacao.estoque_posterior}
                           </span>
                           <small>
-                            {movimentacao.motivo} ·{" "}
-                            {new Date(movimentacao.created_at).toLocaleString("pt-BR")}
+                            {movimentacao.motivo || "Movimentacao manual"} · {movimentacao.usuario_responsavel || "Usuario nao identificado"} ·{" "}
+                            {new Date(movimentacao.created_at).toLocaleString("pt-BR")}{movimentacao.observacao ? ` · ${movimentacao.observacao}` : ""}
                           </small>
                         </div>
                       );
@@ -3156,6 +3393,33 @@ export default function PublicPdvPage() {
             </div>
           </section>
         </section>
+      )}
+
+      {ehPerfilEstoque && menuContextoProduto && (
+        <div
+          className="public-pdv-product-context-menu"
+          ref={menuContextoRef}
+          role="menu"
+          style={{ left: menuContextoPosicao.x, top: menuContextoPosicao.y }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <strong>{menuContextoProduto.produto.nome}</strong>
+          <button type="button" onClick={() => { selecionarProdutoEstoque(menuContextoProduto.produto); fecharMenuContextoProduto(); }}>
+            Editar produto
+          </button>
+          <button type="button" onClick={() => { selecionarProdutoEstoque(menuContextoProduto.produto); fecharMenuContextoProduto(); document.getElementById("pdv-estoque-movimentacao")?.scrollIntoView({ behavior: "smooth" }); }}>
+            Movimentar estoque
+          </button>
+          <button type="button" onClick={() => { selecionarProdutoEstoque(menuContextoProduto.produto); fecharMenuContextoProduto(); document.getElementById("pdv-estoque-historico")?.scrollIntoView({ behavior: "smooth" }); }}>
+            Ver histórico
+          </button>
+          <button type="button" onClick={() => alterarStatusProdutoEstoque(menuContextoProduto.produto)}>
+            {menuContextoProduto.produto.ativo ? "Desativar produto" : "Ativar produto"}
+          </button>
+          <button className="public-pdv-stock-danger" type="button" onClick={() => excluirProdutoEstoque(menuContextoProduto.produto)}>
+            Excluir produto
+          </button>
+        </div>
       )}
 
       {podeVender && !exibirModuloEstoque && (
