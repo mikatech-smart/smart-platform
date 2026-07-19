@@ -277,3 +277,119 @@ publica. Antes do laboratorio local:
 5. substituir as policies abertas antes de qualquer uso multiempresa.
 
 Nenhuma alteracao remota foi feita nesta sprint.
+
+## Sprint 223 - auditoria de RLS
+
+Auditoria estaticamente realizada nas migrations. Nenhuma policy foi criada,
+alterada ou aplicada.
+
+### Tabelas com RLS habilitado
+
+| Tabela | Migration | Policies declaradas |
+|---|---|---:|
+| `erp_pdv_categorias` | 20260711180000 | 1 |
+| `erp_pdv_produtos` | 20260711180000 | 1 |
+| `erp_pdv_estoques` | 20260711180000 | 1 |
+| `erp_pdv_movimentacoes` | 20260711180000 | 1 |
+| `erp_pdv_caixas` | 20260711180000 | 1 |
+| `erp_pdv_vendas` | 20260711180000 | 1 |
+| `erp_pdv_venda_itens` | 20260711180000 | 1 |
+| `erp_pdv_caixa_movimentacoes` | 20260711230000 | 1 |
+| `erp_pdv_clientes` | 20260711234000 | 1 |
+| `erp_pdv_fornecedores` | 20260711241000 | 1 |
+| `erp_pdv_entradas` | 20260711241000 | 1 |
+| `erp_pdv_entrada_itens` | 20260711241000 | 1 |
+| `erp_pdv_devolucoes` | 20260711243000 | 1 |
+| `erp_pdv_devolucao_itens` | 20260711243000 | 1 |
+| `erp_pdv_vale_trocas` | 20260711243000 | 1 |
+| `erp_pdv_vale_troca_movimentacoes` | 20260711243000 | 1 |
+| `erp_pdv_usuarios` | 20260711244000 | 1 |
+| `erp_pdv_colaboradores` | 20260718120000 | 0 |
+
+Total: 18 tabelas com RLS declarado e 18 policies de tabela. A policy de
+Storage abaixo nao entra nessa contagem.
+
+### Tabelas sem RLS declarado
+
+`public.empresas` nao possui `ENABLE ROW LEVEL SECURITY` nas migrations
+versionadas. Tambem nao ha declaracao de RLS para tabelas externas ao conjunto
+ERP, como `auth.users` e metadados do Storage. A ausencia de declaracao aqui
+nao prova o estado remoto atual; exige confirmacao no catalogo administrativo.
+
+### Inventario das policies
+
+| Policy | Operacao | USING | WITH CHECK | Tabela | Classificacao |
+|---|---|---|---|---|---|
+| `Permitir acesso operacional erp_pdv_categorias` | ALL | `true` | `true` | `erp_pdv_categorias` | Critica |
+| `Permitir acesso operacional erp_pdv_produtos` | ALL | `true` | `true` | `erp_pdv_produtos` | Critica |
+| `Permitir acesso operacional erp_pdv_estoques` | ALL | `true` | `true` | `erp_pdv_estoques` | Critica |
+| `Permitir acesso operacional erp_pdv_movimentacoes` | ALL | `true` | `true` | `erp_pdv_movimentacoes` | Critica |
+| `Permitir acesso operacional erp_pdv_caixas` | ALL | `true` | `true` | `erp_pdv_caixas` | Critica |
+| `Permitir acesso operacional erp_pdv_vendas` | ALL | `true` | `true` | `erp_pdv_vendas` | Critica |
+| `Permitir acesso operacional erp_pdv_venda_itens` | ALL | `true` | `true` | `erp_pdv_venda_itens` | Critica |
+| `Permitir acesso operacional erp_pdv_caixa_movimentacoes` | ALL | `true` | `true` | `erp_pdv_caixa_movimentacoes` | Critica |
+| `Permitir acesso operacional erp_pdv_clientes` | ALL | `true` | `true` | `erp_pdv_clientes` | Critica |
+| `Permitir acesso operacional erp_pdv_fornecedores` | ALL | `true` | `true` | `erp_pdv_fornecedores` | Critica |
+| `Permitir acesso operacional erp_pdv_entradas` | ALL | `true` | `true` | `erp_pdv_entradas` | Critica |
+| `Permitir acesso operacional erp_pdv_entrada_itens` | ALL | `true` | `true` | `erp_pdv_entrada_itens` | Critica |
+| `Permitir acesso operacional erp_pdv_devolucoes` | ALL | `true` | `true` | `erp_pdv_devolucoes` | Critica |
+| `Permitir acesso operacional erp_pdv_devolucao_itens` | ALL | `true` | `true` | `erp_pdv_devolucao_itens` | Critica |
+| `Permitir acesso operacional erp_pdv_vale_trocas` | ALL | `true` | `true` | `erp_pdv_vale_trocas` | Critica |
+| `Permitir acesso operacional erp_pdv_vale_troca_movimentacoes` | ALL | `true` | `true` | `erp_pdv_vale_troca_movimentacoes` | Critica |
+| `Permitir acesso operacional erp_pdv_usuarios` | ALL | `true` | `true` | `erp_pdv_usuarios` | Critica |
+| `Permitir excluir arquivos do bucket empresas` | DELETE | `bucket_id = 'empresas'` | ausente | Storage objects | Revisar |
+
+As policies operacionais concedem acesso a `anon, authenticated` quando essa
+clausula aparece na migration. Nao usam `auth.uid()`, `auth.role()` nem
+funcao auxiliar de contexto. A policy do Storage restringe somente o bucket,
+nao a empresa ou o usuario.
+
+### Matriz de isolamento
+
+| Tabela | empresa_id | RLS | Policy segura | Necessita revisao |
+|---|---:|---:|---:|---:|
+| `empresas` | nao | nao declarado | nao | sim |
+| `erp_pdv_categorias` | sim | sim | nao | sim |
+| `erp_pdv_produtos` | sim | sim | nao | sim |
+| `erp_pdv_estoques` | sim | sim | nao | sim |
+| `erp_pdv_movimentacoes` | sim | sim | nao | sim |
+| `erp_pdv_caixas` | sim | sim | nao | sim |
+| `erp_pdv_vendas` | sim | sim | nao | sim |
+| `erp_pdv_venda_itens` | sim | sim | nao | sim |
+| `erp_pdv_caixa_movimentacoes` | sim | sim | nao | sim |
+| `erp_pdv_clientes` | sim | sim | nao | sim |
+| `erp_pdv_fornecedores` | sim | sim | nao | sim |
+| `erp_pdv_entradas` | sim | sim | nao | sim |
+| `erp_pdv_entrada_itens` | sim | sim | nao | sim |
+| `erp_pdv_devolucoes` | sim | sim | nao | sim |
+| `erp_pdv_devolucao_itens` | sim | sim | nao | sim |
+| `erp_pdv_vale_trocas` | sim | sim | nao | sim |
+| `erp_pdv_vale_troca_movimentacoes` | sim | sim | nao | sim |
+| `erp_pdv_usuarios` | sim | sim | nao | sim |
+| `erp_pdv_colaboradores` | sim | sim | nao | sim |
+
+### Plano futuro de RLS
+
+O modelo recomendado e:
+
+```text
+auth.uid()
+  -> erp_pdv_usuarios.auth_user_id
+  -> erp_pdv_usuarios.empresa_id
+  -> funcao segura de contexto
+  -> policy da tabela usando empresa_id
+```
+
+Cada tabela operacional deve possuir policies separadas para SELECT, INSERT,
+UPDATE e, quando permitido, DELETE. O `empresa_id` deve ser comparado ao
+contexto obtido por `auth.uid()`, nunca ao slug ou ao valor enviado pelo
+navegador. `WITH CHECK` deve impedir troca arbitraria de empresa.
+
+`erp_pdv_usuarios` requer tratamento especial para evitar recursao de RLS;
+uma funcao `SECURITY DEFINER` com `search_path` fixo e grants minimos deve ser
+avaliada antes da implementacao. O Painel Master deve usar uma identidade ou
+claim administrativa separada, nunca `USING (true)`.
+
+Conclusao: as policies operacionais atuais sao criticas para multiempresa e
+devem ser substituidas em etapa propria, com testes de anonimo, usuario
+inativo, usuario sem vinculo e acesso cruzado entre empresas.
