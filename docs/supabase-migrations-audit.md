@@ -278,6 +278,90 @@ publica. Antes do laboratorio local:
 
 Nenhuma alteracao remota foi feita nesta sprint.
 
+## Sprint 222 - auditoria de Foreign Keys
+
+Inventario estatico: 51 Foreign Keys. Sao 27 `ON DELETE CASCADE`, 20
+`ON DELETE SET NULL` e 4 `ON DELETE RESTRICT`. Nenhuma migration declara
+`ON UPDATE`; portanto, o comportamento padrao e `NO ACTION`.
+
+### Inventario completo
+
+| Origem.coluna | Destino.coluna | ON DELETE | Migration | Classificacao |
+|---|---|---|---|---|
+| `empresas.user_id` | `auth.users.id` | SET NULL | 20260701000000 | A - seguro |
+| `erp_pdv_categorias.empresa_id` | `empresas.id` | CASCADE | 20260711180000 | C - critico |
+| `erp_pdv_produtos.empresa_id` | `empresas.id` | CASCADE | 20260711180000 | C - critico |
+| `erp_pdv_produtos.categoria_id` | `erp_pdv_categorias.id` | SET NULL | 20260711180000 | B - revisar |
+| `erp_pdv_estoques.empresa_id` | `empresas.id` | CASCADE | 20260711180000 | C - critico |
+| `erp_pdv_estoques.produto_id` | `erp_pdv_produtos.id` | CASCADE | 20260711180000 | C - critico |
+| `erp_pdv_movimentacoes.empresa_id` | `empresas.id` | CASCADE | 20260711180000 | C - critico |
+| `erp_pdv_movimentacoes.produto_id` | `erp_pdv_produtos.id` | CASCADE | 20260711180000 | C - critico |
+| `erp_pdv_caixas.empresa_id` | `empresas.id` | CASCADE | 20260711180000 | C - critico |
+| `erp_pdv_vendas.empresa_id` | `empresas.id` | CASCADE | 20260711180000 | C - critico |
+| `erp_pdv_vendas.caixa_id` | `erp_pdv_caixas.id` | SET NULL | 20260711180000 | B - revisar |
+| `erp_pdv_venda_itens.empresa_id` | `empresas.id` | CASCADE | 20260711180000 | C - critico |
+| `erp_pdv_venda_itens.venda_id` | `erp_pdv_vendas.id` | CASCADE | 20260711180000 | C - critico |
+| `erp_pdv_venda_itens.produto_id` | `erp_pdv_produtos.id` | SET NULL | 20260711180000 | B - revisar |
+| `erp_pdv_caixa_movimentacoes.empresa_id` | `empresas.id` | CASCADE | 20260711230000 | C - critico |
+| `erp_pdv_caixa_movimentacoes.caixa_id` | `erp_pdv_caixas.id` | CASCADE | 20260711230000 | C - critico |
+| `erp_pdv_clientes.empresa_id` | `empresas.id` | CASCADE | 20260711234000 | C - critico |
+| `erp_pdv_vendas.cliente_id` | `erp_pdv_clientes.id` | SET NULL | 20260711234000 | B - revisar |
+| `erp_pdv_fornecedores.empresa_id` | `empresas.id` | CASCADE | 20260711241000 | C - critico |
+| `erp_pdv_entradas.empresa_id` | `empresas.id` | CASCADE | 20260711241000 | C - critico |
+| `erp_pdv_entradas.fornecedor_id` | `erp_pdv_fornecedores.id` | SET NULL | 20260711241000 | B - revisar |
+| `erp_pdv_entrada_itens.empresa_id` | `empresas.id` | CASCADE | 20260711241000 | C - critico |
+| `erp_pdv_entrada_itens.entrada_id` | `erp_pdv_entradas.id` | CASCADE | 20260711241000 | C - critico |
+| `erp_pdv_entrada_itens.produto_id` | `erp_pdv_produtos.id` | CASCADE | 20260711241000 | C - critico |
+| `erp_pdv_vale_trocas.empresa_id` | `empresas.id` | CASCADE | 20260711243000 | C - critico |
+| `erp_pdv_vale_trocas.venda_origem_id` | `erp_pdv_vendas.id` | SET NULL | 20260711243000 | B - revisar |
+| `erp_pdv_vale_trocas.cliente_id` | `erp_pdv_clientes.id` | SET NULL | 20260711243000 | B - revisar |
+| `erp_pdv_devolucoes.empresa_id` | `empresas.id` | CASCADE | 20260711243000 | C - critico |
+| `erp_pdv_devolucoes.venda_id` | `erp_pdv_vendas.id` | CASCADE | 20260711243000 | C - critico |
+| `erp_pdv_devolucoes.vale_troca_id` | `erp_pdv_vale_trocas.id` | SET NULL | 20260711243000 | B - revisar |
+| `erp_pdv_devolucao_itens.empresa_id` | `empresas.id` | CASCADE | 20260711243000 | C - critico |
+| `erp_pdv_devolucao_itens.devolucao_id` | `erp_pdv_devolucoes.id` | CASCADE | 20260711243000 | C - critico |
+| `erp_pdv_devolucao_itens.venda_item_id` | `erp_pdv_venda_itens.id` | CASCADE | 20260711243000 | C - critico |
+| `erp_pdv_devolucao_itens.produto_id` | `erp_pdv_produtos.id` | SET NULL | 20260711243000 | B - revisar |
+| `erp_pdv_vale_troca_movimentacoes.empresa_id` | `empresas.id` | CASCADE | 20260711243000 | C - critico |
+| `erp_pdv_vale_troca_movimentacoes.vale_troca_id` | `erp_pdv_vale_trocas.id` | CASCADE | 20260711243000 | C - critico |
+| `erp_pdv_vale_troca_movimentacoes.vale_troca_id` | `erp_pdv_vale_trocas.id` | SET NULL | 20260711243000 | C - critico |
+| `erp_pdv_vale_troca_movimentacoes.venda_id` | `erp_pdv_vendas.id` | SET NULL | 20260711243000 | B - revisar |
+| `erp_pdv_vale_troca_movimentacoes.devolucao_id` | `erp_pdv_devolucoes.id` | SET NULL | 20260711243000 | B - revisar |
+| `erp_pdv_usuarios.empresa_id` | `empresas.id` | CASCADE | 20260711244000 | C - critico |
+| `erp_pdv_vendas.operador_usuario_id` | `erp_pdv_usuarios.id` | SET NULL | 20260711244000 | B - revisar |
+| `erp_pdv_caixas.operador_usuario_id` | `erp_pdv_usuarios.id` | SET NULL | 20260711244000 | B - revisar |
+| `erp_pdv_caixa_movimentacoes.operador_usuario_id` | `erp_pdv_usuarios.id` | SET NULL | 20260711244000 | B - revisar |
+| `erp_pdv_devolucoes.erp_pdv_usuario_id` | `erp_pdv_usuarios.id` | SET NULL | 20260711244000 | B - revisar |
+| `erp_pdv_colaboradores.empresa_id` | `empresas.id` | RESTRICT | 20260718120000 | A - seguro |
+| `erp_pdv_usuarios.(colaborador_id,empresa_id)` | `erp_pdv_colaboradores.(id,empresa_id)` | RESTRICT | 20260718120000 | A - seguro |
+| `erp_pdv_usuarios.auth_user_id` | `auth.users.id` | SET NULL | 20260718121000 | A - seguro |
+| `erp_pdv_clientes.empresa_id` | `empresas.id` | RESTRICT | 20260718143000 | A - seguro |
+| `erp_pdv_fornecedores.empresa_id` | `empresas.id` | RESTRICT | 20260718150000 | A - seguro |
+| `erp_pdv_produtos.fornecedor_principal_id` | `erp_pdv_fornecedores.id` | SET NULL | 20260718200000 | B - revisar |
+
+### Matriz de risco e recomendacoes
+
+| Grupo | Impacto | Recomendacao |
+|---|---|---|
+| Empresa -> dados operacionais em CASCADE | Pode apagar produtos, estoque, vendas, caixas, entradas, devolucoes e movimentacoes | RESTRICT por padrao; exclusao fisica de empresa somente em processo administrativo de retencao aprovado |
+| Produto -> estoque, movimentacoes e itens em CASCADE | Pode apagar saldo e historico; itens de documentos podem desaparecer | Inativacao de produto e RESTRICT para historico; preservar registros por SET NULL somente quando a regra fiscal permitir |
+| Venda/entrada/devolucao -> itens em CASCADE | Pode apagar documentos e seus detalhes | RESTRICT para documentos emitidos; cancelamento/inativacao logica em vez de delete |
+| Caixa -> movimentacoes em CASCADE | Pode apagar fechamento e movimentacao financeira | RESTRICT apos abertura ou movimentacao; manter historico |
+| `vale_troca_id` duplicado com CASCADE e SET NULL | Regras conflitantes no mesmo campo; pode falhar na criacao ou produzir comportamento imprevisivel | Remover uma das constraints em migration corretiva futura e escolher RESTRICT ou SET NULL conforme retencao |
+| Referencias operacionais em SET NULL | Mantem o documento, mas perde o vinculo com operador, produto, cliente ou fornecedor | Revisar cada campo; preferir inativacao e RESTRICT quando o vinculo for auditoria obrigatoria |
+
+### Classificacao resumida
+
+- Seguras: 6 relacionamentos, principalmente `RESTRICT` e vinculos opcionais
+  de identidade/Auth.
+- Revisar: 17 relacionamentos `SET NULL`, porque podem produzir registros sem
+  a referencia original.
+- Criticas: 28 relacionamentos, incluindo 27 `CASCADE` e as duas constraints
+  conflitantes de `vale_troca_id`.
+
+Nenhuma migration foi modificada nesta auditoria. As recomendações acima são
+plano de saneamento futuro e não foram aplicadas.
+
 ## Sprint 223 - auditoria de RLS
 
 Auditoria estaticamente realizada nas migrations. Nenhuma policy foi criada,
