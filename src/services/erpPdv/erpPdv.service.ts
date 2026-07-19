@@ -1218,6 +1218,115 @@ export async function criarErpPdvCategoria(
   };
 }
 
+export async function atualizarErpPdvCategoria(payload: {
+  empresaId: string;
+  categoriaId: string;
+  nome: string;
+  descricao?: string;
+  ativo: boolean;
+}) {
+  const nomeNormalizado = payload.nome.trim();
+  if (!nomeNormalizado) {
+    return { data: null, error: new Error("Informe o nome da categoria.") };
+  }
+
+  const { data, error } = await supabase
+    .from("erp_pdv_categorias")
+    .update({
+      nome: nomeNormalizado,
+      descricao: payload.descricao?.trim() || "",
+      ativo: payload.ativo,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("empresa_id", payload.empresaId)
+    .eq("id", payload.categoriaId)
+    .select("*")
+    .single();
+
+  return { data: data as ErpPdvCategoria | null, error };
+}
+
+export async function alterarStatusErpPdvCategoria(payload: {
+  empresaId: string;
+  categoriaId: string;
+  ativo: boolean;
+}) {
+  const { data, error } = await supabase
+    .from("erp_pdv_categorias")
+    .update({ ativo: payload.ativo, updated_at: new Date().toISOString() })
+    .eq("empresa_id", payload.empresaId)
+    .eq("id", payload.categoriaId)
+    .select("*")
+    .single();
+
+  return { data: data as ErpPdvCategoria | null, error };
+}
+
+export async function garantirCategoriasPadraoErpPdv(empresaId: string) {
+  const categorias = await listarErpPdvCategorias(empresaId);
+  if (categorias.error) return categorias;
+
+  const normalizarCategoria = (nome: string) => nome.trim().replace(/\s+/g, " ").toLocaleLowerCase();
+
+  const categoriasDeTeste = categorias.data.filter((categoria) =>
+    /sprint|teste|fict[ií]cia|valida[cç][aã]o|piloto/i.test(
+      `${categoria.nome} ${categoria.descricao}`
+    )
+  );
+  for (const categoria of categoriasDeTeste) {
+    if (!categoria.ativo) continue;
+    await alterarStatusErpPdvCategoria({
+      empresaId,
+      categoriaId: categoria.id,
+      ativo: false,
+    });
+  }
+
+  const resultado = categorias.data.filter(
+    (categoria) => !categoriasDeTeste.some((teste) => teste.id === categoria.id)
+  );
+  const nomesVistos = new Set<string>();
+  for (const categoria of [...resultado]) {
+    const chave = normalizarCategoria(categoria.nome);
+    if (!chave || !nomesVistos.has(chave)) {
+      if (chave) nomesVistos.add(chave);
+      continue;
+    }
+    await alterarStatusErpPdvCategoria({
+      empresaId,
+      categoriaId: categoria.id,
+      ativo: false,
+    });
+    const indice = resultado.findIndex((item) => item.id === categoria.id);
+    resultado.splice(indice, 1);
+  }
+  for (const nome of ["Serviços", "Mercadoria"]) {
+    const categoria = resultado.find(
+      (item) => normalizarCategoria(item.nome) === normalizarCategoria(nome)
+    );
+    if (categoria) {
+      if (!categoria.ativo) {
+        const reativada = await alterarStatusErpPdvCategoria({
+          empresaId,
+          categoriaId: categoria.id,
+          ativo: true,
+        });
+        if (reativada.data) {
+          const indice = resultado.findIndex((item) => item.id === categoria.id);
+          resultado[indice] = reativada.data;
+        }
+      }
+      continue;
+    }
+
+    const criada = await criarErpPdvCategoria(empresaId, nome);
+    if (criada.data) resultado.push(criada.data);
+    if (criada.error) return { data: resultado, error: criada.error };
+  }
+
+  return { data: resultado, error: null };
+}
+
 export async function listarErpPdvProdutos(empresaId: string) {
   const { data, error } = await supabase
     .from("erp_pdv_produtos")

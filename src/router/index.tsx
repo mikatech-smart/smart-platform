@@ -15,6 +15,7 @@ import Dashboard from "../pages/dashboard/Dashboard";
 import Empresas from "../pages/dashboard/Empresas";
 import Configuracoes from "../pages/dashboard/Configuracoes";
 import PainelCliente from "../pages/PainelCliente/PainelCliente";
+import EmpresaCategorias from "../pages/empresa/EmpresaCategorias";
 
 function MockCaixaRouteGuard({ children }: { children: ReactNode }) {
   const mockRole = sessionStorage.getItem("mikaon:mock-login-role");
@@ -77,6 +78,7 @@ export default function AppRouter() {
           path="/pdv/:slug"
           element={<PublicPdvPage />}
         />
+        <Route path="/empresa/:slug/categorias" element={<EmpresaCategorias />} />
 
         {/* Dashboard */}
         <Route

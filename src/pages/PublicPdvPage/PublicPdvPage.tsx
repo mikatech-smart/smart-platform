@@ -23,7 +23,7 @@ import {
   excluirErpPdvProduto,
   fecharErpPdvCaixa,
   finalizarErpPdvVenda,
-  listarErpPdvCategorias,
+  garantirCategoriasPadraoErpPdv,
   listarErpPdvMovimentacoes,
   listarErpPdvProdutos,
   listarErpPdvProdutosPaginado,
@@ -1217,7 +1217,7 @@ export default function PublicPdvPage() {
       ] = await Promise.all([
         listarErpPdvProdutos(empresaCarregada.id),
         listarErpPdvUsuarios(empresaCarregada.id),
-        listarErpPdvCategorias(empresaCarregada.id),
+        garantirCategoriasPadraoErpPdv(empresaCarregada.id),
         buscarErpPdvClientes(empresaCarregada.id, ""),
         listarErpPdvFornecedores(empresaCarregada.id),
         listarErpPdvValesTroca(empresaCarregada.id),

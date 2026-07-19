@@ -1,4 +1,4 @@
-import { Boxes, Contact, Factory, History, LayoutDashboard, PackageCheck, ShoppingCart, UserRound, Users, Warehouse } from "lucide-react";
+import { Boxes, Contact, Factory, History, LayoutDashboard, PackageCheck, ShoppingCart, Tags, UserRound, Users, Warehouse } from "lucide-react";
 import { NavLink, Outlet, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { buscarEmpresaPorSlug } from "../services/empresa/empresa.service";
@@ -22,6 +22,7 @@ export default function EmpresaLayout() {
     [`/empresa/${slug}/fornecedores`, "Fornecedores", Factory, false],
     [`/empresa/${slug}/compras`, "Compras", ShoppingCart, false],
     [`/empresa/${slug}/produtos`, "Produtos", Boxes, false],
+    [`/empresa/${slug}/categorias`, "Categorias", Tags, false],
     [`/pdv/${slug}`, "Estoque", Warehouse, false],
     [`/empresa/${slug}/movimentacoes`, "Movimentações", History, false],
     [`/empresa/${slug}/entradas`, "Entrada de Mercadorias", PackageCheck, false],
