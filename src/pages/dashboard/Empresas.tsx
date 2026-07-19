@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 import EmpresaForm from "../../components/dashboard/EmpresaForm";
 import { BrandConfig } from "../../config/brand";
@@ -351,14 +352,12 @@ export default function Empresas() {
                         Editar
                       </button>
 
-                      <a
-                        href={linkPublico || undefined}
-                        target="_blank"
-                        rel="noreferrer"
+                      <Link
+                        to={slug ? `/empresa/${slug}` : "#"}
                         className="min-w-0 rounded-xl border px-3 py-2 text-center text-sm font-bold text-slate-700"
                       >
-                        Abrir página
-                      </a>
+                        Acessar ERP
+                      </Link>
 
                       <button
                         type="button"

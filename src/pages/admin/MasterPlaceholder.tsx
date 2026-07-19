@@ -1,0 +1,1 @@
+export default function MasterPlaceholder({ title }: { title: string }) { return <section className="master-card master-placeholder"><div><h2 className="text-2xl font-bold text-slate-900">{title}</h2><p className="mt-2">Módulo reservado para uma próxima etapa da plataforma.</p></div></section>; }

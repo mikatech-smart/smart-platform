@@ -1,0 +1,3 @@
+export default function MasterHome() {
+  return <section><div className="master-card"><span className="master-kicker">Visão geral</span><h2 className="mt-2 text-2xl font-bold">Painel Master MikaON</h2><p className="mt-2 text-slate-500">Administre a plataforma e acesse os ambientes das empresas.</p></div><div className="master-stat-grid"><div className="master-stat"><span>Empresas</span><strong>--</strong></div><div className="master-stat"><span>Planos</span><strong>--</strong></div><div className="master-stat"><span>Assinaturas</span><strong>--</strong></div><div className="master-stat"><span>Auditoria</span><strong>--</strong></div></div></section>;
+}

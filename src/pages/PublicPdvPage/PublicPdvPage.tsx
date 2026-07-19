@@ -1364,6 +1364,13 @@ export default function PublicPdvPage() {
       return;
     }
 
+    if (loginUsuario.trim().toLowerCase() === "admin" && loginSenha === "123456") {
+      sessionStorage.setItem("mikaon:mock-login-role", "administrador");
+      sessionStorage.setItem("mikaon:mock-login-slug", slug);
+      window.location.assign("/admin");
+      return;
+    }
+
     if (loginUsuario.trim().toLowerCase() === "estoque" && loginSenha === "123456") {
       const usuarioEstoqueMock = criarUsuarioEstoqueMock(empresaId);
       setUsuarios((atuais) =>

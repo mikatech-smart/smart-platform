@@ -15,6 +15,12 @@ import Dashboard from "../pages/dashboard/Dashboard";
 import Empresas from "../pages/dashboard/Empresas";
 import Configuracoes from "../pages/dashboard/Configuracoes";
 import PainelCliente from "../pages/PainelCliente/PainelCliente";
+import MasterLayout from "../layouts/MasterLayout";
+import MasterHome from "../pages/admin/MasterHome";
+import MasterPlaceholder from "../pages/admin/MasterPlaceholder";
+import EmpresaLayout from "../layouts/EmpresaLayout";
+import EmpresaHome from "../pages/empresa/EmpresaHome";
+import EmpresaProdutos from "../pages/empresa/EmpresaProdutos";
 import EmpresaCategorias from "../pages/empresa/EmpresaCategorias";
 
 function MockCaixaRouteGuard({ children }: { children: ReactNode }) {
@@ -78,7 +84,21 @@ export default function AppRouter() {
           path="/pdv/:slug"
           element={<PublicPdvPage />}
         />
-        <Route path="/empresa/:slug/categorias" element={<EmpresaCategorias />} />
+
+        <Route path="/admin" element={<MasterLayout />}>
+          <Route index element={<MasterHome />} />
+          <Route path="empresas" element={<Empresas />} />
+          <Route path="planos" element={<MasterPlaceholder title="Planos" />} />
+          <Route path="assinaturas" element={<MasterPlaceholder title="Assinaturas" />} />
+          <Route path="configuracoes" element={<MasterPlaceholder title="Configurações da Plataforma" />} />
+          <Route path="auditoria" element={<MasterPlaceholder title="Auditoria" />} />
+        </Route>
+
+        <Route path="/empresa/:slug" element={<EmpresaLayout />}>
+          <Route index element={<EmpresaHome />} />
+          <Route path="produtos" element={<EmpresaProdutos />} />
+          <Route path="categorias" element={<EmpresaCategorias />} />
+        </Route>
 
         {/* Dashboard */}
         <Route
@@ -100,6 +120,7 @@ export default function AppRouter() {
             path="configuracoes"
             element={<Configuracoes />}
           />
+
         </Route>
 
         <Route path="/painel">
