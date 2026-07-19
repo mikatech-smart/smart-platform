@@ -32,5 +32,10 @@ dist-ssr
 TESTE_CODEX.txt
 TESTE-CODEX.md
 
+# Credenciais e configuracoes locais
+.env
+.env.*
+!.env.example
+
 # TypeScript Build
 *.tsbuildinfo
