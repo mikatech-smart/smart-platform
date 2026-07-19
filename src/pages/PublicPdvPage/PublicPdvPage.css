@@ -2974,7 +2974,6 @@
 
 .public-pdv-data-grid-scroll {
   min-width: 0;
-  overflow-x: auto;
 }
 
 .public-pdv-product-context-menu {

@@ -2232,7 +2232,7 @@ export default function PublicPdvPage() {
     }
   }
 
-  function abrirMenuContextoProduto(produto: ErpPdvProduto, event: MouseEvent<HTMLButtonElement>) {
+  function abrirMenuContextoProduto(produto: ErpPdvProduto, event: MouseEvent<HTMLTableRowElement>) {
     selecionarProdutoEstoque(produto);
     setMenuContextoProduto({
       produto,
@@ -2986,12 +2986,14 @@ export default function PublicPdvPage() {
             <div className="public-pdv-data-grid-scroll">
               <DataGrid<ErpPdvProduto>
                 columns={[
-                  { id: "codigo", label: "Codigo", render: (produto) => produto.sku || "-" },
-                  { id: "barras", label: "Barras", render: (produto) => produto.codigo_barras || "-" },
+                  { id: "codigo", label: "Codigo", width: "80px", headerClassName: "data-grid__cell--left", cellClassName: "data-grid__cell--left", render: (produto) => produto.sku || "-" },
+                  { id: "barras", label: "Barras", width: "140px", headerClassName: "data-grid__cell--left", cellClassName: "data-grid__cell--left", render: (produto) => produto.codigo_barras || "-" },
                   {
                     id: "produto",
                     label: "Produto",
-                    cellClassName: "public-pdv-data-grid-product",
+                    width: "340px",
+                    headerClassName: "data-grid__cell--left",
+                    cellClassName: "data-grid__cell--left public-pdv-data-grid-product",
                     render: (produto) => {
                       const categoriaNome = categoriasPorId.get(produto.categoria_id || "")?.nome || "Sem categoria";
                       const fornecedor = parseProdutoObservacoesEstruturadas(produto.observacoes).fornecedorPrincipal;
@@ -3002,14 +3004,17 @@ export default function PublicPdvPage() {
                       );
                     },
                   },
-                  { id: "estoque", label: "Estoque", cellClassName: "public-pdv-data-grid-number", render: (produto) => produto.estoque_atual },
-                  { id: "minimo", label: "Min.", cellClassName: "public-pdv-data-grid-number", render: (produto) => produto.estoque_minimo },
-                  { id: "custo", label: "Custo", cellClassName: "public-pdv-data-grid-money", render: (produto) => podeConsultarCustoLucro ? `R$ ${moeda(produto.custo)}` : "Oculto" },
-                  { id: "varejo", label: "Varejo", cellClassName: "public-pdv-data-grid-money", render: (produto) => `R$ ${moeda(produto.preco_venda)}` },
-                  { id: "atacado", label: "Atacado", cellClassName: "public-pdv-data-grid-money", render: (produto) => `R$ ${moeda(produto.preco_atacado || produto.preco_venda)}` },
+                  { id: "estoque", label: "Estoque", width: "130px", headerClassName: "data-grid__cell--right", cellClassName: "data-grid__cell--right", render: (produto) => produto.estoque_atual },
+                  { id: "minimo", label: "Min.", width: "100px", headerClassName: "data-grid__cell--right", cellClassName: "data-grid__cell--right", render: (produto) => produto.estoque_minimo },
+                  { id: "custo", label: "Custo", width: "110px", headerClassName: "data-grid__cell--right", cellClassName: "data-grid__cell--right public-pdv-data-grid-money", render: (produto) => podeConsultarCustoLucro ? `R$ ${moeda(produto.custo)}` : "Oculto" },
+                  { id: "varejo", label: "Varejo", width: "110px", headerClassName: "data-grid__cell--right", cellClassName: "data-grid__cell--right public-pdv-data-grid-money", render: (produto) => `R$ ${moeda(produto.preco_venda)}` },
+                  { id: "atacado", label: "Atacado", width: "110px", headerClassName: "data-grid__cell--right", cellClassName: "data-grid__cell--right public-pdv-data-grid-money", render: (produto) => `R$ ${moeda(produto.preco_atacado || produto.preco_venda)}` },
                   {
                     id: "status",
                     label: "Status",
+                    width: "100px",
+                    headerClassName: "data-grid__cell--center",
+                    cellClassName: "data-grid__cell--center",
                     render: (produto) => {
                       const statusProduto = obterStatusProdutoEstoque(produto);
                       return (
