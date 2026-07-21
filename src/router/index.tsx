@@ -22,6 +22,9 @@ import EmpresaLayout from "../layouts/EmpresaLayout";
 import EmpresaHome from "../pages/empresa/EmpresaHome";
 import EmpresaProdutos from "../pages/empresa/EmpresaProdutos";
 import EmpresaCategorias from "../pages/empresa/EmpresaCategorias";
+import EmpresaMovimentacoes from "../pages/empresa/EmpresaMovimentacoes";
+import EmpresaConfiguracoes from "../pages/empresa/EmpresaConfiguracoes";
+import EmpresaCanais from "../pages/empresa/EmpresaCanais";
 import { RequireCompanyAuth, RequireErpEnvironment, RequirePlatformAuth } from "../auth/RouteGuards";
 import { RequirePermission } from "../auth/PermissionGuard";
 import { getRuntimeEnvironment } from "../auth/RuntimeEnvironment";
@@ -105,6 +108,9 @@ export default function AppRouter() {
           <Route index element={<EmpresaHome />} />
           <Route path="produtos" element={<RequirePermission permission="produto.visualizar"><EmpresaProdutos /></RequirePermission>} />
           <Route path="categorias" element={<RequirePermission permission="produto.visualizar"><EmpresaCategorias /></RequirePermission>} />
+          <Route path="movimentacoes" element={<RequirePermission permission="estoque.movimentar"><EmpresaMovimentacoes /></RequirePermission>} />
+          <Route path="configuracoes" element={<RequirePermission permission="empresa.configurar"><EmpresaConfiguracoes /></RequirePermission>} />
+          <Route path="canais" element={<RequirePermission permission="empresa.configurar"><EmpresaCanais /></RequirePermission>} />
         </Route>
 
         {/* Dashboard */}

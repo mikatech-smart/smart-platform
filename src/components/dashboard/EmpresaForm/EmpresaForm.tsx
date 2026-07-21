@@ -137,6 +137,8 @@ type AbaEmpresa =
   | "redes"
   | "conectividade";
 
+export type EmpresaFormEscopo = "admin" | "erp";
+
 type LogoExibicao = "normal" | "hidden";
 type TipoFundo = "solida" | "gradiente";
 type DirecaoGradiente = "horizontal" | "vertical" | "diagonal";
@@ -6192,6 +6194,8 @@ interface EmpresaFormProps {
   empresaInicialId?: string;
   empresaInicialSlug?: string;
   modoCliente?: boolean;
+  escopo?: EmpresaFormEscopo;
+  abaInicial?: AbaEmpresa;
   onSalvar?: () => void;
   onExcluir?: () => void | Promise<void>;
   onEmpresaAtualChange?: (empresa: {
@@ -6204,11 +6208,13 @@ export default function EmpresaForm({
   empresaInicialId,
   empresaInicialSlug,
   modoCliente = false,
+  escopo = "admin",
+  abaInicial = "informacoes",
   onSalvar,
   onExcluir,
   onEmpresaAtualChange,
 }: EmpresaFormProps) {
-  const [abaAtiva, setAbaAtiva] = useState<AbaEmpresa>("informacoes");
+  const [abaAtiva, setAbaAtiva] = useState<AbaEmpresa>(abaInicial);
   const [empresaId, setEmpresaId] = useState("");
   const [slug, setSlug] = useState("");
   const [slugAdmin, setSlugAdmin] = useState("");
@@ -11649,7 +11655,12 @@ export default function EmpresaForm({
     <div className="min-w-0 max-w-full space-y-6 overflow-x-hidden">
       <div className="flex max-w-full flex-wrap gap-2 overflow-x-auto rounded-2xl border bg-white p-2 shadow-sm">
         {abasEmpresa
-          .filter((aba) => !aba.adminOnly || !modoCliente)
+          .filter((aba) => {
+            if (escopo === "admin") {
+              return ["informacoes", "plano", "erpPdv"].includes(aba.id);
+            }
+            return !aba.adminOnly && aba.id !== "erpPdv";
+          })
           .map((aba) => (
           <button
             key={aba.id}
