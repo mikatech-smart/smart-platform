@@ -1108,6 +1108,7 @@ type ErpPdvUsuarioForm = {
   moduloInicial: string;
   permissoes: Record<ErpPdvPermissao, boolean>;
   ativo: boolean;
+  senha: string;
 };
 
 const erpPdvPermissoes: Array<{
@@ -1268,6 +1269,7 @@ const erpPdvUsuarioFormPadrao: ErpPdvUsuarioForm = {
   moduloInicial: "pdv",
   permissoes: criarPermissoesPerfilErpPdv("caixa"),
   ativo: true,
+  senha: "",
 };
 
 const erpPdvFormasPagamento: Array<{
@@ -8325,6 +8327,7 @@ export default function EmpresaForm({
         ...usuario.permissoes,
       },
       ativo: usuario.ativo,
+      senha: "",
     });
     setErpPdvFeedback({
       tipo: "info",
@@ -8366,6 +8369,7 @@ export default function EmpresaForm({
         moduloInicial: erpPdvUsuarioForm.moduloInicial,
         permissoes: erpPdvUsuarioForm.permissoes,
         ativo: erpPdvUsuarioForm.ativo,
+        senha: erpPdvUsuarioForm.senha || undefined,
       };
       const { data, error } = await salvarErpPdvUsuario(payload);
 
@@ -12142,6 +12146,16 @@ export default function EmpresaForm({
                         atualizarUsuarioFormErpPdv("email", e.target.value)
                       }
                       placeholder="email@empresa.com"
+                    />
+                    <Input
+                      type="password"
+                      label={erpPdvUsuarioForm.id ? "Nova senha (opcional)" : "Senha de acesso"}
+                      value={erpPdvUsuarioForm.senha}
+                      onChange={(e) =>
+                        atualizarUsuarioFormErpPdv("senha", e.target.value)
+                      }
+                      placeholder={erpPdvUsuarioForm.id ? "Deixe em branco para manter" : "Mínimo de 6 caracteres"}
+                      required={!erpPdvUsuarioForm.id}
                     />
                     <Input
                       label="Telefone"

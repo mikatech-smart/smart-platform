@@ -103,6 +103,7 @@ export type ErpPdvUsuarioPayload = {
   moduloInicial: string;
   permissoes: Record<ErpPdvPermissao, boolean>;
   ativo: boolean;
+  senha?: string;
 };
 
 export type ErpPdvProdutoPayload = {
@@ -1124,17 +1125,12 @@ function normalizarDevolucao(row: ErpPdvDevolucaoRow): ErpPdvDevolucao {
 }
 
 export async function listarErpPdvUsuarios(empresaId: string) {
-  const { data, error } = await supabase
-    .from("erp_pdv_usuarios")
-    .select(
-      "id, empresa_id, nome, nome_exibicao, email, telefone, perfil, funcoes, modulo_inicial, permissoes, ativo, created_at, updated_at"
-    )
-    .eq("empresa_id", empresaId)
-    .order("ativo", { ascending: false })
-    .order("nome", { ascending: true });
+  const { data: response, error } = await supabase.functions.invoke("admin-manage-erp-user", {
+    body: { action: "list", empresaId },
+  });
 
   return {
-    data: ((data || []) as ErpPdvUsuarioRow[]).map(normalizarUsuario),
+    data: ((response?.data || []) as ErpPdvUsuarioRow[]).map(normalizarUsuario),
     error,
   };
 }
@@ -1147,37 +1143,28 @@ export async function salvarErpPdvUsuario(payload: ErpPdvUsuarioPayload) {
     };
   }
 
-  const agora = new Date().toISOString();
-  const usuarioPayload = {
-    empresa_id: payload.empresaId,
-    nome: payload.nome.trim(),
-    nome_exibicao: payload.nomeExibicao.trim() || payload.nome.trim(),
-    email: payload.email.trim(),
-    telefone: payload.telefone.trim(),
-    perfil: payload.perfil,
-    funcoes: payload.funcoes,
-    modulo_inicial: payload.moduloInicial.trim() || "pdv",
-    permissoes: normalizarPermissoesUsuario(payload.permissoes),
-    ativo: payload.ativo,
-    updated_at: agora,
-  };
-
-  const query = payload.id
-    ? supabase
-        .from("erp_pdv_usuarios")
-        .update(usuarioPayload)
-        .eq("empresa_id", payload.empresaId)
-        .eq("id", payload.id)
-    : supabase.from("erp_pdv_usuarios").insert(usuarioPayload);
-
-  const { data, error } = await query
-    .select(
-      "id, empresa_id, nome, nome_exibicao, email, telefone, perfil, funcoes, modulo_inicial, permissoes, ativo, created_at, updated_at"
-    )
-    .single();
+  const { data: response, error } = await supabase.functions.invoke("admin-manage-erp-user", {
+    body: {
+      action: payload.id ? "update" : "create",
+      empresaId: payload.empresaId,
+      usuario: {
+        id: payload.id,
+        nome: payload.nome,
+        nomeExibicao: payload.nomeExibicao,
+        email: payload.email,
+        telefone: payload.telefone,
+        perfil: payload.perfil,
+        funcoes: payload.funcoes,
+        moduloInicial: payload.moduloInicial,
+        permissoes: normalizarPermissoesUsuario(payload.permissoes),
+        ativo: payload.ativo,
+        senha: payload.senha,
+      },
+    },
+  });
 
   return {
-    data: data ? normalizarUsuario(data as ErpPdvUsuarioRow) : null,
+    data: response?.data ? normalizarUsuario(response.data as ErpPdvUsuarioRow) : null,
     error,
   };
 }
