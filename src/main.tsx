@@ -10,6 +10,7 @@ import {
 import "./index.css";
 
 import Router from "./router";
+import { AuthProvider } from "./auth/AuthContext";
 
 document.title = BrandConfig.platformName;
 applyPerformanceResourceHints();
@@ -22,6 +23,8 @@ applyRobotsMetadata(
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <Router />
+    <AuthProvider>
+      <Router />
+    </AuthProvider>
   </React.StrictMode>
 );
