@@ -1075,8 +1075,8 @@ export async function atualizarEmpresa(
 
     if (erroColunaFidelidadeConfig(error)) {
       if ("fidelidade_config" in dados) {
-        const { fidelidade_config: _fidelidadeConfig, ...dadosSemFidelidade } =
-          dados as Record<string, unknown>;
+        const dadosSemFidelidade = { ...(dados as Record<string, unknown>) };
+        delete dadosSemFidelidade.fidelidade_config;
         const { data: dataSemFidelidade, error: errorSemFidelidade } =
           await supabase
             .from("empresas")
@@ -1108,10 +1108,8 @@ export async function atualizarEmpresa(
 
     if (erroColunaWifiMarketingConfig(error)) {
       if ("wifi_marketing_config" in dados) {
-        const {
-          wifi_marketing_config: _wifiMarketingConfig,
-          ...dadosSemWifiMarketing
-        } = dados as Record<string, unknown>;
+        const dadosSemWifiMarketing = { ...(dados as Record<string, unknown>) };
+        delete dadosSemWifiMarketing.wifi_marketing_config;
         const {
           data: dataSemWifiMarketing,
           error: errorSemWifiMarketing,
@@ -1145,10 +1143,8 @@ export async function atualizarEmpresa(
 
     if (erroColunaAgendamentoConfig(error)) {
       if ("agendamento_config" in dados) {
-        const {
-          agendamento_config: _agendamentoConfig,
-          ...dadosSemAgendamento
-        } = dados as Record<string, unknown>;
+        const dadosSemAgendamento = { ...(dados as Record<string, unknown>) };
+        delete dadosSemAgendamento.agendamento_config;
         const { data: dataSemAgendamento, error: errorSemAgendamento } =
           await supabase
             .from("empresas")
@@ -1180,8 +1176,8 @@ export async function atualizarEmpresa(
 
     if (erroColunaCatalogoConfig(error)) {
       if ("catalogo_config" in dados) {
-        const { catalogo_config: _catalogoConfig, ...dadosSemCatalogo } =
-          dados as Record<string, unknown>;
+        const dadosSemCatalogo = { ...(dados as Record<string, unknown>) };
+        delete dadosSemCatalogo.catalogo_config;
         const { data: dataSemCatalogo, error: errorSemCatalogo } =
           await supabase
             .from("empresas")
@@ -1213,8 +1209,8 @@ export async function atualizarEmpresa(
 
     if (erroColunaCardapioConfig(error)) {
       if ("cardapio_config" in dados) {
-        const { cardapio_config: _cardapioConfig, ...dadosSemCardapio } =
-          dados as Record<string, unknown>;
+        const dadosSemCardapio = { ...(dados as Record<string, unknown>) };
+        delete dadosSemCardapio.cardapio_config;
         const { data: dataSemCardapio, error: errorSemCardapio } =
           await supabase
             .from("empresas")
