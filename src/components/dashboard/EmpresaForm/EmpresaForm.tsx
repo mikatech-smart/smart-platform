@@ -12139,19 +12139,18 @@ export default function EmpresaForm({
               </div>
             )}
 
-            {!modoCliente && (
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            {!modoCliente && abaAtiva === "erpPdv" && (
+              <div data-testid="erp-users-management" className="rounded-2xl border border-slate-200 bg-white p-4">
               <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                   <p className="text-sm font-bold uppercase tracking-wide text-green-700">
-                    Colaboradores
+                    Usuários ERP
                   </p>
                   <h4 className="mt-2 text-lg font-bold text-slate-900">
-                    Cadastro administrativo de colaboradores
+                    Gestão de usuários ERP
                   </h4>
                   <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500">
-                    Cadastre colaboradores, acumule funcoes autorizadas e defina
-                    as permissoes operacionais de cada pessoa.
+                    Crie, edite, redefina senhas e controle o acesso dos usuários da empresa.
                   </p>
                 </div>
                 <button
@@ -12159,11 +12158,11 @@ export default function EmpresaForm({
                   onClick={() => {
                     setErpPdvUsuarioForm({ ...erpPdvUsuarioFormPadrao });
                     setErpPdvModoRedefinirSenha(false);
-                    setErpPdvFeedback({ tipo: "info", texto: "Novo usuario ERP." });
+                    setErpPdvFeedback({ tipo: "info", texto: "Novo usuário ERP." });
                   }}
                   className="rounded-xl bg-green-700 px-4 py-3 text-sm font-black text-white transition hover:bg-green-800"
                 >
-                  Novo usuario
+                  Novo usuário
                 </button>
                 <div className="min-w-[240px]">
                   <label className="block text-sm font-bold text-slate-700">
@@ -12320,7 +12319,7 @@ export default function EmpresaForm({
                       }
                       className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50"
                     >
-                      Novo usuario
+                      Novo usuário
                     </button>
                   </div>
                 </div>
