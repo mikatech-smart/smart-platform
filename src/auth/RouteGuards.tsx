@@ -13,6 +13,7 @@ export function RequireCompanyAuth({ children }: { children: ReactNode }) {
   const { loading, session, profile } = useAuth();
 
   if (isPlatformEnvironment()) return <Navigate to="/admin" replace />;
+  if (!isErpEnvironment()) return <Navigate to="/" replace />;
   if (mockLoginEnabled() && sessionStorage.getItem("mikaon:mock-login-role")) return children;
   if (loading) return <LoadingAuth />;
   if (!session || !profile) return <Navigate to={`/pdv/${slug || "mikatech"}`} replace />;
@@ -35,5 +36,6 @@ export function RequirePlatformAuth({ children }: { children: ReactNode }) {
 
 export function RequireErpEnvironment({ children }: { children: ReactNode }) {
   if (isPlatformEnvironment()) return <Navigate to="/admin" replace />;
+  if (!isErpEnvironment()) return <Navigate to="/" replace />;
   return children;
 }

@@ -6,6 +6,7 @@ const files = {
   layout: await readFile("src/layouts/EmpresaLayout.tsx", "utf8"),
   form: await readFile("src/components/dashboard/EmpresaForm/EmpresaForm.tsx", "utf8"),
   pdv: await readFile("src/pages/PublicPdvPage/PublicPdvPage.tsx", "utf8"),
+  guards: await readFile("src/auth/RouteGuards.tsx", "utf8"),
 };
 
 for (const route of ["produtos", "categorias", "pdv", "caixa", "movimentacoes", "impressoras", "configuracoes", "canais"]) {
@@ -21,5 +22,6 @@ assert.match(files.router, /PublicPdvPage modo="caixa"/);
 assert.match(files.pdv, /modo\?: "pdv" \| "caixa"/);
 assert.match(files.pdv, /caixaIndependente = modo === "caixa"/);
 assert.match(files.pdv, /!caixaIndependente && !ehPerfilEstoque && podeVender/);
+assert.match(files.guards, /if \(!isErpEnvironment\(\)\) return <Navigate to="\/" replace \/>/);
 
 console.log("ERP module and Caixa route checks passed");
