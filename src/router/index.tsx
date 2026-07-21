@@ -49,7 +49,7 @@ export default function AppRouter() {
         {/* Página pública */}
         <Route
           path="/"
-          element={<PublicProfile />}
+          element={<RuntimeEntry />}
         />
 
         <Route
