@@ -3,6 +3,7 @@ import type { Session } from "@supabase/supabase-js";
 
 import { supabase } from "../lib/supabase";
 import { hasRbacPermission, type RbacPermission } from "./rbac";
+import { isPlatformEnvironment } from "./RuntimeEnvironment";
 
 export type AuthProfile = {
   id: string;
@@ -27,6 +28,27 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 async function carregarPerfil(session: Session | null): Promise<AuthProfile | null> {
   if (!session?.user.id) return null;
+
+  if (isPlatformEnvironment()) {
+    const { data: admin, error: adminError } = await supabase
+      .from("platform_admin_users")
+      .select("id, email, nome, role, ativo")
+      .eq("auth_user_id", session.user.id)
+      .eq("ativo", true)
+      .maybeSingle();
+
+    if (adminError) throw adminError;
+    if (!admin) return null;
+    return {
+      id: admin.id,
+      empresaId: null,
+      empresaSlug: null,
+      empresaNome: null,
+      nome: admin.nome || admin.email,
+      perfil: "global_admin",
+      ativo: admin.ativo,
+    };
+  }
 
   const { data: usuario, error: usuarioError } = await supabase
     .from("erp_pdv_usuarios")

@@ -22,6 +22,13 @@ import EmpresaLayout from "../layouts/EmpresaLayout";
 import EmpresaHome from "../pages/empresa/EmpresaHome";
 import EmpresaProdutos from "../pages/empresa/EmpresaProdutos";
 import EmpresaCategorias from "../pages/empresa/EmpresaCategorias";
+import { RequireCompanyAuth, RequireErpEnvironment, RequirePlatformAuth } from "../auth/RouteGuards";
+import { RequirePermission } from "../auth/PermissionGuard";
+import { getRuntimeEnvironment } from "../auth/RuntimeEnvironment";
+
+function RuntimeEntry() {
+  return getRuntimeEnvironment() === "legacy" ? <PublicProfile /> : <PublicPdvPage />;
+}
 
 function MockCaixaRouteGuard({ children }: { children: ReactNode }) {
   const mockRole = sessionStorage.getItem("mikaon:mock-login-role");
@@ -47,7 +54,7 @@ export default function AppRouter() {
 
         <Route
           path="/connect/:slug"
-          element={<PublicProfile />}
+          element={<RuntimeEntry />}
         />
 
         <Route
@@ -82,10 +89,10 @@ export default function AppRouter() {
 
         <Route
           path="/pdv/:slug"
-          element={<PublicPdvPage />}
+          element={<RequireErpEnvironment><PublicPdvPage /></RequireErpEnvironment>}
         />
 
-        <Route path="/admin" element={<MasterLayout />}>
+        <Route path="/admin" element={<RequirePlatformAuth><MasterLayout /></RequirePlatformAuth>}>
           <Route index element={<MasterHome />} />
           <Route path="empresas" element={<Empresas />} />
           <Route path="planos" element={<MasterPlaceholder title="Planos" />} />
@@ -94,19 +101,21 @@ export default function AppRouter() {
           <Route path="auditoria" element={<MasterPlaceholder title="Auditoria" />} />
         </Route>
 
-        <Route path="/empresa/:slug" element={<EmpresaLayout />}>
+        <Route path="/empresa/:slug" element={<RequireCompanyAuth><EmpresaLayout /></RequireCompanyAuth>}>
           <Route index element={<EmpresaHome />} />
-          <Route path="produtos" element={<EmpresaProdutos />} />
-          <Route path="categorias" element={<EmpresaCategorias />} />
+          <Route path="produtos" element={<RequirePermission permission="produto.visualizar"><EmpresaProdutos /></RequirePermission>} />
+          <Route path="categorias" element={<RequirePermission permission="produto.visualizar"><EmpresaCategorias /></RequirePermission>} />
         </Route>
 
         {/* Dashboard */}
         <Route
           path="/dashboard"
           element={
-            <MockCaixaRouteGuard>
-              <Dashboard />
-            </MockCaixaRouteGuard>
+            <RequirePlatformAuth>
+              <MockCaixaRouteGuard>
+                <Dashboard />
+              </MockCaixaRouteGuard>
+            </RequirePlatformAuth>
           }
         >
           <Route index element={<Empresas />} />

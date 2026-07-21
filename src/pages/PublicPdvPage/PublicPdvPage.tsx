@@ -51,6 +51,9 @@ import {
   type ErpPdvVendaBusca,
 } from "../../services/erpPdv/erpPdv.service";
 import { applyRobotsMetadata } from "../../utils/seo";
+import { mockLoginEnabled, useAuth } from "../../auth/AuthContext";
+import { supabase } from "../../lib/supabase";
+import { isErpEnvironment, isPlatformEnvironment } from "../../auth/RuntimeEnvironment";
 
 import "./PublicPdvPage.css";
 
@@ -782,7 +785,9 @@ function calcularResumoVenda(params: {
 }
 
 export default function PublicPdvPage() {
-  const { slug = "" } = useParams();
+  const { slug = "mikatech" } = useParams();
+  const { session: authSession, loading: authLoading, profile: authProfile, signOut } = useAuth();
+  const permitirMock = mockLoginEnabled();
   const [empresa, setEmpresa] = useState<EmpresaPdv | null>(null);
   const [produtos, setProdutos] = useState<ErpPdvProduto[]>([]);
   const [usuarios, setUsuarios] = useState<ErpPdvUsuario[]>([]);
@@ -1238,10 +1243,11 @@ export default function PublicPdvPage() {
       const usuariosSemMockEstoque = usuariosResultado.data.filter(
         (usuario) => usuario.nome !== "Estoquista Teste"
       );
-      setUsuarios([
-        ...usuariosSemMockEstoque,
-        criarUsuarioEstoqueMock(empresaCarregada.id),
-      ]);
+      setUsuarios(
+        permitirMock
+          ? [...usuariosSemMockEstoque, criarUsuarioEstoqueMock(empresaCarregada.id)]
+          : usuariosSemMockEstoque
+      );
       setCategorias(categoriasResultado.data);
       setClientes(clientesResultado.data);
       setFornecedores(fornecedoresResultado.data);
@@ -1263,12 +1269,22 @@ export default function PublicPdvPage() {
   }
 
   useEffect(() => {
-    document.title = `PDV | ${BrandConfig.platformName}`;
+    document.title = isPlatformEnvironment()
+      ? `Painel Administrativo | ${BrandConfig.platformName}`
+      : `ERP | ${BrandConfig.platformName}`;
     applyRobotsMetadata("noindex,nofollow");
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    carregarDados();
+    if (authLoading) return;
+    if (isErpEnvironment() && authProfile) {
+      window.location.assign(`/empresa/${authProfile.empresaSlug}`);
+      return;
+    }
+    if (!authSession && !permitirMock) {
+      setCarregando(false);
+      return;
+    }
+    void carregarDados();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug]);
+  }, [authLoading, authSession?.user.id, authProfile?.empresaSlug, permitirMock, slug]);
 
   useEffect(() => {
     if (!usuariosAtivos.length) return;
@@ -1337,14 +1353,104 @@ export default function PublicPdvPage() {
     return perfisUsuario[usuario.perfil] || usuario.perfil;
   }
 
-  function entrarNoAcessoTemporario(event: FormEvent<HTMLFormElement>) {
+  async function entrarNoAcessoTemporario(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!loginUsuario.trim() || !loginSenha) {
       setFeedback("Informe o usuario e a senha para continuar.");
       return;
     }
 
-    if (loginUsuario.trim().toLowerCase() === "caixa" && loginSenha === "123456") {
+    const loginInformado = loginUsuario.trim().toLocaleLowerCase();
+    if (isPlatformEnvironment() && !loginUsuario.includes("@") && loginInformado !== "admin") {
+      setFeedback("Acesso negado. Este ambiente e exclusivo da administracao da plataforma.");
+      return;
+    }
+    if (isErpEnvironment() && loginInformado === "admin") {
+      setFeedback("Acesso negado. O administrador da plataforma deve usar o ambiente administrativo.");
+      return;
+    }
+
+    const loginReal = !permitirMock || loginUsuario.includes("@");
+    if (loginReal) {
+      setFeedback("");
+      setCarregando(true);
+
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: loginUsuario.trim(),
+        password: loginSenha,
+      });
+
+      if (authError || !authData.user) {
+        setCarregando(false);
+        setFeedback(authError?.message || "Nao foi possivel autenticar o usuario.");
+        return;
+      }
+
+      if (isPlatformEnvironment()) {
+        const { data: platformAdmin, error: platformError } = await supabase
+          .from("platform_admin_users")
+          .select("id, ativo")
+          .eq("auth_user_id", authData.user.id)
+          .eq("ativo", true)
+          .maybeSingle();
+
+        if (platformError || !platformAdmin) {
+          await signOut();
+          setCarregando(false);
+          setFeedback("Acesso negado. Usuario sem vinculo ativo com a plataforma.");
+          return;
+        }
+
+        window.location.assign("/admin");
+        return;
+      }
+
+      const { data: usuarioAutenticado, error: usuarioError } = await supabase
+        .from("erp_pdv_usuarios")
+        .select("id, empresa_id, nome, perfil, ativo")
+        .eq("auth_user_id", authData.user.id)
+        .eq("ativo", true)
+        .maybeSingle();
+
+      if (usuarioError || !usuarioAutenticado) {
+        await signOut();
+        setCarregando(false);
+        setFeedback("Usuario autenticado sem vinculo ativo com uma empresa.");
+        return;
+      }
+
+      const { data: empresaAutenticada, error: empresaError } = await supabase
+        .from("empresas")
+        .select("id, slug")
+        .eq("id", usuarioAutenticado.empresa_id)
+        .maybeSingle();
+
+      if (empresaError || !empresaAutenticada) {
+        await signOut();
+        setCarregando(false);
+        setFeedback("A empresa do usuario nao esta disponivel.");
+        return;
+      }
+
+      if (isErpEnvironment()) {
+        window.location.assign(`/empresa/${empresaAutenticada.slug}`);
+        return;
+      }
+
+      if (empresaAutenticada.slug !== slug) {
+        window.location.assign(`/pdv/${empresaAutenticada.slug}`);
+        return;
+      }
+
+      setLoginEnviado(true);
+      await carregarDados();
+      setUsuarioId(usuarioAutenticado.id);
+      setOperadorModalAberto(false);
+      setCarregando(false);
+      return;
+    }
+
+    if (permitirMock && loginUsuario.trim().toLowerCase() === "caixa" && loginSenha === "123456") {
       const usuarioCaixaMock = usuariosAtivos.find(
         (usuario) =>
           usuario.nome === "Caixa PDV Teste" &&
@@ -1358,20 +1464,28 @@ export default function PublicPdvPage() {
 
       sessionStorage.setItem("mikaon:mock-login-role", "caixa");
       sessionStorage.setItem("mikaon:mock-login-slug", slug);
+      if (isErpEnvironment()) {
+        window.location.assign(`/empresa/${slug}`);
+        return;
+      }
       setFeedback("");
       setLoginEnviado(true);
       selecionarUsuario(usuarioCaixaMock.id);
       return;
     }
 
-    if (loginUsuario.trim().toLowerCase() === "admin" && loginSenha === "123456") {
+    if (permitirMock && loginUsuario.trim().toLowerCase() === "admin" && loginSenha === "123456") {
+      if (!isPlatformEnvironment()) {
+        setFeedback("Acesso negado. O administrador da plataforma deve usar admin.mikaon.com.br.");
+        return;
+      }
       sessionStorage.setItem("mikaon:mock-login-role", "administrador");
       sessionStorage.setItem("mikaon:mock-login-slug", slug);
       window.location.assign("/admin");
       return;
     }
 
-    if (loginUsuario.trim().toLowerCase() === "estoque" && loginSenha === "123456") {
+    if (permitirMock && loginUsuario.trim().toLowerCase() === "estoque" && loginSenha === "123456") {
       const usuarioEstoqueMock = criarUsuarioEstoqueMock(empresaId);
       setUsuarios((atuais) =>
         atuais.some((usuario) => usuario.id === usuarioEstoqueMock.id)
@@ -1381,6 +1495,10 @@ export default function PublicPdvPage() {
 
       sessionStorage.setItem("mikaon:mock-login-role", "estoque");
       sessionStorage.setItem("mikaon:mock-login-slug", slug);
+      if (isErpEnvironment()) {
+        window.location.assign(`/empresa/${slug}`);
+        return;
+      }
       setFeedback("");
       setLoginEnviado(true);
       selecionarUsuario(usuarioEstoqueMock.id, undefined, usuarioEstoqueMock);
@@ -1390,7 +1508,11 @@ export default function PublicPdvPage() {
     setFeedback("Usuario ou senha invalidos.");
   }
 
-  function voltarAoLogin() {
+  async function voltarAoLogin() {
+    if (authSession) await signOut();
+    sessionStorage.removeItem("mikaon:mock-login-role");
+    sessionStorage.removeItem("mikaon:mock-login-slug");
+    setUsuarioId("");
     setLoginEnviado(false);
     setPerfilSelecaoOperador(null);
     setTabelaSelecaoVendedor(null);
@@ -2594,7 +2716,7 @@ export default function PublicPdvPage() {
     return <main className="public-pdv public-pdv--center">Carregando PDV...</main>;
   }
 
-  if (!empresa || !erpContratado) {
+  if ((!empresa || !erpContratado) && (authSession || permitirMock || loginEnviado)) {
     return (
       <main className="public-pdv public-pdv--center">
         <section className="public-pdv-message">
@@ -2611,15 +2733,15 @@ export default function PublicPdvPage() {
       <main className="public-pdv public-pdv--operator">
         {feedback && <div className="public-pdv-feedback">{feedback}</div>}
         {!loginEnviado ? (
-          <section className="public-pdv-login-shell" aria-label="Login do ERP/PDV">
+          <section className="public-pdv-login-shell" aria-label={isPlatformEnvironment() ? "Login da Plataforma" : "Login do ERP"}>
             <div className="public-pdv-login-brand">
               <img className="public-pdv-login-brand-logo" src="/mikaon-logo-official.jpg" alt="Logo MikaON" />
-              <h1>Gestão inteligente para o seu negócio.</h1>
-              <p>ERP • PDV • Estoque • Financeiro • CRM</p>
+              <h1>{isPlatformEnvironment() ? "Painel Administrativo mikaON" : "Bem-vindo ao ERP mikaON"}</h1>
+              <p>{isPlatformEnvironment() ? "Administracao da Plataforma" : "Acesse sua empresa"}</p>
             </div>
             <form className="public-pdv-login-form" onSubmit={entrarNoAcessoTemporario}>
               <div>
-                <span className="public-pdv-login-kicker">Acesso operacional</span>
+                <span className="public-pdv-login-kicker">{isPlatformEnvironment() ? "Acesso da plataforma" : "Acesso ao ERP"}</span>
                 <h2>Entrar</h2>
                 <p>Informe seus dados para continuar.</p>
               </div>
@@ -2666,7 +2788,7 @@ export default function PublicPdvPage() {
         <div className="public-pdv-topbar">
           <div>
             <span>Empresa</span>
-            <strong>{empresa.nome}</strong>
+            <strong>{empresa?.nome}</strong>
           </div>
           <div>
             <span>Operador</span>
@@ -2752,6 +2874,9 @@ export default function PublicPdvPage() {
             </button>
             <button type="button" onClick={abrirAjudaAtalhos}>
               Ajuda de atalhos
+            </button>
+            <button type="button" onClick={() => void voltarAoLogin()}>
+              Sair
             </button>
           </div>
 

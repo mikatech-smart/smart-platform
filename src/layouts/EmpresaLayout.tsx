@@ -1,11 +1,14 @@
 import { Boxes, LayoutDashboard, Tags } from "lucide-react";
-import { NavLink, Outlet, useParams } from "react-router-dom";
+import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { buscarEmpresaPorSlug } from "../services/empresa/empresa.service";
+import { useAuth } from "../auth/AuthContext";
 import "./EmpresaLayout.css";
 
 export default function EmpresaLayout() {
   const { slug = "" } = useParams();
+  const navigate = useNavigate();
+  const { profile, signOut } = useAuth();
   const [empresa, setEmpresa] = useState<{ nome: string; logo?: string | null }>({ nome: slug });
 
   useEffect(() => {
@@ -15,10 +18,17 @@ export default function EmpresaLayout() {
   }, [slug]);
 
   const itens = [
-    [`/empresa/${slug}`, "Dashboard", LayoutDashboard, true],
+    [`/empresa/${slug}`, "Dashboard", LayoutDashboard, true, undefined],
     [`/empresa/${slug}/produtos`, "Produtos", Boxes, false],
     [`/empresa/${slug}/categorias`, "Categorias", Tags, false],
   ] as const;
+
+  async function sair() {
+    sessionStorage.removeItem("mikaon:mock-login-role");
+    sessionStorage.removeItem("mikaon:mock-login-slug");
+    await signOut();
+    navigate("/", { replace: true });
+  }
 
   return (
     <div className="empresa-shell">
@@ -32,8 +42,8 @@ export default function EmpresaLayout() {
       <main className="empresa-main">
         <header className="empresa-header">
           <div><span className="empresa-kicker">Empresa ativa</span><h1>{empresa.nome}</h1></div>
-          <div className="empresa-user"><strong>Administrador</strong><span>Perfil: Administrador</span></div>
-          <button type="button" className="empresa-user-menu" aria-label="Menu do usuário">⋮</button>
+          <div className="empresa-user"><strong>{profile?.nome || "Usuário"}</strong><span>Perfil: {profile?.perfil || "Empresa"}</span></div>
+          <button type="button" className="empresa-user-menu" onClick={() => void sair()} aria-label="Sair do ERP">Sair</button>
         </header>
         <div className="empresa-content"><Outlet /></div>
       </main>
