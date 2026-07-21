@@ -121,6 +121,9 @@ export type EmpresaEntradaMercadoria = {
 
 export type EmpresaProdutoDetalhes = {
   produtoId: string;
+  nomeReduzido: string;
+  markup: string;
+  comissao: string;
   descricaoComplementar: string;
   subcategoria: string;
   fabricante: string;
@@ -140,6 +143,12 @@ export type EmpresaProdutoDetalhes = {
   comprimento: string;
 };
 
+export type EmpresaProdutoCatalogo = {
+  marcas: string[];
+  fabricantes: string[];
+  codigoAutomatico: boolean;
+};
+
 const colaboradoresKey = (empresaId: string) => `mikaon:empresa:${empresaId}:colaboradores`;
 const usuariosKey = (empresaId: string) => `mikaon:empresa:${empresaId}:usuarios`;
 const clientesKey = (empresaId: string) => `mikaon:empresa:${empresaId}:clientes`;
@@ -147,6 +156,7 @@ const fornecedoresKey = (empresaId: string) => `mikaon:empresa:${empresaId}:forn
 const pedidosCompraKey = (empresaId: string) => `mikaon:empresa:${empresaId}:pedidos-compra`;
 const entradasMercadoriasKey = (empresaId: string) => `mikaon:empresa:${empresaId}:entradas-mercadorias`;
 const produtoDetalhesKey = (empresaId: string) => `mikaon:empresa:${empresaId}:produto-detalhes`;
+const produtoCatalogoKey = (empresaId: string) => `mikaon:empresa:${empresaId}:produto-catalogo`;
 
 function ler<T>(key: string): T[] {
   try {
@@ -211,6 +221,23 @@ export function listarProdutoDetalhes(empresaId: string) {
 
 export function salvarProdutoDetalhes(empresaId: string, itens: EmpresaProdutoDetalhes[]) {
   localStorage.setItem(produtoDetalhesKey(empresaId), JSON.stringify(itens));
+}
+
+export function carregarProdutoCatalogo(empresaId: string): EmpresaProdutoCatalogo {
+  try {
+    const valor = JSON.parse(localStorage.getItem(produtoCatalogoKey(empresaId)) || "null") as Partial<EmpresaProdutoCatalogo> | null;
+    return {
+      marcas: Array.isArray(valor?.marcas) ? valor!.marcas.filter(Boolean) : [],
+      fabricantes: Array.isArray(valor?.fabricantes) ? valor!.fabricantes.filter(Boolean) : [],
+      codigoAutomatico: valor?.codigoAutomatico === true,
+    };
+  } catch {
+    return { marcas: [], fabricantes: [], codigoAutomatico: false };
+  }
+}
+
+export function salvarProdutoCatalogo(empresaId: string, catalogo: EmpresaProdutoCatalogo) {
+  localStorage.setItem(produtoCatalogoKey(empresaId), JSON.stringify(catalogo));
 }
 
 export async function hashSenha(senha: string) {
