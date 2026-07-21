@@ -1,4 +1,5 @@
 import { supabase } from "../../lib/supabase";
+import { isPlatformEnvironment } from "../../auth/RuntimeEnvironment";
 import type { Empresa } from "../../models/Empresa";
 
 const recursosContratadosPadrao = {
@@ -953,11 +954,16 @@ export async function atualizarEmpresa(
     sqlExecutado: sqlUpdate,
   });
 
-  const { data, error } = await supabase
-    .from("empresas")
-    .update(dados)
-    .eq("id", id)
-    .select();
+  const { data, error } = isPlatformEnvironment()
+    ? await supabase.rpc("platform_admin_update_empresa", {
+        p_empresa_id: id,
+        p_dados: dados,
+      })
+    : await supabase
+        .from("empresas")
+        .update(dados)
+        .eq("id", id)
+        .select();
 
   console.log("[Diagnóstico UPDATE] Resultado do UPDATE:", {
     idUsado: id,
@@ -966,7 +972,7 @@ export async function atualizarEmpresa(
     sqlExecutado: sqlUpdate,
     data,
     error,
-    linhasAfetadas: data?.length ?? 0,
+    linhasAfetadas: Array.isArray(data) ? data.length : data ? 1 : 0,
   });
 
   if (error) {
@@ -1257,7 +1263,9 @@ export async function atualizarEmpresa(
     };
   }
 
-  if (!data || data.length === 0) {
+  const empresaAtualizada = Array.isArray(data) ? data[0] : data;
+
+  if (!empresaAtualizada) {
     console.error("UPDATE empresas não afetou nenhuma linha:", {
       idUsado: id,
       slugUsado: dados.slug,
@@ -1275,7 +1283,7 @@ export async function atualizarEmpresa(
   }
 
   return {
-    data: data[0],
+    data: empresaAtualizada,
     error: null,
   };
 }
