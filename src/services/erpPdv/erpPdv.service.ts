@@ -1,4 +1,5 @@
 import { supabase } from "../../lib/supabase";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 
 export type ErpPdvCategoria = {
   id: string;
@@ -1124,9 +1125,32 @@ function normalizarDevolucao(row: ErpPdvDevolucaoRow): ErpPdvDevolucao {
   };
 }
 
+async function invocarGestaoUsuarioErp(body: Record<string, unknown>) {
+  const { data, error } = await supabase.functions.invoke("admin-manage-erp-user", {
+    body,
+  });
+
+  if (!error) return { data, error: null };
+
+  let mensagem = error.message;
+  if (error instanceof FunctionsHttpError && error.context instanceof Response) {
+    try {
+      const detalhe = await error.context.clone().json();
+      if (typeof detalhe?.error === "string" && detalhe.error.trim()) {
+        mensagem = detalhe.error;
+      }
+    } catch {
+      // Mantem a mensagem padrao quando a resposta nao for JSON.
+    }
+  }
+
+  return { data: null, error: new Error(mensagem) };
+}
+
 export async function listarErpPdvUsuarios(empresaId: string) {
-  const { data: response, error } = await supabase.functions.invoke("admin-manage-erp-user", {
-    body: { action: "list", empresaId },
+  const { data: response, error } = await invocarGestaoUsuarioErp({
+    action: "list",
+    empresaId,
   });
 
   return {
@@ -1143,23 +1167,21 @@ export async function salvarErpPdvUsuario(payload: ErpPdvUsuarioPayload) {
     };
   }
 
-  const { data: response, error } = await supabase.functions.invoke("admin-manage-erp-user", {
-    body: {
-      action: payload.id ? "update" : "create",
-      empresaId: payload.empresaId,
-      usuario: {
-        id: payload.id,
-        nome: payload.nome,
-        nomeExibicao: payload.nomeExibicao,
-        email: payload.email,
-        telefone: payload.telefone,
-        perfil: payload.perfil,
-        funcoes: payload.funcoes,
-        moduloInicial: payload.moduloInicial,
-        permissoes: normalizarPermissoesUsuario(payload.permissoes),
-        ativo: payload.ativo,
-        senha: payload.senha,
-      },
+  const { data: response, error } = await invocarGestaoUsuarioErp({
+    action: payload.id ? "update" : "create",
+    empresaId: payload.empresaId,
+    usuario: {
+      id: payload.id,
+      nome: payload.nome,
+      nomeExibicao: payload.nomeExibicao,
+      email: payload.email,
+      telefone: payload.telefone,
+      perfil: payload.perfil,
+      funcoes: payload.funcoes,
+      moduloInicial: payload.moduloInicial,
+      permissoes: normalizarPermissoesUsuario(payload.permissoes),
+      ativo: payload.ativo,
+      senha: payload.senha,
     },
   });
 

@@ -6377,6 +6377,7 @@ export default function EmpresaForm({
     useState("");
   const [erpPdvUsuarioForm, setErpPdvUsuarioForm] =
     useState<ErpPdvUsuarioForm>(() => ({ ...erpPdvUsuarioFormPadrao }));
+  const [erpPdvModoRedefinirSenha, setErpPdvModoRedefinirSenha] = useState(false);
   const [erpPdvUsuarioBusca, setErpPdvUsuarioBusca] = useState("");
   const [erpPdvUsuarioFiltro, setErpPdvUsuarioFiltro] = useState("todos");
   const [erpPdvFornecedorForm, setErpPdvFornecedorForm] =
@@ -8313,6 +8314,7 @@ export default function EmpresaForm({
   }
 
   function editarUsuarioErpPdv(usuario: ErpPdvUsuario) {
+    setErpPdvModoRedefinirSenha(false);
     setErpPdvUsuarioForm({
       id: usuario.id,
       nome: usuario.nome,
@@ -8335,6 +8337,54 @@ export default function EmpresaForm({
     });
   }
 
+  function redefinirSenhaUsuarioErpPdv(usuario: ErpPdvUsuario) {
+    editarUsuarioErpPdv(usuario);
+    setErpPdvModoRedefinirSenha(true);
+    setErpPdvFeedback({
+      tipo: "info",
+      texto: `Informe a nova senha de ${usuario.nome}.`,
+    });
+  }
+
+  async function atualizarListaUsuariosErpPdv() {
+    if (!empresaId) return;
+    const resultado = await listarErpPdvUsuarios(empresaId);
+    if (resultado.error) throw resultado.error;
+    setErpPdvUsuarios(resultado.data);
+  }
+
+  async function alternarStatusUsuarioErpPdv(usuario: ErpPdvUsuario) {
+    try {
+      setErpPdvSalvando(true);
+      const { error } = await salvarErpPdvUsuario({
+        id: usuario.id,
+        empresaId: usuario.empresa_id,
+        nome: usuario.nome,
+        nomeExibicao: usuario.nome_exibicao || usuario.nome,
+        email: usuario.email,
+        telefone: usuario.telefone,
+        perfil: obterPerfilPrincipalColaborador(obterFuncoesErpPdvUsuario(usuario)),
+        funcoes: obterFuncoesErpPdvUsuario(usuario),
+        moduloInicial: usuario.modulo_inicial || "pdv",
+        permissoes: usuario.permissoes,
+        ativo: !usuario.ativo,
+      });
+      if (error) throw error;
+      await atualizarListaUsuariosErpPdv();
+      setErpPdvFeedback({
+        tipo: "sucesso",
+        texto: `Usuario ${usuario.ativo ? "bloqueado" : "ativado"} com sucesso.`,
+      });
+    } catch (error) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: error instanceof Error ? error.message : "Nao foi possivel atualizar o status.",
+      });
+    } finally {
+      setErpPdvSalvando(false);
+    }
+  }
+
   function selecionarOperadorErpPdv(usuarioId: string) {
     setErpPdvUsuarioSelecionadoId(usuarioId);
     const usuario = erpPdvUsuarios.find((item) => item.id === usuarioId);
@@ -8354,6 +8404,13 @@ export default function EmpresaForm({
 
   async function salvarUsuarioErpPdv() {
     if (!empresaId) return;
+    if (erpPdvModoRedefinirSenha && !erpPdvUsuarioForm.senha.trim()) {
+      setErpPdvFeedback({
+        tipo: "erro",
+        texto: "Informe a nova senha para redefinir o acesso.",
+      });
+      return;
+    }
 
     try {
       setErpPdvSalvando(true);
@@ -8376,11 +8433,9 @@ export default function EmpresaForm({
       if (error) throw error;
       if (!data) throw new Error("Usuario do ERP/PDV nao retornado.");
 
-      setErpPdvUsuarios((usuariosAtuais) => {
-        const demais = usuariosAtuais.filter((usuario) => usuario.id !== data.id);
-        return [data, ...demais].sort((a, b) => a.nome.localeCompare(b.nome));
-      });
+      await atualizarListaUsuariosErpPdv();
       setErpPdvUsuarioForm({ ...erpPdvUsuarioFormPadrao });
+      setErpPdvModoRedefinirSenha(false);
       setErpPdvFeedback({
         tipo: "sucesso",
         texto: "Usuario e permissoes salvos no ERP/PDV.",
@@ -12099,6 +12154,17 @@ export default function EmpresaForm({
                     as permissoes operacionais de cada pessoa.
                   </p>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setErpPdvUsuarioForm({ ...erpPdvUsuarioFormPadrao });
+                    setErpPdvModoRedefinirSenha(false);
+                    setErpPdvFeedback({ tipo: "info", texto: "Novo usuario ERP." });
+                  }}
+                  className="rounded-xl bg-green-700 px-4 py-3 text-sm font-black text-white transition hover:bg-green-800"
+                >
+                  Novo usuario
+                </button>
                 <div className="min-w-[240px]">
                   <label className="block text-sm font-bold text-slate-700">
                     Operador ativo
@@ -12247,7 +12313,10 @@ export default function EmpresaForm({
                     <button
                       type="button"
                       onClick={() =>
-                        setErpPdvUsuarioForm({ ...erpPdvUsuarioFormPadrao })
+                        (() => {
+                          setErpPdvUsuarioForm({ ...erpPdvUsuarioFormPadrao });
+                          setErpPdvModoRedefinirSenha(false);
+                        })()
                       }
                       className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50"
                     >
@@ -12358,13 +12427,30 @@ export default function EmpresaForm({
                                     </span>
                                   </td>
                                   <td className="px-3 py-2">
-                                    <button
-                                      type="button"
-                                      onClick={() => editarUsuarioErpPdv(usuario)}
-                                      className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-700 hover:border-green-300 hover:bg-green-50"
-                                    >
-                                      Editar
-                                    </button>
+                                    <div className="flex flex-wrap gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => editarUsuarioErpPdv(usuario)}
+                                        className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-700 hover:border-green-300 hover:bg-green-50"
+                                      >
+                                        Editar
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => redefinirSenhaUsuarioErpPdv(usuario)}
+                                        className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-bold text-amber-700 hover:bg-amber-100"
+                                      >
+                                        Redefinir senha
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => void alternarStatusUsuarioErpPdv(usuario)}
+                                        disabled={erpPdvSalvando}
+                                        className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-700 hover:border-green-300 hover:bg-green-50 disabled:opacity-50"
+                                      >
+                                        {usuario.ativo ? "Bloquear" : "Ativar"}
+                                      </button>
+                                    </div>
                                   </td>
                                 </tr>
                               );
