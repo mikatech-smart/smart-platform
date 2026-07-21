@@ -108,6 +108,7 @@ export default function AppRouter() {
           <Route index element={<EmpresaHome />} />
           <Route path="produtos" element={<RequirePermission permission="produto.visualizar"><EmpresaProdutos /></RequirePermission>} />
           <Route path="categorias" element={<RequirePermission permission="produto.visualizar"><EmpresaCategorias /></RequirePermission>} />
+          <Route path="pdv" element={<RequirePermission permission="venda.criar"><PublicPdvPage /></RequirePermission>} />
           <Route path="movimentacoes" element={<RequirePermission permission="estoque.movimentar"><EmpresaMovimentacoes /></RequirePermission>} />
           <Route path="configuracoes" element={<RequirePermission permission="empresa.configurar"><EmpresaConfiguracoes /></RequirePermission>} />
           <Route path="canais" element={<RequirePermission permission="empresa.configurar"><EmpresaCanais /></RequirePermission>} />

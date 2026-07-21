@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import EmpresaForm from "../../components/dashboard/EmpresaForm";
+import EmpresaUsuariosAdministrativos from "../../components/dashboard/EmpresaUsuariosAdministrativos";
 import { BrandConfig } from "../../config/brand";
 import {
   criarEmpresa as criarEmpresaService,
@@ -409,6 +410,7 @@ export default function Empresas() {
                         carregarEmpresas();
                       }}
                     />
+                    <EmpresaUsuariosAdministrativos empresaId={empresa.id} />
                   </div>
                 )}
               </Fragment>

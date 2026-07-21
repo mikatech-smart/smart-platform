@@ -1,4 +1,4 @@
-import { Boxes, LayoutDashboard, Settings2, Tags, Waypoints } from "lucide-react";
+import { Boxes, LayoutDashboard, Monitor, Settings2, Tags, Waypoints } from "lucide-react";
 import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { buscarEmpresaPorSlug } from "../services/empresa/empresa.service";
@@ -21,6 +21,7 @@ export default function EmpresaLayout() {
     [`/empresa/${slug}`, "Dashboard", LayoutDashboard, true, undefined],
     [`/empresa/${slug}/produtos`, "Produtos", Boxes, false],
     [`/empresa/${slug}/categorias`, "Categorias", Tags, false],
+    [`/empresa/${slug}/pdv`, "PDV", Monitor, false],
     [`/empresa/${slug}/configuracoes`, "Configurações", Settings2, false],
     [`/empresa/${slug}/canais`, "Canais públicos", Waypoints, false],
   ] as const;
