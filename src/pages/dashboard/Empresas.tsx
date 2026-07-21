@@ -287,6 +287,7 @@ export default function Empresas() {
 
           {empresasFiltradas.map((empresa) => {
             const slug = empresa.slug || "";
+            const linkErp = slug ? `${BrandConfig.erpUrl}/empresa/${slug}` : "";
             const linkPublico = slug ? `${baseUrlPublica}/${slug}` : "";
             const clienteAdministra = tipoEhCliente(empresa.tipo);
             const tipoGerenciamento = obterTipoGerenciamento(empresa.tipo);
@@ -353,12 +354,12 @@ export default function Empresas() {
                         Editar
                       </button>
 
-                      <Link
-                        to={slug ? `/empresa/${slug}` : "#"}
+                      <a
+                        href={linkErp || undefined}
                         className="min-w-0 rounded-xl border px-3 py-2 text-center text-sm font-bold text-slate-700"
                       >
                         Acessar ERP
-                      </Link>
+                      </a>
 
                       <button
                         type="button"
