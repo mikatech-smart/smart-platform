@@ -955,7 +955,7 @@ export async function atualizarEmpresa(
   });
 
   const { data, error } = isPlatformEnvironment()
-    ? await supabase.schema("private").rpc("platform_admin_update_empresa", {
+    ? await supabase.rpc("platform_admin_update_empresa", {
         p_empresa_id: id,
         p_dados: dados,
       })
