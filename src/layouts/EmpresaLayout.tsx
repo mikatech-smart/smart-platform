@@ -1,4 +1,4 @@
-import { ArrowDownUp, Boxes, LayoutDashboard, Monitor, Printer, Settings2, Tags, Waypoints } from "lucide-react";
+import { ArrowDownUp, Banknote, Boxes, LayoutDashboard, Monitor, Printer, Settings2, Tags, Waypoints } from "lucide-react";
 import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { buscarEmpresaPorSlug } from "../services/empresa/empresa.service";
@@ -22,6 +22,7 @@ export default function EmpresaLayout() {
     [`/empresa/${slug}/produtos`, "Produtos", Boxes, false],
     [`/empresa/${slug}/categorias`, "Categorias", Tags, false],
     [`/empresa/${slug}/pdv`, "PDV", Monitor, false],
+    [`/empresa/${slug}/caixa`, "Caixa", Banknote, false],
     [`/empresa/${slug}/movimentacoes`, "Estoque / Movimentações", ArrowDownUp, false],
     [`/empresa/${slug}/impressoras`, "Impressoras", Printer, false],
     [`/empresa/${slug}/configuracoes`, "Configurações", Settings2, false],

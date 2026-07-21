@@ -784,7 +784,11 @@ function calcularResumoVenda(params: {
   };
 }
 
-export default function PublicPdvPage() {
+type PublicPdvPageProps = {
+  modo?: "pdv" | "caixa";
+};
+
+export default function PublicPdvPage({ modo = "pdv" }: PublicPdvPageProps) {
   const { slug = "mikatech" } = useParams();
   const { session: authSession, loading: authLoading, profile: authProfile, signOut } = useAuth();
   const permitirMock = mockLoginEnabled();
@@ -863,7 +867,7 @@ export default function PublicPdvPage() {
   const [resultadoSelecionadoIndex, setResultadoSelecionadoIndex] = useState(0);
   const [vendasSuspensas, setVendasSuspensas] = useState<VendaSuspensa[]>([]);
   const [modoCompacto, setModoCompacto] = useState(false);
-  const [menuAberto, setMenuAberto] = useState(false);
+  const [menuAberto, setMenuAberto] = useState(modo === "caixa");
   const [atalhosAberto, setAtalhosAberto] = useState(false);
   const [telaCheia, setTelaCheia] = useState(false);
   const [telaCheiaVisual, setTelaCheiaVisual] = useState(false);
@@ -1087,7 +1091,10 @@ export default function PublicPdvPage() {
   const podeAlterarPreco = pode(usuarioAtual, "preco_alterar");
   const podeOperarTrocas =
     pode(usuarioAtual, "devolucao_realizar") && pode(usuarioAtual, "vale_troca_emitir");
-  const temModuloOperacional = podeOperarCaixa || podeVender || podeOperarTrocas || podeOperarEstoque;
+  const caixaIndependente = modo === "caixa";
+  const temModuloOperacional = caixaIndependente
+    ? podeOperarCaixa
+    : podeOperarCaixa || podeVender || podeOperarTrocas || podeOperarEstoque;
   const exibirModuloEstoque =
     podeOperarEstoque &&
     (!podeVender ||
@@ -2899,7 +2906,7 @@ export default function PublicPdvPage() {
             </section>
           )}
 
-          {!ehPerfilEstoque && podeVender && (
+          {!caixaIndependente && !ehPerfilEstoque && podeVender && (
             <section className="public-pdv-secondary-panel">
               <h2>Acoes da venda</h2>
               <div className="public-pdv-secondary-actions public-pdv-secondary-actions--compact">
@@ -2916,7 +2923,7 @@ export default function PublicPdvPage() {
             </section>
           )}
 
-          {!ehPerfilEstoque && podeVender && (
+          {!caixaIndependente && !ehPerfilEstoque && podeVender && (
             <section className="public-pdv-secondary-panel public-pdv-suspended-sales">
               <div className="public-pdv-section-title">
                 <h2>Vendas suspensas</h2>
@@ -2942,7 +2949,7 @@ export default function PublicPdvPage() {
             </section>
           )}
 
-          {podeOperarTrocas && (
+          {!caixaIndependente && podeOperarTrocas && (
             <section className="public-pdv-secondary-panel" id="pdv-trocas">
               <h2>Trocas autorizadas</h2>
               <button disabled={!pode(usuarioAtual, "devolucao_realizar")} onClick={buscarTrocas}>
@@ -3030,7 +3037,7 @@ export default function PublicPdvPage() {
         </section>
       )}
 
-      {exibirModuloEstoque && (
+      {exibirModuloEstoque && !caixaIndependente && (
         <section className="public-pdv-main-sale public-pdv-stock-layout" id="pdv-estoque">
           <section className="public-pdv-panel public-pdv-stock-products">
             <div className="public-pdv-section-title">
@@ -3561,7 +3568,7 @@ export default function PublicPdvPage() {
         </div>
       )}
 
-      {podeVender && !exibirModuloEstoque && (
+      {podeVender && !exibirModuloEstoque && !caixaIndependente && (
         <section className="public-pdv-main-sale public-pdv-sale-layout">
           <div className="public-pdv-panel public-pdv-sale-flow">
             <section className="public-pdv-step public-pdv-step-client">
