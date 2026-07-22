@@ -1,5 +1,4 @@
-import { BrowserRouter, Navigate, Routes, Route, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import type { ReactNode } from "react";
 
 import PublicProfile from "../pages/connect/PublicProfile/PublicProfile";
@@ -38,39 +37,11 @@ function RuntimeEntry() {
   return getRuntimeEnvironment() === "legacy" ? <PublicProfile /> : <PublicPdvPage />;
 }
 
-function RouterDebug() {
-  const { pathname } = useLocation();
-
-  useEffect(() => {
-    const empresaPdv = pathname.match(/^\/empresa\/([^/]+)\/(pdv|caixa)$/);
-    const pdvPublico = pathname.match(/^\/pdv\/([^/]+)$/);
-    const componenteSelecionado = empresaPdv || pdvPublico ? "PublicPdvPage" : "outro";
-    const modoSolicitado = empresaPdv?.[2] === "caixa" ? "caixa" : "pdv";
-    const slug = empresaPdv?.[1] || pdvPublico?.[1] || null;
-
-    console.info("[MikaON PDV DEBUG] router", {
-      rotaAtual: pathname,
-      pathname,
-      slugRecebido: slug,
-      componenteSelecionado,
-      modoSolicitado: componenteSelecionado === "PublicPdvPage" ? modoSolicitado : null,
-    });
-  }, [pathname]);
-
-  return null;
-}
-
 function MockCaixaRouteGuard({ children }: { children: ReactNode }) {
   const mockRole = sessionStorage.getItem("mikaon:mock-login-role");
   const slug = sessionStorage.getItem("mikaon:mock-login-slug") || "mikatech";
 
   if (mockRole === "caixa" || mockRole === "estoque") {
-    console.info("[MikaON PDV DEBUG] redirect", {
-      destino: `/pdv/${slug}`,
-      motivo: "MockCaixaRouteGuard redirecionou operador para rota PDV",
-      mockRole,
-      slug,
-    });
     return <Navigate to={`/pdv/${slug}`} replace />;
   }
 
@@ -80,7 +51,6 @@ function MockCaixaRouteGuard({ children }: { children: ReactNode }) {
 export default function AppRouter() {
   return (
     <BrowserRouter>
-      <RouterDebug />
       <Routes>
 
         {/* Página pública */}
