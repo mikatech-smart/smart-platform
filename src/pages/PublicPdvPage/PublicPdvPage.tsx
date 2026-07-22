@@ -789,8 +789,9 @@ type PublicPdvPageProps = {
 };
 
 export default function PublicPdvPage({ modo = "pdv" }: PublicPdvPageProps) {
-  const { slug = "mikatech" } = useParams();
+  const { slug: routeSlug = "" } = useParams();
   const { session: authSession, loading: authLoading, profile: authProfile, signOut } = useAuth();
+  const slug = routeSlug || authProfile?.empresaSlug || "";
   const permitirMock = mockLoginEnabled();
   const [empresa, setEmpresa] = useState<EmpresaPdv | null>(null);
   const [produtos, setProdutos] = useState<ErpPdvProduto[]>([]);

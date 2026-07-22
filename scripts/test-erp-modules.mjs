@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 const files = {
   router: await readFile("src/router/index.tsx", "utf8"),
   layout: await readFile("src/layouts/EmpresaLayout.tsx", "utf8"),
+  navigation: await readFile("src/navigation/empresaRoutes.ts", "utf8"),
   form: await readFile("src/components/dashboard/EmpresaForm/EmpresaForm.tsx", "utf8"),
   pdv: await readFile("src/pages/PublicPdvPage/PublicPdvPage.tsx", "utf8"),
   guards: await readFile("src/auth/RouteGuards.tsx", "utf8"),
@@ -13,11 +14,11 @@ for (const route of ["produtos", "categorias", "pdv", "caixa", "movimentacoes", 
   assert.match(files.router, new RegExp(`path=\\"${route}\\"`), `rota ERP ausente: ${route}`);
 }
 
-assert.match(files.layout, /Estoque \/ Movimenta/);
-assert.match(files.layout, /Caixa/);
-assert.match(files.layout, /Impressoras/);
+assert.match(files.navigation, /Estoque \/ Movimenta/);
+assert.match(files.navigation, /Caixa/);
+assert.match(files.navigation, /Impressoras/);
 assert.match(files.form, /escopo === "admin"/);
-assert.match(files.form, /return \["informacoes", "plano"\]\.includes/);
+assert.match(files.form, /return \["informacoes", "plano", "erpPdv"\]\.includes/);
 assert.match(files.router, /PublicPdvPage modo="caixa"/);
 assert.match(files.pdv, /modo\?: "pdv" \| "caixa"/);
 assert.match(files.pdv, /caixaIndependente = modo === "caixa"/);
