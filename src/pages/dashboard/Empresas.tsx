@@ -7,6 +7,7 @@ import {
   excluirEmpresa as excluirEmpresaService,
   listarEmpresas,
 } from "../../services/empresa/empresa.service";
+import { criarConvitePrimeiroAcesso, type CompanyInvite } from "../../services/empresa/companyInvite.service";
 
 type EmpresaResumo = {
   id: string;
@@ -51,6 +52,8 @@ export default function Empresas() {
     useState(false);
   const [novoTipo, setNovoTipo] = useState("");
   const [salvandoNovaEmpresa, setSalvandoNovaEmpresa] = useState(false);
+  const [conviteGerado, setConviteGerado] = useState<CompanyInvite | null>(null);
+  const [conviteEmpresaId, setConviteEmpresaId] = useState("");
 
   const baseUrlPublica = (BrandConfig.publicAppUrl || window.location.origin).replace(
     /\/$/,
@@ -97,6 +100,15 @@ export default function Empresas() {
     window.setTimeout(() => {
       setLinkCopiado("");
     }, 2000);
+  }
+
+  async function gerarConvite(empresaId: string) {
+    setConviteEmpresaId(empresaId);
+    setConviteGerado(null);
+    const { data, error } = await criarConvitePrimeiroAcesso(empresaId);
+    setConviteEmpresaId("");
+    if (error || !data) return alert(error?.message || "Nao foi possivel gerar o convite.");
+    setConviteGerado(data);
   }
 
   async function criarEmpresa() {
@@ -335,7 +347,7 @@ export default function Empresas() {
                       </div>
                     </div>
 
-                    <div className="grid min-w-0 gap-2 sm:grid-cols-3 xl:min-w-[420px]">
+                    <div className="grid min-w-0 gap-2 sm:grid-cols-4 xl:min-w-[560px]">
                       <button
                         type="button"
                         onClick={() => {
@@ -368,6 +380,10 @@ export default function Empresas() {
                         Copiar link
                       </button>
 
+                      <button type="button" disabled={conviteEmpresaId === empresa.id} onClick={() => void gerarConvite(empresa.id)} className="min-w-0 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm font-bold text-green-800 disabled:opacity-50">
+                        {conviteEmpresaId === empresa.id ? "Gerando..." : "Gerar convite"}
+                      </button>
+
                     </div>
                   </div>
 
@@ -375,6 +391,14 @@ export default function Empresas() {
                     <p className="mt-3 text-sm font-semibold text-green-700">
                       Link copiado com sucesso.
                     </p>
+                  )}
+
+                  {conviteGerado?.empresaId === empresa.id && (
+                    <div className="mt-3 rounded-xl border border-green-200 bg-green-50 p-4">
+                      <p className="text-sm font-bold text-green-900">Convite de primeiro acesso gerado</p>
+                      <p className="mt-1 break-all text-xs text-green-800">Válido até {new Date(conviteGerado.expiresAt).toLocaleString("pt-BR")}</p>
+                      <div className="mt-3 flex flex-col gap-2 sm:flex-row"><input readOnly value={conviteGerado.url} className="min-w-0 flex-1 rounded-lg border border-green-200 bg-white px-3 py-2 text-xs" /><button type="button" onClick={() => void copiarLink(conviteGerado.url)} className="rounded-lg bg-green-700 px-3 py-2 text-sm font-bold text-white">Copiar convite</button></div>
+                    </div>
                   )}
                 </article>
 

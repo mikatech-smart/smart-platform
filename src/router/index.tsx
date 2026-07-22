@@ -10,6 +10,7 @@ import PublicAgendamentoPage from "../pages/PublicAgendamentoPage/PublicAgendame
 import PublicWifiMarketingPage from "../pages/PublicWifiMarketingPage/PublicWifiMarketingPage";
 import PublicFidelidadePage from "../pages/PublicFidelidadePage/PublicFidelidadePage";
 import PublicPdvPage from "../pages/PublicPdvPage/PublicPdvPage";
+import FirstAccessPage from "../pages/FirstAccessPage/FirstAccessPage";
 
 import Dashboard from "../pages/dashboard/Dashboard";
 import Empresas from "../pages/dashboard/Empresas";
@@ -95,6 +96,7 @@ export default function AppRouter() {
           path="/pdv/:slug"
           element={<RequireErpEnvironment><PublicPdvPage /></RequireErpEnvironment>}
         />
+        <Route path="/primeiro-acesso" element={<FirstAccessPage />} />
 
         <Route path="/admin" element={<RequirePlatformAuth><MasterLayout /></RequirePlatformAuth>}>
           <Route index element={<MasterHome />} />
