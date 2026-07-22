@@ -11716,7 +11716,7 @@ export default function EmpresaForm({
         {abasEmpresa
           .filter((aba) => {
             if (escopo === "admin") {
-              return ["informacoes", "plano"].includes(aba.id);
+              return ["informacoes", "plano", "erpPdv"].includes(aba.id);
             }
             return !aba.adminOnly && aba.id !== "erpPdv";
           })
