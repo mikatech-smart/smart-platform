@@ -10,8 +10,11 @@ export type RbacPermission =
   | "cliente.visualizar" | "cliente.criar" | "cliente.alterar"
   | "fornecedor.visualizar" | "fornecedor.criar" | "fornecedor.alterar"
   | "compras.visualizar" | "compras.criar" | "relatorios.visualizar"
-  | "financeiro.visualizar" | "crm.visualizar" | "auditoria.visualizar";
-
+  | "financeiro.visualizar" | "crm.visualizar" | "auditoria.visualizar"
+  | "produto.excluir" | "categoria.visualizar" | "categoria.criar" | "categoria.alterar" | "categoria.excluir"
+  | "pdv.acessar" | "caixa.sangria" | "caixa.suprimento" | "estoque.inventario"
+  | "impressora.visualizar" | "impressora.configurar" | "canais.visualizar" | "canais.editar";
+export type RbacCustomPermissions = Partial<Record<RbacPermission, boolean>>;
 export type RbacRole =
   | "global_admin" | "administrador" | "gerente" | "caixa" | "vendedor" | "estoque"
   | "financeiro" | "atendimento";
@@ -54,9 +57,10 @@ export function normalizeRbacRole(profile: string | null | undefined): RbacRole 
   return null;
 }
 
-export function hasRbacPermission(profile: string | null | undefined, permission: RbacPermission, legacyPermissions?: Partial<Record<LegacyPermission, boolean>>) {
+export function hasRbacPermission(profile: string | null | undefined, permission: RbacPermission, legacyPermissions?: Partial<Record<LegacyPermission, boolean>>, customPermissions?: RbacCustomPermissions) {
   const role = normalizeRbacRole(profile);
   if (!role) return false;
+  if (customPermissions && permission in customPermissions) return Boolean(customPermissions[permission]);
   const legacy = LEGACY_PERMISSION_MAP[permission];
   if (legacy && legacyPermissions && legacy in legacyPermissions) return Boolean(legacyPermissions[legacy]);
   return ROLE_DEFAULTS[role].includes(permission);

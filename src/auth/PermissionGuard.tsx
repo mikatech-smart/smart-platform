@@ -10,7 +10,7 @@ export function canAccessPermission(permission: RbacPermission, profile?: string
 export function RequirePermission({ permission, children }: { permission: RbacPermission; children: ReactNode }) {
   const location = useLocation();
   const { profile } = useAuth();
-  if (!canAccessPermission(permission, profile?.perfil)) {
+  if (!hasRbacPermission(profile?.perfil, permission, undefined, profile?.permissoes)) {
     logAccessDenied(permission, location.pathname);
     return <Navigate to=".." replace />;
   }

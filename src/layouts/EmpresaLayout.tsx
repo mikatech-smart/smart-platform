@@ -1,8 +1,9 @@
-import { ArrowDownUp, Banknote, Boxes, LayoutDashboard, Monitor, Printer, Settings2, Tags, Waypoints } from "lucide-react";
+import { ArrowDownUp, Banknote, Boxes, LayoutDashboard, Link2, Monitor, Printer, Settings2, Tags, Users, Waypoints } from "lucide-react";
 import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { buscarEmpresaPorSlug } from "../services/empresa/empresa.service";
 import { useAuth } from "../auth/AuthContext";
+import { hasRbacPermission, type RbacPermission } from "../auth/rbac";
 import "./EmpresaLayout.css";
 
 export default function EmpresaLayout() {
@@ -27,6 +28,8 @@ export default function EmpresaLayout() {
     [`/empresa/${slug}/impressoras`, "Impressoras", Printer, false],
     [`/empresa/${slug}/configuracoes`, "Configurações", Settings2, false],
     [`/empresa/${slug}/canais`, "Canais públicos", Waypoints, false],
+    [`/empresa/${slug}/colaboradores`, "Colaboradores", Users, false, "usuarios.visualizar"],
+    [`/empresa/${slug}/links`, "Links", Link2, false],
   ] as const;
 
   async function sair() {
@@ -43,7 +46,7 @@ export default function EmpresaLayout() {
           {empresa.logo ? <img src={empresa.logo} alt={empresa.nome} /> : <div className="empresa-brand-mark">M</div>}
           <div><strong>{empresa.nome}</strong><span>ERP da empresa</span></div>
         </div>
-        <nav>{itens.map(([to, label, Icon, end]) => <NavLink key={to} to={to} end={end} className={({ isActive }) => isActive ? "empresa-nav-item is-active" : "empresa-nav-item"}><Icon size={18} /><span>{label}</span></NavLink>)}</nav>
+        <nav>{itens.map(([to, label, Icon, end, permission]) => permission && !hasRbacPermission(profile?.perfil, permission as RbacPermission, undefined, profile?.permissoes) ? null : <NavLink key={to} to={to} end={end} className={({ isActive }) => isActive ? "empresa-nav-item is-active" : "empresa-nav-item"}><Icon size={18} /><span>{label}</span></NavLink>)}</nav>
       </aside>
       <main className="empresa-main">
         <header className="empresa-header">

@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import type { Session } from "@supabase/supabase-js";
 
 import { supabase } from "../lib/supabase";
-import { hasRbacPermission, type RbacPermission } from "./rbac";
+import { hasRbacPermission, type RbacPermission, type RbacCustomPermissions } from "./rbac";
 import { isPlatformEnvironment } from "./RuntimeEnvironment";
 
 export type AuthProfile = {
@@ -13,6 +13,7 @@ export type AuthProfile = {
   nome: string;
   perfil: string;
   ativo: boolean;
+  permissoes: RbacCustomPermissions;
 };
 
 type AuthContextValue = {
@@ -47,12 +48,13 @@ async function carregarPerfil(session: Session | null): Promise<AuthProfile | nu
       nome: admin.nome || admin.email,
       perfil: "global_admin",
       ativo: admin.ativo,
+      permissoes: {},
     };
   }
 
   const { data: usuario, error: usuarioError } = await supabase
     .from("erp_pdv_usuarios")
-    .select("id, empresa_id, nome, perfil, ativo")
+    .select("id, empresa_id, nome, perfil, ativo, permissoes")
     .eq("auth_user_id", session.user.id)
     .eq("ativo", true)
     .maybeSingle();
@@ -77,6 +79,7 @@ async function carregarPerfil(session: Session | null): Promise<AuthProfile | nu
     nome: usuario.nome,
     perfil: usuario.perfil,
     ativo: usuario.ativo,
+    permissoes: (usuario.permissoes || {}) as RbacCustomPermissions,
   };
 }
 
@@ -141,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut: async () => {
         await supabase.auth.signOut();
       },
-      can: (permission) => hasRbacPermission(profile?.perfil, permission),
+      can: (permission) => hasRbacPermission(profile?.perfil, permission, undefined, profile?.permissoes),
     }),
     [error, loading, profile, session]
   );
