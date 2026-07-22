@@ -788,6 +788,10 @@ type PublicPdvPageProps = {
   modo?: "pdv" | "caixa";
 };
 
+function logPdvDebug(evento: string, valores: Record<string, unknown>) {
+  console.info("[MikaON PDV DEBUG]", evento, valores);
+}
+
 export default function PublicPdvPage({ modo = "pdv" }: PublicPdvPageProps) {
   const { slug: routeSlug = "" } = useParams();
   const { session: authSession, loading: authLoading, profile: authProfile, signOut } = useAuth();
@@ -910,6 +914,20 @@ export default function PublicPdvPage({ modo = "pdv" }: PublicPdvPageProps) {
     !estoqueCategoriaFiltro &&
     !estoqueMarcaFiltro &&
     !estoqueFornecedorFiltro;
+
+  useEffect(() => {
+    logPdvDebug("componente montou", {
+      slugRecebidoPorUseParams: routeSlug || null,
+      pathname: window.location.pathname,
+      hostname: window.location.hostname,
+      modo,
+      empresaEncontrada: Boolean(empresa),
+      empresaIdResolvido: empresa?.id || null,
+      usuarioAutenticado: Boolean(authSession),
+      perfilEncontrado: Boolean(authProfile),
+      permissaoValidada: Boolean(authProfile?.empresaSlug),
+    });
+  }, [authProfile, authSession, empresa, modo, routeSlug]);
 
   const produtosEncontrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -1204,16 +1222,47 @@ export default function PublicPdvPage({ modo = "pdv" }: PublicPdvPageProps) {
   ]);
 
   async function carregarDados() {
-    if (!slug) return;
+    if (!slug) {
+      logPdvDebug("carregamento interrompido", {
+        motivo: "slug ausente",
+        pathname: window.location.pathname,
+        modo,
+      });
+      return;
+    }
     setCarregando(true);
     setFeedback("");
 
     try {
+      logPdvDebug("consultando empresa", {
+        slug,
+        origem: "buscarEmpresaPorSlug",
+        modo,
+      });
       const { data, error } = await buscarEmpresaPorSlug(slug);
-      if (error) throw error;
-      if (!data) throw new Error("Empresa nao encontrada.");
+      if (error) {
+        logPdvDebug("empresa nao encontrada", {
+          slug,
+          motivo: "erro na consulta por slug",
+          erro: error.message,
+        });
+        throw error;
+      }
+      if (!data) {
+        logPdvDebug("empresa nao encontrada", {
+          slug,
+          motivo: "consulta por slug retornou vazio",
+        });
+        throw new Error("Empresa nao encontrada.");
+      }
 
       const empresaCarregada = data as EmpresaPdv;
+      logPdvDebug("empresa resolvida", {
+        slug,
+        empresaIdResolvido: empresaCarregada.id,
+        erpContratado: empresaCarregada.recursos_contratados?.erp_pdv === true,
+        modo,
+      });
       setEmpresa(empresaCarregada);
 
       if (!empresaCarregada.recursos_contratados?.erp_pdv) return;
@@ -1270,6 +1319,11 @@ export default function PublicPdvPage({ modo = "pdv" }: PublicPdvPageProps) {
         setValorFechamento(String(resumo.data?.totalEsperado || ""));
       }
     } catch (error) {
+      logPdvDebug("falha no carregamento", {
+        slug,
+        modo,
+        mensagem: error instanceof Error ? error.message : "erro desconhecido",
+      });
       setFeedback(error instanceof Error ? error.message : "Nao foi possivel carregar o PDV.");
     } finally {
       setCarregando(false);
@@ -1283,7 +1337,17 @@ export default function PublicPdvPage({ modo = "pdv" }: PublicPdvPageProps) {
     applyRobotsMetadata("noindex,nofollow");
     if (authLoading) return;
     if (isErpEnvironment() && authProfile) {
-      window.location.assign(`/empresa/${authProfile.empresaSlug}`);
+      const destino = `/empresa/${authProfile.empresaSlug}`;
+      logPdvDebug("redirect", {
+        destino,
+        motivo: "sessao ERP carregada no PublicPdvPage; fluxo atual sempre envia ao Dashboard da empresa",
+        condicao: "isErpEnvironment() && authProfile",
+        rotaAtual: window.location.pathname,
+        slug,
+        profileEmpresaSlug: authProfile.empresaSlug,
+        modo,
+      });
+      window.location.assign(destino);
       return;
     }
     if (!authSession && !permitirMock) {
@@ -1409,6 +1473,7 @@ export default function PublicPdvPage({ modo = "pdv" }: PublicPdvPageProps) {
           return;
         }
 
+        logPdvDebug("redirect", { destino: "/admin", motivo: "login de administrador de plataforma validado", rotaAtual: window.location.pathname });
         window.location.assign("/admin");
         return;
       }
@@ -1441,11 +1506,13 @@ export default function PublicPdvPage({ modo = "pdv" }: PublicPdvPageProps) {
       }
 
       if (isErpEnvironment()) {
+        logPdvDebug("redirect", { destino: `/empresa/${empresaAutenticada.slug}`, motivo: "login ERP validado; entrada no Dashboard da empresa", rotaAtual: window.location.pathname, slug });
         window.location.assign(`/empresa/${empresaAutenticada.slug}`);
         return;
       }
 
       if (empresaAutenticada.slug !== slug) {
+        logPdvDebug("redirect", { destino: `/pdv/${empresaAutenticada.slug}`, motivo: "slug da empresa autenticada diferente da rota", rotaAtual: window.location.pathname, slug, empresaSlug: empresaAutenticada.slug });
         window.location.assign(`/pdv/${empresaAutenticada.slug}`);
         return;
       }
@@ -1473,6 +1540,7 @@ export default function PublicPdvPage({ modo = "pdv" }: PublicPdvPageProps) {
       sessionStorage.setItem("mikaon:mock-login-role", "caixa");
       sessionStorage.setItem("mikaon:mock-login-slug", slug);
       if (isErpEnvironment()) {
+        logPdvDebug("redirect", { destino: `/empresa/${slug}`, motivo: "login mock de caixa no ERP", rotaAtual: window.location.pathname, slug });
         window.location.assign(`/empresa/${slug}`);
         return;
       }
@@ -1489,6 +1557,7 @@ export default function PublicPdvPage({ modo = "pdv" }: PublicPdvPageProps) {
       }
       sessionStorage.setItem("mikaon:mock-login-role", "administrador");
       sessionStorage.setItem("mikaon:mock-login-slug", slug);
+      logPdvDebug("redirect", { destino: "/admin", motivo: "login mock de administrador", rotaAtual: window.location.pathname });
       window.location.assign("/admin");
       return;
     }
@@ -1504,6 +1573,7 @@ export default function PublicPdvPage({ modo = "pdv" }: PublicPdvPageProps) {
       sessionStorage.setItem("mikaon:mock-login-role", "estoque");
       sessionStorage.setItem("mikaon:mock-login-slug", slug);
       if (isErpEnvironment()) {
+        logPdvDebug("redirect", { destino: `/empresa/${slug}`, motivo: "login mock de estoque no ERP", rotaAtual: window.location.pathname, slug });
         window.location.assign(`/empresa/${slug}`);
         return;
       }
