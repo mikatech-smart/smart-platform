@@ -2732,6 +2732,27 @@ export default function PublicPdvPage({ modo = "pdv" }: PublicPdvPageProps) {
     return <main className="public-pdv public-pdv--center">Carregando PDV...</main>;
   }
 
+  const empresaDiagnostico = empresa as (EmpresaPdv & {
+    pdv_enabled?: unknown;
+    erp_enabled?: unknown;
+    canal_publico?: unknown;
+    configuracao_pdv?: unknown;
+  }) | null;
+  console.info("[MikaON PDV DEBUG] validacao de disponibilidade", {
+    empresaEncontrada: Boolean(empresa),
+    empresa_id: empresa?.id || null,
+    slug,
+    configuracaoCarregada: empresa?.recursos_contratados || null,
+    pdv_enabled: empresaDiagnostico?.pdv_enabled ?? null,
+    erp_enabled: empresaDiagnostico?.erp_enabled ?? null,
+    canalPublico: empresaDiagnostico?.canal_publico ?? null,
+    empresaAtiva: empresa?.ativo ?? null,
+    configuracaoPdv: empresaDiagnostico?.configuracao_pdv ?? empresa?.erp_pdv_config ?? null,
+    erpContratado,
+    sessao: Boolean(authSession),
+    loginEnviado,
+  });
+
   if ((!empresa || !erpContratado) && (authSession || permitirMock || loginEnviado)) {
     return (
       <main className="public-pdv public-pdv--center">
