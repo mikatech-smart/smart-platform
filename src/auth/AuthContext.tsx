@@ -28,7 +28,7 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 function logAuthDiagnostic(event: string, data: Record<string, unknown>) {
-  console.info("[MikaON AUTH DIAGNOSTIC]", event, data);
+  console.info("[MIKAON AUTH DEBUG]", event, data);
 }
 
 async function carregarPerfil(session: Session | null): Promise<AuthProfile | null> {
