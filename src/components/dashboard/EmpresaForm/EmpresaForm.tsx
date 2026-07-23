@@ -16420,30 +16420,6 @@ export default function EmpresaForm({
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <a
-                  href={slugPublico ? `${BrandConfig.erpUrl.replace(/\/$/, "")}/empresa/${slugPublico}` : undefined}
-                  className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 disabled:opacity-50"
-                >
-                  Abrir ERP
-                </a>
-                <a
-                  href={erpPdvUrlPublica || undefined}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-xl bg-green-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
-                >
-                  Abrir PDV
-                </a>
-                <button
-                  type="button"
-                  onClick={copiarLinkPdvErpPdv}
-                  disabled={!erpPdvUrlPublica}
-                  className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Copiar link do PDV
-                </button>
-              </div>
             </div>
           </div>
         </Card>

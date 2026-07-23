@@ -12,11 +12,12 @@ const files = {
   empresas: await readFile("src/pages/dashboard/Empresas.tsx", "utf8"),
 };
 
-for (const route of ["produtos", "categorias", "pdv", "caixa", "movimentacoes", "impressoras", "configuracoes", "canais"]) {
+for (const route of ["produtos", "categorias", "pdv", "caixa", "estoque", "movimentacoes", "impressoras", "configuracoes", "canais"]) {
   assert.match(files.router, new RegExp(`path=\\"${route}\\"`), `rota ERP ausente: ${route}`);
 }
 
-assert.match(files.navigation, /Estoque \/ Movimenta/);
+assert.match(files.navigation, /label: "Estoque"/);
+assert.match(files.navigation, /label: "Movimentacoes"/);
 assert.match(files.navigation, /Caixa/);
 assert.match(files.navigation, /Impressoras/);
 assert.match(files.form, /escopo === "admin"/);

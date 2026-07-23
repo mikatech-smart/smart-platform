@@ -374,6 +374,8 @@ export default function Empresas() {
 
                       <a
                         href={linkErp || undefined}
+                        target="_blank"
+                        rel="noreferrer"
                         className="min-w-0 rounded-xl border px-3 py-2 text-center text-sm font-bold text-slate-700"
                       >
                         Acessar ERP
