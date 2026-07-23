@@ -364,11 +364,6 @@ export default function Empresas() {
                       <button
                         type="button"
                         onClick={() => {
-                          console.log("[Diagnóstico UPDATE] ID enviado ao EmpresaForm:", {
-                            id: empresa.id,
-                            slug,
-                            nome: empresa.nome,
-                          });
                           setMostrarNovaEmpresa(false);
                           setEmpresaIdEmEdicao(empresa.id);
                         }}
@@ -383,6 +378,24 @@ export default function Empresas() {
                       >
                         Acessar ERP
                       </a>
+
+                      <a
+                        href={slug ? `${BrandConfig.erpUrl.replace(/\/$/, "")}/pdv/${slug}` : undefined}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="min-w-0 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-center text-sm font-bold text-green-800"
+                      >
+                        Abrir PDV
+                      </a>
+
+                      <button
+                        type="button"
+                        disabled={!slug}
+                        onClick={() => copiarLink(`${BrandConfig.erpUrl.replace(/\/$/, "")}/pdv/${slug}`)}
+                        className="min-w-0 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm font-bold text-green-800 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Copiar link do PDV
+                      </button>
 
                       <button
                         type="button"

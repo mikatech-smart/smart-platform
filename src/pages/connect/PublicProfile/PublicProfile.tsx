@@ -13,9 +13,13 @@ export default function PublicProfile() {
 
   useEffect(() => {
     async function carregarEmpresa() {
-      const slugEmpresa = slug || "mikatech";
+      if (!slug) {
+        setEmpresa(null);
+        setLoading(false);
+        return;
+      }
 
-      const { data, error } = await buscarEmpresaPorSlug(slugEmpresa);
+      const { data, error } = await buscarEmpresaPorSlug(slug);
 
       if (error) {
         console.error(error);

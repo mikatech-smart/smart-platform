@@ -6550,9 +6550,9 @@ export default function EmpresaForm({
     ? categoria
     : "Outra";
   const slugPublico = slugAdmin || slug;
-  const erpPdvUrlPublica = `${BrandConfig.publicAppUrl.replace(/\/$/, "")}/pdv/${
-    slugPublico || "empresa"
-  }`;
+  const erpPdvUrlPublica = slugPublico
+    ? `${BrandConfig.erpUrl.replace(/\/$/, "")}/pdv/${slugPublico}`
+    : "";
   const aparenciaAtual: AparenciaConfig = {
     logoExibicao,
     corPrincipal,
@@ -6835,8 +6835,6 @@ export default function EmpresaForm({
       return true;
     }
   );
-  const erpPdvPilotoMikatech = slugPublico === "mikatech";
-
   useEffect(() => {
     return () => {
       erpPdvCameraStreamRef.current?.getTracks().forEach((track) => track.stop());
@@ -6844,31 +6842,20 @@ export default function EmpresaForm({
   }, []);
 
   useEffect(() => {
-    console.log("[Diagnóstico UPDATE] ID recebido no EmpresaForm:", {
-      empresaInicialId,
-      empresaInicialSlug,
-    });
+    if (!empresaInicialId && !empresaInicialSlug) return;
 
     carregarEmpresa({
       id: empresaInicialId,
-      slug: empresaInicialSlug || "mikatech",
+      slug: empresaInicialSlug || "",
     });
   }, [empresaInicialId, empresaInicialSlug]);
 
   async function carregarEmpresa(empresa: { id?: string; slug: string }) {
-    console.log("[Diagnóstico UPDATE] Carregando empresa para edição:", empresa);
+    if (!empresa.id && !empresa.slug) return;
 
     const { data, error } = empresa.id
       ? await buscarEmpresaPorId(empresa.id)
       : await buscarEmpresaPorSlug(empresa.slug);
-
-    console.log("[Diagnóstico UPDATE] Resultado do SELECT no EmpresaForm:", {
-      filtroUsado: empresa.id
-        ? `id = ${empresa.id}`
-        : `slug = ${empresa.slug}`,
-      data,
-      error,
-    });
 
     if (error) {
       console.error("Erro ao carregar empresa:", error);
@@ -11439,13 +11426,6 @@ export default function EmpresaForm({
       dadosEmpresa.recursos_contratados = recursosContratados;
     }
 
-    console.log("[Diagnóstico UPDATE] Antes de chamar atualizarEmpresa:", {
-      idRecebidoNoFormulario: empresaInicialId,
-      idEnviadoAoService: empresaId,
-      slugUsado: slugFinal,
-      payloadEnviado: dadosEmpresa,
-    });
-
     setSalvandoEmpresa(true);
     setFeedbackSalvamento({
       tipo: "info",
@@ -12056,7 +12036,7 @@ export default function EmpresaForm({
         </Card>
       )}
 
-      {abaAtiva === "erpPdv" && (
+      {abaAtiva === "erpPdv" && escopo === "erp" && (
         <Card
           title="ERP/PDV"
           subtitle="Base inicial online para produtos, estoque, vendas e caixa."
@@ -12089,11 +12069,6 @@ export default function EmpresaForm({
                     Cadastro inicial de categorias, produtos e estoque. Fiscal, emissao de documentos e modo offline ficam fora desta Sprint.
                   </p>
 
-                  {!erpPdvPilotoMikatech && (
-                    <p className="mt-3 rounded-xl bg-white/70 px-3 py-2 text-xs font-semibold text-amber-700">
-                      Piloto inicial previsto para a empresa Mikatech.
-                    </p>
-                  )}
                 </div>
 
                 <div className="flex flex-wrap gap-2">
@@ -16417,6 +16392,57 @@ export default function EmpresaForm({
                     Nenhuma movimentacao encontrada para os filtros atuais.
                   </p>
                 )}
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {abaAtiva === "erpPdv" && escopo !== "erp" && (
+        <Card
+          title="ERP/PDV"
+          subtitle="Administre o acesso ao ambiente empresarial sem operar a empresa pelo Painel Master."
+        >
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <span
+                  className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+                    recursosContratados.erp_pdv
+                      ? "bg-green-700 text-white"
+                      : "bg-amber-100 text-amber-700"
+                  }`}
+                >
+                  {recursosContratados.erp_pdv ? "Ativo" : "Nao contratado"}
+                </span>
+                <p className="mt-3 text-sm font-semibold text-slate-700">
+                  A operação, os colaboradores e as permissões ficam exclusivamente no ERP da empresa.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <a
+                  href={slugPublico ? `${BrandConfig.erpUrl.replace(/\/$/, "")}/empresa/${slugPublico}` : undefined}
+                  className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 disabled:opacity-50"
+                >
+                  Abrir ERP
+                </a>
+                <a
+                  href={erpPdvUrlPublica || undefined}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-xl bg-green-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
+                >
+                  Abrir PDV
+                </a>
+                <button
+                  type="button"
+                  onClick={copiarLinkPdvErpPdv}
+                  disabled={!erpPdvUrlPublica}
+                  className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Copiar link do PDV
+                </button>
               </div>
             </div>
           </div>

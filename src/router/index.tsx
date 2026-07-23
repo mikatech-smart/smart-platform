@@ -39,9 +39,9 @@ function RuntimeEntry() {
 
 function MockCaixaRouteGuard({ children }: { children: ReactNode }) {
   const mockRole = sessionStorage.getItem("mikaon:mock-login-role");
-  const slug = sessionStorage.getItem("mikaon:mock-login-slug") || "mikatech";
+  const slug = sessionStorage.getItem("mikaon:mock-login-slug") || "";
 
-  if (mockRole === "caixa" || mockRole === "estoque") {
+  if ((mockRole === "caixa" || mockRole === "estoque") && slug) {
     return <Navigate to={`/pdv/${slug}`} replace />;
   }
 

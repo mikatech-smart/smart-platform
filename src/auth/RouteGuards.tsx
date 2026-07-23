@@ -16,7 +16,9 @@ export function RequireCompanyAuth({ children }: { children: ReactNode }) {
   if (!isErpEnvironment()) return <Navigate to="/" replace />;
   if (mockLoginEnabled() && sessionStorage.getItem("mikaon:mock-login-role")) return children;
   if (loading) return <LoadingAuth />;
-  if (!session || !profile) return <Navigate to={`/pdv/${slug || "mikatech"}`} replace />;
+  if (!session || !profile) {
+    return <Navigate to={slug ? `/pdv/${slug}` : "/"} replace />;
+  }
   if (profile.perfil === "global_admin") return children;
   if (!profile.empresaSlug) return <Navigate to="/admin" replace />;
   if (slug !== profile.empresaSlug) {

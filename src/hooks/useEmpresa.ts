@@ -7,7 +7,7 @@ import {
   atualizarEmpresa,
 } from "../services/empresa/empresa.service";
 
-export function useEmpresa() {
+export function useEmpresa(slug?: string) {
 
   const [empresa, setEmpresa] = useState<Empresa | null>(null);
 
@@ -15,8 +15,13 @@ export function useEmpresa() {
 
   useEffect(() => {
     async function carregar() {
+      if (!slug) {
+        setEmpresa(null);
+        setLoading(false);
+        return;
+      }
 
-      const { data } = await buscarEmpresaPorSlug("mikatech");
+      const { data } = await buscarEmpresaPorSlug(slug);
 
       if (data) {
 
@@ -30,7 +35,7 @@ export function useEmpresa() {
 
     carregar();
 
-  }, []);
+  }, [slug]);
 
   async function salvar() {
 
