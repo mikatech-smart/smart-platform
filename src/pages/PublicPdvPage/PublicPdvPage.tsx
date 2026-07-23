@@ -1294,6 +1294,11 @@ export default function PublicPdvPage({ modo = "pdv" }: PublicPdvPageProps) {
       window.location.assign(`/empresa/${authProfile.empresaSlug}`);
       return;
     }
+    if (authSession && !authProfile && !permitirMock) {
+      setFeedback("Usuario autenticado sem vinculo ativo com uma empresa.");
+      setCarregando(false);
+      return;
+    }
     if (!authSession && !permitirMock) {
       setCarregando(false);
       return;

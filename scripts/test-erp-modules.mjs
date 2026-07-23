@@ -24,6 +24,8 @@ assert.match(files.pdv, /modo\?: "pdv" \| "caixa"/);
 assert.match(files.pdv, /rotaOperacional/);
 assert.match(files.pdv, /authProfile && !rotaOperacional/);
 assert.doesNotMatch(files.pdv, /isErpEnvironment\(\) && authProfile\) \{/);
+assert.doesNotMatch(files.guards, /Navigate to=\{`\/empresa\/\$\{profile\.empresaSlug\}`\}/);
+assert.match(files.guards, /Acesso nao autorizado para esta empresa/);
 assert.match(files.pdv, /caixaIndependente = modo === "caixa"/);
 assert.match(files.pdv, /!caixaIndependente && !ehPerfilEstoque && podeVender/);
 assert.match(files.guards, /if \(!isErpEnvironment\(\)\) return <Navigate to="\/" replace \/>/);
