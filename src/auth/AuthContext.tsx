@@ -27,6 +27,10 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function logAuthDiagnostic(event: string, data: Record<string, unknown>) {
+  console.info("[MikaON AUTH DIAGNOSTIC]", event, data);
+}
+
 async function carregarPerfil(session: Session | null): Promise<AuthProfile | null> {
   if (!session?.user.id) return null;
 
@@ -39,6 +43,13 @@ async function carregarPerfil(session: Session | null): Promise<AuthProfile | nu
       .maybeSingle();
 
     if (adminError) throw adminError;
+    logAuthDiagnostic("platform lookup", {
+      authUserId: session.user.id,
+      email: session.user.email || null,
+      found: Boolean(admin),
+      active: admin?.ativo ?? null,
+      role: admin?.role ?? null,
+    });
     if (!admin) return null;
     return {
       id: admin.id,
@@ -60,6 +71,13 @@ async function carregarPerfil(session: Session | null): Promise<AuthProfile | nu
     .maybeSingle();
 
   if (globalAdminError) throw globalAdminError;
+  logAuthDiagnostic("erp global-admin lookup", {
+    authUserId: session.user.id,
+    email: session.user.email || null,
+    found: Boolean(globalAdmin),
+    active: globalAdmin?.ativo ?? null,
+    role: globalAdmin?.role ?? null,
+  });
   if (globalAdmin) {
     return {
       id: globalAdmin.id,
@@ -81,6 +99,15 @@ async function carregarPerfil(session: Session | null): Promise<AuthProfile | nu
     .maybeSingle();
 
   if (usuarioError) throw usuarioError;
+  logAuthDiagnostic("erp user lookup", {
+    authUserId: session.user.id,
+    email: session.user.email || null,
+    found: Boolean(usuario),
+    erpUserId: usuario?.id ?? null,
+    empresaId: usuario?.empresa_id ?? null,
+    perfil: usuario?.perfil ?? null,
+    active: usuario?.ativo ?? null,
+  });
   if (!usuario) return null;
 
   const { data: empresa, error: empresaError } = await supabase
@@ -134,6 +161,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setError("O usuario autenticado nao possui vinculo ativo.");
           return;
         }
+        logAuthDiagnostic("resolved profile", {
+          authUserId: nextSession.user.id,
+          email: nextSession.user.email || null,
+          profileId: nextProfile.id,
+          perfil: nextProfile.perfil,
+          empresaId: nextProfile.empresaId,
+          empresaSlug: nextProfile.empresaSlug,
+          ativo: nextProfile.ativo,
+        });
         setProfile(nextProfile);
       } catch (cause) {
         if (!mounted) return;
