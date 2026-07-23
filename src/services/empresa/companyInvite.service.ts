@@ -29,3 +29,19 @@ export async function aceitarConvitePrimeiroAcesso(payload: { token: string; nom
     error: new Error(`${status ? `HTTP ${status}: ` : ""}${message}`),
   };
 }
+
+export type PlatformErpHandoff = {
+  id: string;
+  empresaId: string;
+  empresaSlug: string;
+  empresaNome: string;
+  expiresAt: string;
+  url: string;
+};
+
+export async function criarHandoffErpAdministrativo(empresaId: string) {
+  const { data, error } = await supabase.functions.invoke("admin-create-erp-handoff", {
+    body: { empresaId },
+  });
+  return { data: (data?.data || null) as PlatformErpHandoff | null, error };
+}

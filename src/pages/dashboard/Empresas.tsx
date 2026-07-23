@@ -9,6 +9,7 @@ import {
 } from "../../services/empresa/empresa.service";
 import {
   criarConvitePrimeiroAcesso,
+  criarHandoffErpAdministrativo,
   verificarAdministradorPrimeiroAcesso,
   type CompanyInvite,
 } from "../../services/empresa/companyInvite.service";
@@ -122,6 +123,23 @@ export default function Empresas() {
     setConviteEmpresaId("");
     if (error || !data) return alert(error?.message || "Nao foi possivel gerar o convite.");
     setConviteGerado(data);
+  }
+
+  async function abrirErpAdministrativo(empresaId: string, urlFallback: string) {
+    const janela = window.open("about:blank", "_blank");
+    if (!janela) {
+      alert("Permita pop-ups para abrir o ERP.");
+      return;
+    }
+    janela.opener = null;
+    janela.document.title = "Abrindo ERP MikaON";
+    const { data, error } = await criarHandoffErpAdministrativo(empresaId);
+    if (error || !data?.url) {
+      janela.close();
+      alert(error?.message || "Nao foi possivel iniciar o acesso administrativo.");
+      return;
+    }
+    janela.location.href = data.url || urlFallback;
   }
 
   async function criarEmpresa() {
@@ -372,14 +390,14 @@ export default function Empresas() {
                         Editar
                       </button>
 
-                      <a
-                        href={linkErp || undefined}
-                        target="_blank"
-                        rel="noreferrer"
+                      <button
+                        type="button"
+                        disabled={!linkErp}
+                        onClick={() => void abrirErpAdministrativo(empresa.id, linkErp)}
                         className="min-w-0 rounded-xl border px-3 py-2 text-center text-sm font-bold text-slate-700"
                       >
                         Acessar ERP
-                      </a>
+                      </button>
 
                       <a
                         href={slug ? `${BrandConfig.erpUrl.replace(/\/$/, "")}/pdv/${slug}` : undefined}

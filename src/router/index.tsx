@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route, useSearchParams } from "react-router-dom";
 import type { ReactNode } from "react";
 
 import PublicProfile from "../pages/connect/PublicProfile/PublicProfile";
@@ -29,6 +29,7 @@ import EmpresaConfiguracoes from "../pages/empresa/EmpresaConfiguracoes";
 import EmpresaCanais from "../pages/empresa/EmpresaCanais";
 import EmpresaColaboradores from "../pages/empresa/EmpresaColaboradores";
 import EmpresaLinks from "../pages/empresa/EmpresaLinks";
+import PlatformErpHandoff from "../pages/PlatformErpHandoff/PlatformErpHandoff";
 import { RequireCompanyAuth, RequireErpEnvironment, RequirePlatformAuth } from "../auth/RouteGuards";
 import { RequirePermission } from "../auth/PermissionGuard";
 import { getRuntimeEnvironment } from "../auth/RuntimeEnvironment";
@@ -46,6 +47,12 @@ function MockCaixaRouteGuard({ children }: { children: ReactNode }) {
   }
 
   return children;
+}
+
+function CompanyEntry() {
+  const [searchParams] = useSearchParams();
+  if (searchParams.has("handoff")) return <PlatformErpHandoff />;
+  return <RequireCompanyAuth><EmpresaLayout /></RequireCompanyAuth>;
 }
 
 export default function AppRouter() {
@@ -109,7 +116,7 @@ export default function AppRouter() {
           <Route path="auditoria" element={<MasterPlaceholder title="Auditoria" />} />
         </Route>
 
-        <Route path="/empresa/:slug" element={<RequireCompanyAuth><EmpresaLayout /></RequireCompanyAuth>}>
+        <Route path="/empresa/:slug" element={<CompanyEntry />}>
           <Route index element={<EmpresaHome />} />
           <Route path="produtos" element={<RequirePermission permission="produto.visualizar"><EmpresaProdutos /></RequirePermission>} />
           <Route path="categorias" element={<RequirePermission permission="produto.visualizar"><EmpresaCategorias /></RequirePermission>} />
