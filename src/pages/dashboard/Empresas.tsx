@@ -7,7 +7,11 @@ import {
   excluirEmpresa as excluirEmpresaService,
   listarEmpresas,
 } from "../../services/empresa/empresa.service";
-import { criarConvitePrimeiroAcesso, type CompanyInvite } from "../../services/empresa/companyInvite.service";
+import {
+  criarConvitePrimeiroAcesso,
+  verificarAdministradorPrimeiroAcesso,
+  type CompanyInvite,
+} from "../../services/empresa/companyInvite.service";
 
 type EmpresaResumo = {
   id: string;
@@ -54,6 +58,7 @@ export default function Empresas() {
   const [salvandoNovaEmpresa, setSalvandoNovaEmpresa] = useState(false);
   const [conviteGerado, setConviteGerado] = useState<CompanyInvite | null>(null);
   const [conviteEmpresaId, setConviteEmpresaId] = useState("");
+  const [empresasComAdministrador, setEmpresasComAdministrador] = useState<Record<string, boolean>>({});
 
   const baseUrlPublica = (BrandConfig.publicAppUrl || window.location.origin).replace(
     /\/$/,
@@ -85,7 +90,15 @@ export default function Empresas() {
       return;
     }
 
-    setEmpresas(data || []);
+    const empresasCarregadas = data || [];
+    setEmpresas(empresasCarregadas);
+    const status = await Promise.all(
+      empresasCarregadas.map(async (empresa) => {
+        const resultado = await verificarAdministradorPrimeiroAcesso(empresa.id);
+        return [empresa.id, resultado.error ? false : resultado.possuiAdministrador] as const;
+      })
+    );
+    setEmpresasComAdministrador(Object.fromEntries(status));
     setCarregando(false);
   }
 
@@ -380,9 +393,11 @@ export default function Empresas() {
                         Copiar link
                       </button>
 
-                      <button type="button" disabled={conviteEmpresaId === empresa.id} onClick={() => void gerarConvite(empresa.id)} className="min-w-0 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm font-bold text-green-800 disabled:opacity-50">
-                        {conviteEmpresaId === empresa.id ? "Gerando..." : "Gerar convite"}
-                      </button>
+                      {empresasComAdministrador[empresa.id] !== true && (
+                        <button type="button" disabled={conviteEmpresaId === empresa.id} onClick={() => void gerarConvite(empresa.id)} className="min-w-0 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm font-bold text-green-800 disabled:opacity-50">
+                          {conviteEmpresaId === empresa.id ? "Gerando..." : "Primeiro acesso"}
+                        </button>
+                      )}
 
                     </div>
                   </div>
@@ -393,7 +408,8 @@ export default function Empresas() {
                     </p>
                   )}
 
-                  {conviteGerado?.empresaId === empresa.id && (
+                  {/* O convite gerado é exibido dentro do detalhe da empresa. */}
+                  {conviteGerado?.empresaId === empresa.id && empresaIdEmEdicao !== empresa.id && (
                     <div className="mt-3 rounded-xl border border-green-200 bg-green-50 p-4">
                       <p className="text-sm font-bold text-green-900">Convite de primeiro acesso gerado</p>
                       <p className="mt-1 break-all text-xs text-green-800">Válido até {new Date(conviteGerado.expiresAt).toLocaleString("pt-BR")}</p>
@@ -423,6 +439,32 @@ export default function Empresas() {
                         Fechar
                       </button>
                     </div>
+
+                    {empresasComAdministrador[empresa.id] !== true && (
+                      <section className="mb-6 rounded-2xl border border-green-200 bg-green-50 p-4">
+                        <h4 className="font-bold text-green-950">Primeiro Acesso</h4>
+                        <p className="mt-1 text-sm text-green-800">
+                          Gere um convite para o administrador criar o acesso ERP desta empresa.
+                        </p>
+                        <button
+                          type="button"
+                          disabled={conviteEmpresaId === empresa.id}
+                          onClick={() => void gerarConvite(empresa.id)}
+                          className="mt-3 rounded-xl bg-green-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
+                        >
+                          {conviteEmpresaId === empresa.id ? "Gerando..." : "Gerar convite de primeiro acesso"}
+                        </button>
+                        {conviteGerado?.empresaId === empresa.id && (
+                          <div className="mt-3 space-y-2">
+                            <p className="text-sm font-semibold text-green-900">Convite gerado. Válido até {new Date(conviteGerado.expiresAt).toLocaleString("pt-BR")}</p>
+                            <div className="flex flex-col gap-2 sm:flex-row">
+                              <input readOnly value={conviteGerado.url} className="min-w-0 flex-1 rounded-lg border border-green-200 bg-white px-3 py-2 text-xs" />
+                              <button type="button" onClick={() => void copiarLink(conviteGerado.url)} className="rounded-lg bg-green-700 px-3 py-2 text-sm font-bold text-white">Copiar convite</button>
+                            </div>
+                          </div>
+                        )}
+                      </section>
+                    )}
 
                     <EmpresaForm
                       empresaInicialId={empresa.id}

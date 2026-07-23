@@ -17,6 +17,7 @@ export function RequireCompanyAuth({ children }: { children: ReactNode }) {
   if (mockLoginEnabled() && sessionStorage.getItem("mikaon:mock-login-role")) return children;
   if (loading) return <LoadingAuth />;
   if (!session || !profile) return <Navigate to={`/pdv/${slug || "mikatech"}`} replace />;
+  if (profile.perfil === "global_admin") return children;
   if (!profile.empresaSlug) return <Navigate to="/admin" replace />;
   if (slug !== profile.empresaSlug) {
     return <main className="public-pdv public-pdv--center">Acesso nao autorizado para esta empresa.</main>;

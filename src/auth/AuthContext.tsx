@@ -52,6 +52,27 @@ async function carregarPerfil(session: Session | null): Promise<AuthProfile | nu
     };
   }
 
+  const { data: globalAdmin, error: globalAdminError } = await supabase
+    .from("platform_admin_users")
+    .select("id, email, nome, role, ativo")
+    .eq("auth_user_id", session.user.id)
+    .eq("ativo", true)
+    .maybeSingle();
+
+  if (globalAdminError) throw globalAdminError;
+  if (globalAdmin) {
+    return {
+      id: globalAdmin.id,
+      empresaId: null,
+      empresaSlug: null,
+      empresaNome: null,
+      nome: globalAdmin.nome || globalAdmin.email,
+      perfil: "global_admin",
+      ativo: globalAdmin.ativo,
+      permissoes: {},
+    };
+  }
+
   const { data: usuario, error: usuarioError } = await supabase
     .from("erp_pdv_usuarios")
     .select("id, empresa_id, nome, perfil, ativo, permissoes")
