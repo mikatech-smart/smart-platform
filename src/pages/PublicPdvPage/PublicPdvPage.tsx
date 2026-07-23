@@ -794,7 +794,7 @@ export default function PublicPdvPage({ modo = "pdv" }: PublicPdvPageProps) {
   const { session: authSession, loading: authLoading, profile: authProfile, signOut } = useAuth();
   const slug = routeSlug || authProfile?.empresaSlug || "";
   const rotaOperacional =
-    /^\/pdv\/[^/]+$/.test(pathname) || /^\/empresa\/[^/]+\/(pdv|caixa)$/.test(pathname);
+    /^\/pdv\/[^/]+$/.test(pathname) || /^\/empresa\/[^/]+\/(pdv|caixa|estoque)$/.test(pathname);
   const permitirMock = mockLoginEnabled();
   const [empresa, setEmpresa] = useState<EmpresaPdv | null>(null);
   const [produtos, setProdutos] = useState<ErpPdvProduto[]>([]);
