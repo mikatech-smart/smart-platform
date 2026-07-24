@@ -162,10 +162,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
     let syncVersion = 0;
+    let handoffEntryPending = new URLSearchParams(window.location.search).has("handoff");
 
     async function sincronizar(nextSession: Session | null) {
       const currentVersion = ++syncVersion;
       if (!mounted) return;
+
+      if (handoffEntryPending) {
+        setSession(null);
+        setProfile(null);
+        setLoading(true);
+        return;
+      }
+
       setSession(nextSession);
       setError("");
 
@@ -220,6 +229,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       void sincronizar(nextSession);
     });
     const onHandoffSessionReady = () => {
+      handoffEntryPending = false;
       void supabase.auth.getSession().then(({ data }) => sincronizar(data.session));
     };
     window.addEventListener(HANDOFF_SESSION_READY_EVENT, onHandoffSessionReady);
