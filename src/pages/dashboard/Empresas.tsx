@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 
 import EmpresaForm from "../../components/dashboard/EmpresaForm";
 import { BrandConfig } from "../../config/brand";
@@ -13,6 +13,7 @@ import {
   verificarAdministradorPrimeiroAcesso,
   type CompanyInvite,
 } from "../../services/empresa/companyInvite.service";
+import { createHandoffAttemptId, getHandoffFingerprint, getHandoffTabId, traceHandoff } from "../../utils/handoffTrace";
 
 type EmpresaResumo = {
   id: string;
@@ -60,6 +61,8 @@ export default function Empresas() {
   const [conviteGerado, setConviteGerado] = useState<CompanyInvite | null>(null);
   const [conviteEmpresaId, setConviteEmpresaId] = useState("");
   const [empresasComAdministrador, setEmpresasComAdministrador] = useState<Record<string, boolean>>({});
+  const [handoffEmAndamento, setHandoffEmAndamento] = useState<string | null>(null);
+  const handoffAttemptsRef = useRef(new Map<string, string>());
 
   const baseUrlPublica = (BrandConfig.publicAppUrl || window.location.origin).replace(
     /\/$/,
@@ -125,21 +128,55 @@ export default function Empresas() {
     setConviteGerado(data);
   }
 
-  async function abrirErpAdministrativo(empresaId: string, urlFallback: string) {
+  async function abrirErpAdministrativo(empresaId: string, companySlug: string, urlFallback: string) {
+    const tabId = getHandoffTabId();
+    const existingAttemptId = handoffAttemptsRef.current.get(empresaId);
+    if (existingAttemptId) {
+      traceHandoff("admin_click", {
+        attemptId: existingAttemptId,
+        companySlug,
+        tabId,
+        duplicate: true,
+        reason: "handoff_creation_in_progress",
+      });
+      return;
+    }
+
+    const attemptId = createHandoffAttemptId();
+    handoffAttemptsRef.current.set(empresaId, attemptId);
+    setHandoffEmAndamento(empresaId);
+    traceHandoff("admin_click", { attemptId, companySlug, tabId });
+    traceHandoff("handoff_create_start", { attemptId, companySlug, tabId });
     const janela = window.open("about:blank", "_blank");
     if (!janela) {
+      handoffAttemptsRef.current.delete(empresaId);
+      setHandoffEmAndamento(null);
       alert("Permita pop-ups para abrir o ERP.");
       return;
     }
     janela.opener = null;
     janela.document.title = "Abrindo ERP MikaON";
-    const { data, error } = await criarHandoffErpAdministrativo(empresaId);
-    if (error || !data?.url) {
-      janela.close();
-      alert(error?.message || "Nao foi possivel iniciar o acesso administrativo.");
-      return;
+    try {
+      const { data, error } = await criarHandoffErpAdministrativo(empresaId);
+      if (error || !data?.url) {
+        janela.close();
+        alert(error?.message || "Nao foi possivel iniciar o acesso administrativo.");
+        return;
+      }
+
+      const handoffToken = new URL(data.url).searchParams.get("handoff");
+      traceHandoff("handoff_create_success", {
+        attemptId,
+        companySlug,
+        tabId,
+        handoffFingerprint: handoffToken ? await getHandoffFingerprint(handoffToken) : undefined,
+        expiresAt: data.expiresAt,
+      });
+      janela.location.href = data.url || urlFallback;
+    } finally {
+      handoffAttemptsRef.current.delete(empresaId);
+      setHandoffEmAndamento(null);
     }
-    janela.location.href = data.url || urlFallback;
   }
 
   async function criarEmpresa() {
@@ -392,11 +429,11 @@ export default function Empresas() {
 
                       <button
                         type="button"
-                        disabled={!linkErp}
-                        onClick={() => void abrirErpAdministrativo(empresa.id, linkErp)}
+                        disabled={!linkErp || handoffEmAndamento === empresa.id}
+                        onClick={() => void abrirErpAdministrativo(empresa.id, slug, linkErp)}
                         className="min-w-0 rounded-xl border px-3 py-2 text-center text-sm font-bold text-slate-700"
                       >
-                        Acessar ERP
+                        {handoffEmAndamento === empresa.id ? "Abrindo..." : "Acessar ERP"}
                       </button>
 
                       <a

@@ -1,7 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { supabase } from "../../lib/supabase";
+import {
+  createHandoffAttemptId,
+  getHandoffFingerprint,
+  getHandoffTabId,
+  traceHandoff,
+} from "../../utils/handoffTrace";
 
 const HANDOFF_LOCK_TTL_MS = 120_000;
 
@@ -16,11 +22,6 @@ function debugJwt(event: string, details: Record<string, unknown> = {}) {
     projectUrl: import.meta.env.VITE_SUPABASE_URL,
     at: new Date().toISOString(),
   });
-}
-
-async function getHandoffKey(token: string) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("").slice(0, 24);
 }
 
 async function readFunctionError(data: unknown, functionError: unknown) {
@@ -42,12 +43,28 @@ async function readFunctionError(data: unknown, functionError: unknown) {
   return { status, step: payload?.step, reason, message };
 }
 
+type HandoffState = {
+  state: "processing" | "consumed" | "failed";
+  attemptId: string;
+  updatedAt: number;
+};
+
+function readHandoffState(key: string): HandoffState | null {
+  const raw = sessionStorage.getItem(key);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as HandoffState;
+  } catch {
+    sessionStorage.removeItem(key);
+    return null;
+  }
+}
+
 export default function PlatformErpHandoff() {
   const { slug = "" } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const startedRef = useRef(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -57,45 +74,75 @@ export default function PlatformErpHandoff() {
       return;
     }
 
-    if (startedRef.current) {
-      debugHandoff("chamada duplicada detectada", { tokenPresente: true, tentativa: "repetida" });
-      return;
-    }
-    startedRef.current = true;
-
     let ativo = true;
-    void (async () => {
-      const handoffKey = await getHandoffKey(token);
-      const lockKey = `mikaon:handoff-lock:${handoffKey}`;
-      const consumedKey = `mikaon:handoff-consumed:${handoffKey}`;
-      const attemptKey = `mikaon:handoff-attempt:${handoffKey}`;
-      const previousAttempt = Number(sessionStorage.getItem(attemptKey) || "0");
-      const attempt = previousAttempt + 1;
-      sessionStorage.setItem(attemptKey, String(attempt));
+    const tabId = getHandoffTabId();
+    const attemptId = createHandoffAttemptId();
 
-      debugHandoff("início do consumo", { tokenPresente: true, tentativa: attempt === 1 ? 1 : "repetida" });
-      if (localStorage.getItem(consumedKey)) {
-        debugHandoff("handoff já consumido", { tokenPresente: true, tentativa: "repetida" });
-        if (ativo) setError("Este acesso administrativo já foi utilizado.");
+    void (async () => {
+      const handoffFingerprint = await getHandoffFingerprint(token);
+      const stateKey = `mikaon:handoff-state:${handoffFingerprint}`;
+      const lockKey = `mikaon:handoff-lock:${handoffFingerprint}`;
+      const consumedKey = `mikaon:handoff-consumed:${handoffFingerprint}`;
+      const traceFields = { attemptId, handoffFingerprint, companySlug: slug, tabId };
+
+      traceHandoff("erp_page_mount", traceFields);
+      debugHandoff("início do consumo", { tokenPresente: true, handoffFingerprint, attemptId });
+
+      const previousState = readHandoffState(stateKey);
+      if (previousState?.state === "consumed" || localStorage.getItem(consumedKey)) {
+        traceHandoff("consume_request_failure", { ...traceFields, reason: "handoff_already_consumed" });
+        if (ativo) setError("Este acesso administrativo já foi utilizado. Volte ao painel e gere um novo acesso.");
+        return;
+      }
+      if (previousState?.state === "processing" && Date.now() - previousState.updatedAt < HANDOFF_LOCK_TTL_MS) {
+        traceHandoff("consume_lock_acquired", { ...traceFields, resumed: true });
+        const waitStartedAt = Date.now();
+        while (Date.now() - waitStartedAt < HANDOFF_LOCK_TTL_MS) {
+          await new Promise((resolve) => window.setTimeout(resolve, 100));
+          const stateAfterWait = readHandoffState(stateKey);
+          if (stateAfterWait?.state === "consumed" || localStorage.getItem(consumedKey)) {
+            traceHandoff("consume_request_success", { ...traceFields, resumed: true });
+            traceHandoff("redirect_start", { ...traceFields, resumed: true });
+            if (ativo) {
+              navigate(location.pathname, { replace: true });
+              traceHandoff("redirect_success", { ...traceFields, resumed: true });
+            }
+            return;
+          }
+          if (stateAfterWait?.state === "failed") {
+            traceHandoff("consume_request_failure", { ...traceFields, reason: "handoff_processing_failed", resumed: true });
+            if (ativo) setError("O acesso administrativo falhou. Volte ao painel e gere um novo acesso.");
+            return;
+          }
+        }
+        traceHandoff("consume_request_failure", { ...traceFields, reason: "handoff_processing_timeout" });
+        if (ativo) setError("Este acesso administrativo expirou durante o processamento.");
         return;
       }
 
-      const now = Date.now();
       const currentLock = localStorage.getItem(lockKey);
       const currentLockTime = currentLock ? Number(currentLock.split(":")[0]) : 0;
-      if (currentLockTime && now - currentLockTime < HANDOFF_LOCK_TTL_MS) {
-        debugHandoff("chamada duplicada detectada", { tokenPresente: true, tentativa: "repetida" });
+      if (currentLockTime && Date.now() - currentLockTime < HANDOFF_LOCK_TTL_MS) {
+        traceHandoff("consume_request_failure", { ...traceFields, reason: "handoff_processing_other_tab" });
         if (ativo) setError("Este acesso administrativo já está sendo processado.");
         return;
       }
 
-      const lockOwner = `${now}:${Math.random().toString(36).slice(2)}`;
+      const state: HandoffState = { state: "processing", attemptId, updatedAt: Date.now() };
+      sessionStorage.setItem(stateKey, JSON.stringify(state));
+      sessionStorage.setItem("mikaon:handoff-active-attempt", JSON.stringify(traceFields));
+      const lockOwner = `${Date.now()}:${tabId}:${attemptId}`;
       localStorage.setItem(lockKey, lockOwner);
       if (localStorage.getItem(lockKey) !== lockOwner) {
-        debugHandoff("chamada duplicada detectada", { tokenPresente: true, tentativa: "repetida" });
+        traceHandoff("consume_request_failure", { ...traceFields, reason: "consume_lock_lost" });
         if (ativo) setError("Este acesso administrativo já está sendo processado.");
         return;
       }
+      traceHandoff("consume_lock_acquired", traceFields);
+
+      // Remove the one-time credential before the first network request, including failures.
+      window.history.replaceState(window.history.state, document.title, `${location.pathname}${location.hash}`);
+      traceHandoff("handoff_url_removed", traceFields);
 
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       debugJwt("sessão antes do handoff", {
@@ -105,15 +152,21 @@ export default function PlatformErpHandoff() {
         usuarioAutenticadoEncontrado: Boolean(sessionData.session?.user),
         sessaoErro: sessionError?.message,
       });
-      debugHandoff("chamada enviada", { tokenPresente: true, tentativa: attempt === 1 ? 1 : "repetida" });
+      traceHandoff("consume_request_start", { ...traceFields, existingSession: Boolean(sessionData.session) });
+
       const { data, error: handoffError } = await supabase.functions.invoke("accept-platform-erp-handoff", {
         body: { token },
       });
       const functionFailure = await readFunctionError(data, handoffError);
+      traceHandoff(
+        handoffError || !data?.data?.tokenHash ? "consume_request_failure" : "consume_request_success",
+        { ...traceFields, status: functionFailure.status, step: functionFailure.step, reason: functionFailure.reason },
+      );
       debugHandoff("resposta da Function", {
         respostaHttp: functionFailure.status,
         etapa: functionFailure.step,
         motivo: functionFailure.reason,
+        handoffFingerprint,
       });
       debugJwt("resposta da Edge Function", {
         authorizationPresente: Boolean(sessionData.session?.access_token),
@@ -126,11 +179,13 @@ export default function PlatformErpHandoff() {
         erro: functionFailure.message,
       });
       if (handoffError || !data?.data?.tokenHash) {
+        sessionStorage.setItem(stateKey, JSON.stringify({ ...state, state: "failed", updatedAt: Date.now() } satisfies HandoffState));
         localStorage.removeItem(lockKey);
         if (ativo) setError(functionFailure.message ? `${functionFailure.reason}: ${functionFailure.message}` : functionFailure.reason);
         return;
       }
 
+      traceHandoff("verify_otp_start", traceFields);
       debugJwt("início do verifyOtp", {
         authorizationPresente: Boolean(sessionData.session?.access_token),
         bearerEnviado: Boolean(sessionData.session?.access_token),
@@ -138,12 +193,9 @@ export default function PlatformErpHandoff() {
         usuarioAutenticadoEncontrado: Boolean(sessionData.session?.user),
         tokenHashPresente: Boolean(data.data.tokenHash),
       });
-      const { error: authError } = await supabase.auth.verifyOtp({
-        type: "email",
-        token_hash: data.data.tokenHash,
-      });
-      if (!ativo) return;
+      const { error: authError } = await supabase.auth.verifyOtp({ type: "email", token_hash: data.data.tokenHash });
       if (authError) {
+        traceHandoff("verify_otp_failure", { ...traceFields, reason: authError.message });
         debugJwt("falha no verifyOtp", {
           authorizationPresente: Boolean(sessionData.session?.access_token),
           bearerEnviado: Boolean(sessionData.session?.access_token),
@@ -153,34 +205,48 @@ export default function PlatformErpHandoff() {
           pontoFalha: "supabase.auth.verifyOtp",
           erro: authError.message,
         });
+        sessionStorage.setItem(stateKey, JSON.stringify({ ...state, state: "failed", updatedAt: Date.now() } satisfies HandoffState));
         localStorage.removeItem(lockKey);
-        setError(authError.message);
+        if (ativo) setError(authError.message);
         return;
       }
+      traceHandoff("verify_otp_success", traceFields);
+
       const { data: authenticatedSession } = await supabase.auth.getSession();
+      if (authenticatedSession.session?.user) {
+        traceHandoff("session_detected", { ...traceFields, userId: authenticatedSession.session.user.id });
+      } else {
+        traceHandoff("session_missing", traceFields);
+      }
       debugJwt("verifyOtp concluído", {
         authorizationPresente: Boolean(authenticatedSession.session?.access_token),
         bearerEnviado: Boolean(authenticatedSession.session?.access_token),
         sessaoSupabaseEncontrada: Boolean(authenticatedSession.session),
         usuarioAutenticadoEncontrado: Boolean(authenticatedSession.session?.user),
-        jwtValido: true,
+        jwtValido: Boolean(authenticatedSession.session?.access_token),
         pontoFalha: null,
       });
+
+      sessionStorage.setItem(stateKey, JSON.stringify({ ...state, state: "consumed", updatedAt: Date.now() } satisfies HandoffState));
       localStorage.setItem(consumedKey, new Date().toISOString());
       localStorage.removeItem(lockKey);
-      debugHandoff("navegação concluída", { tokenPresente: false });
-      navigate(location.pathname, { replace: true });
+      traceHandoff("redirect_start", traceFields);
+      debugHandoff("navegação concluída", { tokenPresente: false, handoffFingerprint });
+      if (ativo) {
+        navigate(location.pathname, { replace: true });
+        traceHandoff("redirect_success", traceFields);
+      }
     })();
 
     return () => {
       ativo = false;
     };
-  }, [location.pathname, navigate, searchParams, slug]);
+  }, [location.hash, location.pathname, navigate, searchParams, slug]);
 
   return (
     <main className="public-pdv public-pdv--center">
       <section className="public-pdv-message">
-        {error ? <><h1>Acesso administrativo indisponivel</h1><p>{error}</p></> : <p>Validando acesso administrativo...</p>}
+        {error ? <><h1>Acesso administrativo indisponível</h1><p>{error}</p></> : <p>Validando acesso administrativo...</p>}
       </section>
     </main>
   );

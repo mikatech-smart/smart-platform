@@ -4,6 +4,7 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { hasRbacPermission, type RbacPermission, type RbacCustomPermissions } from "./rbac";
 import { isPlatformEnvironment } from "./RuntimeEnvironment";
+import { traceHandoff } from "../utils/handoffTrace";
 
 export type AuthProfile = {
   id: string;
@@ -30,6 +31,16 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 async function carregarPerfil(session: Session | null): Promise<AuthProfile | null> {
   if (!session?.user.id) return null;
 
+  const handoffTraceContext = (() => {
+    const raw = sessionStorage.getItem("mikaon:handoff-active-attempt");
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  })();
+
   if (isPlatformEnvironment()) {
     const { data: admin, error: adminError } = await supabase
       .from("platform_admin_users")
@@ -52,6 +63,12 @@ async function carregarPerfil(session: Session | null): Promise<AuthProfile | nu
     };
   }
 
+  traceHandoff("platform_admin_lookup_start", {
+    ...(handoffTraceContext || {}),
+    userId: session.user.id,
+    projectUrl: import.meta.env.VITE_SUPABASE_URL,
+  });
+
   const { data: globalAdmin, error: globalAdminError } = await supabase
     .from("platform_admin_users")
     .select("id, email, nome, role, ativo")
@@ -61,6 +78,11 @@ async function carregarPerfil(session: Session | null): Promise<AuthProfile | nu
 
   if (globalAdminError) throw globalAdminError;
   if (globalAdmin) {
+    traceHandoff("platform_admin_lookup_success", {
+      ...(handoffTraceContext || {}),
+      userId: session.user.id,
+      adminId: globalAdmin.id,
+    });
     return {
       id: globalAdmin.id,
       empresaId: null,
@@ -71,6 +93,14 @@ async function carregarPerfil(session: Session | null): Promise<AuthProfile | nu
       ativo: globalAdmin.ativo,
       permissoes: {},
     };
+  }
+
+  if (handoffTraceContext) {
+    traceHandoff("platform_admin_lookup_not_found", {
+      ...handoffTraceContext,
+      userId: session.user.id,
+      reason: "active_platform_admin_not_found",
+    });
   }
 
   const { data: usuario, error: usuarioError } = await supabase
