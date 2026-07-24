@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
-import { supabase } from "../../lib/supabase";
+import { supabase, supabaseHandoff } from "../../lib/supabase";
 import {
   createHandoffAttemptId,
   getHandoffFingerprint,
@@ -155,7 +155,7 @@ export default function PlatformErpHandoff() {
       });
       traceHandoff("consume_request_start", { ...traceFields, existingSession: Boolean(sessionData.session) });
 
-      const { data, error: handoffError } = await supabase.functions.invoke("accept-platform-erp-handoff", {
+      const { data, error: handoffError } = await supabaseHandoff.functions.invoke("accept-platform-erp-handoff", {
         body: { token },
       });
       const functionFailure = await readFunctionError(data, handoffError);

@@ -7,3 +7,16 @@ export const supabase = createClient(
   supabaseUrl,
   supabaseKey
 );
+
+// Handoff consumption must not inherit a persisted ERP session.
+export const supabaseHandoff = createClient(
+  supabaseUrl,
+  supabaseKey,
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  },
+);
