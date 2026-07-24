@@ -130,7 +130,7 @@ export default function PlatformErpHandoff() {
 
       const state: HandoffState = { state: "processing", attemptId, updatedAt: Date.now() };
       sessionStorage.setItem(stateKey, JSON.stringify(state));
-      sessionStorage.setItem("mikaon:handoff-active-attempt", JSON.stringify(traceFields));
+      sessionStorage.setItem("mikaon:handoff-active-attempt", JSON.stringify({ ...traceFields, startedAt: Date.now() }));
       const lockOwner = `${Date.now()}:${tabId}:${attemptId}`;
       localStorage.setItem(lockKey, lockOwner);
       if (localStorage.getItem(lockKey) !== lockOwner) {
@@ -179,6 +179,8 @@ export default function PlatformErpHandoff() {
         erro: functionFailure.message,
       });
       if (handoffError || !data?.data?.tokenHash) {
+        sessionStorage.removeItem("mikaon:handoff-active-attempt");
+        sessionStorage.removeItem("mikaon:handoff-session-ready");
         sessionStorage.setItem(stateKey, JSON.stringify({ ...state, state: "failed", updatedAt: Date.now() } satisfies HandoffState));
         localStorage.removeItem(lockKey);
         if (ativo) setError(functionFailure.message ? `${functionFailure.reason}: ${functionFailure.message}` : functionFailure.reason);
@@ -205,6 +207,8 @@ export default function PlatformErpHandoff() {
           pontoFalha: "supabase.auth.verifyOtp",
           erro: authError.message,
         });
+        sessionStorage.removeItem("mikaon:handoff-active-attempt");
+        sessionStorage.removeItem("mikaon:handoff-session-ready");
         sessionStorage.setItem(stateKey, JSON.stringify({ ...state, state: "failed", updatedAt: Date.now() } satisfies HandoffState));
         localStorage.removeItem(lockKey);
         if (ativo) setError(authError.message);
@@ -215,8 +219,16 @@ export default function PlatformErpHandoff() {
       const { data: authenticatedSession } = await supabase.auth.getSession();
       if (authenticatedSession.session?.user) {
         traceHandoff("session_detected", { ...traceFields, userId: authenticatedSession.session.user.id });
+        sessionStorage.setItem("mikaon:handoff-session-ready", authenticatedSession.session.user.id);
+        window.dispatchEvent(new Event("mikaon:handoff-session-ready"));
       } else {
         traceHandoff("session_missing", traceFields);
+        sessionStorage.removeItem("mikaon:handoff-active-attempt");
+        sessionStorage.removeItem("mikaon:handoff-session-ready");
+        sessionStorage.setItem(stateKey, JSON.stringify({ ...state, state: "failed", updatedAt: Date.now() } satisfies HandoffState));
+        localStorage.removeItem(lockKey);
+        if (ativo) setError("A sessão administrativa não ficou disponível. Volte ao painel e gere um novo acesso.");
+        return;
       }
       debugJwt("verifyOtp concluído", {
         authorizationPresente: Boolean(authenticatedSession.session?.access_token),

@@ -27,6 +27,25 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+const HANDOFF_SESSION_READY_EVENT = "mikaon:handoff-session-ready";
+const HANDOFF_WAIT_TTL_MS = 120_000;
+
+function getActiveHandoff() {
+  const raw = sessionStorage.getItem("mikaon:handoff-active-attempt");
+  if (!raw) return null;
+  try {
+    const value = JSON.parse(raw) as Record<string, unknown>;
+    const startedAt = typeof value.startedAt === "number" ? value.startedAt : 0;
+    if (startedAt && Date.now() - startedAt < HANDOFF_WAIT_TTL_MS) return value;
+    sessionStorage.removeItem("mikaon:handoff-active-attempt");
+    sessionStorage.removeItem("mikaon:handoff-session-ready");
+    return null;
+  } catch {
+    sessionStorage.removeItem("mikaon:handoff-active-attempt");
+    sessionStorage.removeItem("mikaon:handoff-session-ready");
+    return null;
+  }
+}
 
 async function carregarPerfil(session: Session | null): Promise<AuthProfile | null> {
   if (!session?.user.id) return null;
@@ -142,11 +161,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    let syncVersion = 0;
 
     async function sincronizar(nextSession: Session | null) {
+      const currentVersion = ++syncVersion;
       if (!mounted) return;
       setSession(nextSession);
       setError("");
+
+      const activeHandoff = getActiveHandoff();
+      const sessionReady = sessionStorage.getItem("mikaon:handoff-session-ready");
+      if (activeHandoff && !sessionReady) {
+        setProfile(null);
+        setLoading(true);
+        return;
+      }
+      if (activeHandoff && sessionReady && nextSession?.user.id !== sessionReady) {
+        setProfile(null);
+        setLoading(true);
+        return;
+      }
 
       if (!nextSession) {
         setProfile(null);
@@ -157,21 +191,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       try {
         const nextProfile = await carregarPerfil(nextSession);
-        if (!mounted) return;
+        if (!mounted || currentVersion !== syncVersion) return;
         if (!nextProfile) {
           await supabase.auth.signOut();
           setProfile(null);
           setError("O usuario autenticado nao possui vinculo ativo.");
+          sessionStorage.removeItem("mikaon:handoff-active-attempt");
+          sessionStorage.removeItem("mikaon:handoff-session-ready");
           return;
         }
         setProfile(nextProfile);
+        sessionStorage.removeItem("mikaon:handoff-active-attempt");
+        sessionStorage.removeItem("mikaon:handoff-session-ready");
       } catch (cause) {
-        if (!mounted) return;
+        if (!mounted || currentVersion !== syncVersion) return;
         await supabase.auth.signOut();
         setProfile(null);
         setError(cause instanceof Error ? cause.message : "Nao foi possivel validar o usuario.");
+        sessionStorage.removeItem("mikaon:handoff-active-attempt");
+        sessionStorage.removeItem("mikaon:handoff-session-ready");
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted && currentVersion === syncVersion) setLoading(false);
       }
     }
 
@@ -179,10 +219,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       void sincronizar(nextSession);
     });
+    const onHandoffSessionReady = () => {
+      void supabase.auth.getSession().then(({ data }) => sincronizar(data.session));
+    };
+    window.addEventListener(HANDOFF_SESSION_READY_EVENT, onHandoffSessionReady);
 
     return () => {
       mounted = false;
       listener.subscription.unsubscribe();
+      window.removeEventListener(HANDOFF_SESSION_READY_EVENT, onHandoffSessionReady);
     };
   }, []);
 
