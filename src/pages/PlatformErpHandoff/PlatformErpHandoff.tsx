@@ -25,7 +25,7 @@ function debugJwt(event: string, details: Record<string, unknown> = {}) {
 }
 
 async function readFunctionError(data: unknown, functionError: unknown) {
-  let payload = data as { error?: string; step?: string; reason?: string; details?: { message?: string } } | null;
+  let payload = data as { error?: string; code?: string; message?: string; step?: string; reason?: string; details?: { message?: string } } | null;
   let status: number | undefined;
   const context = (functionError as { context?: unknown } | null)?.context;
 
@@ -38,8 +38,8 @@ async function readFunctionError(data: unknown, functionError: unknown) {
     }
   }
 
-  const reason = payload?.reason || payload?.error || "handoff_failed";
-  const message = payload?.details?.message;
+  const reason = payload?.code || payload?.reason || "handoff_failed";
+  const message = payload?.message || payload?.details?.message || payload?.error;
   return { status, step: payload?.step, reason, message };
 }
 
@@ -73,6 +73,7 @@ export default function PlatformErpHandoff() {
       setError("Acesso administrativo incompleto.");
       return;
     }
+    setError("");
 
     let ativo = true;
     const tabId = getHandoffTabId();
@@ -183,7 +184,7 @@ export default function PlatformErpHandoff() {
         sessionStorage.removeItem("mikaon:handoff-session-ready");
         sessionStorage.setItem(stateKey, JSON.stringify({ ...state, state: "failed", updatedAt: Date.now() } satisfies HandoffState));
         localStorage.removeItem(lockKey);
-        if (ativo) setError(functionFailure.message ? `${functionFailure.reason}: ${functionFailure.message}` : functionFailure.reason);
+        if (ativo) setError(functionFailure.message || functionFailure.reason);
         return;
       }
 
@@ -215,6 +216,7 @@ export default function PlatformErpHandoff() {
         return;
       }
       traceHandoff("verify_otp_success", traceFields);
+      if (ativo) setError("");
 
       const { data: authenticatedSession } = await supabase.auth.getSession();
       if (authenticatedSession.session?.user) {

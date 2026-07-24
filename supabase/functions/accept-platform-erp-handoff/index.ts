@@ -57,7 +57,7 @@ Deno.serve(async (request) => {
     if (candidate.consumed_at) {
       return diagnosticError(
         "validate_handoff",
-        handoffError ? "unexpected_error" : "handoff_already_consumed",
+        "handoff_already_consumed",
         {
           empresa_id: candidate.empresa_id,
           created_by: candidate.created_by,
@@ -165,11 +165,19 @@ Deno.serve(async (request) => {
     }
 
     const { data: authUser, error: authUserError } = await adminClient.auth.admin.getUserById(platformAdmin.auth_user_id);
-    if (authUserError || !authUser.user?.email) {
+    if (authUserError) {
       return diagnosticError(
         "lookup_auth_user",
-        "platform_admin_not_found",
-        { created_by: platformAdmin.auth_user_id, message: authUserError?.message },
+        "auth_lookup_failed",
+        { created_by: platformAdmin.auth_user_id, message: authUserError.message },
+        502,
+      );
+    }
+    if (!authUser.user?.email) {
+      return diagnosticError(
+        "lookup_auth_user",
+        "auth_user_not_found",
+        { created_by: platformAdmin.auth_user_id },
         404,
       );
     }
