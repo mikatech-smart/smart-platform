@@ -9,6 +9,15 @@ function debugHandoff(event: string, details: Record<string, unknown> = {}) {
   console.info("[MIKAON HANDOFF DEBUG]", event, { ...details, at: new Date().toISOString() });
 }
 
+function debugJwt(event: string, details: Record<string, unknown> = {}) {
+  console.info("[MIKAON JWT DEBUG]", event, {
+    ...details,
+    hostname: window.location.hostname,
+    projectUrl: import.meta.env.VITE_SUPABASE_URL,
+    at: new Date().toISOString(),
+  });
+}
+
 async function getHandoffKey(token: string) {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("").slice(0, 24);
@@ -88,6 +97,14 @@ export default function PlatformErpHandoff() {
         return;
       }
 
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      debugJwt("sessão antes do handoff", {
+        authorizationPresente: Boolean(sessionData.session?.access_token),
+        bearerEnviado: Boolean(sessionData.session?.access_token),
+        sessaoSupabaseEncontrada: Boolean(sessionData.session),
+        usuarioAutenticadoEncontrado: Boolean(sessionData.session?.user),
+        sessaoErro: sessionError?.message,
+      });
       debugHandoff("chamada enviada", { tokenPresente: true, tentativa: attempt === 1 ? 1 : "repetida" });
       const { data, error: handoffError } = await supabase.functions.invoke("accept-platform-erp-handoff", {
         body: { token },
@@ -98,22 +115,57 @@ export default function PlatformErpHandoff() {
         etapa: functionFailure.step,
         motivo: functionFailure.reason,
       });
+      debugJwt("resposta da Edge Function", {
+        authorizationPresente: Boolean(sessionData.session?.access_token),
+        bearerEnviado: Boolean(sessionData.session?.access_token),
+        sessaoSupabaseEncontrada: Boolean(sessionData.session),
+        usuarioAutenticadoEncontrado: Boolean(sessionData.session?.user),
+        respostaHttp: functionFailure.status,
+        etapa: functionFailure.step,
+        motivo: functionFailure.reason,
+        erro: functionFailure.message,
+      });
       if (handoffError || !data?.data?.tokenHash) {
         localStorage.removeItem(lockKey);
         if (ativo) setError(functionFailure.message ? `${functionFailure.reason}: ${functionFailure.message}` : functionFailure.reason);
         return;
       }
 
+      debugJwt("início do verifyOtp", {
+        authorizationPresente: Boolean(sessionData.session?.access_token),
+        bearerEnviado: Boolean(sessionData.session?.access_token),
+        sessaoSupabaseEncontrada: Boolean(sessionData.session),
+        usuarioAutenticadoEncontrado: Boolean(sessionData.session?.user),
+        tokenHashPresente: Boolean(data.data.tokenHash),
+      });
       const { error: authError } = await supabase.auth.verifyOtp({
-        type: "magiclink",
+        type: "email",
         token_hash: data.data.tokenHash,
       });
       if (!ativo) return;
       if (authError) {
+        debugJwt("falha no verifyOtp", {
+          authorizationPresente: Boolean(sessionData.session?.access_token),
+          bearerEnviado: Boolean(sessionData.session?.access_token),
+          sessaoSupabaseEncontrada: Boolean(sessionData.session),
+          usuarioAutenticadoEncontrado: Boolean(sessionData.session?.user),
+          jwtValido: false,
+          pontoFalha: "supabase.auth.verifyOtp",
+          erro: authError.message,
+        });
         localStorage.removeItem(lockKey);
         setError(authError.message);
         return;
       }
+      const { data: authenticatedSession } = await supabase.auth.getSession();
+      debugJwt("verifyOtp concluído", {
+        authorizationPresente: Boolean(authenticatedSession.session?.access_token),
+        bearerEnviado: Boolean(authenticatedSession.session?.access_token),
+        sessaoSupabaseEncontrada: Boolean(authenticatedSession.session),
+        usuarioAutenticadoEncontrado: Boolean(authenticatedSession.session?.user),
+        jwtValido: true,
+        pontoFalha: null,
+      });
       localStorage.setItem(consumedKey, new Date().toISOString());
       localStorage.removeItem(lockKey);
       debugHandoff("navegação concluída", { tokenPresente: false });
